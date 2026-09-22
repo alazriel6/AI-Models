@@ -1,0 +1,301 @@
+/* ==========================================================================
+   Models Guide - Editorial Reference Style
+   Intentional, restrained, authentic human design (Anti-AI Slop)
+   Dark background, readable typography, zero decorative gimmicks.
+   ========================================================================== */
+
+:root {
+  /* Restrained Warm Dark Palette */
+  --bg: #161615;
+  --bg-subtle: #1c1c1a;
+  --border: #2c2b28;
+  --border-subtle: #242321;
+
+  /* Typography Colors: Comfortable contrast, never harsh pure white/pure black */
+  --heading: #ede9e1;
+  --text: #d2cec6;
+  --muted: #938f87;
+  --subtle: #6e6b64;
+
+  /* Restrained warm terracotta for functional interaction */
+  --accent: #bd6d52;
+  --focus-ring: #bd6d52;
+
+  /* Authentic, accessible typography: No Inter, Geist, Space Grotesk, or cursive */
+  --font-serif: Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-sans: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Consolas", "Courier New", Courier, monospace;
+
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Base Structure
+   ========================================================================== */
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* ==========================================================================
+   Main Application Layout
+   ========================================================================== */
+
+.main-app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+}
+
+/* ==========================================================================
+   Navigation Header
+   Unpretentious, solid reference layout with left-aligned brand & links
+   ========================================================================== */
+
+nav {
+  width: 100%;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px max(24px, calc((100% - 980px) / 2 + 24px));
+}
+
+nav h1 {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+  margin: 0;
+  text-align: left;
+}
+
+nav ul {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+nav li {
+  margin: 0;
+  padding: 0;
+}
+
+nav a {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  transition: color 0.12s ease;
+  padding: 4px 0;
+  position: relative;
+}
+
+nav a:hover {
+  color: var(--heading);
+}
+
+nav a:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+/* Active navigation state */
+nav a.active,
+nav a[aria-current="page"] {
+  color: var(--heading);
+  border-bottom: 1px solid var(--accent);
+}
+
+/* ==========================================================================
+   Main Content Area
+   Left-aligned, comfortable reading width, no artificial cards or glow
+   ========================================================================== */
+
+.content {
+  flex: 1;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 48px 24px 80px;
+  text-align: left;
+  background-color: var(--bg);
+}
+
+/* Headings: Dignified editorial serif, no colored underlines, no squished tracking */
+.content h1 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+  margin: 0 0 20px;
+  text-align: left;
+}
+
+.content h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--heading);
+  margin: 0 0 16px;
+  text-align: left;
+}
+
+.content h3 {
+  font-family: var(--font-sans);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--heading);
+  margin: 28px 0 12px;
+  text-align: left;
+}
+
+/* Body text: Natural reading measure and comfortable line spacing */
+.content p {
+  max-width: 68ch;
+  color: var(--text);
+  font-size: 1rem;
+  line-height: 1.65;
+  margin: 0 0 16px;
+  text-align: left;
+}
+
+.content p:last-child {
+  margin-bottom: 0;
+}
+
+/* Inline links: Simple, accessible underline */
+.content a {
+  color: var(--heading);
+  text-decoration: underline;
+  text-decoration-color: var(--subtle);
+  text-underline-offset: 3px;
+}
+
+.content a:hover {
+  text-decoration-color: var(--accent);
+}
+
+/* Clean list styling */
+.content ul,
+.content ol {
+  max-width: 68ch;
+  margin: 16px 0 24px 20px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.content li {
+  margin-bottom: 8px;
+}
+
+/* Reference table styling for models & specifications */
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 28px 0;
+  font-size: 0.9375rem;
+}
+
+.content th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+
+.content td {
+  padding: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.content tr:last-child td {
+  border-bottom: 1px solid var(--border);
+}
+
+/* Code & preformatted text: Clean, unembellished monospace */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  padding: 2px 5px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  color: var(--heading);
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  padding: 16px;
+  margin: 20px 0;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+pre code {
+  padding: 0;
+  background-color: transparent;
+  border: none;
+}
+
+/* Text Selection: Calm, warm, non-neon highlight */
+::selection {
+  background-color: #38312a;
+  color: var(--heading);
+}
+
+/* ==========================================================================
+   Responsive Adaptations
+   ========================================================================== */
+
+@media (max-width: 680px) {
+  nav {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+  }
+
+  nav ul {
+    gap: 18px;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .content {
+    padding: 32px 20px 64px;
+  }
+}

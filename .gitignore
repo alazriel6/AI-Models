@@ -1,0 +1,31 @@
+.env
+
+storage/images/*
+!storage/images/.gitkeep
+
+tmp/
+bin/
+
+*.exe
+
+# Frontend
+fe/node_modules/
+fe/dist/
+fe/.vite/
+
+# Backend
+be/bin/
+be/*.exe
+be/tmp/
+
+# Go
+*.test
+coverage.out
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
