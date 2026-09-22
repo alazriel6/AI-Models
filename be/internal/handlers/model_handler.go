@@ -35,13 +35,13 @@ func (h *ModelHandler) GetModels(c *gin.Context) {
 }
 
 func (h *ModelHandler) GetModel(c *gin.Context) {
-	id, err := parseUintParam(c, "id")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid model ID"})
+	param := c.Param("id")
+	if param == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Model identifier is required"})
 		return
 	}
 
-	model, err := h.service.GetByID(id)
+	model, err := h.service.GetByIDOrSlug(param)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})

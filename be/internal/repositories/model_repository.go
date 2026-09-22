@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"math"
+	"strconv"
 
 	"github.com/alazriel6/models-guide/backend/internal/models"
 	"gorm.io/gorm"
@@ -56,8 +57,8 @@ func (r *ModelRepository) FindAll(page, limit int, search, filterType, filterBas
 	offset := (page - 1) * limit
 
 	err := query.
-		Preload("Versions").
 		Preload("Tags").
+		Preload("TriggerWords").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).
@@ -84,12 +85,39 @@ func (r *ModelRepository) FindByID(id uint) (*models.Model, error) {
 	var model models.Model
 
 	err := r.DB.
-		Preload("Versions").
 		Preload("Tags").
+		Preload("TriggerWords").
+		Preload("Reviews").
 		Preload("Images").
 		Preload("Images.Resources").
+		Preload("Versions").
 		First(&model, id).Error
 
+	if err != nil {
+		return nil, err
+	}
+
+	return &model, nil
+}
+
+func (r *ModelRepository) FindByIDOrSlug(identifier string) (*models.Model, error) {
+	var model models.Model
+
+	query := r.DB.
+		Preload("Tags").
+		Preload("TriggerWords").
+		Preload("Reviews").
+		Preload("Images").
+		Preload("Images.Resources").
+		Preload("Versions")
+
+	if id, err := strconv.ParseUint(identifier, 10, 32); err == nil {
+		if err := query.Where("id = ? OR slug = ?", id, identifier).First(&model).Error; err == nil {
+			return &model, nil
+		}
+	}
+
+	err := query.Where("slug = ?", identifier).First(&model).Error
 	if err != nil {
 		return nil, err
 	}

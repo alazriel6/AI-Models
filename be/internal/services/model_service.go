@@ -4,6 +4,7 @@ import (
 	"errors"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/alazriel6/models-guide/backend/internal/models"
 	"github.com/alazriel6/models-guide/backend/internal/repositories"
@@ -11,27 +12,48 @@ import (
 )
 
 type CreateModelInput struct {
-	Name           string `json:"name" binding:"required"`
-	Slug           string `json:"slug"`
-	Type           string `json:"type" binding:"required"`
-	BaseModel      string `json:"base_model" binding:"required"`
-	Author         string `json:"author"`
-	Description    string `json:"description"`
-	CivitaiURL     string `json:"civitai_url"`
-	HuggingFaceURL string `json:"huggingface_url"`
-	ThumbnailURL   string `json:"thumbnail_url"`
+	Name            string     `json:"name" binding:"required"`
+	Slug            string     `json:"slug"`
+	Type            string     `json:"type" binding:"required"`
+	BaseModel       string     `json:"base_model" binding:"required"`
+	Author          string     `json:"author"`
+	Description     string     `json:"description"`
+	SourceURL       string     `json:"source_url"`
+	CivitaiURL      string     `json:"civitai_url"`
+	HuggingFaceURL  string     `json:"huggingface_url"`
+	ThumbnailURL    string     `json:"thumbnail_url"`
+	PublishedAt     *time.Time `json:"published_at"`
+	Likes           int        `json:"likes"`
+	Rating          float64    `json:"rating"`
+	TensorSize      string     `json:"tensor_size"`
+	VRAMMin         string     `json:"vram_min"`
+	VRAMRecommended string     `json:"vram_recommended"`
+	Conditioner     int        `json:"conditioner"`
+	FirstStageModel int        `json:"first_stage_model"`
+	ModelTensor     int        `json:"model_tensor"`
+	TriggerWords    []string   `json:"trigger_words"`
 }
 
 type UpdateModelInput struct {
-	Name           *string `json:"name"`
-	Slug           *string `json:"slug"`
-	Type           *string `json:"type"`
-	BaseModel      *string `json:"base_model"`
-	Author         *string `json:"author"`
-	Description    *string `json:"description"`
-	CivitaiURL     *string `json:"civitai_url"`
-	HuggingFaceURL *string `json:"huggingface_url"`
-	ThumbnailURL   *string `json:"thumbnail_url"`
+	Name            *string    `json:"name"`
+	Slug            *string    `json:"slug"`
+	Type            *string    `json:"type"`
+	BaseModel       *string    `json:"base_model"`
+	Author          *string    `json:"author"`
+	Description     *string    `json:"description"`
+	SourceURL       *string    `json:"source_url"`
+	CivitaiURL      *string    `json:"civitai_url"`
+	HuggingFaceURL  *string    `json:"huggingface_url"`
+	ThumbnailURL    *string    `json:"thumbnail_url"`
+	PublishedAt     *time.Time `json:"published_at"`
+	Likes           *int       `json:"likes"`
+	Rating          *float64   `json:"rating"`
+	TensorSize      *string    `json:"tensor_size"`
+	VRAMMin         *string    `json:"vram_min"`
+	VRAMRecommended *string    `json:"vram_recommended"`
+	Conditioner     *int       `json:"conditioner"`
+	FirstStageModel *int       `json:"first_stage_model"`
+	ModelTensor     *int       `json:"model_tensor"`
 }
 
 type ModelService struct {
@@ -57,22 +79,58 @@ func (s *ModelService) GetByID(id uint) (*models.Model, error) {
 	return s.repo.FindByID(id)
 }
 
+func (s *ModelService) GetByIDOrSlug(identifier string) (*models.Model, error) {
+	return s.repo.FindByIDOrSlug(identifier)
+}
+
 func (s *ModelService) Create(input CreateModelInput) (*models.Model, error) {
 	slug := strings.TrimSpace(input.Slug)
 	if slug == "" {
 		slug = GenerateSlug(input.Name)
 	}
 
+	sourceURL := strings.TrimSpace(input.SourceURL)
+	if sourceURL == "" && input.CivitaiURL != "" {
+		sourceURL = strings.TrimSpace(input.CivitaiURL)
+	}
+
+	publishedAt := input.PublishedAt
+	if publishedAt == nil {
+		now := time.Now()
+		publishedAt = &now
+	}
+
 	model := &models.Model{
-		Name:           strings.TrimSpace(input.Name),
-		Slug:           slug,
-		Type:           strings.TrimSpace(input.Type),
-		BaseModel:      strings.TrimSpace(input.BaseModel),
-		Author:         strings.TrimSpace(input.Author),
-		Description:    strings.TrimSpace(input.Description),
-		CivitaiURL:     strings.TrimSpace(input.CivitaiURL),
-		HuggingFaceURL: strings.TrimSpace(input.HuggingFaceURL),
-		ThumbnailURL:   strings.TrimSpace(input.ThumbnailURL),
+		Name:            strings.TrimSpace(input.Name),
+		Slug:            slug,
+		Type:            strings.TrimSpace(input.Type),
+		BaseModel:       strings.TrimSpace(input.BaseModel),
+		Author:          strings.TrimSpace(input.Author),
+		Description:     strings.TrimSpace(input.Description),
+		SourceURL:       sourceURL,
+		CivitaiURL:      strings.TrimSpace(input.CivitaiURL),
+		HuggingFaceURL:  strings.TrimSpace(input.HuggingFaceURL),
+		ThumbnailURL:    strings.TrimSpace(input.ThumbnailURL),
+		PublishedAt:     publishedAt,
+		Likes:           input.Likes,
+		Rating:          input.Rating,
+		TensorSize:      strings.TrimSpace(input.TensorSize),
+		VRAMMin:         strings.TrimSpace(input.VRAMMin),
+		VRAMRecommended: strings.TrimSpace(input.VRAMRecommended),
+		Conditioner:     input.Conditioner,
+		FirstStageModel: input.FirstStageModel,
+		ModelTensor:     input.ModelTensor,
+	}
+
+	if len(input.TriggerWords) > 0 {
+		for _, tw := range input.TriggerWords {
+			trimmed := strings.TrimSpace(tw)
+			if trimmed != "" {
+				model.TriggerWords = append(model.TriggerWords, models.ModelTriggerWord{
+					TriggerWord: trimmed,
+				})
+			}
+		}
 	}
 
 	if err := s.repo.Create(model); err != nil {
@@ -108,6 +166,9 @@ func (s *ModelService) Update(id uint, input UpdateModelInput) (*models.Model, e
 	if input.Description != nil {
 		model.Description = strings.TrimSpace(*input.Description)
 	}
+	if input.SourceURL != nil {
+		model.SourceURL = strings.TrimSpace(*input.SourceURL)
+	}
 	if input.CivitaiURL != nil {
 		model.CivitaiURL = strings.TrimSpace(*input.CivitaiURL)
 	}
@@ -116,6 +177,33 @@ func (s *ModelService) Update(id uint, input UpdateModelInput) (*models.Model, e
 	}
 	if input.ThumbnailURL != nil {
 		model.ThumbnailURL = strings.TrimSpace(*input.ThumbnailURL)
+	}
+	if input.PublishedAt != nil {
+		model.PublishedAt = input.PublishedAt
+	}
+	if input.Likes != nil {
+		model.Likes = *input.Likes
+	}
+	if input.Rating != nil {
+		model.Rating = *input.Rating
+	}
+	if input.TensorSize != nil {
+		model.TensorSize = strings.TrimSpace(*input.TensorSize)
+	}
+	if input.VRAMMin != nil {
+		model.VRAMMin = strings.TrimSpace(*input.VRAMMin)
+	}
+	if input.VRAMRecommended != nil {
+		model.VRAMRecommended = strings.TrimSpace(*input.VRAMRecommended)
+	}
+	if input.Conditioner != nil {
+		model.Conditioner = *input.Conditioner
+	}
+	if input.FirstStageModel != nil {
+		model.FirstStageModel = *input.FirstStageModel
+	}
+	if input.ModelTensor != nil {
+		model.ModelTensor = *input.ModelTensor
 	}
 
 	if err := s.repo.Update(model); err != nil {
