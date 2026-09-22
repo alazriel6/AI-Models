@@ -2,9 +2,16 @@ import { BrowserRouter, Routes, Route, Link } from 'react-router-dom'
 import './App.css'
 import ModelList from './components/model-list.tsx'
 
-// Komponen Halaman Lain (Opsional)
 function Home() {
-  return <h2>Selamat Datang di Models Guide</h2>
+  return (
+    <div style={{ padding: '20px 0' }}>
+      <h2>Selamat Datang di Models Guide</h2>
+      <p>Jelajahi panduan dan spesifikasi AI models, checkpoints, dan LoRA.</p>
+      <Link to="/models" style={{ display: "inline-block", marginTop: "12px", padding: "8px 18px", background: "#1c7ed6", color: "#fff", borderRadius: "6px", textDecoration: "none", fontWeight: 600 }}>
+        Buka Model List →
+      </Link>
+    </div>
+  )
 }
 
 function About() {

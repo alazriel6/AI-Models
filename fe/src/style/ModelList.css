@@ -1,0 +1,1130 @@
+/* ==========================================================================
+   Civitai Model Detail UI Styles
+   Matches Civitai's dark theme, clean typography, and layout structure
+   ========================================================================== */
+
+.civitai-page {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #141517;
+    color: #c1c2c5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    box-sizing: border-box;
+    padding-bottom: 60px;
+}
+
+/* --------------------------------------------------------------------------
+   Top Bar / Model Selector (when backend models are available)
+   -------------------------------------------------------------------------- */
+.civitai-model-selector-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 10px 16px;
+    background: #1a1b1e;
+    border: 1px solid #2c2e33;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.selector-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #909296;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.model-pill-btn {
+    background: #25262b;
+    border: 1px solid #373a40;
+    color: #adb5bd;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.model-pill-btn:hover {
+    background: #2c2e33;
+    color: #ffffff;
+}
+
+.model-pill-btn.active {
+    background: #1971c2;
+    border-color: #1971c2;
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Civitai Header
+   -------------------------------------------------------------------------- */
+.civitai-header {
+    margin-bottom: 24px;
+}
+
+.header-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.title-and-stats {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.model-main-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.header-stats-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ced4da;
+}
+
+.stat-chip svg {
+    color: #909296;
+}
+
+.stat-chip.tip-chip svg {
+    color: #fab005;
+}
+
+.header-action-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.icon-circle-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    color: #adb5bd;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.icon-circle-btn:hover {
+    background: #2c2e33;
+    color: #ffffff;
+    border-color: #373a40;
+}
+
+/* Sub-row: Timestamp & Category Tags */
+.header-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.update-timestamp {
+    font-size: 12px;
+    color: #909296;
+}
+
+.header-tags-list {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.tag-badge {
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    color: #adb5bd;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+}
+
+.tag-badge.base-tag {
+    background: #1864ab;
+    border-color: #1971c2;
+    color: #ffffff;
+}
+
+/* Version Horizontal Pills Navigation */
+.version-tabs-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: #2c2e33 transparent;
+}
+
+.version-tabs-bar::-webkit-scrollbar {
+    height: 5px;
+}
+
+.version-tabs-bar::-webkit-scrollbar-thumb {
+    background: #2c2e33;
+    border-radius: 4px;
+}
+
+.version-pill {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    color: #909296;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.version-pill:hover {
+    background: #2c2e33;
+    color: #e9ecef;
+}
+
+.version-pill.active {
+    background: #1971c2;
+    border-color: #1971c2;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.pin-icon {
+    font-size: 10px;
+}
+
+/* --------------------------------------------------------------------------
+   Civitai 2-Column Grid Layout
+   -------------------------------------------------------------------------- */
+.civitai-layout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.85fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+/* --------------------------------------------------------------------------
+   Left Column: Image Showcase + Article Description
+   -------------------------------------------------------------------------- */
+.civitai-left-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Image Showcase Grid (2 columns side by side) */
+.image-showcase-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.showcase-card {
+    position: relative;
+    background: #1a1b1e;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #25262b;
+}
+
+.card-image-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 9 / 13;
+    background: #16171a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.showcase-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.showcase-card:hover .showcase-img {
+    transform: scale(1.02);
+}
+
+/* Top Floating Actions inside Card */
+.image-top-actions {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 2;
+}
+
+.card-tool-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(20, 21, 24, 0.75);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e9ecef;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.card-tool-btn:hover {
+    background: rgba(35, 36, 40, 0.95);
+    color: #ffffff;
+}
+
+/* Carousel Navigation Arrows on 2nd card */
+.carousel-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 48px;
+    background: rgba(20, 21, 24, 0.6);
+    backdrop-filter: blur(4px);
+    border: none;
+    color: #ffffff;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 3;
+    transition: background 0.2s ease;
+}
+
+.carousel-nav-btn.prev {
+    left: 0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.carousel-nav-btn.next {
+    right: 0;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+.carousel-nav-btn:hover {
+    background: rgba(20, 21, 24, 0.9);
+}
+
+/* Bottom Overlay on Image Card */
+.image-bottom-overlay {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, transparent 0%, rgba(10, 11, 13, 0.88) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 2;
+}
+
+.reactions-cluster {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.reaction-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(30, 32, 36, 0.85);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #dee2e6;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 7px;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.reaction-pill.add-btn {
+    font-size: 13px;
+    padding: 3px 8px;
+}
+
+.reaction-pill:hover {
+    background: rgba(45, 48, 54, 0.95);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.reaction-pill.reacted {
+    background: rgba(25, 113, 194, 0.4);
+    border-color: #1971c2;
+    color: #ffffff;
+}
+
+.info-badge-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(30, 32, 36, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #dee2e6;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.info-badge-btn:hover {
+    background: #1971c2;
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Article / Description Section
+   -------------------------------------------------------------------------- */
+.model-article {
+    background: transparent;
+    padding: 6px 0;
+}
+
+.article-main-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ff922b;
+    margin: 0 0 12px 0;
+}
+
+.article-paragraph {
+    font-size: 14px;
+    color: #c1c2c5;
+    line-height: 1.65;
+    margin: 0 0 20px 0;
+}
+
+.article-section-heading.early-access-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #20c997;
+    margin: 24px 0 10px 0;
+}
+
+.inline-action-link {
+    color: #339af0;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    transition: color 0.15s ease;
+}
+
+.inline-action-link:hover {
+    color: #4dabf7;
+}
+
+/* --------------------------------------------------------------------------
+   Right Column (Sidebar)
+   -------------------------------------------------------------------------- */
+.civitai-right-sidebar {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Social Actions Toolbar */
+.sidebar-action-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.action-pill-btn {
+    flex: 1;
+    min-width: 38px;
+    height: 38px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    color: #adb5bd;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.action-pill-btn:hover {
+    background: #2c2e33;
+    color: #ffffff;
+    border-color: #373a40;
+}
+
+.action-pill-btn.active-rate,
+.action-pill-btn.active-bookmark,
+.action-pill-btn.active-sub {
+    background: #1971c2;
+    border-color: #1971c2;
+    color: #ffffff;
+}
+
+/* Common Civitai Card Container */
+.civitai-card {
+    background: #1a1b1e;
+    border: 1px solid #2c2e33;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Download Box Card */
+.download-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.download-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.card-title-strong {
+    font-size: 15px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.variant-label {
+    font-size: 12px;
+    color: #909296;
+}
+
+.file-info-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.file-icon-wrapper {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.file-text-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.format-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.file-name {
+    font-size: 12px;
+    color: #adb5bd;
+    font-family: monospace;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-specs {
+    font-size: 11px;
+    color: #909296;
+}
+
+.verified-status {
+    font-size: 11px;
+    color: #51cf66;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.verified-icon {
+    font-size: 12px;
+}
+
+.primary-download-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: #1c7ed6;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    height: 42px;
+    border-radius: 6px;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s ease;
+}
+
+.primary-download-btn:hover {
+    background: #1971c2;
+    color: #ffffff;
+}
+
+/* Details Accordion Panel */
+.details-card {
+    padding: 0;
+}
+
+.accordion-header-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.chevron-icon {
+    font-size: 11px;
+    color: #909296;
+}
+
+.details-body {
+    padding: 0 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #25262b;
+    padding-top: 12px;
+}
+
+.meta-pair-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    min-height: 22px;
+}
+
+.meta-key {
+    color: #909296;
+    font-weight: 500;
+}
+
+.meta-val {
+    color: #dee2e6;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.type-badge {
+    background: #25262b;
+    border: 1px solid #373a40;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+}
+
+.mini-info {
+    color: #909296;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.stats-val {
+    gap: 10px;
+}
+
+.review-val {
+    color: #51cf66;
+}
+
+.link-val {
+    color: #339af0;
+    cursor: pointer;
+}
+
+.link-val:hover {
+    text-decoration: underline;
+}
+
+.training-badge {
+    background: #2b3b2b;
+    border: 1px solid #2f4f2f;
+    color: #69db7c;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+}
+
+.copyable-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hash-algo {
+    background: #25262b;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #909296;
+}
+
+.hash-code,
+.air-code {
+    font-family: monospace;
+    font-size: 11px;
+    color: #ced4da;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.copy-mini-btn {
+    background: transparent;
+    border: none;
+    color: #909296;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+}
+
+.copy-mini-btn:hover {
+    color: #ffffff;
+}
+
+/* Tensors Breakdown */
+.tensors-panel {
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-top: 6px;
+}
+
+.tensors-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    color: #dee2e6;
+    margin-bottom: 8px;
+}
+
+.vram-spec {
+    font-weight: 500;
+    color: #909296;
+}
+
+.tensors-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 600;
+    color: #868e96;
+    text-transform: uppercase;
+    border-bottom: 1px solid #373a40;
+    padding-bottom: 4px;
+    margin-bottom: 6px;
+}
+
+.tensors-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+}
+
+.tensor-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #adb5bd;
+    cursor: pointer;
+    padding: 2px 0;
+}
+
+.tensor-item:hover {
+    color: #ffffff;
+}
+
+.tensor-shape {
+    font-family: monospace;
+    color: #ced4da;
+}
+
+.vram-slider-track {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    background: #373a40;
+    border-radius: 2px;
+    margin-top: 10px;
+}
+
+.vram-slider-fill {
+    height: 100%;
+    background: #22b8cf;
+    border-radius: 2px;
+}
+
+.vram-slider-thumb {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: #ffffff;
+    border-radius: 50%;
+}
+
+/* About this version */
+.version-accordion-card {
+    padding: 0;
+}
+
+.version-notes-body {
+    padding: 0 16px 16px;
+    font-size: 13px;
+    color: #c1c2c5;
+    border-top: 1px solid #25262b;
+    padding-top: 12px;
+}
+
+.recommended-params-box {
+    margin-top: 10px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+}
+
+.recommended-params-box ul {
+    margin: 6px 0 0 18px;
+    padding: 0;
+}
+
+/* Feedback Bar */
+.civitai-feedback-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #1a1b1e;
+    border: 1px solid #2c2e33;
+    border-radius: 8px;
+}
+
+.feedback-label {
+    font-size: 12px;
+    color: #adb5bd;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.heart-icon {
+    color: #ff6b6b;
+}
+
+.feedback-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.feedback-icon-btn {
+    width: 32px;
+    height: 32px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    color: #ced4da;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+
+.feedback-icon-btn:hover {
+    background: #2c2e33;
+}
+
+.feedback-icon-btn.active {
+    background: #1971c2;
+    border-color: #1971c2;
+    color: #ffffff;
+}
+
+/* --------------------------------------------------------------------------
+   Inspector Modal (Generation Metadata)
+   -------------------------------------------------------------------------- */
+.inspector-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 20px;
+}
+
+.inspector-modal-content {
+    background: #1a1b1e;
+    border: 1px solid #2c2e33;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 600px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #2c2e33;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: #ffffff;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #909296;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.close-btn:hover {
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.param-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.param-group label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #909296;
+    text-transform: uppercase;
+}
+
+.param-text {
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    color: #e9ecef;
+    line-height: 1.5;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.copy-inline-btn {
+    align-self: flex-start;
+    background: #25262b;
+    border: 1px solid #373a40;
+    color: #dee2e6;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.copy-inline-btn:hover {
+    background: #2c2e33;
+}
+
+.param-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    background: #25262b;
+    border: 1px solid #2c2e33;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.param-grid div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.param-grid label {
+    font-size: 10px;
+    color: #868e96;
+    text-transform: uppercase;
+}
+
+.param-grid span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ced4da;
+}
+
+/* Toast */
+.civitai-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1971c2;
+    color: #ffffff;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    animation: toast-in 0.2s ease;
+}
+
+@keyframes toast-in {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Adaptations
+   -------------------------------------------------------------------------- */
+@media (max-width: 1080px) {
+    .civitai-layout-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .civitai-right-sidebar {
+        order: 2;
+    }
+
+    .civitai-left-column {
+        order: 1;
+    }
+}
+
+@media (max-width: 640px) {
+    .image-showcase-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .header-top-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .model-main-title {
+        font-size: 22px;
+    }
+
+    .param-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

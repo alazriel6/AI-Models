@@ -144,6 +144,17 @@ nav a[aria-current="page"] {
   background-color: var(--bg);
 }
 
+.content:has(.civitai-page),
+.content:has(.model-page) {
+  max-width: 1560px;
+  padding: 20px 24px 60px;
+}
+
+.main-app:has(.civitai-page) nav,
+.main-app:has(.model-page) nav {
+  padding: 14px max(24px, calc((100% - 1560px) / 2 + 24px));
+}
+
 /* Headings: Dignified editorial serif, no colored underlines, no squished tracking */
 .content h1 {
   font-family: var(--font-serif);
