@@ -161,11 +161,6 @@ func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, me
 		Steps:          meta.Steps,
 		CFGScale:       meta.CFGScale,
 		Sampler:        strings.TrimSpace(meta.Sampler),
-		ClipSkip:       meta.ClipSkip,
-		HiresUpscale:   meta.HiresUpscale,
-		HiresSteps:     meta.HiresSteps,
-		HiresUpscaler:  strings.TrimSpace(meta.HiresUpscaler),
-		DenoisingStr:   meta.DenoisingStr,
 		RawMetadata:    meta.RawMetadata,
 	}
 
@@ -204,21 +199,6 @@ func (s *ImageService) Update(id uint, input UpdateImageInput) (*models.ModelIma
 	}
 	if input.Sampler != nil {
 		img.Sampler = strings.TrimSpace(*input.Sampler)
-	}
-	if input.ClipSkip != nil {
-		img.ClipSkip = *input.ClipSkip
-	}
-	if input.HiresUpscale != nil {
-		img.HiresUpscale = *input.HiresUpscale
-	}
-	if input.HiresSteps != nil {
-		img.HiresSteps = *input.HiresSteps
-	}
-	if input.HiresUpscaler != nil {
-		img.HiresUpscaler = strings.TrimSpace(*input.HiresUpscaler)
-	}
-	if input.DenoisingStr != nil {
-		img.DenoisingStr = *input.DenoisingStr
 	}
 	if input.RawMetadata != nil {
 		img.RawMetadata = *input.RawMetadata

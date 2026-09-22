@@ -26,13 +26,6 @@ type ModelImage struct {
 	CFGScale       float64 `json:"cfg_scale"`
 	Sampler        string  `json:"sampler"`
 	Scheduler      string  `json:"scheduler"`
-	ClipSkip       int     `json:"clip_skip"`
-
-	// Hires settings
-	HiresUpscale  float64 `json:"hires_upscale"`
-	HiresSteps    int     `json:"hires_steps"`
-	HiresUpscaler string  `json:"hires_upscaler"`
-	DenoisingStr  float64 `json:"denoising_strength" gorm:"column:denoising_strength"`
 
 	// Flexible metadata from different tools
 	RawMetadata datatypes.JSON `json:"raw_metadata" gorm:"type:jsonb"`
