@@ -64,7 +64,7 @@ export interface ModelVersion {
         denoising_strength?: number;
         trigger_words?: string[];
         weight?: number;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     created_at?: string;
     updated_at?: string;

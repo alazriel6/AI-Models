@@ -199,16 +199,37 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
 export default function ModelList() {
     const [searchParams, setSearchParams] = useSearchParams();
     const modelParam = searchParams.get("model");
+    const tabParam = searchParams.get("tab");
+    const searchParam = searchParams.get("search");
 
     const [catalog, setCatalog] = useState<CatalogModel[]>([]);
-    const [selectedModel, setSelectedModel] = useState<CatalogModel | null>(null);
+    const [detailedModel, setDetailedModel] = useState<CatalogModel | null>(null);
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Filters and View Mode
-    const [activeTab, setActiveTab] = useState<string>("all");
-    const [searchQuery, setSearchQuery] = useState<string>("");
+    // Derive active tab from URL search parameters, and update URL when tab changes
+    const activeTab = tabParam || "all";
+    const setActiveTab = (tab: string) => {
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            if (tab === "all") {
+                next.delete("tab");
+            } else {
+                next.set("tab", tab);
+            }
+            return next;
+        });
+    };
+
+    // Keep search query in local state for responsive input, sync when URL searchParam changes during render
+    const [searchQuery, setSearchQuery] = useState<string>(searchParam || "");
+    const [prevSearchParam, setPrevSearchParam] = useState(searchParam);
+    if (searchParam !== prevSearchParam) {
+        setPrevSearchParam(searchParam);
+        setSearchQuery(searchParam || "");
+    }
+
     const [sortBy, setSortBy] = useState<string>("popular");
     const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -222,7 +243,7 @@ export default function ModelList() {
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [carouselOffset, setCarouselOffset] = useState(0);
 
-    // Fetch catalog from backend API
+    // Fetch catalog from backend API on retry
     const fetchCatalog = () => {
         setLoading(true);
         setError(null);
@@ -243,53 +264,86 @@ export default function ModelList() {
             .finally(() => setLoading(false));
     };
 
+    // Initial mount fetch — asynchronous only, avoids synchronous setState in effect
     useEffect(() => {
-        fetchCatalog();
+        let ignore = false;
+        getModels({ limit: 100 })
+            .then((res) => {
+                if (ignore) return;
+                if (res?.data && Array.isArray(res.data)) {
+                    setCatalog(res.data.map(mapApiModelToCatalog));
+                } else {
+                    setCatalog([]);
+                }
+            })
+            .catch((err) => {
+                if (ignore) return;
+                console.error("Failed to fetch models from backend:", err);
+                setError("Tidak dapat terhubung ke server backend (http://localhost:8080/api/models). Pastikan server backend sedang berjalan.");
+                setCatalog([]);
+            })
+            .finally(() => {
+                if (!ignore) setLoading(false);
+            });
+
+        return () => {
+            ignore = true;
+        };
     }, []);
 
-    // Sync selected model from URL query parameter — fetch full detail from API
-    useEffect(() => {
-        if (modelParam) {
-            getModel(modelParam)
-                .then((fullModel) => {
-                    if (fullModel) {
-                        const mapped = mapApiModelToCatalog(fullModel);
-                        setSelectedModel(mapped);
-                        if (mapped.versions && mapped.versions.length > 0) {
-                            setSelectedVersionId(mapped.versions[0].id);
-                        }
-                    } else {
-                        const found = catalog.find((c) => c.slug === modelParam || String(c.id) === modelParam);
-                        setSelectedModel(found || null);
-                        if (found?.versions && found.versions.length > 0) {
-                            setSelectedVersionId(found.versions[0].id);
-                        }
-                    }
-                })
-                .catch(() => {
-                    const found = catalog.find((c) => c.slug === modelParam || String(c.id) === modelParam);
-                    setSelectedModel(found || null);
-                    if (found?.versions && found.versions.length > 0) {
-                        setSelectedVersionId(found.versions[0].id);
-                    }
-                });
-        } else {
-            setSelectedModel(null);
-            setSelectedVersionId(null);
+    // Derive selected model from URL param and catalog/detailedModel
+    const selectedModel = useMemo(() => {
+        if (!modelParam) return null;
+        if (detailedModel && (detailedModel.slug === modelParam || String(detailedModel.id) === modelParam)) {
+            return detailedModel;
         }
-    }, [modelParam, catalog]);
+        return catalog.find((c) => c.slug === modelParam || String(c.id) === modelParam) || null;
+    }, [modelParam, detailedModel, catalog]);
+
+    // Async fetch full model details when modelParam is present
+    useEffect(() => {
+        if (!modelParam) return;
+
+        let ignore = false;
+        getModel(modelParam)
+            .then((fullModel) => {
+                if (ignore) return;
+                if (fullModel) {
+                    const mapped = mapApiModelToCatalog(fullModel);
+                    setDetailedModel(mapped);
+                    if (mapped.versions && mapped.versions.length > 0) {
+                        setSelectedVersionId((prev) => prev || mapped.versions![0].id);
+                    }
+                }
+            })
+            .catch((err) => {
+                console.error("Failed to fetch full model detail:", err);
+            });
+
+        return () => {
+            ignore = true;
+        };
+    }, [modelParam]);
 
     const handleSelectModel = (model: CatalogModel) => {
-        setSelectedModel(model);
+        setDetailedModel(model);
         setSelectedVersionId(model.versions?.[0]?.id || null);
-        setSearchParams({ model: model.slug });
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.set("model", model.slug);
+            return next;
+        });
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
     const handleBackToCatalog = () => {
-        setSelectedModel(null);
+        setDetailedModel(null);
         setSelectedVersionId(null);
-        setSearchParams({});
+        setSearchParams((prev) => {
+            const next = new URLSearchParams(prev);
+            next.delete("model");
+            return next;
+        });
     };
 
     const copyToClipboard = (text: string, label: string) => {
@@ -740,27 +794,21 @@ export default function ModelList() {
                                 </div>
                             </div>
 
-                            {currentVersion?.downloadUrl ? (
-                                <a
-                                    href={currentVersion.downloadUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="primary-download-btn"
-                                    style={{ textDecoration: "none" }}
-                                >
-                                    Download {currentVersion.fileSize ? `(${currentVersion.fileSize})` : ""}
-                                </a>
-                            ) : selectedModel.sourceUrl ? (
-                                <a
-                                    href={selectedModel.sourceUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="primary-download-btn"
-                                    style={{ textDecoration: "none" }}
-                                >
-                                    Open on CivitAI ↗
-                                </a>
-                            ) : null}
+                            {(() => {
+                                const targetUrl = currentVersion?.civitaiUrl || selectedModel.sourceUrl || currentVersion?.downloadUrl;
+                                if (!targetUrl) return null;
+                                return (
+                                    <a
+                                        href={targetUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="primary-download-btn"
+                                        style={{ textDecoration: "none" }}
+                                    >
+                                        Download  {currentVersion?.fileSize ? `(${currentVersion.fileSize})` : ""} ↗
+                                    </a>
+                                );
+                            })()}
                         </div>
 
                         {/* Details Accordion Panel */}
