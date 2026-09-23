@@ -13,7 +13,16 @@ export async function apiFetch<T>(
     });
 
     if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        let errMsg = `API Error: ${response.status} ${response.statusText}`;
+        try {
+            const errBody = await response.json();
+            if (errBody && errBody.error) {
+                errMsg = errBody.error;
+            }
+        } catch {
+            // ignore non-json error responses
+        }
+        throw new Error(errMsg);
     }
 
     return response.json();

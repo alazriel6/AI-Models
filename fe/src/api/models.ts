@@ -57,13 +57,6 @@ export interface ModelVersion {
         height?: number;
         sampler?: string;
         cfg_scale?: number;
-        clip_skip?: number;
-        hires_steps?: number;
-        hires_upscale?: number;
-        hires_upscaler?: string;
-        denoising_strength?: number;
-        trigger_words?: string[];
-        weight?: number;
         [key: string]: unknown;
     };
     created_at?: string;

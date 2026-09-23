@@ -196,14 +196,21 @@ export default function Home() {
         {/* Dynamic Spotlight Featured Model Card */}
         <div className="hero-spotlight-card">
           <div className="spotlight-img-wrapper">
-            <img
-              src={spotlightModel?.thumbnail_url || '/images/preview-1.png'}
-              alt={spotlightModel?.name || 'Featured Checkpoint'}
-              className="spotlight-img"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/preview-1.png';
-              }}
-            />
+            {spotlightModel?.thumbnail_url ? (
+              <img
+                src={spotlightModel.thumbnail_url}
+                alt={spotlightModel?.name || 'Featured Checkpoint'}
+                className="spotlight-img"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'https://placehold.co/400x400?text=Preview';
+                }}
+              />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#141517', minHeight: '260px', gap: '8px' }}>
+                <span style={{ fontSize: '32px' }}>🖼️</span>
+                <span style={{ fontSize: '12px', color: '#909296' }}>No Preview Image</span>
+              </div>
+            )}
             <span className="spotlight-overlay-badge">
               {spotlightModel?.type === 'lora' ? 'Featured LoRA' : 'Featured Checkpoint'}
             </span>
@@ -290,14 +297,21 @@ export default function Home() {
             {displayedModels.map((item) => (
               <div key={item.id} className="home-model-card">
                 <div className="home-card-img-wrap">
-                  <img
-                    src={item.thumbnail_url || '/images/preview-1.png'}
-                    alt={item.name}
-                    className="home-card-img"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/images/preview-1.png';
-                    }}
-                  />
+                  {item.thumbnail_url ? (
+                    <img
+                      src={item.thumbnail_url}
+                      alt={item.name}
+                      className="home-card-img"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://placehold.co/400x240?text=Preview';
+                      }}
+                    />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#141517', minHeight: '200px', gap: '6px' }}>
+                      <span style={{ fontSize: '26px' }}>🖼️</span>
+                      <span style={{ fontSize: '11px', color: '#909296' }}>Belum Ada Gambar</span>
+                    </div>
+                  )}
                   <span className={`home-card-type-pill ${item.type === 'lora' ? 'type-lora' : 'type-checkpoint'}`}>
                     {item.type.toUpperCase()}
                   </span>

@@ -170,6 +170,24 @@ nav a.active {
   color: #ffffff;
 }
 
+nav a.nav-admin-badge-link {
+  border: 1px solid rgba(28, 126, 214, 0.35);
+  background: rgba(28, 126, 214, 0.08);
+  color: #74c0fc;
+}
+
+nav a.nav-admin-badge-link:hover {
+  background: rgba(28, 126, 214, 0.2);
+  color: #ffffff;
+  border-color: var(--accent);
+}
+
+nav a.nav-admin-badge-link.active {
+  background: linear-gradient(135deg, #1c7ed6, #1971c2);
+  color: #ffffff;
+  border-color: transparent;
+}
+
 /* ==========================================================================
    Main Content Container
    Identical width (1560px max) and padding across ALL pages

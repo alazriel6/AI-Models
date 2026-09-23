@@ -49,6 +49,7 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string) {
 			// Model Images nested endpoints
 			models.GET("/:id/images", h.ImageHandler.GetImages)
 			models.POST("/:id/images", h.ImageHandler.UploadImage)
+			models.PUT("/:id/thumbnail/:imageId", h.ImageHandler.SetAsThumbnail)
 		}
 
 		// Standalone Versions

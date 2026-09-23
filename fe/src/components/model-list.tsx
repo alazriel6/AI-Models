@@ -52,11 +52,6 @@ export interface VersionItem {
         height?: number;
         sampler?: string;
         cfgScale?: number;
-        clipSkip?: number;
-        hiresSteps?: number;
-        hiresUpscale?: number;
-        hiresUpscaler?: string;
-        denoisingStrength?: number;
     };
 }
 
@@ -127,11 +122,6 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
                         height: v.recommended_settings.height,
                         sampler: v.recommended_settings.sampler,
                         cfgScale: v.recommended_settings.cfg_scale,
-                        clipSkip: v.recommended_settings.clip_skip,
-                        hiresSteps: v.recommended_settings.hires_steps,
-                        hiresUpscale: v.recommended_settings.hires_upscale,
-                        hiresUpscaler: v.recommended_settings.hires_upscaler,
-                        denoisingStrength: v.recommended_settings.denoising_strength
                     }
                   : undefined
           }))
@@ -144,7 +134,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
         type: typeNorm,
         baseModel: baseModelNorm,
         author: m.author || "unknown",
-        thumbnailUrl: m.thumbnail_url || (typeNorm === "lora" ? "/images/preview-2.png" : "/images/preview-1.png"),
+        thumbnailUrl: m.thumbnail_url || (m.images && m.images.length > 0 ? m.images[0].image_url : ""),
         description: m.description || "",
         sourceUrl: m.source_url || m.civitai_url || "",
         publishedAt: m.published_at
@@ -423,11 +413,11 @@ export default function ModelList() {
         if (selectedModel?.images && selectedModel.images.length > 0) {
             return selectedModel.images;
         }
-        if (selectedModel) {
+        if (selectedModel?.thumbnailUrl) {
             return [
                 {
                     id: 0,
-                    url: selectedModel.thumbnailUrl || "/images/preview-1.png",
+                    url: selectedModel.thumbnailUrl,
                     alt: selectedModel.name,
                     reactions: { laugh: 0, heart: 0, thumbsUp: 0 },
                     meta: {
@@ -551,8 +541,17 @@ export default function ModelList() {
                 <div className="civitai-layout-grid">
                     {/* Left Column: Image Showcase + Description + Reviews */}
                     <section className="civitai-left-column">
-                        {/* Image Showcase Grid */}
-                        <div className="image-showcase-grid">
+                        {/* Image Showcase Grid or Empty State */}
+                        {showcaseImages.length === 0 ? (
+                            <div className="showcase-empty-state">
+                                <div className="showcase-empty-icon">🖼️</div>
+                                <h3 className="showcase-empty-title">Belum Ada Sampel Generasi</h3>
+                                <p className="showcase-empty-desc">
+                                    Model ini belum memiliki gambar sampel atau parameter generasi yang diunggah.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="image-showcase-grid">
                             {showcaseImages
                                 .map((_, i) => showcaseImages[(i + carouselOffset) % showcaseImages.length])
                                 .map((img, idx) => (
@@ -616,6 +615,7 @@ export default function ModelList() {
                                     </div>
                                 ))}
                         </div>
+                        )}
 
                         {/* Trigger Words for LoRA */}
                         {selectedModel.type === "lora" && selectedModel.triggerWords && selectedModel.triggerWords.length > 0 && (
@@ -670,24 +670,6 @@ export default function ModelList() {
                                             <span className="setting-value">
                                                 {currentVersion.recommendedSettings.width} × {currentVersion.recommendedSettings.height}
                                             </span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.clipSkip && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Clip Skip</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.clipSkip}</span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.hiresUpscaler && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Hires Upscaler</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.hiresUpscaler}</span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.denoisingStrength && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Denoising</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.denoisingStrength}</span>
                                         </div>
                                     )}
                                 </div>
@@ -1212,7 +1194,14 @@ export default function ModelList() {
                         >
                             {/* Card Media Preview */}
                             <div className="card-media-preview">
-                                <img src={item.thumbnailUrl} alt={item.name} className="card-img" />
+                                {item.thumbnailUrl ? (
+                                    <img src={item.thumbnailUrl} alt={item.name} className="card-img" />
+                                ) : (
+                                    <div className="card-img-placeholder">
+                                        <span className="placeholder-icon">🖼️</span>
+                                        <span className="placeholder-text">Belum ada sampel gambar</span>
+                                    </div>
+                                )}
 
                                 <div className="card-top-badges">
                                     <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
@@ -1291,7 +1280,11 @@ export default function ModelList() {
                             onClick={() => handleSelectModel(item)}
                         >
                             <div className="col-model list-model-cell">
-                                <img src={item.thumbnailUrl} alt={item.name} className="list-thumb" />
+                                {item.thumbnailUrl ? (
+                                    <img src={item.thumbnailUrl} alt={item.name} className="list-thumb" />
+                                ) : (
+                                    <div className="list-thumb-placeholder">🖼️</div>
+                                )}
                                 <div>
                                     <h4 className="list-title">{item.name}</h4>
                                     <span className="list-author">by {item.author}</span>

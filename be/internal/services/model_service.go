@@ -12,48 +12,53 @@ import (
 )
 
 type CreateModelInput struct {
-	Name            string     `json:"name" binding:"required"`
-	Slug            string     `json:"slug"`
-	Type            string     `json:"type" binding:"required"`
-	BaseModel       string     `json:"base_model" binding:"required"`
-	Author          string     `json:"author"`
-	Description     string     `json:"description"`
-	SourceURL       string     `json:"source_url"`
-	CivitaiURL      string     `json:"civitai_url"`
-	HuggingFaceURL  string     `json:"huggingface_url"`
-	ThumbnailURL    string     `json:"thumbnail_url"`
-	PublishedAt     *time.Time `json:"published_at"`
-	Likes           int        `json:"likes"`
-	Rating          float64    `json:"rating"`
-	TensorSize      string     `json:"tensor_size"`
-	VRAMMin         string     `json:"vram_min"`
-	VRAMRecommended string     `json:"vram_recommended"`
-	Conditioner     int        `json:"conditioner"`
-	FirstStageModel int        `json:"first_stage_model"`
-	ModelTensor     int        `json:"model_tensor"`
-	TriggerWords    []string   `json:"trigger_words"`
+	Name            string               `json:"name" binding:"required"`
+	Slug            string               `json:"slug"`
+	Type            string               `json:"type" binding:"required"`
+	BaseModel       string               `json:"base_model" binding:"required"`
+	Author          string               `json:"author"`
+	Description     string               `json:"description"`
+	SourceURL       string               `json:"source_url"`
+	CivitaiURL      string               `json:"civitai_url"`
+	HuggingFaceURL  string               `json:"huggingface_url"`
+	ThumbnailURL    string               `json:"thumbnail_url"`
+	PublishedAt     *time.Time           `json:"published_at"`
+	Likes           int                  `json:"likes"`
+	Rating          float64              `json:"rating"`
+	TensorSize      string               `json:"tensor_size"`
+	VRAMMin         string               `json:"vram_min"`
+	VRAMRecommended string               `json:"vram_recommended"`
+	Conditioner     int                  `json:"conditioner"`
+	FirstStageModel int                  `json:"first_stage_model"`
+	ModelTensor     int                  `json:"model_tensor"`
+	TriggerWords    []string             `json:"trigger_words"`
+	Tags            []string             `json:"tags"`
+	Versions        []CreateVersionInput `json:"versions"`
 }
 
 type UpdateModelInput struct {
-	Name            *string    `json:"name"`
-	Slug            *string    `json:"slug"`
-	Type            *string    `json:"type"`
-	BaseModel       *string    `json:"base_model"`
-	Author          *string    `json:"author"`
-	Description     *string    `json:"description"`
-	SourceURL       *string    `json:"source_url"`
-	CivitaiURL      *string    `json:"civitai_url"`
-	HuggingFaceURL  *string    `json:"huggingface_url"`
-	ThumbnailURL    *string    `json:"thumbnail_url"`
-	PublishedAt     *time.Time `json:"published_at"`
-	Likes           *int       `json:"likes"`
-	Rating          *float64   `json:"rating"`
-	TensorSize      *string    `json:"tensor_size"`
-	VRAMMin         *string    `json:"vram_min"`
-	VRAMRecommended *string    `json:"vram_recommended"`
-	Conditioner     *int       `json:"conditioner"`
-	FirstStageModel *int       `json:"first_stage_model"`
-	ModelTensor     *int       `json:"model_tensor"`
+	Name            *string               `json:"name"`
+	Slug            *string               `json:"slug"`
+	Type            *string               `json:"type"`
+	BaseModel       *string               `json:"base_model"`
+	Author          *string               `json:"author"`
+	Description     *string               `json:"description"`
+	SourceURL       *string               `json:"source_url"`
+	CivitaiURL      *string               `json:"civitai_url"`
+	HuggingFaceURL  *string               `json:"huggingface_url"`
+	ThumbnailURL    *string               `json:"thumbnail_url"`
+	PublishedAt     *time.Time            `json:"published_at"`
+	Likes           *int                  `json:"likes"`
+	Rating          *float64              `json:"rating"`
+	TensorSize      *string               `json:"tensor_size"`
+	VRAMMin         *string               `json:"vram_min"`
+	VRAMRecommended *string               `json:"vram_recommended"`
+	Conditioner     *int                  `json:"conditioner"`
+	FirstStageModel *int                  `json:"first_stage_model"`
+	ModelTensor     *int                  `json:"model_tensor"`
+	TriggerWords    *[]string             `json:"trigger_words"`
+	Tags            *[]string             `json:"tags"`
+	Versions        *[]CreateVersionInput `json:"versions"`
 }
 
 type ModelService struct {
@@ -133,6 +138,37 @@ func (s *ModelService) Create(input CreateModelInput) (*models.Model, error) {
 		}
 	}
 
+	if len(input.Versions) > 0 {
+		for _, v := range input.Versions {
+			vName := strings.TrimSpace(v.VersionName)
+			if vName != "" {
+				model.Versions = append(model.Versions, models.ModelVersion{
+					VersionName:         vName,
+					VersionNumber:       strings.TrimSpace(v.VersionNumber),
+					FileName:            strings.TrimSpace(v.FileName),
+					FileSize:            v.FileSize,
+					Format:              strings.TrimSpace(v.Format),
+					DownloadURL:         strings.TrimSpace(v.DownloadURL),
+					CivitaiVersionURL:   strings.TrimSpace(v.CivitaiVersionURL),
+					RecommendedSettings: v.RecommendedSettings,
+				})
+			}
+		}
+	}
+
+	if len(input.Tags) > 0 {
+		for _, t := range input.Tags {
+			tName := strings.TrimSpace(t)
+			if tName != "" {
+				var tag models.Tag
+				slug := GenerateSlug(tName)
+				if err := s.repo.DB.Where("slug = ?", slug).FirstOrCreate(&tag, models.Tag{Name: tName, Slug: slug}).Error; err == nil {
+					model.Tags = append(model.Tags, tag)
+				}
+			}
+		}
+	}
+
 	if err := s.repo.Create(model); err != nil {
 		return nil, err
 	}
@@ -206,11 +242,59 @@ func (s *ModelService) Update(id uint, input UpdateModelInput) (*models.Model, e
 		model.ModelTensor = *input.ModelTensor
 	}
 
+	if input.TriggerWords != nil {
+		s.repo.DB.Where("model_id = ?", model.ID).Delete(&models.ModelTriggerWord{})
+		for _, tw := range *input.TriggerWords {
+			trimmed := strings.TrimSpace(tw)
+			if trimmed != "" {
+				s.repo.DB.Create(&models.ModelTriggerWord{
+					ModelID:     model.ID,
+					TriggerWord: trimmed,
+				})
+			}
+		}
+	}
+
+	if input.Versions != nil {
+		s.repo.DB.Where("model_id = ?", model.ID).Delete(&models.ModelVersion{})
+		for _, v := range *input.Versions {
+			vName := strings.TrimSpace(v.VersionName)
+			if vName != "" {
+				s.repo.DB.Create(&models.ModelVersion{
+					ModelID:             model.ID,
+					VersionName:         vName,
+					VersionNumber:       strings.TrimSpace(v.VersionNumber),
+					FileName:            strings.TrimSpace(v.FileName),
+					FileSize:            v.FileSize,
+					Format:              strings.TrimSpace(v.Format),
+					DownloadURL:         strings.TrimSpace(v.DownloadURL),
+					CivitaiVersionURL:   strings.TrimSpace(v.CivitaiVersionURL),
+					RecommendedSettings: v.RecommendedSettings,
+				})
+			}
+		}
+	}
+
+	if input.Tags != nil {
+		var newTags []models.Tag
+		for _, t := range *input.Tags {
+			tName := strings.TrimSpace(t)
+			if tName != "" {
+				var tag models.Tag
+				slug := GenerateSlug(tName)
+				if err := s.repo.DB.Where("slug = ?", slug).FirstOrCreate(&tag, models.Tag{Name: tName, Slug: slug}).Error; err == nil {
+					newTags = append(newTags, tag)
+				}
+			}
+		}
+		s.repo.DB.Model(model).Association("Tags").Replace(newTags)
+	}
+
 	if err := s.repo.Update(model); err != nil {
 		return nil, err
 	}
 
-	return model, nil
+	return s.repo.FindByID(id)
 }
 
 func (s *ModelService) Delete(id uint) error {

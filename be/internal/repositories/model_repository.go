@@ -59,6 +59,10 @@ func (r *ModelRepository) FindAll(page, limit int, search, filterType, filterBas
 	err := query.
 		Preload("Tags").
 		Preload("TriggerWords").
+		Preload("Versions").
+		Preload("Images").
+		Preload("Images.Resources").
+		Preload("Reviews").
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).

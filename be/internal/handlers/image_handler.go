@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/alazriel6/models-guide/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -67,21 +68,44 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 		return
 	}
 
-	file, err := c.FormFile("image")
-	if err != nil {
-		// Fallback to "file" field name
-		file, err = c.FormFile("file")
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Image file is required ('image' or 'file' form field)"})
+	var meta services.CreateImageMetadataInput
+
+	// Check if JSON request
+	if strings.Contains(c.ContentType(), "application/json") {
+		if err := c.ShouldBindJSON(&meta); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
+		imageRecord, err := h.service.Upload(modelID, nil, meta)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})
+				return
+			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusCreated, imageRecord)
+		return
 	}
 
-	var meta services.CreateImageMetadataInput
+	// Multipart / Form-Data
+	file, _ := c.FormFile("image")
+	if file == nil {
+		file, _ = c.FormFile("file")
+	}
+
+	meta.ImageURL = c.PostForm("image_url")
+	if file == nil && strings.TrimSpace(meta.ImageURL) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file ('image' or 'file') or 'image_url' is required"})
+		return
+	}
+
 	meta.Caption = c.PostForm("caption")
 	meta.PositivePrompt = c.PostForm("positive_prompt")
 	meta.NegativePrompt = c.PostForm("negative_prompt")
 	meta.Sampler = c.PostForm("sampler")
+	meta.Scheduler = c.PostForm("scheduler")
 	meta.HiresUpscaler = c.PostForm("hires_upscaler")
 
 	if widthStr := c.PostForm("width"); widthStr != "" {
@@ -116,6 +140,12 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 			meta.RawMetadata = datatypes.JSON([]byte(rawMetaStr))
 		}
 	}
+	if resourcesStr := c.PostForm("resources"); resourcesStr != "" {
+		var resList []services.ImageResourceInput
+		if err := json.Unmarshal([]byte(resourcesStr), &resList); err == nil {
+			meta.Resources = resList
+		}
+	}
 
 	imageRecord, err := h.service.Upload(modelID, file, meta)
 	if err != nil {
@@ -128,6 +158,26 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, imageRecord)
+}
+
+func (h *ImageHandler) SetAsThumbnail(c *gin.Context) {
+	modelID, err := parseUintParam(c, "id")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid model ID"})
+		return
+	}
+	imageID, err := parseUintParam(c, "imageId")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid image ID"})
+		return
+	}
+
+	if err := h.service.SetAsThumbnail(modelID, imageID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Thumbnail updated successfully"})
 }
 
 func (h *ImageHandler) UpdateImage(c *gin.Context) {

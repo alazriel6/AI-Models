@@ -27,22 +27,31 @@ var allowedExtensions = map[string]bool{
 
 const maxFileSize = 20 * 1024 * 1024 // 20 MB
 
+type ImageResourceInput struct {
+	Name   string  `json:"name" form:"name"`
+	Type   string  `json:"type" form:"type"`
+	Weight float64 `json:"weight" form:"weight"`
+}
+
 type CreateImageMetadataInput struct {
-	Caption        string         `form:"caption"`
-	Width          int            `form:"width"`
-	Height         int            `form:"height"`
-	PositivePrompt string         `form:"positive_prompt"`
-	NegativePrompt string         `form:"negative_prompt"`
-	Seed           int64          `form:"seed"`
-	Steps          int            `form:"steps"`
-	CFGScale       float64        `form:"cfg_scale"`
-	Sampler        string         `form:"sampler"`
-	ClipSkip       int            `form:"clip_skip"`
-	HiresUpscale   float64        `form:"hires_upscale"`
-	HiresSteps     int            `form:"hires_steps"`
-	HiresUpscaler  string         `form:"hires_upscaler"`
-	DenoisingStr   float64        `form:"denoising_strength"`
-	RawMetadata    datatypes.JSON `form:"raw_metadata"`
+	ImageURL       string               `json:"image_url" form:"image_url"`
+	Caption        string               `json:"caption" form:"caption"`
+	Width          int                  `json:"width" form:"width"`
+	Height         int                  `json:"height" form:"height"`
+	PositivePrompt string               `json:"positive_prompt" form:"positive_prompt"`
+	NegativePrompt string               `json:"negative_prompt" form:"negative_prompt"`
+	Seed           int64                `json:"seed" form:"seed"`
+	Steps          int                  `json:"steps" form:"steps"`
+	CFGScale       float64              `json:"cfg_scale" form:"cfg_scale"`
+	Sampler        string               `json:"sampler" form:"sampler"`
+	Scheduler      string               `json:"scheduler" form:"scheduler"`
+	ClipSkip       int                  `json:"clip_skip" form:"clip_skip"`
+	HiresUpscale   float64              `json:"hires_upscale" form:"hires_upscale"`
+	HiresSteps     int                  `json:"hires_steps" form:"hires_steps"`
+	HiresUpscaler  string               `json:"hires_upscaler" form:"hires_upscaler"`
+	DenoisingStr   float64              `json:"denoising_strength" form:"denoising_strength"`
+	RawMetadata    datatypes.JSON       `json:"raw_metadata" form:"raw_metadata"`
+	Resources      []ImageResourceInput `json:"resources" form:"resources"`
 }
 
 type UpdateImageInput struct {
@@ -53,6 +62,7 @@ type UpdateImageInput struct {
 	Steps          *int            `json:"steps"`
 	CFGScale       *float64        `json:"cfg_scale"`
 	Sampler        *string         `json:"sampler"`
+	Scheduler      *string         `json:"scheduler"`
 	ClipSkip       *int            `json:"clip_skip"`
 	HiresUpscale   *float64        `json:"hires_upscale"`
 	HiresSteps     *int            `json:"hires_steps"`
@@ -94,59 +104,70 @@ func (s *ImageService) GetByID(id uint) (*models.ModelImage, error) {
 }
 
 func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, meta CreateImageMetadataInput) (*models.ModelImage, error) {
-	if _, err := s.modelRepo.FindByID(modelID); err != nil {
+	model, err := s.modelRepo.FindByID(modelID)
+	if err != nil {
 		return nil, err
 	}
 
-	if fileHeader.Size > maxFileSize {
-		return nil, errors.New("file size exceeds maximum limit of 20MB")
-	}
-
-	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	if !allowedExtensions[ext] {
-		return nil, fmt.Errorf("unsupported file extension: %s. Allowed: .png, .jpg, .jpeg, .webp", ext)
-	}
-
-	file, err := fileHeader.Open()
-	if err != nil {
-		return nil, fmt.Errorf("failed to open uploaded file: %w", err)
-	}
-	defer file.Close()
-
-	// Try reading image dimensions if not provided
+	var relImagePath string
+	var imageURL string
+	var destPath string
 	width := meta.Width
 	height := meta.Height
-	if width <= 0 || height <= 0 {
-		if cfg, _, err := image.DecodeConfig(file); err == nil {
-			width = cfg.Width
-			height = cfg.Height
+
+	if fileHeader != nil {
+		if fileHeader.Size > maxFileSize {
+			return nil, errors.New("file size exceeds maximum limit of 20MB")
 		}
-		// Reset read offset after DecodeConfig
-		if seeker, ok := file.(io.ReadSeeker); ok {
-			_, _ = seeker.Seek(0, io.SeekStart)
+
+		ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
+		if !allowedExtensions[ext] {
+			return nil, fmt.Errorf("unsupported file extension: %s. Allowed: .png, .jpg, .jpeg, .webp", ext)
 		}
+
+		file, err := fileHeader.Open()
+		if err != nil {
+			return nil, fmt.Errorf("failed to open uploaded file: %w", err)
+		}
+		defer file.Close()
+
+		// Try reading image dimensions if not provided
+		if width <= 0 || height <= 0 {
+			if cfg, _, err := image.DecodeConfig(file); err == nil {
+				width = cfg.Width
+				height = cfg.Height
+			}
+			// Reset read offset after DecodeConfig
+			if seeker, ok := file.(io.ReadSeeker); ok {
+				_, _ = seeker.Seek(0, io.SeekStart)
+			}
+		}
+
+		// Ensure destination directory exists
+		if err := os.MkdirAll(s.storagePath, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create storage directory: %w", err)
+		}
+
+		fileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
+		destPath = filepath.Join(s.storagePath, fileName)
+
+		dst, err := os.Create(destPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save file: %w", err)
+		}
+		defer dst.Close()
+
+		if _, err := io.Copy(dst, file); err != nil {
+			return nil, fmt.Errorf("failed to write file: %w", err)
+		}
+
+		relImagePath = filepath.ToSlash(filepath.Join("storage", "images", fileName))
+		imageURL = "/storage/images/" + fileName
+	} else if strings.TrimSpace(meta.ImageURL) != "" {
+		imageURL = strings.TrimSpace(meta.ImageURL)
+	} else {
+		return nil, errors.New("image file or image_url is required")
 	}
-
-	// Ensure destination directory exists
-	if err := os.MkdirAll(s.storagePath, 0755); err != nil {
-		return nil, fmt.Errorf("failed to create storage directory: %w", err)
-	}
-
-	fileName := fmt.Sprintf("%s%s", uuid.New().String(), ext)
-	destPath := filepath.Join(s.storagePath, fileName)
-
-	dst, err := os.Create(destPath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to save file: %w", err)
-	}
-	defer dst.Close()
-
-	if _, err := io.Copy(dst, file); err != nil {
-		return nil, fmt.Errorf("failed to write file: %w", err)
-	}
-
-	relImagePath := filepath.ToSlash(filepath.Join("storage", "images", fileName))
-	imageURL := "/storage/images/" + fileName
 
 	modelImage := &models.ModelImage{
 		ModelID:        modelID,
@@ -161,16 +182,42 @@ func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, me
 		Steps:          meta.Steps,
 		CFGScale:       meta.CFGScale,
 		Sampler:        strings.TrimSpace(meta.Sampler),
+		Scheduler:      strings.TrimSpace(meta.Scheduler),
 		RawMetadata:    meta.RawMetadata,
 	}
 
 	if err := s.imageRepo.Create(modelImage); err != nil {
-		// Clean up file if DB insert fails
-		_ = os.Remove(destPath)
+		if destPath != "" {
+			_ = os.Remove(destPath)
+		}
 		return nil, err
 	}
 
-	return modelImage, nil
+	// Attach resources if provided
+	for _, resInput := range meta.Resources {
+		rName := strings.TrimSpace(resInput.Name)
+		if rName != "" {
+			var res models.Resource
+			rType := strings.TrimSpace(resInput.Type)
+			if rType == "" {
+				rType = "lora"
+			}
+			if err := s.imageRepo.DB.Where("name = ? AND type = ?", rName, rType).FirstOrCreate(&res, models.Resource{
+				Name: rName,
+				Type: rType,
+			}).Error; err == nil {
+				_ = s.imageRepo.AddResource(modelImage.ID, res.ID, resInput.Weight)
+			}
+		}
+	}
+
+	// Auto-set model's thumbnail if it's currently empty
+	if strings.TrimSpace(model.ThumbnailURL) == "" {
+		model.ThumbnailURL = modelImage.ImageURL
+		_ = s.modelRepo.Update(model)
+	}
+
+	return s.imageRepo.FindByID(modelImage.ID)
 }
 
 func (s *ImageService) Update(id uint, input UpdateImageInput) (*models.ModelImage, error) {
@@ -217,6 +264,8 @@ func (s *ImageService) Delete(id uint) error {
 		return err
 	}
 
+	modelID := img.ModelID
+
 	// Delete from DB
 	if err := s.imageRepo.Delete(id); err != nil {
 		return err
@@ -227,7 +276,33 @@ func (s *ImageService) Delete(id uint) error {
 		_ = os.Remove(filepath.Clean(img.ImagePath))
 	}
 
+	// Check if this was the model's thumbnail
+	if model, err := s.modelRepo.FindByID(modelID); err == nil && model != nil {
+		if model.ThumbnailURL == img.ImageURL {
+			remaining, _ := s.imageRepo.FindByModelID(modelID)
+			if len(remaining) > 0 {
+				model.ThumbnailURL = remaining[0].ImageURL
+			} else {
+				model.ThumbnailURL = ""
+			}
+			_ = s.modelRepo.Update(model)
+		}
+	}
+
 	return nil
+}
+
+func (s *ImageService) SetAsThumbnail(modelID, imageID uint) error {
+	img, err := s.imageRepo.FindByID(imageID)
+	if err != nil {
+		return err
+	}
+	model, err := s.modelRepo.FindByID(modelID)
+	if err != nil {
+		return err
+	}
+	model.ThumbnailURL = img.ImageURL
+	return s.modelRepo.Update(model)
 }
 
 func (s *ImageService) AttachResource(imageID, resourceID uint, weight float64) error {
