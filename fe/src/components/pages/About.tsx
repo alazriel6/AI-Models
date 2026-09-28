@@ -16,7 +16,15 @@ export default function About() {
       <div className="about-grid">
         <div className="about-box-card">
           <h3>
-            <span>🎯</span> Platform Purpose
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle', color: '#6366f1' }}>
+              <circle cx="12" cy="12" r="10" />
+              <path d="m4.93 4.93 4.24 4.24" />
+              <path d="m14.83 9.17 4.24-4.24" />
+              <path d="m14.83 14.83 4.24 4.24" />
+              <path d="m9.17 14.83-4.24 4.24" />
+              <circle cx="12" cy="12" r="4" />
+            </svg>
+            Platform Purpose
           </h3>
           <p>
             Generative AI checkpoint directories can be overwhelming with hundreds of fine-tunes, mixed formats,
@@ -41,7 +49,10 @@ export default function About() {
 
         <div className="about-box-card">
           <h3>
-            <span>⚡</span> Supported Architectures
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px', verticalAlign: 'middle', color: '#eab308' }}>
+              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+            Supported Architectures
           </h3>
           <p>
             We curate and benchmark leading image synthesis checkpoints and architectures:

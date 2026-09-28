@@ -241,10 +241,15 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                 <div className="admin-modal-header">
                     <div>
                         <h2 className="admin-modal-title">
-                            🖼️ Kelola Sampel Generasi AI
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                <polyline points="21 15 16 10 5 21"></polyline>
+                            </svg>
+                            <span>Model Sample Images & Metadata</span>
                         </h2>
-                        <span style={{ fontSize: "12px", color: "var(--muted)" }}>
-                            Model: <strong style={{ color: "var(--teal)" }}>{model.name}</strong> ({model.type} • {model.base_model})
+                        <span style={{ fontSize: "11px", color: "#666C75" }}>
+                            Model: <strong style={{ color: "#E6E8EB" }}>{model.name}</strong> ({model.type} • {model.base_model})
                         </span>
                     </div>
                     <button className="admin-modal-close" onClick={onClose}>
@@ -252,70 +257,69 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                     </button>
                 </div>
 
-                <div className="admin-modal-body" style={{ overflowY: "auto", flex: 1, padding: "20px 24px" }}>
+                <div className="admin-modal-body" style={{ overflowY: "auto", flex: 1, padding: "20px" }}>
                     {/* Status Alerts */}
                     {error && (
                         <div style={{
                             padding: "10px 14px",
-                            backgroundColor: "rgba(255, 107, 107, 0.15)",
-                            border: "1px solid rgba(255, 107, 107, 0.4)",
-                            borderRadius: "6px",
-                            color: "#ff6b6b",
-                            fontSize: "13px",
+                            backgroundColor: "rgba(239, 68, 68, 0.1)",
+                            border: "1px solid rgba(239, 68, 68, 0.3)",
+                            borderRadius: "4px",
+                            color: "#EF4444",
+                            fontSize: "12px",
                             marginBottom: "16px",
                         }}>
-                            ⚠️ {error}
+                            {error}
                         </div>
                     )}
                     {successMsg && (
                         <div style={{
                             padding: "10px 14px",
-                            backgroundColor: "rgba(32, 201, 151, 0.15)",
-                            border: "1px solid rgba(32, 201, 151, 0.4)",
-                            borderRadius: "6px",
-                            color: "#20c997",
-                            fontSize: "13px",
+                            backgroundColor: "rgba(34, 197, 94, 0.1)",
+                            border: "1px solid rgba(34, 197, 94, 0.3)",
+                            borderRadius: "4px",
+                            color: "#22C55E",
+                            fontSize: "12px",
                             marginBottom: "16px",
                         }}>
-                            ✓ {successMsg}
+                            {successMsg}
                         </div>
                     )}
 
                     {/* Section 1: Existing Images */}
-                    <div style={{ marginBottom: "28px" }}>
+                    <div style={{ marginBottom: "24px" }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-                            <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--heading)", margin: 0 }}>
-                                Galeri Gambar Sampel ({images.length})
+                            <h3 style={{ fontSize: "13px", fontWeight: 600, color: "#E6E8EB", margin: 0, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Sample Gallery ({images.length})
                             </h3>
-                            <span style={{ fontSize: "11px", color: "var(--muted)" }}>
-                                Gambar pertama atau yang dipilih akan otomatis menjadi thumbnail model.
+                            <span style={{ fontSize: "11px", color: "#666C75" }}>
+                                Primary thumbnail is displayed on the public models catalog.
                             </span>
                         </div>
 
                         {loading ? (
-                            <div style={{ textAlign: "center", padding: "24px", color: "var(--muted)" }}>
-                                ⏳ Memuat gambar...
+                            <div style={{ textAlign: "center", padding: "20px", color: "#666C75", fontSize: "12px" }}>
+                                Loading images...
                             </div>
                         ) : images.length === 0 ? (
                             <div style={{
                                 padding: "24px",
-                                border: "1px dashed rgba(255, 255, 255, 0.15)",
-                                borderRadius: "8px",
+                                border: "1px dashed #292D32",
+                                borderRadius: "4px",
                                 textAlign: "center",
-                                color: "var(--muted)",
-                                background: "rgba(255, 255, 255, 0.02)",
+                                color: "#666C75",
+                                background: "#111315",
                             }}>
-                                <div style={{ fontSize: "28px", marginBottom: "6px" }}>🖼️</div>
-                                <div style={{ fontWeight: 600, color: "var(--text)" }}>Belum ada gambar sampel</div>
-                                <div style={{ fontSize: "12px", marginTop: "4px" }}>
-                                    Thumbnail model di katalog saat ini kosong. Tambahkan gambar sampel pertama melalui formulir di bawah.
+                                <div style={{ fontWeight: 600, color: "#E6E8EB", fontSize: "13px" }}>No sample images uploaded</div>
+                                <div style={{ fontSize: "11px", marginTop: "4px", color: "#666C75" }}>
+                                    The catalog thumbnail is currently empty. Attach your first sample image using the form below.
                                 </div>
                             </div>
                         ) : (
                             <div style={{
                                 display: "grid",
-                                gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-                                gap: "14px",
+                                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                                gap: "12px",
                             }}>
                                 {images.map((img, idx) => {
                                     const isThumbnail = model.thumbnail_url === img.image_url || (!model.thumbnail_url && idx === 0);
@@ -323,16 +327,16 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                         <div
                                             key={img.id}
                                             style={{
-                                                background: "var(--card-bg, #1a1b1e)",
-                                                border: isThumbnail ? "2px solid #20c997" : "1px solid rgba(255, 255, 255, 0.1)",
-                                                borderRadius: "8px",
+                                                background: "#1C1F23",
+                                                border: isThumbnail ? "1px solid #3B82F6" : "1px solid #292D32",
+                                                borderRadius: "4px",
                                                 overflow: "hidden",
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 position: "relative",
                                             }}
                                         >
-                                            <div style={{ position: "relative", height: "160px", background: "#0d0e11" }}>
+                                            <div style={{ position: "relative", height: "150px", background: "#111315" }}>
                                                 <img
                                                     src={img.image_url}
                                                     alt={img.caption || `Sample ${img.id}`}
@@ -346,15 +350,17 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                                         position: "absolute",
                                                         top: "6px",
                                                         left: "6px",
-                                                        background: "#20c997",
-                                                        color: "#000",
-                                                        fontWeight: 700,
-                                                        fontSize: "10px",
+                                                        background: "#3B82F6",
+                                                        color: "#ffffff",
+                                                        fontWeight: 600,
+                                                        fontSize: "9px",
                                                         padding: "2px 6px",
-                                                        borderRadius: "4px",
+                                                        borderRadius: "3px",
                                                         textTransform: "uppercase",
+                                                        letterSpacing: "0.04em",
+                                                        fontFamily: "monospace",
                                                     }}>
-                                                        ★ Thumbnail Utama
+                                                        PRIMARY THUMBNAIL
                                                     </span>
                                                 )}
                                                 {img.width && img.height && (
@@ -362,53 +368,58 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                                         position: "absolute",
                                                         bottom: "6px",
                                                         right: "6px",
-                                                        background: "rgba(0, 0, 0, 0.75)",
-                                                        color: "#c1c2c5",
+                                                        background: "rgba(17, 19, 21, 0.85)",
+                                                        color: "#9A9FA8",
                                                         fontSize: "10px",
                                                         padding: "2px 6px",
-                                                        borderRadius: "4px",
+                                                        borderRadius: "3px",
+                                                        fontFamily: "monospace",
                                                     }}>
                                                         {img.width} × {img.height}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <div style={{ padding: "10px 12px", flex: 1, display: "flex", flexDirection: "column" }}>
-                                                <div style={{ fontSize: "12px", fontWeight: 600, color: "var(--heading)", marginBottom: "4px" }}>
+                                            <div style={{ padding: "10px", flex: 1, display: "flex", flexDirection: "column" }}>
+                                                <div style={{ fontSize: "12px", fontWeight: 600, color: "#E6E8EB", marginBottom: "4px" }}>
                                                     {img.caption || `Sample #${img.id}`}
                                                 </div>
                                                 <div style={{
                                                     fontSize: "11px",
-                                                    color: "var(--muted)",
+                                                    color: "#666C75",
                                                     display: "-webkit-box",
                                                     WebkitLineClamp: 2,
                                                     WebkitBoxOrient: "vertical",
                                                     overflow: "hidden",
                                                     marginBottom: "10px",
                                                     flex: 1,
+                                                    fontFamily: "monospace",
                                                 }}>
-                                                    {img.positive_prompt || "(Tanpa prompt)"}
+                                                    {img.positive_prompt || "(No prompt recorded)"}
                                                 </div>
 
-                                                <div style={{ display: "flex", gap: "6px", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "8px" }}>
+                                                <div style={{ display: "flex", gap: "6px", borderTop: "1px solid #292D32", paddingTop: "8px" }}>
                                                     {!isThumbnail && (
                                                         <button
                                                             type="button"
                                                             className="btn-secondary-admin"
-                                                            style={{ fontSize: "11px", padding: "4px 8px", flex: 1 }}
+                                                            style={{ fontSize: "11px", padding: "3px 8px", flex: 1 }}
                                                             onClick={() => handleSetThumbnail(img.id)}
                                                         >
-                                                            ★ Jadi Thumbnail
+                                                            Set as Thumbnail
                                                         </button>
                                                     )}
                                                     <button
                                                         type="button"
                                                         className="btn-danger-admin"
-                                                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                                                        style={{ fontSize: "11px", padding: "3px 8px" }}
                                                         onClick={() => handleDeleteImage(img.id)}
-                                                        title="Hapus Gambar"
+                                                        title="Delete Sample"
                                                     >
-                                                        🗑️
+                                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                        </svg>
                                                     </button>
                                                 </div>
                                             </div>
@@ -421,38 +432,38 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                     {/* Section 2: Add New Image Form with Generation Settings */}
                     <div style={{
-                        background: "rgba(255, 255, 255, 0.02)",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
-                        borderRadius: "8px",
-                        padding: "18px 20px",
+                        background: "#1C1F23",
+                        border: "1px solid #292D32",
+                        borderRadius: "4px",
+                        padding: "16px",
                     }}>
-                        <div style={{ marginBottom: "16px" }}>
-                            <h3 style={{ fontSize: "15px", fontWeight: 600, color: "var(--heading)", margin: "0 0 4px 0" }}>
-                                ＋ Tambah Sampel Gambar & Detail Generasi
+                        <div style={{ marginBottom: "14px" }}>
+                            <h3 style={{ fontSize: "13px", fontWeight: 600, color: "#E6E8EB", margin: "0 0 3px 0", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Attach Sample Generation & Hyperparameters
                             </h3>
-                            <p style={{ fontSize: "12px", color: "var(--muted)", margin: 0 }}>
-                                Parameter di bawah akan ditampilkan secara interaktif pada pop-up <strong>Generation Details</strong> saat pengguna mengeklik gambar.
+                            <p style={{ fontSize: "11px", color: "#666C75", margin: 0 }}>
+                                These parameters populate the technical inspector modal in the public Gallery and Catalog.
                             </p>
                         </div>
 
                         <form onSubmit={handleSubmitNewImage}>
                             {/* Mode Switcher */}
-                            <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+                            <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
                                 <button
                                     type="button"
                                     className={`admin-filter-btn ${uploadMode === "url" ? "active" : ""}`}
                                     onClick={() => setUploadMode("url")}
-                                    style={{ flex: 1, padding: "8px" }}
+                                    style={{ flex: 1, padding: "6px" }}
                                 >
-                                    🔗 Image URL (CivitAI / External Link)
+                                    External Image URL
                                 </button>
                                 <button
                                     type="button"
                                     className={`admin-filter-btn ${uploadMode === "upload" ? "active" : ""}`}
                                     onClick={() => setUploadMode("upload")}
-                                    style={{ flex: 1, padding: "8px" }}
+                                    style={{ flex: 1, padding: "6px" }}
                                 >
-                                    📁 Upload File Lokal
+                                    Local File Upload
                                 </button>
                             </div>
 
@@ -460,12 +471,12 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                             {uploadMode === "url" ? (
                                 <div className="form-group">
                                     <label className="form-label">
-                                        URL Gambar <span style={{ color: "#ff6b6b" }}>*</span>
+                                        Image URL <span className="required">*</span>
                                     </label>
                                     <input
                                         type="url"
-                                        className="form-input"
-                                        placeholder="https://image.civitai.com/... atau https://example.com/sample.png"
+                                        className="form-input mono"
+                                        placeholder="https://image.civitai.com/... or https://example.com/sample.png"
                                         value={imageUrl}
                                         onChange={(e) => setImageUrl(e.target.value)}
                                         required
@@ -475,7 +486,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                             <img
                                                 src={imageUrl}
                                                 alt="Preview"
-                                                style={{ maxHeight: "180px", maxWidth: "100%", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)" }}
+                                                style={{ maxHeight: "160px", maxWidth: "100%", borderRadius: "4px", border: "1px solid #292D32" }}
                                                 onError={(e) => {
                                                     (e.currentTarget as HTMLImageElement).style.display = "none";
                                                 }}
@@ -486,7 +497,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                             ) : (
                                 <div className="form-group">
                                     <label className="form-label">
-                                        Pilih File Gambar <span style={{ color: "#ff6b6b" }}>*</span>
+                                        Choose File <span className="required">*</span>
                                     </label>
                                     <input
                                         type="file"
@@ -500,7 +511,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                             <img
                                                 src={filePreview}
                                                 alt="File preview"
-                                                style={{ maxHeight: "180px", maxWidth: "100%", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.1)" }}
+                                                style={{ maxHeight: "160px", maxWidth: "100%", borderRadius: "4px", border: "1px solid #292D32" }}
                                             />
                                         </div>
                                     )}
@@ -509,11 +520,11 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                             {/* Caption */}
                             <div className="form-group">
-                                <label className="form-label">Judul / Caption Gambar (Opsional)</label>
+                                <label className="form-label">Caption / Sample Title (Optional)</label>
                                 <input
                                     type="text"
                                     className="form-input"
-                                    placeholder="Contoh: Showcase Portrait, Outfit Sample, dll."
+                                    placeholder="e.g. Masterpiece portrait, outfit sample, action scene..."
                                     value={caption}
                                     onChange={(e) => setCaption(e.target.value)}
                                 />
@@ -521,9 +532,9 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                             {/* Positive Prompt */}
                             <div className="form-group">
-                                <label className="form-label">✦ Positive Prompt</label>
+                                <label className="form-label">Positive Prompt</label>
                                 <textarea
-                                    className="form-textarea"
+                                    className="form-textarea mono"
                                     rows={3}
                                     placeholder="streetwear, oversized jacket, 1girl, urban background, night city neon lighting..."
                                     value={positivePrompt}
@@ -533,9 +544,9 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                             {/* Negative Prompt */}
                             <div className="form-group">
-                                <label className="form-label">✧ Negative Prompt</label>
+                                <label className="form-label">Negative Prompt</label>
                                 <textarea
-                                    className="form-textarea"
+                                    className="form-textarea mono"
                                     rows={2}
                                     placeholder="(worst quality:1.4), formal wear, bad anatomy, blur..."
                                     value={negativePrompt}
@@ -545,21 +556,21 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                             {/* Generation Settings Grid */}
                             <div style={{
-                                background: "rgba(0, 0, 0, 0.25)",
-                                border: "1px solid rgba(255, 255, 255, 0.06)",
-                                borderRadius: "8px",
-                                padding: "14px 16px",
-                                marginBottom: "16px",
+                                background: "#17191C",
+                                border: "1px solid #292D32",
+                                borderRadius: "4px",
+                                padding: "12px",
+                                marginBottom: "14px",
                             }}>
                                 <label className="form-label" style={{ marginBottom: "10px", display: "block" }}>
-                                    ⚙ Generation Settings
+                                    Generation Hyperparameters
                                 </label>
                                 <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "10px" }}>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>Steps</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>Steps</label>
                                         <input
                                             type="number"
-                                            className="form-input"
+                                            className="form-input mono"
                                             min={1}
                                             max={150}
                                             value={steps}
@@ -567,62 +578,62 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>Sampler</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>Sampler</label>
                                         <input
                                             type="text"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="DPM++ 2M Karras"
                                             value={sampler}
                                             onChange={(e) => setSampler(e.target.value)}
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>Scheduler</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>Scheduler</label>
                                         <input
                                             type="text"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="Karras"
                                             value={scheduler}
                                             onChange={(e) => setScheduler(e.target.value)}
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>CFG Scale</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>CFG Scale</label>
                                         <input
                                             type="number"
                                             step="0.5"
                                             min={1}
                                             max={30}
-                                            className="form-input"
+                                            className="form-input mono"
                                             value={cfgScale}
                                             onChange={(e) => setCfgScale(Number(e.target.value))}
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>Seed</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>Seed</label>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="Random / misal 9410291"
+                                            className="form-input mono"
+                                            placeholder="Random or e.g. 9410291"
                                             value={seed}
                                             onChange={(e) => setSeed(e.target.value)}
                                         />
                                     </div>
                                     <div className="form-group" style={{ marginBottom: 0 }}>
-                                        <label className="form-label" style={{ fontSize: "11px" }}>Resolution (W × H)</label>
+                                        <label className="form-label" style={{ fontSize: "10px" }}>Resolution (W × H)</label>
                                         <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className="form-input mono"
                                                 placeholder="832"
                                                 value={width}
                                                 onChange={(e) => setWidth(Number(e.target.value))}
                                                 style={{ textAlign: "center" }}
                                             />
-                                            <span style={{ color: "var(--muted)" }}>×</span>
+                                            <span style={{ color: "#666C75" }}>×</span>
                                             <input
                                                 type="number"
-                                                className="form-input"
+                                                className="form-input mono"
                                                 placeholder="1216"
                                                 value={height}
                                                 onChange={(e) => setHeight(Number(e.target.value))}
@@ -635,23 +646,23 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
                             {/* Resources Used */}
                             <div style={{
-                                background: "rgba(0, 0, 0, 0.25)",
-                                border: "1px solid rgba(255, 255, 255, 0.06)",
-                                borderRadius: "8px",
-                                padding: "14px 16px",
-                                marginBottom: "20px",
+                                background: "#17191C",
+                                border: "1px solid #292D32",
+                                borderRadius: "4px",
+                                padding: "12px",
+                                marginBottom: "16px",
                             }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
                                     <label className="form-label" style={{ margin: 0 }}>
-                                        🔗 Resources Used (Checkpoint & LoRA)
+                                        Resources Used (Checkpoint & LoRA)
                                     </label>
                                     <button
                                         type="button"
                                         className="btn-secondary-admin"
-                                        style={{ fontSize: "11px", padding: "4px 8px" }}
+                                        style={{ fontSize: "11px", padding: "3px 8px" }}
                                         onClick={handleAddResource}
                                     >
-                                        + Tambah Resource
+                                        + Add Resource
                                     </button>
                                 </div>
 
@@ -660,27 +671,27 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                         key={idx}
                                         style={{
                                             display: "flex",
-                                            gap: "8px",
+                                            gap: "6px",
                                             alignItems: "center",
-                                            marginBottom: "8px",
+                                            marginBottom: "6px",
                                         }}
                                     >
                                         <select
-                                            className="admin-select"
+                                            className="admin-select mono"
                                             value={res.type}
                                             onChange={(e) => handleUpdateResource(idx, "type", e.target.value)}
-                                            style={{ width: "120px" }}
+                                            style={{ width: "120px", fontSize: "11px" }}
                                         >
                                             <option value="checkpoint">CHECKPOINT</option>
                                             <option value="lora">LORA</option>
                                         </select>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="Nama Resource / Model (e.g. Illustrious XL Base)"
+                                            className="form-input mono"
+                                            placeholder="Resource name (e.g. Illustrious XL Base)"
                                             value={res.name}
                                             onChange={(e) => handleUpdateResource(idx, "name", e.target.value)}
-                                            style={{ flex: 1 }}
+                                            style={{ flex: 1, fontSize: "11px" }}
                                         />
                                         {res.type === "lora" && (
                                             <input
@@ -688,11 +699,11 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                                 step="0.05"
                                                 min="0.1"
                                                 max="2.0"
-                                                className="form-input"
+                                                className="form-input mono"
                                                 placeholder="Weight"
                                                 value={res.weight ?? 0.8}
                                                 onChange={(e) => handleUpdateResource(idx, "weight", Number(e.target.value))}
-                                                style={{ width: "80px", textAlign: "center" }}
+                                                style={{ width: "70px", textAlign: "center", fontSize: "11px" }}
                                                 title="LoRA Weight / Strength"
                                             />
                                         )}
@@ -700,8 +711,8 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                             type="button"
                                             className="btn-danger-admin"
                                             onClick={() => handleRemoveResource(idx)}
-                                            style={{ padding: "8px 10px" }}
-                                            title="Hapus resource"
+                                            style={{ padding: "6px 8px", fontSize: "11px" }}
+                                            title="Remove resource"
                                         >
                                             ✕
                                         </button>
@@ -709,20 +720,20 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                 ))}
                             </div>
 
-                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
                                 <button
                                     type="button"
                                     className="btn-secondary-admin"
                                     onClick={onClose}
                                 >
-                                    Tutup
+                                    Close
                                 </button>
                                 <button
                                     type="submit"
                                     className="btn-primary-admin"
                                     disabled={submitting}
                                 >
-                                    {submitting ? "Menyimpan Gambar..." : "💾 Simpan Gambar & Detail Generasi"}
+                                    {submitting ? "Saving Sample..." : "Save Image & Metadata"}
                                 </button>
                             </div>
                         </form>

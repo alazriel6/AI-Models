@@ -26,10 +26,8 @@ func main() {
 
 	db := database.Connect(cfg)
 
-	if *seedFlag {
-		if err := database.Seed(db); err != nil {
-			log.Printf("Warning: failed to seed database: %v\n", err)
-		}
+	if err := database.SeedData(db, *seedFlag); err != nil {
+		log.Printf("Warning: failed to seed database: %v\n", err)
 	}
 
 	// Repositories

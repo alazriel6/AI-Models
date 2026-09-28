@@ -177,7 +177,22 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                 {/* Header */}
                 <div className="admin-modal-header">
                     <h2 className="admin-modal-title">
-                        {isEdit ? `✏️ Edit Model: ${initialData.name}` : "✨ Tambah Model Baru"}
+                        {isEdit ? (
+                            <>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                </svg>
+                                <span>Edit Model: {initialData.name}</span>
+                            </>
+                        ) : (
+                            <>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                <span>Define New Model</span>
+                            </>
+                        )}
                     </h2>
                     <button className="admin-modal-close" onClick={onClose}>
                         ✕
@@ -191,21 +206,21 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                         className={`admin-tab-btn ${activeTab === "general" ? "active" : ""}`}
                         onClick={() => setActiveTab("general")}
                     >
-                        Informasi Utama
+                        General Info
                     </button>
                     <button
                         type="button"
                         className={`admin-tab-btn ${activeTab === "media" ? "active" : ""}`}
                         onClick={() => setActiveTab("media")}
                     >
-                        Media & Link
+                        Media & Mirrors
                     </button>
                     <button
                         type="button"
                         className={`admin-tab-btn ${activeTab === "specs" ? "active" : ""}`}
                         onClick={() => setActiveTab("specs")}
                     >
-                        Hardware & Tensor
+                        Hardware & VRAM
                     </button>
                     <button
                         type="button"
@@ -219,7 +234,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                         className={`admin-tab-btn ${activeTab === "versions" ? "active" : ""}`}
                         onClick={() => setActiveTab("versions")}
                     >
-                        Versi ({versions.length})
+                        Versions ({versions.length})
                     </button>
                 </div>
 
@@ -232,12 +247,12 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                 <div className="form-grid-2">
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Nama Model <span className="required">*</span>
+                                            Model Name <span className="required">*</span>
                                         </label>
                                         <input
                                             type="text"
                                             className="form-input"
-                                            placeholder="contoh: Animagine XL 3.1"
+                                            placeholder="e.g. Animagine XL 3.1"
                                             value={name}
                                             onChange={(e) => handleNameChange(e.target.value)}
                                             required
@@ -245,11 +260,11 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Slug URL <span className="helper">(auto-generated)</span>
+                                            URL Slug <span className="helper">(auto-generated)</span>
                                         </label>
                                         <input
                                             type="text"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="animagine-xl-3-1"
                                             value={slug}
                                             onChange={(e) => setSlug(e.target.value)}
@@ -260,7 +275,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                 <div className="form-grid-3">
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Tipe Model <span className="required">*</span>
+                                            Model Type <span className="required">*</span>
                                         </label>
                                         <select
                                             className="form-select"
@@ -276,11 +291,11 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
 
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Base Model Architecture <span className="required">*</span>
+                                            Base Architecture <span className="required">*</span>
                                         </label>
                                         <input
                                             type="text"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="Illustrious, NoobAI, SDXL, Pony, SD 1.5, Flux"
                                             value={baseModel}
                                             onChange={(e) => setBaseModel(e.target.value)}
@@ -293,7 +308,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <input
                                             type="text"
                                             className="form-input"
-                                            placeholder="contoh: Linaqruf"
+                                            placeholder="e.g. Linaqruf"
                                             value={author}
                                             onChange={(e) => setAuthor(e.target.value)}
                                         />
@@ -301,11 +316,11 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Deskripsi Lengkap & Panduan Penggunaan</label>
+                                    <label className="form-label">Description & Usage Guidelines</label>
                                     <textarea
                                         className="form-textarea"
                                         rows={5}
-                                        placeholder="Tulis ringkasan model, kelebihan, gaya yang cocok, atau rekomendasi penggunaan..."
+                                        placeholder="Write description, training methodology, strengths, prompting tips..."
                                         value={description}
                                         onChange={(e) => setDescription(e.target.value)}
                                     />
@@ -318,22 +333,27 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                             <div>
                                 <div
                                     style={{
-                                        background: "rgba(28, 126, 214, 0.08)",
-                                        border: "1px solid rgba(28, 126, 214, 0.25)",
-                                        borderRadius: "8px",
-                                        padding: "14px 16px",
+                                        background: "#1C1F23",
+                                        border: "1px solid #292D32",
+                                        borderLeft: "3px solid #3B82F6",
+                                        borderRadius: "4px",
+                                        padding: "12px 14px",
                                         marginBottom: "16px",
                                         display: "flex",
-                                        gap: "12px",
+                                        gap: "10px",
                                         alignItems: "flex-start",
                                     }}
                                 >
-                                    <span style={{ fontSize: "20px" }}>🖼️</span>
-                                    <div style={{ fontSize: "12px", color: "var(--text)", lineHeight: "1.6" }}>
-                                        <strong style={{ color: "var(--heading)", display: "block", marginBottom: "2px" }}>
-                                            Manajemen Gambar Sampel Terpisah
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: "2px" }}>
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                                    </svg>
+                                    <div style={{ fontSize: "12px", color: "#9A9FA8", lineHeight: "1.5" }}>
+                                        <strong style={{ color: "#E6E8EB", display: "block", marginBottom: "2px" }}>
+                                            Sample Images & Prompt Details
                                         </strong>
-                                        Foto/gambar sampel generasi AI tidak diinput saat membuat model. Setelah model berhasil dibuat, Anda dapat menambahkan gambar lengkap dengan parameter <em>Generation Details</em> (Prompt, Seed, Sampler, Resolution, dll.) melalui tombol <strong>🖼️ Kelola Gambar</strong> di Dashboard. Foto pertama akan otomatis menjadi thumbnail model.
+                                        Sample image generations are attached with their generation metadata (Positive/Negative prompt, Sampler, Seed, Steps, CFG) via the Image Manager in the dashboard table. The primary image is automatically designated as the catalog thumbnail.
                                     </div>
                                 </div>
 
@@ -342,7 +362,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <label className="form-label">Civitai URL</label>
                                         <input
                                             type="url"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="https://civitai.com/models/..."
                                             value={civitaiUrl}
                                             onChange={(e) => setCivitaiUrl(e.target.value)}
@@ -353,7 +373,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <label className="form-label">Hugging Face URL</label>
                                         <input
                                             type="url"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="https://huggingface.co/..."
                                             value={huggingfaceUrl}
                                             onChange={(e) => setHuggingfaceUrl(e.target.value)}
@@ -362,10 +382,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                 </div>
 
                                 <div className="form-group">
-                                    <label className="form-label">Source URL / Download Mirror Asli</label>
+                                    <label className="form-label">Source Repository / Original Mirror</label>
                                     <input
                                         type="url"
-                                        className="form-input"
+                                        className="form-input mono"
                                         placeholder="https://..."
                                         value={sourceUrl}
                                         onChange={(e) => setSourceUrl(e.target.value)}
@@ -379,33 +399,33 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                             <div>
                                 <div className="form-grid-3">
                                     <div className="form-group">
-                                        <label className="form-label">Ukuran Model (Tensor Size)</label>
+                                        <label className="form-label">Tensor File Size</label>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="contoh: 6.46 GB atau 220 MB"
+                                            className="form-input mono"
+                                            placeholder="e.g. 6.46 GB or 220 MB"
                                             value={tensorSize}
                                             onChange={(e) => setTensorSize(e.target.value)}
                                         />
                                     </div>
 
                                     <div className="form-group">
-                                        <label className="form-label">VRAM Minimum</label>
+                                        <label className="form-label">Minimum VRAM</label>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="contoh: 6 GB / 8 GB"
+                                            className="form-input mono"
+                                            placeholder="e.g. 6 GB / 8 GB"
                                             value={vramMin}
                                             onChange={(e) => setVramMin(e.target.value)}
                                         />
                                     </div>
 
                                     <div className="form-group">
-                                        <label className="form-label">VRAM Rekomendasi</label>
+                                        <label className="form-label">Recommended VRAM</label>
                                         <input
                                             type="text"
-                                            className="form-input"
-                                            placeholder="contoh: 12 GB / 16 GB"
+                                            className="form-input mono"
+                                            placeholder="e.g. 12 GB / 16 GB"
                                             value={vramRecommended}
                                             onChange={(e) => setVramRecommended(e.target.value)}
                                         />
@@ -417,7 +437,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <label className="form-label">Conditioner Blocks</label>
                                         <input
                                             type="number"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="0"
                                             value={conditioner}
                                             onChange={(e) => setConditioner(e.target.value)}
@@ -428,7 +448,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <label className="form-label">First Stage Model</label>
                                         <input
                                             type="number"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="0"
                                             value={firstStageModel}
                                             onChange={(e) => setFirstStageModel(e.target.value)}
@@ -439,7 +459,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <label className="form-label">Model Tensor</label>
                                         <input
                                             type="number"
-                                            className="form-input"
+                                            className="form-input mono"
                                             placeholder="0"
                                             value={modelTensor}
                                             onChange={(e) => setModelTensor(e.target.value)}
@@ -454,7 +474,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                             <div>
                                 <div className="form-group">
                                     <label className="form-label">
-                                        Trigger Words <span className="helper">(Ketik lalu tekan Enter)</span>
+                                        Trigger Words <span className="helper">(Type and press Enter)</span>
                                     </label>
                                     <div className="chips-input-container">
                                         {triggerWords.map((tw, idx) => (
@@ -472,7 +492,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         <input
                                             type="text"
                                             className="chip-text-input"
-                                            placeholder="Tambah trigger word..."
+                                            placeholder="Add trigger word..."
                                             value={triggerWordInput}
                                             onChange={(e) => setTriggerWordInput(e.target.value)}
                                             onKeyDown={(e) => {
@@ -485,9 +505,9 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="form-group" style={{ marginTop: "20px" }}>
+                                <div className="form-group" style={{ marginTop: "18px" }}>
                                     <label className="form-label">
-                                        Tags / Kategori <span className="helper">(Pisahkan dengan koma)</span>
+                                        Categories & Tags <span className="helper">(Comma separated)</span>
                                     </label>
                                     <input
                                         type="text"
@@ -496,8 +516,8 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         value={tagsInput}
                                         onChange={(e) => setTagsInput(e.target.value)}
                                     />
-                                    <div style={{ fontSize: "11px", color: "var(--subtle)", marginTop: "4px" }}>
-                                        Tags ini mempermudah pencarian dan filter di halaman eksplorasi.
+                                    <div style={{ fontSize: "11px", color: "#666C75", marginTop: "4px" }}>
+                                        Tags are indexed for search queries and catalog filters.
                                     </div>
                                 </div>
                             </div>
@@ -506,41 +526,36 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                         {/* TAB 5: MODEL VERSIONS */}
                         {activeTab === "versions" && (
                             <div>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                                    <span style={{ fontSize: "13px", color: "var(--muted)" }}>
-                                        Daftar rilis atau versi model ini
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+                                    <span style={{ fontSize: "12px", color: "#9A9FA8" }}>
+                                        Release versions and file downloads
                                     </span>
                                     <button
                                         type="button"
                                         className="btn-secondary-admin"
                                         onClick={handleAddVersion}
                                     >
-                                        + Tambah Versi
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                                        </svg>
+                                        Add Version
                                     </button>
                                 </div>
 
                                 {versions.map((ver, idx) => (
-                                    <div
-                                        key={idx}
-                                        style={{
-                                            background: "#141517",
-                                            border: "1px solid var(--border)",
-                                            borderRadius: "10px",
-                                            padding: "16px",
-                                            marginBottom: "12px",
-                                        }}
-                                    >
-                                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
-                                            <span style={{ fontWeight: 600, color: "var(--heading)", fontSize: "13px" }}>
-                                                Versi #{idx + 1}
+                                    <div key={idx} className="version-form-block">
+                                        <div className="version-form-header">
+                                            <span className="version-badge">
+                                                RELEASE #{idx + 1}
                                             </span>
                                             {versions.length > 1 && (
                                                 <button
                                                     type="button"
-                                                    style={{ background: "none", border: "none", color: "#ff6b6b", cursor: "pointer", fontSize: "12px" }}
+                                                    style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", fontSize: "11px" }}
                                                     onClick={() => handleRemoveVersion(idx)}
                                                 >
-                                                    Hapus Versi
+                                                    Remove Version
                                                 </button>
                                             )}
                                         </div>
@@ -548,7 +563,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         {/* Basic Version Info */}
                                         <div className="form-grid-3">
                                             <div className="form-group">
-                                                <label className="form-label">Nama Versi</label>
+                                                <label className="form-label">Version Label</label>
                                                 <input
                                                     type="text"
                                                     className="form-input"
@@ -559,10 +574,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                             </div>
 
                                             <div className="form-group">
-                                                <label className="form-label">Nomor Versi</label>
+                                                <label className="form-label">Version Number</label>
                                                 <input
                                                     type="text"
-                                                    className="form-input"
+                                                    className="form-input mono"
                                                     value={ver.version_number || ""}
                                                     onChange={(e) => handleUpdateVersion(idx, "version_number", e.target.value)}
                                                     placeholder="1.0"
@@ -570,9 +585,9 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                             </div>
 
                                             <div className="form-group">
-                                                <label className="form-label">Format File</label>
+                                                <label className="form-label">File Format</label>
                                                 <select
-                                                    className="form-select"
+                                                    className="form-select mono"
                                                     value={ver.format || "SafeTensors"}
                                                     onChange={(e) => handleUpdateVersion(idx, "format", e.target.value)}
                                                 >
@@ -588,10 +603,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                         {/* File Info */}
                                         <div className="form-grid-3">
                                             <div className="form-group">
-                                                <label className="form-label">Nama File</label>
+                                                <label className="form-label">Filename</label>
                                                 <input
                                                     type="text"
-                                                    className="form-input"
+                                                    className="form-input mono"
                                                     value={ver.file_name || ""}
                                                     onChange={(e) => handleUpdateVersion(idx, "file_name", e.target.value)}
                                                     placeholder="model-v1.0.safetensors"
@@ -599,10 +614,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                             </div>
 
                                             <div className="form-group">
-                                                <label className="form-label">Ukuran File (bytes)</label>
+                                                <label className="form-label">File Size (bytes)</label>
                                                 <input
                                                     type="number"
-                                                    className="form-input"
+                                                    className="form-input mono"
                                                     value={ver.file_size || ""}
                                                     onChange={(e) => handleUpdateVersion(idx, "file_size", e.target.value ? parseInt(e.target.value, 10) : 0)}
                                                     placeholder="6935715840"
@@ -613,7 +628,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                                 <label className="form-label">Civitai Version URL</label>
                                                 <input
                                                     type="url"
-                                                    className="form-input"
+                                                    className="form-input mono"
                                                     value={ver.civitai_version_url || ""}
                                                     onChange={(e) => handleUpdateVersion(idx, "civitai_version_url", e.target.value)}
                                                     placeholder="https://civitai.com/models/...?modelVersionId=..."
@@ -625,30 +640,30 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                             <label className="form-label">Direct Download URL</label>
                                             <input
                                                 type="url"
-                                                className="form-input"
+                                                className="form-input mono"
                                                 value={ver.download_url || ""}
                                                 onChange={(e) => handleUpdateVersion(idx, "download_url", e.target.value)}
                                                 placeholder="https://civitai.com/api/download/models/..."
                                             />
                                         </div>
 
-                                        {/* ⚙️ Recommended Generation Settings */}
+                                        {/* Recommended Generation Settings */}
                                         <div
                                             style={{
-                                                marginTop: "12px",
-                                                padding: "14px 16px",
-                                                background: "#1a1b1e",
-                                                border: "1px solid var(--border)",
-                                                borderRadius: "8px",
+                                                marginTop: "10px",
+                                                padding: "12px 14px",
+                                                background: "#17191C",
+                                                border: "1px solid #292D32",
+                                                borderRadius: "4px",
                                             }}
                                         >
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "14px" }}>
-                                                <span style={{ fontSize: "14px" }}>⚙️</span>
-                                                <span style={{ fontWeight: 600, color: "var(--heading)", fontSize: "13px" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "10px" }}>
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                                                </svg>
+                                                <span style={{ fontWeight: 600, color: "#E6E8EB", fontSize: "12px" }}>
                                                     Recommended Generation Settings
-                                                </span>
-                                                <span style={{ fontSize: "11px", color: "var(--subtle)", marginLeft: "auto" }}>
-                                                    Tampil di halaman galeri publik
                                                 </span>
                                             </div>
 
@@ -657,7 +672,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                                     <label className="form-label">Sampler</label>
                                                     <input
                                                         type="text"
-                                                        className="form-input"
+                                                        className="form-input mono"
                                                         value={ver.recommended_settings?.sampler || ""}
                                                         onChange={(e) => handleUpdateRecSetting(idx, "sampler", e.target.value)}
                                                         placeholder="Euler a / DPM++ 2M Karras"
@@ -668,7 +683,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                                     <label className="form-label">Steps</label>
                                                     <input
                                                         type="number"
-                                                        className="form-input"
+                                                        className="form-input mono"
                                                         value={ver.recommended_settings?.steps ?? ""}
                                                         onChange={(e) => handleUpdateRecSetting(idx, "steps", e.target.value ? parseInt(e.target.value, 10) : undefined)}
                                                         placeholder="28"
@@ -680,7 +695,7 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                                     <input
                                                         type="number"
                                                         step="0.5"
-                                                        className="form-input"
+                                                        className="form-input mono"
                                                         value={ver.recommended_settings?.cfg_scale ?? ""}
                                                         onChange={(e) => handleUpdateRecSetting(idx, "cfg_scale", e.target.value ? parseFloat(e.target.value) : undefined)}
                                                         placeholder="6.5"
@@ -690,10 +705,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
 
                                             <div className="form-grid-2">
                                                 <div className="form-group">
-                                                    <label className="form-label">Resolution Width</label>
+                                                    <label className="form-label">Width (px)</label>
                                                     <input
                                                         type="number"
-                                                        className="form-input"
+                                                        className="form-input mono"
                                                         value={ver.recommended_settings?.width ?? ""}
                                                         onChange={(e) => handleUpdateRecSetting(idx, "width", e.target.value ? parseInt(e.target.value, 10) : undefined)}
                                                         placeholder="832"
@@ -701,10 +716,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                                                 </div>
 
                                                 <div className="form-group">
-                                                    <label className="form-label">Resolution Height</label>
+                                                    <label className="form-label">Height (px)</label>
                                                     <input
                                                         type="number"
-                                                        className="form-input"
+                                                        className="form-input mono"
                                                         value={ver.recommended_settings?.height ?? ""}
                                                         onChange={(e) => handleUpdateRecSetting(idx, "height", e.target.value ? parseInt(e.target.value, 10) : undefined)}
                                                         placeholder="1216"
@@ -721,10 +736,10 @@ export const ModelFormModal: React.FC<ModelFormModalProps> = ({
                     {/* Footer Actions */}
                     <div className="admin-modal-footer">
                         <button type="button" className="btn-secondary-admin" onClick={onClose} disabled={isSaving}>
-                            Batal
+                            Cancel
                         </button>
                         <button type="submit" className="btn-primary-admin" disabled={isSaving}>
-                            {isSaving ? "Menyimpan..." : isEdit ? "Simpan Perubahan" : "Buat Model"}
+                            {isSaving ? "Saving..." : isEdit ? "Save Changes" : "Create Model"}
                         </button>
                     </div>
                 </form>

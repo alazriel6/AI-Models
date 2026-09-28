@@ -3,6 +3,7 @@ import './App.css';
 import Home from './components/pages/Home';
 import About from './components/pages/About';
 import Contact from './components/pages/Contact';
+import Gallery from './components/pages/Gallery';
 import ModelList from './components/model-list';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { AdminAuthProvider } from './components/admin/AdminAuth';
@@ -31,6 +32,11 @@ function App() {
                   </NavLink>
                 </li>
                 <li>
+                  <NavLink to="/gallery">
+                    Gallery
+                  </NavLink>
+                </li>
+                <li>
                   <NavLink to="/about">
                     About
                   </NavLink>
@@ -42,7 +48,7 @@ function App() {
                 </li>
                 <li>
                   <NavLink to="/admin" className="nav-admin-badge-link">
-                    🛡️ Admin
+                    Admin
                   </NavLink>
                 </li>
               </ul>
@@ -54,6 +60,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/models" element={<ModelList />} />
+              <Route path="/gallery" element={<Gallery />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin" element={<AdminDashboard />} />

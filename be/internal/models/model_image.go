@@ -10,6 +10,7 @@ type ModelImage struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 
 	ModelID uint `json:"model_id" gorm:"not null;index"`
+	Model   *Model `json:"model,omitempty" gorm:"foreignKey:ModelID"`
 
 	ImagePath string `json:"image_path"`
 	ImageURL  string `json:"image_url"`

@@ -201,46 +201,50 @@ export const AdminDashboard: React.FC = () => {
             {/* Header */}
             <div className="admin-header">
                 <div className="admin-title-area">
-                    <div className="admin-badge-icon">🛡️</div>
+                    <div className="admin-badge-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                    </div>
                     <div>
                         <h1>
-                            Database Admin Panel
-                            <span className="admin-mode-pill">Admin Mode Active</span>
+                            Model Management Console
+                            <span className="admin-mode-pill">Admin</span>
                         </h1>
-                        <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "4px" }}>
-                            Kelola model checkpoints, LoRA, tags, dan parameter generasi AI.
+                        <div style={{ fontSize: "11px", color: "#666C75", marginTop: "2px" }}>
+                            Manage checkpoint definitions, LoRA adapters, hardware specs, and generation presets.
                         </div>
                     </div>
                 </div>
 
                 <div className="admin-header-actions">
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            fontSize: "12px",
-                            color: backendOnline ? "var(--teal)" : "var(--orange)",
-                            background: backendOnline ? "rgba(32, 201, 151, 0.1)" : "rgba(255, 146, 43, 0.1)",
-                            padding: "6px 10px",
-                            borderRadius: "6px",
-                            border: `1px solid ${backendOnline ? "rgba(32, 201, 151, 0.25)" : "rgba(255, 146, 43, 0.25)"}`,
-                        }}
-                    >
-                        <span style={{ fontSize: "8px" }}>●</span>
-                        {backendOnline ? "Backend Connected (Port 8080)" : "Backend Disconnected"}
+                    <div className={`backend-status-badge ${backendOnline ? "online" : "offline"}`}>
+                        <span className="status-dot"></span>
+                        {backendOnline ? "API :8080 ONLINE" : "API OFFLINE"}
                     </div>
 
                     <button
                         className="btn-secondary-admin"
                         onClick={() => setIsChangePasscodeOpen(true)}
-                        title="Ubah PIN Passcode"
+                        title="Change Passcode PIN"
                     >
-                        🔑 Ganti PIN
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 2l-2 2m-1.5 1.5L16 7l-4 4-2-2-4 4 2 2-4 4 2 2 4-4 2 2 4-4-1.5-1.5z"></path>
+                            <circle cx="16.5" cy="7.5" r="2.5"></circle>
+                        </svg>
+                        Change PIN
                     </button>
 
-                    <button className="btn-secondary-admin" onClick={logout} title="Kunci Admin Panel">
-                        🔒 Logout
+                    <button className="btn-secondary-admin" onClick={logout} title="Lock Admin Panel">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Logout
                     </button>
                 </div>
             </div>
@@ -249,10 +253,16 @@ export const AdminDashboard: React.FC = () => {
             <div className="admin-stats-grid">
                 <div className="admin-stat-card">
                     <div className="admin-stat-info">
-                        <div className="stat-label">Total Model</div>
+                        <div className="stat-label">Total Models</div>
                         <div className="stat-value">{stats.total}</div>
                     </div>
-                    <div className="admin-stat-icon blue">📦</div>
+                    <div className="admin-stat-icon blue">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                            <polyline points="2 17 12 22 22 17"></polyline>
+                            <polyline points="2 12 12 17 22 12"></polyline>
+                        </svg>
+                    </div>
                 </div>
 
                 <div className="admin-stat-card">
@@ -260,7 +270,11 @@ export const AdminDashboard: React.FC = () => {
                         <div className="stat-label">Checkpoints</div>
                         <div className="stat-value">{stats.checkpoints}</div>
                     </div>
-                    <div className="admin-stat-icon teal">⚡</div>
+                    <div className="admin-stat-icon teal">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                    </div>
                 </div>
 
                 <div className="admin-stat-card">
@@ -268,39 +282,48 @@ export const AdminDashboard: React.FC = () => {
                         <div className="stat-label">LoRA Adapters</div>
                         <div className="stat-value">{stats.loras}</div>
                     </div>
-                    <div className="admin-stat-icon orange">🎨</div>
+                    <div className="admin-stat-icon orange">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14"></line>
+                            <line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line>
+                            <line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line>
+                            <line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                    </div>
                 </div>
 
                 <div className="admin-stat-card">
                     <div className="admin-stat-info">
-                        <div className="stat-label">Lainnya / VAE</div>
+                        <div className="stat-label">Other / VAE</div>
                         <div className="stat-value">{stats.other}</div>
                     </div>
-                    <div className="admin-stat-icon purple">🧩</div>
+                    <div className="admin-stat-icon purple">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                    </div>
                 </div>
             </div>
 
-            {/* Backend Offline / Error Banner */}
+            {/* Backend Offline Banner */}
             {!backendOnline && (
-                <div style={{
-                    background: "rgba(255, 107, 107, 0.12)",
-                    border: "1px solid rgba(255, 107, 107, 0.35)",
-                    borderRadius: "8px",
-                    padding: "14px 18px",
-                    marginBottom: "20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "12px",
-                }}>
+                <div className="admin-alert-banner">
                     <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <span style={{ fontSize: "20px" }}>⚠️</span>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
                         <div>
-                            <div style={{ fontWeight: 600, color: "#ff6b6b", fontSize: "14px" }}>
-                                Backend Server Tidak Terhubung
-                            </div>
-                            <div style={{ fontSize: "12px", color: "var(--muted)", marginTop: "2px" }}>
-                                {errorMessage || "Tidak dapat menghubungi API di http://localhost:8080. Pastikan server Go berjalan."}
+                            <div className="alert-title">Backend Service Unavailable</div>
+                            <div className="alert-desc">
+                                {errorMessage || "Cannot reach API at http://localhost:8080. Ensure the Go backend service is running."}
                             </div>
                         </div>
                     </div>
@@ -310,7 +333,7 @@ export const AdminDashboard: React.FC = () => {
                         disabled={loading}
                         style={{ whiteSpace: "nowrap" }}
                     >
-                        🔄 Coba Lagi
+                        Retry Connection
                     </button>
                 </div>
             )}
@@ -319,11 +342,16 @@ export const AdminDashboard: React.FC = () => {
             <div className="admin-toolbar">
                 <div className="admin-toolbar-left">
                     <div className="admin-search-wrapper">
-                        <span className="admin-search-icon">🔍</span>
+                        <span className="admin-search-icon">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                        </span>
                         <input
                             type="text"
                             className="admin-search-input"
-                            placeholder="Cari model, author, atau slug..."
+                            placeholder="Filter by name, author, or slug..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -334,7 +362,7 @@ export const AdminDashboard: React.FC = () => {
                             className={`admin-filter-btn ${typeFilter === "all" ? "active" : ""}`}
                             onClick={() => setTypeFilter("all")}
                         >
-                            Semua
+                            All
                         </button>
                         <button
                             className={`admin-filter-btn ${typeFilter === "checkpoint" ? "active" : ""}`}
@@ -356,7 +384,7 @@ export const AdminDashboard: React.FC = () => {
                             value={baseModelFilter}
                             onChange={(e) => setBaseModelFilter(e.target.value)}
                         >
-                            <option value="all">Semua Base Arch</option>
+                            <option value="all">All Architectures</option>
                             {baseModelOptions.map((opt) => (
                                 <option key={opt} value={opt}>
                                     {opt}
@@ -374,7 +402,11 @@ export const AdminDashboard: React.FC = () => {
                             setIsFormOpen(true);
                         }}
                     >
-                        <span>+</span> Tambah Model Baru
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                        New Model
                     </button>
                 </div>
             </div>
@@ -383,29 +415,40 @@ export const AdminDashboard: React.FC = () => {
             <div className="admin-table-container">
                 {loading ? (
                     <div className="admin-empty-state">
-                        <div className="admin-empty-icon">⏳</div>
-                        <div>Memuat data database...</div>
+                        <div className="admin-empty-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                        </div>
+                        <div>Loading database records...</div>
                     </div>
                 ) : filteredModels.length === 0 ? (
                     <div className="admin-empty-state">
-                        <div className="admin-empty-icon">📂</div>
-                        <div style={{ fontWeight: 600, color: "var(--heading)", marginBottom: "6px" }}>
-                            Tidak ada model yang cocok
+                        <div className="admin-empty-icon">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                            </svg>
                         </div>
-                        <p style={{ fontSize: "12px" }}>
-                            Coba ubah kata kunci pencarian atau klik "+ Tambah Model Baru" untuk membuat entri database.
+                        <div style={{ fontWeight: 600, color: "#E6E8EB", marginBottom: "4px", fontSize: "14px" }}>
+                            No models found
+                        </div>
+                        <p style={{ fontSize: "12px", color: "#666C75", margin: 0 }}>
+                            Try adjusting your filters or click "+ New Model" to create an entry.
                         </p>
                     </div>
                 ) : (
                     <table className="admin-table">
                         <thead>
                             <tr>
-                                <th>Model & Info</th>
-                                <th>Tipe</th>
-                                <th>Base Model</th>
+                                <th>Model & Identification</th>
+                                <th>Type</th>
+                                <th>Architecture</th>
                                 <th>Author</th>
-                                <th>Specs / VRAM</th>
-                                <th style={{ textAlign: "right" }}>Aksi</th>
+                                <th>Hardware / VRAM</th>
+                                <th style={{ textAlign: "right" }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -426,9 +469,13 @@ export const AdminDashboard: React.FC = () => {
                                             ) : (
                                                 <div
                                                     className="admin-thumb-empty"
-                                                    title="Belum ada gambar (Thumbnail kosong)"
+                                                    title="No thumbnail assigned"
                                                 >
-                                                    🖼️
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                        <polyline points="21 15 16 10 5 21"></polyline>
+                                                    </svg>
                                                 </div>
                                             )}
                                             <div>
@@ -448,15 +495,15 @@ export const AdminDashboard: React.FC = () => {
                                         <span className="pill-base">{item.base_model}</span>
                                     </td>
 
-                                    <td style={{ color: "var(--heading)" }}>
+                                    <td style={{ color: "#E6E8EB" }}>
                                         {item.author || "—"}
                                     </td>
 
                                     <td>
-                                        <div style={{ fontSize: "12px", color: "var(--text)" }}>
+                                        <div style={{ fontSize: "12px", color: "#E6E8EB", fontFamily: "monospace" }}>
                                             {item.tensor_size || "—"}
                                         </div>
-                                        <div style={{ fontSize: "11px", color: "var(--subtle)" }}>
+                                        <div style={{ fontSize: "11px", color: "#666C75", fontFamily: "monospace" }}>
                                             Min: {item.vram_min || "—"}
                                         </div>
                                     </td>
@@ -464,38 +511,51 @@ export const AdminDashboard: React.FC = () => {
                                     <td>
                                         <div className="table-action-btns">
                                             <button
-                                                className="btn-icon-admin image-action-btn"
-                                                title="Kelola Sampel Gambar & Detail Generasi"
+                                                className="btn-icon-admin"
+                                                title="Manage Sample Images & Generation Metadata"
                                                 onClick={() => {
                                                     setSelectedModelForImages(item);
                                                     setIsImagesModalOpen(true);
                                                 }}
                                             >
-                                                🖼️
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                                </svg>
                                             </button>
                                             <Link
                                                 to={`/models?model=${item.slug}`}
                                                 className="btn-icon-admin"
-                                                title="Lihat di Galeri Publik"
+                                                title="View in Public Catalog"
                                             >
-                                                👁️
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                                                </svg>
                                             </Link>
                                             <button
                                                 className="btn-icon-admin"
-                                                title="Edit Model"
+                                                title="Edit Model Definition"
                                                 onClick={() => {
                                                     setSelectedModel(item);
                                                     setIsFormOpen(true);
                                                 }}
                                             >
-                                                ✏️
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+                                                </svg>
                                             </button>
                                             <button
                                                 className="btn-icon-admin danger"
-                                                title="Hapus Model"
+                                                title="Delete Model"
                                                 onClick={() => setModelToDelete(item)}
                                             >
-                                                🗑️
+                                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                                </svg>
                                             </button>
                                         </div>
                                     </td>
@@ -538,24 +598,27 @@ export const AdminDashboard: React.FC = () => {
                 <div className="admin-modal-backdrop" onClick={() => setModelToDelete(null)}>
                     <div
                         className="admin-modal-content"
-                        style={{ maxWidth: "480px" }}
+                        style={{ maxWidth: "440px" }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="admin-modal-header">
-                            <h2 className="admin-modal-title" style={{ color: "#ff6b6b" }}>
-                                ⚠️ Konfirmasi Hapus Data
+                            <h2 className="admin-modal-title" style={{ color: "#EF4444" }}>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                Confirm Model Deletion
                             </h2>
                             <button className="admin-modal-close" onClick={() => setModelToDelete(null)}>
                                 ✕
                             </button>
                         </div>
-                        <div className="admin-modal-body" style={{ textAlign: "center", padding: "28px 24px" }}>
-                            <div style={{ fontSize: "36px", marginBottom: "12px" }}>🗑️</div>
-                            <p style={{ color: "var(--heading)", fontWeight: 600, fontSize: "15px", marginBottom: "8px" }}>
-                                Hapus model "{modelToDelete.name}"?
+                        <div className="admin-modal-body" style={{ padding: "20px" }}>
+                            <p style={{ color: "#E6E8EB", fontWeight: 600, fontSize: "14px", margin: "0 0 8px 0" }}>
+                                Delete model "{modelToDelete.name}"?
                             </p>
-                            <p style={{ color: "var(--muted)", fontSize: "12px", lineHeight: "1.5" }}>
-                                Tindakan ini akan menghapus data model, rilis versi, dan parameter terkait dari database. Tindakan ini tidak dapat dibatalkan.
+                            <p style={{ color: "#9A9FA8", fontSize: "12px", lineHeight: "1.5", margin: 0 }}>
+                                This will permanently remove the model record, versions, triggers, and associated generation sample images from the database. This action cannot be undone.
                             </p>
                         </div>
                         <div className="admin-modal-footer">
@@ -565,7 +628,7 @@ export const AdminDashboard: React.FC = () => {
                                 onClick={() => setModelToDelete(null)}
                                 disabled={isDeleting}
                             >
-                                Batal
+                                Cancel
                             </button>
                             <button
                                 type="button"
@@ -573,7 +636,7 @@ export const AdminDashboard: React.FC = () => {
                                 onClick={handleConfirmDelete}
                                 disabled={isDeleting}
                             >
-                                {isDeleting ? "Menghapus..." : "Ya, Hapus Data"}
+                                {isDeleting ? "Deleting..." : "Delete Model"}
                             </button>
                         </div>
                     </div>
@@ -585,11 +648,17 @@ export const AdminDashboard: React.FC = () => {
                 <div className="admin-modal-backdrop" onClick={() => setIsChangePasscodeOpen(false)}>
                     <div
                         className="admin-modal-content"
-                        style={{ maxWidth: "420px" }}
+                        style={{ maxWidth: "380px" }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="admin-modal-header">
-                            <h2 className="admin-modal-title">🔑 Ganti Passcode Admin</h2>
+                            <h2 className="admin-modal-title">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 2l-2 2m-1.5 1.5L16 7l-4 4-2-2-4 4 2 2-4 4 2 2 4-4 2 2 4-4-1.5-1.5z"></path>
+                                    <circle cx="16.5" cy="7.5" r="2.5"></circle>
+                                </svg>
+                                Change Admin Passcode
+                            </h2>
                             <button className="admin-modal-close" onClick={() => setIsChangePasscodeOpen(false)}>
                                 ✕
                             </button>
@@ -597,30 +666,30 @@ export const AdminDashboard: React.FC = () => {
                         <form onSubmit={handleChangePasscode}>
                             <div className="admin-modal-body">
                                 <div className="form-group">
-                                    <label className="form-label">Passcode Lama</label>
+                                    <label className="form-label">Current Passcode</label>
                                     <input
                                         type="password"
-                                        className="form-input"
-                                        placeholder="Masukkan passcode saat ini..."
+                                        className="form-input mono"
+                                        placeholder="Enter current passcode..."
                                         value={oldPass}
                                         onChange={(e) => setOldPass(e.target.value)}
                                         required
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label className="form-label">Passcode Baru (min 4 karakter)</label>
+                                <div className="form-group" style={{ marginBottom: 0 }}>
+                                    <label className="form-label">New Passcode (min 4 chars)</label>
                                     <input
                                         type="password"
-                                        className="form-input"
-                                        placeholder="Masukkan passcode baru..."
+                                        className="form-input mono"
+                                        placeholder="Enter new passcode..."
                                         value={newPass}
                                         onChange={(e) => setNewPass(e.target.value)}
                                         required
                                     />
                                 </div>
                                 {passcodeError && (
-                                    <div style={{ color: "#ff6b6b", fontSize: "12px", marginTop: "4px" }}>
-                                        ⚠️ {passcodeError}
+                                    <div style={{ color: "#EF4444", fontSize: "11px", marginTop: "8px" }}>
+                                        {passcodeError}
                                     </div>
                                 )}
                             </div>
@@ -630,10 +699,10 @@ export const AdminDashboard: React.FC = () => {
                                     className="btn-secondary-admin"
                                     onClick={() => setIsChangePasscodeOpen(false)}
                                 >
-                                    Batal
+                                    Cancel
                                 </button>
                                 <button type="submit" className="btn-primary-admin">
-                                    Simpan Passcode
+                                    Update Passcode
                                 </button>
                             </div>
                         </form>

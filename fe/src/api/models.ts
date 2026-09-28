@@ -11,6 +11,17 @@ export interface Resource {
 
 export interface ModelImage {
     id: number;
+    model_id?: number;
+    model?: {
+        id: number;
+        name: string;
+        slug: string;
+        type: string;
+        base_model: string;
+        author?: string;
+        thumbnail_url?: string;
+    };
+    image_path?: string;
     image_url: string;
     caption?: string;
     width?: number;
@@ -22,7 +33,10 @@ export interface ModelImage {
     cfg_scale?: number;
     sampler?: string;
     scheduler?: string;
+    raw_metadata?: unknown;
     resources?: Resource[];
+    created_at?: string;
+    updated_at?: string;
 }
 
 export interface Review {
@@ -115,6 +129,16 @@ export interface ModelsResponse {
     };
 }
 
+export interface ImagesResponse {
+    data: ModelImage[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        total_pages: number;
+    };
+}
+
 export function getModels(params?: { type?: string; base_model?: string; search?: string; page?: number; limit?: number }) {
     const query = new URLSearchParams();
     if (params?.type) query.append("type", params.type);
@@ -124,6 +148,25 @@ export function getModels(params?: { type?: string; base_model?: string; search?
     if (params?.limit) query.append("limit", String(params.limit));
     const qs = query.toString();
     return apiFetch<ModelsResponse>(`/models${qs ? `?${qs}` : ""}`);
+}
+
+export function getAllImages(params?: {
+    search?: string;
+    base_model?: string;
+    model_id?: number;
+    sort?: string;
+    page?: number;
+    limit?: number;
+}) {
+    const query = new URLSearchParams();
+    if (params?.search) query.append("search", params.search);
+    if (params?.base_model) query.append("base_model", params.base_model);
+    if (params?.model_id) query.append("model_id", String(params.model_id));
+    if (params?.sort) query.append("sort", params.sort);
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.limit) query.append("limit", String(params.limit));
+    const qs = query.toString();
+    return apiFetch<ImagesResponse>(`/images${qs ? `?${qs}` : ""}`);
 }
 
 export function getModel(idOrSlug: string | number) {

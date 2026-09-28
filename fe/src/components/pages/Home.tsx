@@ -15,7 +15,7 @@ interface VramPreset {
 const VRAM_PRESETS: Record<string, VramPreset> = {
   '4gb': {
     vram: '4 GB',
-    name: 'Entry Level / Budget GPU (GTX 1650, RTX 3050 mobile)',
+    name: 'Entry Level GPU (GTX 1650, RTX 3050 mobile)',
     status: 'entry',
     supportedModels: ['SD 1.5 Checkpoints', 'Lightweight LoRAs (rank 16-32)'],
     maxResolution: '512 × 512 or 512 × 768',
@@ -24,7 +24,7 @@ const VRAM_PRESETS: Record<string, VramPreset> = {
   },
   '6gb': {
     vram: '6 GB',
-    name: 'Mid-Tier / Laptop GPU (RTX 2060, RTX 3060 mobile)',
+    name: 'Mid-Tier GPU (RTX 2060, RTX 3060 mobile)',
     status: 'entry',
     supportedModels: ['SD 1.5', 'Illustrious XL (fp16 pruned)', 'NoobAI', 'Style LoRAs'],
     maxResolution: '832 × 1216 or 1024 × 1024 (Single batch)',
@@ -130,24 +130,26 @@ export default function Home() {
 
   return (
     <div className="home-page-container">
-      {/* Hero Banner Section */}
+      {/* ===================================================================
+          Hero Banner Section: Dense, Technical, Professional
+          =================================================================== */}
       <section className="home-hero-banner">
         <div className="hero-text-block">
           <div className="hero-badge-pill">
-            <span>✦</span> AI Model Hub & Technical Guide
+            <span>REFERENCE</span> Local Generative AI Architecture
           </div>
           <h1 className="hero-title">
-            Explore, Inspect & Compare Generative AI Models
+            Models Guide & Inference Reference
           </h1>
           <p className="hero-description">
-            Comprehensive tensor layer analysis, verified inference parameters, SafeTensors verification,
-            and exact VRAM specifications for SDXL, Illustrious, and anime fine-tunes.
+            Tensor layer analysis, verified inference parameters, SafeTensors structure verification,
+            and VRAM hardware requirements for SDXL, Illustrious, and anime fine-tunes.
           </p>
 
           {/* Quick Search Form inside Hero */}
           <form className="home-hero-search-form" onSubmit={handleSearchSubmit}>
             <div className="home-hero-search-wrapper">
-              <svg className="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg className="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
@@ -164,7 +166,7 @@ export default function Home() {
             </div>
 
             <div className="hero-quick-tags">
-              <span className="quick-tag-label">Popular:</span>
+              <span className="quick-tag-label">Quick Filter:</span>
               <button type="button" className="quick-tag-btn" onClick={() => navigate('/models?tab=checkpoints')}>Checkpoints</button>
               <button type="button" className="quick-tag-btn" onClick={() => navigate('/models?tab=lora')}>LoRA</button>
               <button type="button" className="quick-tag-btn" onClick={() => navigate('/models?tab=illustrious')}>Illustrious</button>
@@ -174,21 +176,19 @@ export default function Home() {
 
           <div className="hero-actions-row">
             <Link to="/models" className="global-btn global-btn-primary">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <rect x="3" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="3" width="7" height="7" rx="1" />
-                <rect x="14" y="14" width="7" height="7" rx="1" />
-                <rect x="3" y="14" width="7" height="7" rx="1" />
-              </svg>
-              Browse All Models ({models.length || '...'}) →
+              Browse Models ({models.length || '...'}) →
+            </Link>
+
+            <Link to="/gallery" className="global-btn global-btn-secondary">
+              Generation Gallery
             </Link>
 
             <a href="#vram-advisor" className="global-btn global-btn-secondary">
-              ⚡ Hardware & VRAM Guide
+              VRAM Advisor
             </a>
 
             <Link to="/about" className="global-btn global-btn-secondary">
-              Platform Overview
+              Architecture Overview
             </Link>
           </div>
         </div>
@@ -206,13 +206,17 @@ export default function Home() {
                 }}
               />
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#141517', minHeight: '260px', gap: '8px' }}>
-                <span style={{ fontSize: '32px' }}>🖼️</span>
-                <span style={{ fontSize: '12px', color: '#909296' }}>No Preview Image</span>
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0e1012', minHeight: '190px', gap: '6px' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <polyline points="21 15 16 10 5 21" />
+                </svg>
+                <span style={{ fontSize: '11px', color: '#666c75' }}>No Sample Image</span>
               </div>
             )}
             <span className="spotlight-overlay-badge">
-              {spotlightModel?.type === 'lora' ? 'Featured LoRA' : 'Featured Checkpoint'}
+              {spotlightModel?.type === 'lora' ? 'FEATURED LORA' : 'FEATURED CHECKPOINT'}
             </span>
           </div>
 
@@ -225,20 +229,20 @@ export default function Home() {
             </div>
 
             <div className="spotlight-chips">
-              <span className="mini-stat-chip">👍 {spotlightModel ? (spotlightModel.likes >= 1000 ? `${(spotlightModel.likes / 1000).toFixed(1)}K` : spotlightModel.likes) : '3.1K'}</span>
-              <span className="mini-stat-chip">⭐ {spotlightModel?.rating?.toFixed(1) || '4.9'}</span>
-              <span className="mini-stat-chip" style={{ color: '#20c997', borderColor: 'rgba(32, 201, 151, 0.3)' }}>
+              <span className="mini-stat-chip">Likes: {spotlightModel ? (spotlightModel.likes >= 1000 ? `${(spotlightModel.likes / 1000).toFixed(1)}k` : spotlightModel.likes) : '3.1k'}</span>
+              <span className="mini-stat-chip">Rating: {spotlightModel?.rating?.toFixed(1) || '4.9'}</span>
+              <span className="mini-stat-chip" style={{ color: '#60a5fa' }}>
                 {spotlightModel?.base_model || 'Illustrious XL'}
               </span>
             </div>
 
-            <p style={{ fontSize: '12px', color: '#909296', margin: '0 0 14px 0', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            <p style={{ fontSize: '12px', color: '#9a9fa8', margin: '0 0 14px 0', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
               {spotlightModel?.description || 'Enhanced iteration with balanced contrast and high anime aesthetic coherence.'}
             </p>
 
             <Link
               to={spotlightModel ? `/models?model=${spotlightModel.slug}` : '/models'}
-              className="global-btn global-btn-primary"
+              className="global-btn global-btn-secondary"
               style={{ width: '100%', boxSizing: 'border-box' }}
             >
               Inspect Model Details →
@@ -247,18 +251,20 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Interactive Category Tabs & Model Showcase */}
+      {/* ===================================================================
+          Interactive Category Tabs & Model Showcase
+          =================================================================== */}
       <section className="home-section-block">
         <div className="section-title-bar">
           <div>
-            <h2>Model Showcase & Quick Directory</h2>
-            <p>Directly filter and preview curated checkpoints and LoRAs with tensor profiles</p>
+            <h2>Model Showcase & Directory</h2>
+            <p>Filter and inspect curated checkpoints and LoRA weights with verified tensor profiles</p>
           </div>
           <Link
             to={selectedCategory === 'all' ? '/models' : `/models?tab=${selectedCategory}`}
             className="global-btn global-btn-secondary"
           >
-            Open in Full Catalog ({models.length}) →
+            All Models ({models.length}) →
           </Link>
         </div>
 
@@ -267,7 +273,7 @@ export default function Home() {
           {[
             { id: 'all', label: 'All Models', count: models.length },
             { id: 'checkpoints', label: 'Checkpoints', count: models.filter((m) => m.type === 'checkpoint').length },
-            { id: 'lora', label: 'LoRAs & Style', count: models.filter((m) => m.type === 'lora').length },
+            { id: 'lora', label: 'LoRAs', count: models.filter((m) => m.type === 'lora').length },
             { id: 'illustrious', label: 'Illustrious Base', count: models.filter((m) => m.base_model?.toLowerCase().includes('illustrious')).length },
             { id: 'noobai', label: 'NoobAI Base', count: models.filter((m) => m.base_model?.toLowerCase().includes('noobai')).length },
           ].map((cat) => (
@@ -307,9 +313,13 @@ export default function Home() {
                       }}
                     />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#141517', minHeight: '200px', gap: '6px' }}>
-                      <span style={{ fontSize: '26px' }}>🖼️</span>
-                      <span style={{ fontSize: '11px', color: '#909296' }}>Belum Ada Gambar</span>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#0e1012', minHeight: '170px', gap: '6px' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <polyline points="21 15 16 10 5 21" />
+                      </svg>
+                      <span style={{ fontSize: '11px', color: '#666c75' }}>No Sample Image</span>
                     </div>
                   )}
                   <span className={`home-card-type-pill ${item.type === 'lora' ? 'type-lora' : 'type-checkpoint'}`}>
@@ -322,8 +332,8 @@ export default function Home() {
                   <h4 className="home-card-title" title={item.name}>{item.name}</h4>
                   <div className="home-card-meta">
                     <span className="home-card-author">by {item.author}</span>
-                    <span className="home-card-stat">⭐ {item.rating?.toFixed(1) || '5.0'}</span>
-                    <span className="home-card-stat">👍 {item.likes >= 1000 ? `${(item.likes / 1000).toFixed(1)}K` : item.likes}</span>
+                    <span className="home-card-stat">Rating: {item.rating?.toFixed(1) || '5.0'}</span>
+                    <span className="home-card-stat">Likes: {item.likes >= 1000 ? `${(item.likes / 1000).toFixed(1)}k` : item.likes}</span>
                   </div>
 
                   {/* VRAM & Hardware pill */}
@@ -355,12 +365,14 @@ export default function Home() {
         )}
       </section>
 
-      {/* GPU VRAM & Hardware Compatibility Advisor */}
+      {/* ===================================================================
+          GPU VRAM & Hardware Compatibility Advisor
+          =================================================================== */}
       <section id="vram-advisor" className="home-section-block">
         <div className="section-title-bar">
           <div>
-            <h2>Hardware & VRAM Compatibility Advisor</h2>
-            <p>Select your GPU capacity to instantly view compatible checkpoint architectures and optimal flags</p>
+            <h2>Hardware & VRAM Compatibility Matrix</h2>
+            <p>Select your GPU capacity to inspect compatible checkpoint architectures and optimal launch arguments</p>
           </div>
         </div>
 
@@ -375,7 +387,7 @@ export default function Home() {
                   onClick={() => setSelectedVram(key)}
                 >
                   <span className="vram-amount">{preset.vram}</span>
-                  <span className="vram-badge-type">{key === '8gb' ? 'Popular' : key === '16gb' ? 'Ultra' : 'Tier'}</span>
+                  <span className="vram-badge-type">{key === '8gb' ? 'Sweetspot' : key === '16gb' ? 'Workstation' : 'Tier'}</span>
                 </button>
               );
             })}
@@ -387,10 +399,10 @@ export default function Home() {
                 <h3 className="vram-headline">{currentVramInfo.name}</h3>
                 <span className={`vram-status-badge status-${currentVramInfo.status}`}>
                   {currentVramInfo.status === 'powerhouse'
-                    ? '⚡ Ultra High Performance'
+                    ? 'Ultra High Performance'
                     : currentVramInfo.status === 'recommended'
-                    ? '✓ Recommended for SDXL / Illustrious'
-                    : '⚠ Light / Pruned Models Recommended'}
+                    ? 'Recommended: SDXL / Illustrious'
+                    : 'Notice: Light / Pruned Models Recommended'}
                 </span>
               </div>
               <Link to="/models" className="global-btn global-btn-secondary">
@@ -404,7 +416,7 @@ export default function Home() {
                 <ul className="vram-feature-list">
                   {currentVramInfo.supportedModels.map((m, idx) => (
                     <li key={idx}>
-                      <span className="check-bullet">✓</span> {m}
+                      <span className="check-bullet">›</span> {m}
                     </li>
                   ))}
                 </ul>
@@ -418,7 +430,7 @@ export default function Home() {
               </div>
 
               <div className="vram-detail-box">
-                <span className="vram-detail-label">Inference & Optimization Tip</span>
+                <span className="vram-detail-label">Optimization & Inference Guidelines</span>
                 <p className="vram-tip-text">
                   {currentVramInfo.tips}
                 </p>
@@ -428,12 +440,14 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Generation Preset Cheat Sheet */}
+      {/* ===================================================================
+          Verified Generation Parameter Cheat Sheet
+          =================================================================== */}
       <section className="home-section-block">
         <div className="section-title-bar">
           <div>
             <h2>Verified Generation Parameter Cheat Sheet</h2>
-            <p>Optimal baseline settings for the most popular anime & SDXL models</p>
+            <p>Baseline sampling parameters for the most popular anime & SDXL models</p>
           </div>
         </div>
 
@@ -475,52 +489,46 @@ export default function Home() {
               <div className="preset-prompt-header">
                 <span>Recommended Negative Prompt:</span>
                 <button
-                  type="button"
-                  className="copy-chip-btn"
-                  onClick={() =>
-                    copyToClipboard(
-                      'lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, blurry',
-                      'illustrious-neg'
-                    )
-                  }
+                  className="preset-copy-btn"
+                  onClick={() => copyToClipboard('worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, text, signature', 'illustrious-neg')}
                 >
-                  {copiedPrompt === 'illustrious-neg' ? '✓ Copied' : 'Copy'}
+                  {copiedPrompt === 'illustrious-neg' ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <code>lowres, bad anatomy, bad hands, text, worst quality, low quality, blurry</code>
+              <code>worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, text, signature</code>
             </div>
           </div>
 
-          {/* SDXL 1.0 Preset */}
+          {/* SD 1.5 Anime Preset */}
           <div className="preset-card">
             <div className="preset-card-header">
               <div>
-                <h4>SDXL 1.0 Native</h4>
-                <span className="preset-sub">High Detail 1024px Generation</span>
+                <h4>Stable Diffusion 1.5</h4>
+                <span className="preset-sub">Legacy Fine-tunes & Style LoRAs</span>
               </div>
-              <span className="pill-badge base-pill">SDXL</span>
+              <span className="pill-badge base-pill">SD 1.5</span>
             </div>
 
             <div className="preset-params-list">
               <div className="preset-param-row">
                 <span>Sampler</span>
-                <strong>DPM++ 2M SDE Karras</strong>
+                <strong>DPM++ 2M Karras / Euler a</strong>
               </div>
               <div className="preset-param-row">
                 <span>Steps</span>
-                <strong>30 - 35</strong>
+                <strong>20 - 30</strong>
               </div>
               <div className="preset-param-row">
                 <span>CFG Scale</span>
-                <strong>7.0</strong>
+                <strong>7.0 - 8.0</strong>
               </div>
               <div className="preset-param-row">
                 <span>Clip Skip</span>
-                <strong>1</strong>
+                <strong>2</strong>
               </div>
               <div className="preset-param-row">
                 <span>Native Resolution</span>
-                <strong>1024 × 1024 (Square)</strong>
+                <strong>512 × 768 or 512 × 512</strong>
               </div>
             </div>
 
@@ -528,99 +536,141 @@ export default function Home() {
               <div className="preset-prompt-header">
                 <span>Recommended Negative Prompt:</span>
                 <button
-                  type="button"
-                  className="copy-chip-btn"
-                  onClick={() =>
-                    copyToClipboard(
-                      'ugly, deformed, disfigured, poor details, bad anatomy, watermark, text',
-                      'sdxl-neg'
-                    )
-                  }
+                  className="preset-copy-btn"
+                  onClick={() => copyToClipboard('easynegative, badhandv4, (worst quality, low quality:1.4), deformed, blurry', 'sd15-neg')}
                 >
-                  {copiedPrompt === 'sdxl-neg' ? '✓ Copied' : 'Copy'}
+                  {copiedPrompt === 'sd15-neg' ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <code>ugly, deformed, disfigured, poor details, bad anatomy, watermark, text</code>
+              <code>easynegative, badhandv4, (worst quality, low quality:1.4), deformed, blurry</code>
             </div>
           </div>
 
-          {/* LoRA Integration Guide */}
+          {/* Pony Diffusion V6 Preset */}
           <div className="preset-card">
             <div className="preset-card-header">
               <div>
-                <h4>LoRA Application Best Practices</h4>
-                <span className="preset-sub">Weights & Stacking</span>
+                <h4>Pony Diffusion V6 XL</h4>
+                <span className="preset-sub">Score-tagged Pipeline</span>
               </div>
-              <span className="pill-badge lora-pill">LoRA</span>
+              <span className="pill-badge base-pill">Pony XL</span>
             </div>
 
             <div className="preset-params-list">
               <div className="preset-param-row">
-                <span>Character LoRA Weight</span>
-                <strong>0.7 - 0.9</strong>
+                <span>Sampler</span>
+                <strong>Euler a / DPM++ 2M SDE</strong>
               </div>
               <div className="preset-param-row">
-                <span>Style / Aesthetic LoRA</span>
-                <strong>0.5 - 0.8</strong>
+                <span>Steps</span>
+                <strong>25 - 30</strong>
               </div>
               <div className="preset-param-row">
-                <span>Stack Limit</span>
-                <strong>Max 3-4 simultaneous</strong>
+                <span>CFG Scale</span>
+                <strong>6.0 - 7.0</strong>
               </div>
               <div className="preset-param-row">
-                <span>Trigger Words</span>
-                <strong>Place at front of prompt</strong>
+                <span>Clip Skip</span>
+                <strong>2</strong>
+              </div>
+              <div className="preset-param-row">
+                <span>Prefix</span>
+                <strong>score_9, score_8_up, rating_safe</strong>
               </div>
             </div>
 
             <div className="preset-prompt-box">
               <div className="preset-prompt-header">
-                <span>Example LoRA Syntax:</span>
+                <span>Recommended Negative Prompt:</span>
                 <button
-                  type="button"
-                  className="copy-chip-btn"
-                  onClick={() =>
-                    copyToClipboard('<lora:detailed_anime_eyes:0.8>, detailed eyes, sparkle eyes', 'lora-syntax')
-                  }
+                  className="preset-copy-btn"
+                  onClick={() => copyToClipboard('score_6, score_5, score_4, simple background, ugly, bad hands, mutated fingers', 'pony-neg')}
                 >
-                  {copiedPrompt === 'lora-syntax' ? '✓ Copied' : 'Copy'}
+                  {copiedPrompt === 'pony-neg' ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <code>&lt;lora:model_name:0.8&gt;, trigger_word</code>
+              <code>score_6, score_5, score_4, simple background, ugly, bad hands, mutated fingers</code>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3-Column Features Grid */}
-      <div className="home-features-grid">
-        <div className="feature-box">
-          <span className="feature-box-icon">🔬</span>
-          <h3>Precision Tensor Inspection</h3>
-          <p>
-            Break down models layer by layer: conditioners, first-stage models, and UNet/DiT blocks with
-            accurate VRAM thresholds for local inference.
-          </p>
+      {/* ===================================================================
+          Architecture Comparison Matrix
+          =================================================================== */}
+      <section className="home-section-block">
+        <div className="section-title-bar">
+          <div>
+            <h2>Base Architecture Comparison Matrix</h2>
+            <p>Direct architectural comparison across Illustrious, SDXL, and legacy models</p>
+          </div>
         </div>
 
-        <div className="feature-box">
-          <span className="feature-box-icon">⚙️</span>
-          <h3>Verified Inference Settings</h3>
-          <p>
-            Eliminate trial and error with benchmarked samplers, optimal CFG scales, recommended step counts,
-            and clip skip values per checkpoint.
-          </p>
+        <div className="comparison-table-wrapper">
+          <table className="comparison-table">
+            <thead>
+              <tr>
+                <th>Feature / Metric</th>
+                <th>Illustrious-XL</th>
+                <th>SDXL 1.0 (Base)</th>
+                <th>SD 1.5</th>
+                <th>Flux.1 Schnell</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Total Parameters</td>
+                <td>6.6B (T5 + CLIP)</td>
+                <td>6.6B (Dual CLIP)</td>
+                <td>1.0B (CLIP-ViT-L)</td>
+                <td>12B (Flow Matching)</td>
+              </tr>
+              <tr>
+                <td>Native Native Resolution</td>
+                <td>832 × 1216 or 1024²</td>
+                <td>1024 × 1024</td>
+                <td>512 × 512</td>
+                <td>1024 × 1024</td>
+              </tr>
+              <tr>
+                <td>Min VRAM (Inference)</td>
+                <td>6 GB (fp16)</td>
+                <td>8 GB (fp16)</td>
+                <td>4 GB</td>
+                <td>12 GB (fp8 quantized)</td>
+              </tr>
+              <tr>
+                <td>Trained Conditioning Token Size</td>
+                <td>587 Tensors</td>
+                <td>587 Tensors</td>
+                <td>77 Tensors</td>
+                <td>512 Tensors</td>
+              </tr>
+              <tr>
+                <td>Text Encoder Architecture</td>
+                <td>Dual OpenCLIP + ViT</td>
+                <td>CLIP ViT-L + OpenCLIP</td>
+                <td>CLIP ViT-L/14</td>
+                <td>T5-XXL + CLIP-L</td>
+              </tr>
+              <tr>
+                <td>Recommended Anime Scheduler</td>
+                <td>Euler a / DPM++ 2M</td>
+                <td>Euler / DDIM</td>
+                <td>DPM++ 2M Karras</td>
+                <td>Simple / Beta</td>
+              </tr>
+              <tr>
+                <td>Danbooru Tag Adherence</td>
+                <td>Native (High)</td>
+                <td>Weak (Natural language)</td>
+                <td>Moderate (Fine-tunes)</td>
+                <td>Natural Prompting</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-
-        <div className="feature-box">
-          <span className="feature-box-icon">🛡️</span>
-          <h3>SafeTensors & AIR Compatible</h3>
-          <p>
-            Fully integrated with Civitai AIR identifiers, SHA256 hashes, and security scanning metadata
-            to keep your generation pipeline clean and reproducible.
-          </p>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }

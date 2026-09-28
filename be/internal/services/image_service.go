@@ -99,6 +99,10 @@ func (s *ImageService) ListByModelID(modelID uint) ([]models.ModelImage, error) 
 	return s.imageRepo.FindByModelID(modelID)
 }
 
+func (s *ImageService) ListAll(filter repositories.ImageFilter) ([]models.ModelImage, int64, error) {
+	return s.imageRepo.FindAll(filter)
+}
+
 func (s *ImageService) GetByID(id uint) (*models.ModelImage, error) {
 	return s.imageRepo.FindByID(id)
 }

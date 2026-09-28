@@ -621,7 +621,7 @@ export default function ModelList() {
                         {selectedModel.type === "lora" && selectedModel.triggerWords && selectedModel.triggerWords.length > 0 && (
                             <div className="lora-triggers-box">
                                 <div className="trigger-header">
-                                    <span className="trigger-title">⚡ Trigger Words (Trained Tokens)</span>
+                                    <span className="trigger-title">Trigger Words (Trained Tokens)</span>
                                 </div>
                                 <div className="trigger-pills-row">
                                     {selectedModel.triggerWords.map((word, i) => (
@@ -642,7 +642,7 @@ export default function ModelList() {
                         {currentVersion?.recommendedSettings && (
                             <div className="civitai-card recommended-settings-card">
                                 <div className="download-card-header">
-                                    <span className="card-title-strong">⚙️ Recommended Generation Settings</span>
+                                    <span className="card-title-strong">Recommended Generation Settings</span>
                                     <span className="variant-label">{currentVersion.name}</span>
                                 </div>
                                 <div className="settings-badge-grid">
@@ -1060,9 +1060,9 @@ export default function ModelList() {
             <header className="catalog-header">
                 <div className="catalog-header-title-row">
                     <div>
-                        <h1 className="catalog-main-title">AI Models & LoRAs</h1>
+                        <h1 className="catalog-main-title">Model Catalog</h1>
                         <p className="catalog-subtitle">
-                            Explore models and LoRAs across <strong>Illustrious</strong>, <strong>NoobAI</strong>, and leading anime architectures
+                            Registered checkpoint models, LoRA weights, and pipeline configurations across <strong>Illustrious</strong>, <strong>NoobAI</strong>, and anime architectures.
                         </p>
                     </div>
 
@@ -1072,14 +1072,28 @@ export default function ModelList() {
                             onClick={() => setViewMode("grid")}
                             title="Grid Card View"
                         >
-                            ☷ Grid
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                                <rect x="3" y="3" width="7" height="7" />
+                                <rect x="14" y="3" width="7" height="7" />
+                                <rect x="14" y="14" width="7" height="7" />
+                                <rect x="3" y="14" width="7" height="7" />
+                            </svg>
+                            Grid
                         </button>
                         <button
                             className={`view-toggle-btn ${viewMode === "list" ? "active" : ""}`}
                             onClick={() => setViewMode("list")}
                             title="Compact List View"
                         >
-                            ☰ List
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                                <line x1="8" y1="6" x2="21" y2="6" />
+                                <line x1="8" y1="12" x2="21" y2="12" />
+                                <line x1="8" y1="18" x2="21" y2="18" />
+                                <line x1="3" y1="6" x2="3.01" y2="6" />
+                                <line x1="3" y1="12" x2="3.01" y2="12" />
+                                <line x1="3" y1="18" x2="3.01" y2="18" />
+                            </svg>
+                            List
                         </button>
                     </div>
                 </div>
@@ -1103,7 +1117,7 @@ export default function ModelList() {
                             className={`filter-pill ${activeTab === "lora" ? "active" : ""}`}
                             onClick={() => setActiveTab("lora")}
                         >
-                            ⚡ LoRAs
+                            LoRAs
                         </button>
 
                         {/* Dynamically extract base models from database */}
@@ -1121,7 +1135,12 @@ export default function ModelList() {
                     {/* Search & Sort Controls */}
                     <div className="catalog-search-sort-row">
                         <div className="search-input-wrapper">
-                            <span className="search-icon">⌕</span>
+                            <span className="search-icon">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                            </span>
                             <input
                                 type="text"
                                 placeholder="Search model, author, tag, trigger..."
@@ -1154,18 +1173,17 @@ export default function ModelList() {
             {loading && (
                 <div className="catalog-loading-state">
                     <div className="catalog-spinner"></div>
-                    <p className="loading-text">Mengambil data model live dari database...</p>
+                    <p className="loading-text">Loading model data from backend...</p>
                 </div>
             )}
 
             {/* Error State with Retry */}
             {!loading && error && (
                 <div className="catalog-error-state">
-                    <span className="error-icon">⚠️</span>
-                    <h3>Koneksi Server Gagal</h3>
+                    <h3>Connection Error</h3>
                     <p>{error}</p>
                     <button className="retry-btn" onClick={fetchCatalog}>
-                        🔄 Coba Lagi
+                        Retry Connection
                     </button>
                 </div>
             )}
@@ -1173,12 +1191,11 @@ export default function ModelList() {
             {/* Empty State */}
             {!loading && !error && filteredCatalog.length === 0 && (
                 <div className="empty-catalog-state">
-                    <span className="empty-icon">◈</span>
-                    <h3>Tidak ada model ditemukan</h3>
+                    <h3>No models found</h3>
                     <p>
                         {catalog.length === 0
-                            ? "Database belum memiliki model. Tambahkan model melalui API backend atau migration."
-                            : "Tidak ada model yang cocok dengan pencarian atau filter yang dipilih."}
+                            ? "Database has no models registered yet. Add models via Admin console or backend migrations."
+                            : "No models matched the specified filter parameters or search query."}
                     </p>
                 </div>
             )}
@@ -1198,8 +1215,12 @@ export default function ModelList() {
                                     <img src={item.thumbnailUrl} alt={item.name} className="card-img" />
                                 ) : (
                                     <div className="card-img-placeholder">
-                                        <span className="placeholder-icon">🖼️</span>
-                                        <span className="placeholder-text">Belum ada sampel gambar</span>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                                            <circle cx="8.5" cy="8.5" r="1.5" />
+                                            <polyline points="21 15 16 10 5 21" />
+                                        </svg>
+                                        <span className="placeholder-text">No sample preview</span>
                                     </div>
                                 )}
 
@@ -1213,8 +1234,9 @@ export default function ModelList() {
                                 </div>
 
                                 <div className="card-bottom-stats-overlay">
-                                    <span>👍 {formatCount(item.likes)}</span>
-                                    <span>⭐ {item.rating.toFixed(1)}</span>
+                                    <span>Likes: {formatCount(item.likes)}</span>
+                                    <span>·</span>
+                                    <span>Rating: {item.rating.toFixed(1)}</span>
                                 </div>
                             </div>
 
@@ -1239,7 +1261,7 @@ export default function ModelList() {
                                 {/* Trigger words snippet for LoRAs */}
                                 {item.type === "lora" && item.triggerWords && item.triggerWords.length > 0 && (
                                     <div className="card-triggers-snippet">
-                                        <span className="triggers-label">Triggers:</span>
+                                        <span className="triggers-label">Trigger:</span>
                                         <span className="trigger-token">{item.triggerWords[0]}</span>
                                         {item.triggerWords.length > 1 && (
                                             <span className="more-token">+{item.triggerWords.length - 1}</span>
@@ -1252,7 +1274,7 @@ export default function ModelList() {
                                         {item.versions?.[0]?.name || item.baseModel}
                                     </span>
                                     <button className="card-inspect-btn">
-                                        Inspect Details →
+                                        Inspect Model →
                                     </button>
                                 </div>
                             </div>
@@ -1267,8 +1289,8 @@ export default function ModelList() {
                     <div className="list-header-row">
                         <span className="col-model">Model</span>
                         <span className="col-type">Type</span>
-                        <span className="col-base">Base Model</span>
-                        <span className="col-stats">Stats</span>
+                        <span className="col-base">Base Architecture</span>
+                        <span className="col-stats">Metrics</span>
                         <span className="col-size">Published</span>
                         <span className="col-action">Action</span>
                     </div>
@@ -1283,7 +1305,11 @@ export default function ModelList() {
                                 {item.thumbnailUrl ? (
                                     <img src={item.thumbnailUrl} alt={item.name} className="list-thumb" />
                                 ) : (
-                                    <div className="list-thumb-placeholder">🖼️</div>
+                                    <div className="list-thumb-placeholder">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                                            <rect x="3" y="3" width="18" height="18" rx="2" />
+                                        </svg>
+                                    </div>
                                 )}
                                 <div>
                                     <h4 className="list-title">{item.name}</h4>
@@ -1302,8 +1328,9 @@ export default function ModelList() {
                             </div>
 
                             <div className="col-stats list-stats-cell">
-                                <span>👍 {formatCount(item.likes)}</span>
-                                <span>⭐ {item.rating.toFixed(1)}</span>
+                                <span>Likes: {formatCount(item.likes)}</span>
+                                <span>·</span>
+                                <span>Rating: {item.rating.toFixed(1)}</span>
                             </div>
 
                             <div className="col-size list-size-cell">

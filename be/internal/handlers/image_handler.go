@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alazriel6/models-guide/backend/internal/repositories"
 	"github.com/alazriel6/models-guide/backend/internal/services"
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
@@ -19,6 +20,56 @@ type ImageHandler struct {
 
 func NewImageHandler(service *services.ImageService) *ImageHandler {
 	return &ImageHandler{service: service}
+}
+
+func (h *ImageHandler) GetAllImages(c *gin.Context) {
+	var filter repositories.ImageFilter
+
+	if modelIDStr := c.Query("model_id"); modelIDStr != "" {
+		if id, err := strconv.ParseUint(modelIDStr, 10, 32); err == nil {
+			filter.ModelID = uint(id)
+		}
+	}
+
+	filter.Search = strings.TrimSpace(c.Query("search"))
+	filter.BaseModel = strings.TrimSpace(c.Query("base_model"))
+	filter.Sort = strings.TrimSpace(c.Query("sort"))
+
+	page := 1
+	limit := 100
+	if p, err := strconv.Atoi(c.Query("page")); err == nil && p > 0 {
+		page = p
+	}
+	if l, err := strconv.Atoi(c.Query("limit")); err == nil && l > 0 {
+		if l > 200 {
+			l = 200
+		}
+		limit = l
+	}
+
+	filter.Limit = limit
+	filter.Offset = (page - 1) * limit
+
+	images, total, err := h.service.ListAll(filter)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	totalPages := 0
+	if limit > 0 {
+		totalPages = int((total + int64(limit) - 1) / int64(limit))
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": images,
+		"pagination": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
 }
 
 func (h *ImageHandler) GetImages(c *gin.Context) {

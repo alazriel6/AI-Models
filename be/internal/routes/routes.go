@@ -70,6 +70,7 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string) {
 		// Standalone Images
 		images := api.Group("/images")
 		{
+			images.GET("", h.ImageHandler.GetAllImages)
 			images.GET("/:id", h.ImageHandler.GetImage)
 			images.PUT("/:id", h.ImageHandler.UpdateImage)
 			images.DELETE("/:id", h.ImageHandler.DeleteImage)

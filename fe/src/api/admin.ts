@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE_URL } from "./client";
 import type { Model, Tag, ModelVersion, ModelImage } from "./models";
 
 export interface CreateModelPayload {
@@ -115,7 +115,6 @@ export async function createModelImageApi(modelId: number, data: CreateImagePayl
 }
 
 export async function uploadModelImageFileApi(modelId: number, formData: FormData): Promise<ModelImage> {
-    const API_BASE_URL = "http://localhost:8080/api";
     const res = await fetch(`${API_BASE_URL}/models/${modelId}/images`, {
         method: "POST",
         body: formData,
