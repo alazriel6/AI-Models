@@ -24,7 +24,7 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string) {
 		})
 	})
 
-	// Serve static images
+	// Serve static images from storage directory
 	router.Static("/storage/images", storagePath)
 
 	api := router.Group("/api")

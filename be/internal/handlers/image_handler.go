@@ -34,6 +34,7 @@ func (h *ImageHandler) GetAllImages(c *gin.Context) {
 
 	filter.Search = strings.TrimSpace(c.Query("search"))
 	filter.BaseModel = strings.TrimSpace(c.Query("base_model"))
+	filter.Tag = strings.TrimSpace(c.Query("tag"))
 	filter.Sort = strings.TrimSpace(c.Query("sort"))
 
 	page := 1
@@ -198,6 +199,7 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 			meta.Resources = resList
 		}
 	}
+	meta.Tags = parseTagsFromForm(c)
 
 	imageRecord, err := h.service.Upload(&modelID, file, meta)
 	if err != nil {
@@ -296,6 +298,7 @@ func (h *ImageHandler) UploadGalleryImage(c *gin.Context) {
 			meta.Resources = resList
 		}
 	}
+	meta.Tags = parseTagsFromForm(c)
 
 	imageRecord, err := h.service.Upload(meta.ModelID, file, meta)
 	if err != nil {
@@ -461,3 +464,30 @@ func (h *ImageHandler) ParseMetadata(c *gin.Context) {
 		"metadata": meta,
 	})
 }
+
+func parseTagsFromForm(c *gin.Context) []string {
+	var tags []string
+	if tagsStr := c.PostForm("tags"); tagsStr != "" {
+		if strings.HasPrefix(tagsStr, "[") {
+			var tagList []string
+			if err := json.Unmarshal([]byte(tagsStr), &tagList); err == nil {
+				tags = tagList
+			}
+		} else {
+			parts := strings.Split(tagsStr, ",")
+			for _, p := range parts {
+				p = strings.TrimSpace(p)
+				if p != "" {
+					tags = append(tags, p)
+				}
+			}
+		}
+	}
+	if len(tags) == 0 {
+		if formTags := c.PostFormArray("tags"); len(formTags) > 0 {
+			tags = formTags
+		}
+	}
+	return tags
+}
+

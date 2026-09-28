@@ -58,6 +58,10 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
     // LoRA resources
     const [resources, setResources] = useState<ResourceRow[]>([]);
 
+    // Pixiv-style Tags
+    const [tags, setTags] = useState<string[]>([]);
+    const [tagInput, setTagInput] = useState<string>("");
+
     // States
     const [isParsingMeta, setIsParsingMeta] = useState(false);
     const [isDragOver, setIsDragOver] = useState(false);
@@ -183,6 +187,12 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
             } else {
                 setResources([]);
             }
+            if (imageToEdit.tags && imageToEdit.tags.length > 0) {
+                setTags(imageToEdit.tags.map((t) => t.name));
+            } else {
+                setTags([]);
+            }
+            setTagInput("");
             setMetaParseStatus(null);
             setError(null);
         } else {
@@ -204,6 +214,8 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
             setWidth(832);
             setHeight(1216);
             setResources([]);
+            setTags([]);
+            setTagInput("");
             setMetaParseStatus(null);
             setError(null);
 
@@ -218,6 +230,53 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             processFileMetadata(e.target.files[0]);
+        }
+    };
+
+    const handleAddTag = (rawTag: string) => {
+        const clean = rawTag.trim().replace(/^#+/, "");
+        if (!clean) return;
+        if (!tags.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+            setTags((prev) => [...prev, clean]);
+        }
+        setTagInput("");
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        setTags((prev) => prev.filter((t) => t !== tagToRemove));
+    };
+
+    const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" || e.key === ",") {
+            e.preventDefault();
+            handleAddTag(tagInput);
+        }
+    };
+
+    const handleSuggestTagsFromPrompt = () => {
+        if (!positivePrompt) return;
+        const rawTokens = positivePrompt.split(",");
+        const suggested: string[] = [];
+        const ignoreList = new Set([
+            "masterpiece", "best quality", "official art", "8k resolution",
+            "ultra-detailed", "highres", "absurdres", "cel shading", "looking at viewer"
+        ]);
+
+        for (const raw of rawTokens) {
+            let clean = raw.trim().replace(/^[\(\[\{]+|[\)\]\}]+$/g, "").trim();
+            if (clean.includes(":")) {
+                clean = clean.split(":")[0].trim();
+            }
+            clean = clean.replace(/^#+/, "").trim();
+            if (clean.length >= 2 && clean.length <= 36 && !ignoreList.has(clean.toLowerCase())) {
+                if (!tags.some((t) => t.toLowerCase() === clean.toLowerCase()) && !suggested.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+                    suggested.push(clean);
+                }
+            }
+        }
+
+        if (suggested.length > 0) {
+            setTags((prev) => [...prev, ...suggested.slice(0, 10)]);
         }
     };
 
@@ -247,6 +306,10 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
         }
         if (!isEditMode && uploadMode === "upload" && !selectedFile) {
             setError("Please select an image file to upload");
+            return;
+        }
+        if (!caption.trim()) {
+            setError("Caption / Artwork Title wajib diisi sebagai judul karya.");
             return;
         }
 
@@ -279,6 +342,7 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                     seed: seedNum,
                     width,
                     height,
+                    tags: tags,
                 });
             } else {
                 // CREATE
@@ -300,6 +364,9 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                     if (validResources.length > 0) {
                         formData.append("resources", JSON.stringify(validResources));
                     }
+                    if (tags.length > 0) {
+                        formData.append("tags", JSON.stringify(tags));
+                    }
 
                     await uploadGalleryImageFileApi(formData);
                 } else {
@@ -317,6 +384,7 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                         seed: seedNum,
                         width,
                         height,
+                        tags: tags.length > 0 ? tags : undefined,
                         resources: validResources.length > 0 ? validResources : undefined,
                     };
 
@@ -658,13 +726,16 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
 
                         {/* Section 3: Caption & Prompts */}
                         <div className="form-group">
-                            <label className="form-label">Caption / Artwork Title (Optional)</label>
+                            <label className="form-label">
+                                Caption / Artwork Title <span style={{ color: "#EF4444" }}>*</span>
+                            </label>
                             <input
                                 type="text"
                                 className="form-input"
-                                placeholder="e.g. Cyberpunk Alleyway, Portrait Study..."
+                                placeholder="e.g. Rio Tsukatsuki Playing Basketball..."
                                 value={caption}
                                 onChange={(e) => setCaption(e.target.value)}
+                                required
                             />
                         </div>
 
@@ -688,6 +759,98 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                                 value={negativePrompt}
                                 onChange={(e) => setNegativePrompt(e.target.value)}
                             />
+                        </div>
+
+                        {/* Section 3.5: Pixiv-Style Tags */}
+                        <div className="form-group">
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <label className="form-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                                    <span>Tags (Pixiv-Style Searchable Labels)</span>
+                                    <span style={{ fontSize: "11px", color: "#666C75", fontWeight: 400 }}>({tags.length} added)</span>
+                                </label>
+                                {positivePrompt.trim() && (
+                                    <button
+                                        type="button"
+                                        className="btn-secondary-admin"
+                                        style={{ fontSize: "11px", padding: "2px 8px", height: "auto" }}
+                                        onClick={handleSuggestTagsFromPrompt}
+                                        title="Extract comma-separated prompt tokens as tags automatically"
+                                    >
+                                        ⚡ Auto-extract from Prompt
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* Tag Input Field */}
+                            <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
+                                <div style={{ position: "relative", flex: 1 }}>
+                                    <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#6B7280", fontSize: "12px", fontFamily: "ui-monospace, monospace" }}>#</span>
+                                    <input
+                                        type="text"
+                                        className="form-input"
+                                        style={{ paddingLeft: "24px" }}
+                                        placeholder="Type tag (e.g. 1girl, rio tsukatsuki, blue archive, athletic) and press Enter or comma"
+                                        value={tagInput}
+                                        onChange={(e) => setTagInput(e.target.value)}
+                                        onKeyDown={handleTagKeyDown}
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    className="btn-secondary-admin"
+                                    onClick={() => handleAddTag(tagInput)}
+                                    disabled={!tagInput.trim()}
+                                >
+                                    + Add Tag
+                                </button>
+                            </div>
+
+                            {/* Tags Chips Display */}
+                            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", minHeight: "28px" }}>
+                                {tags.length === 0 ? (
+                                    <div style={{ fontSize: "11px", color: "#666C75", fontStyle: "italic" }}>
+                                        No tags added yet. Type tags above or click "Auto-extract from Prompt" to tag this artwork like Pixiv.
+                                    </div>
+                                ) : (
+                                    tags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            style={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: "5px",
+                                                background: "rgba(99, 102, 241, 0.12)",
+                                                border: "1px solid rgba(99, 102, 241, 0.3)",
+                                                color: "#C7D2FE",
+                                                fontSize: "11px",
+                                                padding: "3px 8px",
+                                                borderRadius: "14px",
+                                                fontFamily: "ui-monospace, monospace",
+                                            }}
+                                        >
+                                            <span>#{tag}</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleRemoveTag(tag)}
+                                                style={{
+                                                    background: "transparent",
+                                                    border: "none",
+                                                    color: "#818CF8",
+                                                    cursor: "pointer",
+                                                    padding: 0,
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    fontSize: "12px",
+                                                    lineHeight: 1,
+                                                }}
+                                                title="Remove tag"
+                                            >
+                                                ✕
+                                            </button>
+                                        </span>
+                                    ))
+                                )}
+                            </div>
                         </div>
 
                         {/* Section 4: Technical Parameters Grid */}

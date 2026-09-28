@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/joho/godotenv"
 )
@@ -25,6 +26,20 @@ type Config struct {
 func Load() Config {
 	_ = godotenv.Load()
 
+	storagePath := getEnv("STORAGE_PATH", "./storage/images")
+	if !filepath.IsAbs(storagePath) {
+		// If running from root directory, check be/storage/images
+		if _, err := os.Stat(storagePath); os.IsNotExist(err) {
+			if _, err2 := os.Stat(filepath.Join("be", storagePath)); err2 == nil {
+				storagePath = filepath.Join("be", storagePath)
+			}
+		}
+		if abs, err := filepath.Abs(storagePath); err == nil {
+			storagePath = abs
+		}
+	}
+	_ = os.MkdirAll(storagePath, 0755)
+
 	return Config{
 		AppEnv:  getEnv("APP_ENV", "development"),
 		AppPort: getEnv("APP_PORT", "8080"),
@@ -36,7 +51,7 @@ func Load() Config {
 		DBName:     getEnv("DB_NAME", "models_guide"),
 		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 
-		StoragePath: getEnv("STORAGE_PATH", "./storage/images"),
+		StoragePath: storagePath,
 		CORSOrigin:  getEnv("CORS_ORIGIN", "http://localhost:5173"),
 	}
 }

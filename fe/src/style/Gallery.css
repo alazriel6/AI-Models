@@ -194,6 +194,108 @@
   background: var(--g-surface-hover);
 }
 
+/* Pixiv-Style Search Autocomplete & Tag Search */
+.gallery-search-active-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid #818CF8;
+  color: #C7D2FE;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-right: 6px;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.gallery-search-active-pill button {
+  background: transparent;
+  border: none;
+  color: #A5B4FC;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.gallery-search-active-pill button:hover {
+  color: #FFFFFF;
+}
+
+.gallery-search-suggest-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #15181D;
+  border: 1px solid #2B303A;
+  border-radius: var(--g-radius);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 1px 1px rgba(99, 102, 241, 0.1);
+  z-index: 100;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 6px;
+  scrollbar-width: thin;
+}
+
+.gallery-search-suggest-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6E7681;
+  padding: 4px 8px 6px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #21252D;
+  margin-bottom: 4px;
+}
+
+.gallery-search-suggest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  color: #C9D1D9;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.gallery-search-suggest-item:hover,
+.gallery-search-suggest-item.highlighted {
+  background: rgba(99, 102, 241, 0.15);
+  color: #FFFFFF;
+}
+
+.gallery-search-suggest-item .suggest-tag-name {
+  font-family: ui-monospace, monospace;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.gallery-search-suggest-item .suggest-hash {
+  color: #818CF8;
+  font-weight: 700;
+}
+
+.gallery-search-suggest-item .suggest-count {
+  font-size: 11px;
+  color: #6E7681;
+  font-family: ui-monospace, monospace;
+}
+
 /* Dropdown Selects */
 .gallery-select-cluster {
   display: flex;
@@ -1217,3 +1319,107 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Pixiv / Danbooru Tag Ribbon & Tag Chips
+   ========================================================================== */
+
+.gallery-tags-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 0 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: #262B34 transparent;
+}
+
+.gallery-tags-ribbon::-webkit-scrollbar {
+  height: 4px;
+}
+
+.gallery-tags-ribbon::-webkit-scrollbar-thumb {
+  background: #262B34;
+  border-radius: 4px;
+}
+
+.gallery-tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--g-surface-elevated);
+  border: 1px solid var(--g-border);
+  color: var(--g-text-secondary);
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 3px 9px;
+  border-radius: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.gallery-tag-pill:hover {
+  background: var(--g-surface-hover);
+  border-color: #4B5563;
+  color: #FFFFFF;
+}
+
+.gallery-tag-pill.active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: #818CF8;
+  color: #C7D2FE;
+  font-weight: 500;
+}
+
+.gallery-tag-pill .tag-hash {
+  color: #818CF8;
+  font-weight: 700;
+}
+
+.gallery-tag-pill .tag-count {
+  font-size: 9px;
+  opacity: 0.65;
+  margin-left: 1px;
+}
+
+.gallery-card-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.gallery-card-tag-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #14171C;
+  border: 1px solid #23272F;
+  color: #8E95A2;
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.gallery-card-tag-btn:hover {
+  background: #1E232B;
+  border-color: #818CF8;
+  color: #C7D2FE;
+}
+
+.gallery-card-tag-btn.active {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: #818CF8;
+  color: #C7D2FE;
+}
+
+.gallery-card-tag-btn .tag-hash {
+  color: #6366F1;
+  font-weight: 700;
+}
+

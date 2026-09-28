@@ -42,7 +42,7 @@ func main() {
 	versionService := services.NewVersionService(versionRepo, modelRepo)
 	tagService := services.NewTagService(tagRepo, modelRepo)
 	resourceService := services.NewResourceService(resourceRepo)
-	imageService := services.NewImageService(imageRepo, modelRepo, resourceRepo, cfg.StoragePath)
+	imageService := services.NewImageService(imageRepo, modelRepo, resourceRepo, tagRepo, cfg.StoragePath)
 
 	// Handlers
 	h := routes.RouteHandlers{

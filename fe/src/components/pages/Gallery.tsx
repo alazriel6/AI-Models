@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
+import { resolveImageUrl } from '../../api/client';
 import '../../style/Gallery.css';
 
 // ============================================================================
@@ -115,6 +116,7 @@ export default function Gallery() {
 
   // Filters & Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [filterBaseModel, setFilterBaseModel] = useState<string>('all');
   const [filterModelId, setFilterModelId] = useState<string>('all');
@@ -210,22 +212,105 @@ export default function Gallery() {
     return Array.from(set).sort();
   }, [images, models]);
 
+  // Autocomplete / Search suggestion state
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+
+  // Close search suggestions on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Aggregate all tags with counts for Pixiv-style Popular Tags Ribbon
+  const allTags = useMemo(() => {
+    const map = new Map<string, number>();
+    images.forEach((img) => {
+      img.tags?.forEach((t) => {
+        const name = t.name;
+        map.set(name, (map.get(name) || 0) + 1);
+      });
+    });
+    return Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [images]);
+
+  // Compute tag suggestions based on active query (Pixiv Autocomplete)
+  const tagSuggestions = useMemo(() => {
+    if (!isSearchFocused) return [];
+    const trimmed = searchQuery.trim().toLowerCase();
+    if (!trimmed) {
+      return allTags.slice(0, 6);
+    }
+    const tokens = trimmed.split(/\s+/);
+    const lastToken = tokens[tokens.length - 1];
+    const cleanLast = lastToken.startsWith('#') ? lastToken.slice(1) : lastToken;
+
+    if (!cleanLast) return allTags.slice(0, 6);
+
+    return allTags
+      .filter((t) => t.name.toLowerCase().includes(cleanLast))
+      .slice(0, 8);
+  }, [allTags, searchQuery, isSearchFocused]);
+
+  // Handle clicking a tag suggestion
+  const handleSelectTagSuggestion = (tagName: string) => {
+    const tokens = searchQuery.trim().split(/\s+/).filter(Boolean);
+    if (tokens.length > 1) {
+      tokens[tokens.length - 1] = `#${tagName}`;
+      setSearchQuery(tokens.join(' ') + ' ');
+    } else {
+      setSelectedTag(tagName);
+      setSearchQuery('');
+    }
+    setIsSearchFocused(false);
+  };
+
   // Filtered & Sorted Images list
   const filteredImages = useMemo(() => {
     return images.filter((img) => {
-      // 1. Text search
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const captionMatch = (img.caption || '').toLowerCase().includes(q);
-        const promptMatch = (img.positive_prompt || '').toLowerCase().includes(q);
-        const modelNameMatch = (img.model?.name || img.model_name || '').toLowerCase().includes(q);
-        const baseModelMatch = (img.model?.base_model || '').toLowerCase().includes(q);
-        const samplerMatch = (img.sampler || '').toLowerCase().includes(q);
-        const resourceMatch = img.resources?.some((r) => r.name.toLowerCase().includes(q)) ?? false;
+      // 0. Selected Tag filter (Pixiv style)
+      if (selectedTag) {
+        const hasTag = img.tags?.some(
+          (t) => t.name.toLowerCase() === selectedTag.toLowerCase()
+        ) ?? false;
+        if (!hasTag) return false;
+      }
 
-        if (!captionMatch && !promptMatch && !modelNameMatch && !baseModelMatch && !samplerMatch && !resourceMatch) {
-          return false;
-        }
+      // 1. Text & Tags search (Pixiv Multi-Token AND Search)
+      if (searchQuery.trim()) {
+        const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const matchesAllTokens = tokens.every((token) => {
+          const isExplicitTag = token.startsWith('#');
+          const cleanToken = isExplicitTag ? token.slice(1) : token;
+          if (!cleanToken) return true;
+
+          // Check Tag matches (both name and slug)
+          const tagMatch = img.tags?.some((t) =>
+            t.name.toLowerCase().includes(cleanToken) || (t.slug && t.slug.toLowerCase().includes(cleanToken))
+          ) ?? false;
+
+          if (isExplicitTag) {
+            return tagMatch;
+          }
+
+          const captionMatch = (img.caption || '').toLowerCase().includes(cleanToken);
+          const promptMatch = (img.positive_prompt || '').toLowerCase().includes(cleanToken);
+          const modelNameMatch = (img.model?.name || img.model_name || '').toLowerCase().includes(cleanToken);
+          const baseModelMatch = (img.model?.base_model || '').toLowerCase().includes(cleanToken);
+          const samplerMatch = (img.sampler || '').toLowerCase().includes(cleanToken);
+          const resourceMatch = img.resources?.some((r) => r.name.toLowerCase().includes(cleanToken)) ?? false;
+
+          return tagMatch || captionMatch || promptMatch || modelNameMatch || baseModelMatch || samplerMatch || resourceMatch;
+        });
+
+        if (!matchesAllTokens) return false;
       }
 
       // 2. Base model filter
@@ -288,7 +373,7 @@ export default function Gallery() {
           return (b.id || 0) - (a.id || 0);
       }
     });
-  }, [images, searchQuery, sortBy, filterBaseModel, filterModelId, filterResource, filterOrientation]);
+  }, [images, searchQuery, selectedTag, sortBy, filterBaseModel, filterModelId, filterResource, filterOrientation]);
 
   // Overall Statistics (Compact Inline Metadata)
   const stats = useMemo(() => {
@@ -325,6 +410,7 @@ export default function Gallery() {
   // Reset all filters
   const resetFilters = () => {
     setSearchQuery('');
+    setSelectedTag(null);
     setSortBy('newest');
     setFilterBaseModel('all');
     setFilterModelId('all');
@@ -332,7 +418,7 @@ export default function Gallery() {
     setFilterOrientation('all');
   };
 
-  const hasActiveFilters = searchQuery || filterBaseModel !== 'all' || filterModelId !== 'all' || filterResource !== 'all' || filterOrientation !== 'all';
+  const hasActiveFilters = searchQuery || !!selectedTag || filterBaseModel !== 'all' || filterModelId !== 'all' || filterResource !== 'all' || filterOrientation !== 'all';
 
   // Keyboard navigation for Lightbox Modal
   useEffect(() => {
@@ -437,17 +523,42 @@ export default function Gallery() {
       <section className="gallery-toolbar">
         {/* Primary Controls Row: Search + Main Selectors */}
         <div className="gallery-toolbar-top">
-          <div className="gallery-search-wrap">
+          <div className="gallery-search-wrap" ref={searchWrapRef}>
             <span className="gallery-search-icon">
               <Icons.Search />
             </span>
+
+            {selectedTag && (
+              <span className="gallery-search-active-pill" style={{ marginLeft: "28px" }}>
+                <span>#{selectedTag}</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTag(null)}
+                  title="Remove tag filter"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
+
             <input
               type="text"
               className="gallery-search-input"
-              placeholder="Search prompt, model checkpoint, LoRA, sampler..."
+              style={selectedTag ? { paddingLeft: "8px" } : undefined}
+              placeholder={selectedTag ? "Add more keywords (e.g. solo, blonde)..." : "Search tags (#kitsune), prompt, checkpoint, LoRA..."}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setIsSearchFocused(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  setIsSearchFocused(false);
+                }
+              }}
             />
+
             {searchQuery && (
               <button
                 className="gallery-search-clear"
@@ -456,6 +567,30 @@ export default function Gallery() {
               >
                 <Icons.Clear />
               </button>
+            )}
+
+            {/* Pixiv-style Tag Autocomplete Menu */}
+            {isSearchFocused && tagSuggestions.length > 0 && (
+              <div className="gallery-search-suggest-menu">
+                <div className="gallery-search-suggest-header">
+                  <span>Pixiv Tag Suggestions</span>
+                  <span style={{ fontSize: '9px', opacity: 0.7 }}>Click tag to filter</span>
+                </div>
+                {tagSuggestions.map((tag) => (
+                  <button
+                    key={tag.name}
+                    type="button"
+                    className="gallery-search-suggest-item"
+                    onClick={() => handleSelectTagSuggestion(tag.name)}
+                  >
+                    <span className="suggest-tag-name">
+                      <span className="suggest-hash">#</span>
+                      <span>{tag.name}</span>
+                    </span>
+                    <span className="suggest-count">{tag.count} works</span>
+                  </button>
+                ))}
+              </div>
             )}
           </div>
 
@@ -619,6 +754,56 @@ export default function Gallery() {
             </div>
           </div>
         </div>
+
+        {/* Pixiv-style Popular Tags Ribbon */}
+        {allTags.length > 0 && (
+          <div className="gallery-tags-ribbon" style={{ borderTop: "1px solid var(--g-border-subtle)", paddingTop: "10px", marginTop: "4px" }}>
+            <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--g-text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "4px", paddingRight: "4px" }}>
+              <span style={{ color: "#818CF8", fontWeight: 700 }}>#</span> Tags:
+            </span>
+            <button
+              type="button"
+              className={`gallery-tag-pill ${!selectedTag ? 'active' : ''}`}
+              onClick={() => setSelectedTag(null)}
+            >
+              All
+            </button>
+            {allTags.slice(0, 20).map(({ name, count }) => {
+              const isActive = selectedTag?.toLowerCase() === name.toLowerCase();
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  className={`gallery-tag-pill ${isActive ? 'active' : ''}`}
+                  onClick={() => setSelectedTag(isActive ? null : name)}
+                  title={`Filter by #${name} (${count} generations)`}
+                >
+                  <span className="tag-hash">#</span>
+                  <span>{name}</span>
+                  <span className="tag-count">({count})</span>
+                </button>
+              );
+            })}
+            {selectedTag && (
+              <button
+                type="button"
+                onClick={() => setSelectedTag(null)}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#EF4444",
+                  fontSize: "11px",
+                  cursor: "pointer",
+                  padding: "2px 8px",
+                  whiteSpace: "nowrap",
+                  fontFamily: "ui-monospace, monospace",
+                }}
+              >
+                Clear Tag ✕
+              </button>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ===================================================================
@@ -703,7 +888,7 @@ export default function Gallery() {
               >
                 <div className="gallery-card-viewport">
                   <img
-                    src={img.image_url}
+                    src={resolveImageUrl(img.image_url)}
                     alt={img.caption || modelName}
                     className="gallery-item-img"
                     loading="lazy"
@@ -761,8 +946,8 @@ export default function Gallery() {
                 {/* Technical Metadata Footer */}
                 <div className="gallery-card-footer">
                   <div className="gallery-card-model-row">
-                    <span className="gallery-card-model-name" title={modelName}>
-                      {modelName}
+                    <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
+                      {img.caption || `Artwork #${img.id}`}
                     </span>
                   </div>
 
@@ -771,6 +956,35 @@ export default function Gallery() {
                     {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
                     {img.sampler ? <span>{img.sampler}</span> : null}
                   </div>
+
+                  {/* Pixiv Tags */}
+                  {img.tags && img.tags.length > 0 && (
+                    <div className="gallery-card-tag-chips">
+                      {img.tags.slice(0, 4).map((t) => {
+                        const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTag(isActive ? null : t.name);
+                            }}
+                            title={`Filter by #${t.name}`}
+                          >
+                            <span className="tag-hash">#</span>
+                            <span>{t.name}</span>
+                          </button>
+                        );
+                      })}
+                      {img.tags.length > 4 && (
+                        <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
+                          +{img.tags.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {img.positive_prompt && (
                     <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
@@ -844,7 +1058,7 @@ export default function Gallery() {
 
               {/* Main Image */}
               <img
-                src={selectedImage.image_url}
+                src={resolveImageUrl(selectedImage.image_url)}
                 alt={selectedImage.caption || selectedImage.model?.name || 'Inspect'}
                 className={`modal-viewport-img ${isZoomed ? 'is-zoomed' : ''}`}
                 onClick={() => setIsZoomed(!isZoomed)}
@@ -865,7 +1079,7 @@ export default function Gallery() {
                 </button>
 
                 <a
-                  href={selectedImage.image_url}
+                  href={resolveImageUrl(selectedImage.image_url)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="modal-tool-link"
@@ -876,7 +1090,7 @@ export default function Gallery() {
                 </a>
 
                 <a
-                  href={selectedImage.image_url}
+                  href={resolveImageUrl(selectedImage.image_url)}
                   download={`generation-${selectedImage.id}.png`}
                   className="modal-tool-link"
                   title="Save image to disk"
@@ -890,7 +1104,7 @@ export default function Gallery() {
             {/* Right: Technical Metadata Inspector */}
             <div className="modal-spec-side">
               <div className="modal-spec-header">
-                <h2 className="modal-spec-title">Generation Parameters</h2>
+                <h2 className="modal-spec-title">{selectedImage.caption || `Artwork #${selectedImage.id}`}</h2>
                 <p className="modal-spec-subtitle">
                   image_id: {selectedImage.id} · resolution: {selectedImage.width && selectedImage.height ? `${selectedImage.width}×${selectedImage.height}` : 'unknown'}
                 </p>
@@ -942,6 +1156,36 @@ export default function Gallery() {
                     )}
                   </div>
                 </div>
+
+                {/* Pixiv Tags */}
+                {selectedImage.tags && selectedImage.tags.length > 0 && (
+                  <div className="spec-group">
+                    <div className="spec-group-header">
+                      <span className="spec-group-title">Tags</span>
+                      <span style={{ fontSize: '11px', color: 'var(--g-text-muted)', fontFamily: 'ui-monospace, monospace' }}>
+                        {selectedImage.tags.length} tagged
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {selectedImage.tags.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className="gallery-tag-pill"
+                          onClick={() => {
+                            setSelectedTag(t.name);
+                            setSelectedImage(null);
+                          }}
+                          title={`Filter gallery by #${t.name}`}
+                        >
+                          <span className="tag-hash">#</span>
+                          <span>{t.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* LoRA & Auxiliary Resources */}
                 <div className="spec-group">

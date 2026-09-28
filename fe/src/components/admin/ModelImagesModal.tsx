@@ -9,6 +9,7 @@ import {
     parseImageMetadataApi,
 } from "../../api/admin";
 import type { CreateImagePayload } from "../../api/admin";
+import { resolveImageUrl } from "../../api/client";
 
 interface ModelImagesModalProps {
     isOpen: boolean;
@@ -446,7 +447,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                         >
                                             <div style={{ position: "relative", height: "150px", background: "#111315" }}>
                                                 <img
-                                                    src={img.image_url}
+                                                    src={resolveImageUrl(img.image_url)}
                                                     alt={img.caption || `Sample ${img.id}`}
                                                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
                                                     onError={(e) => {

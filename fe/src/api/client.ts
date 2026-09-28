@@ -1,4 +1,25 @@
 export const API_BASE_URL = (import.meta as any).env?.VITE_API_URL || "http://localhost:8080/api";
+export const BACKEND_BASE_URL = (import.meta as any).env?.VITE_BACKEND_URL || "http://localhost:8080";
+
+/**
+ * Resolves image URL to point to backend storage if relative
+ */
+export function resolveImageUrl(url?: string | null): string {
+    if (!url) return "";
+    if (
+        url.startsWith("http://") ||
+        url.startsWith("https://") ||
+        url.startsWith("blob:") ||
+        url.startsWith("data:")
+    ) {
+        return url;
+    }
+    if (url.startsWith("/storage/") || url.startsWith("storage/")) {
+        const clean = url.startsWith("/") ? url : `/${url}`;
+        return `${BACKEND_BASE_URL}${clean}`;
+    }
+    return url;
+}
 
 export async function apiFetch<T>(
     endpoint: string,

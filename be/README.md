@@ -68,6 +68,8 @@ psql -U postgres -d models_guide -f migrations/000004_create_model_tags.up.sql
 psql -U postgres -d models_guide -f migrations/000005_create_model_images.up.sql
 psql -U postgres -d models_guide -f migrations/000006_create_resources.up.sql
 psql -U postgres -d models_guide -f migrations/000007_create_image_resources.up.sql
+psql -U postgres -d models_guide -f migrations/000008_align_model_details.up.sql
+psql -U postgres -d models_guide -f migrations/000009_gallery_standalone_images.up.sql
 ```
 
 ### 4. Run the Server

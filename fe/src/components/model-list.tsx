@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getModels, getModel, type Model as ApiModel } from "../api/models";
+import { resolveImageUrl } from "../api/client";
 import "../style/ModelList.css";
 
 export interface ResourceUsed {
@@ -134,7 +135,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
         type: typeNorm,
         baseModel: baseModelNorm,
         author: m.author || "unknown",
-        thumbnailUrl: m.thumbnail_url || (m.images && m.images.length > 0 ? m.images[0].image_url : ""),
+        thumbnailUrl: resolveImageUrl(m.thumbnail_url || (m.images && m.images.length > 0 ? m.images[0].image_url : "")),
         description: m.description || "",
         sourceUrl: m.source_url || m.civitai_url || "",
         publishedAt: m.published_at
@@ -162,7 +163,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
         images: m.images && m.images.length > 0
             ? m.images.map((img, idx) => ({
                   id: img.id || idx + 1,
-                  url: img.image_url || "/images/preview-1.png",
+                  url: resolveImageUrl(img.image_url) || "/images/preview-1.png",
                   alt: img.caption || m.name,
                   reactions: { laugh: 0, heart: 0, thumbsUp: 0 },
                   meta: {

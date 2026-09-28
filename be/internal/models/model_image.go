@@ -34,6 +34,7 @@ type ModelImage struct {
 
 	// Relationships
 	Resources []Resource `json:"resources,omitempty" gorm:"many2many:image_resources;joinForeignKey:ImageID;joinReferences:ResourceID;constraint:OnDelete:CASCADE"`
+	Tags      []Tag      `json:"tags,omitempty" gorm:"many2many:image_tags;joinForeignKey:ImageID;joinReferences:TagID;constraint:OnDelete:CASCADE"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

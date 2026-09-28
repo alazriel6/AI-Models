@@ -36,6 +36,7 @@ export interface ModelImage {
     scheduler?: string;
     raw_metadata?: unknown;
     resources?: Resource[];
+    tags?: Tag[];
     created_at?: string;
     updated_at?: string;
 }

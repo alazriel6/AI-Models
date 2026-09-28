@@ -96,6 +96,7 @@ export interface CreateImagePayload {
     scheduler?: string;
     width?: number;
     height?: number;
+    tags?: string[];
     resources?: Array<{
         name: string;
         type: string;
@@ -190,6 +191,7 @@ export async function getAllGalleryImagesApi(params?: {
     search?: string;
     base_model?: string;
     model_id?: number;
+    tag?: string;
     sort?: string;
     page?: number;
     limit?: number;
@@ -198,6 +200,7 @@ export async function getAllGalleryImagesApi(params?: {
     if (params?.search) searchParams.set("search", params.search);
     if (params?.base_model) searchParams.set("base_model", params.base_model);
     if (params?.model_id) searchParams.set("model_id", String(params.model_id));
+    if (params?.tag) searchParams.set("tag", params.tag);
     if (params?.sort) searchParams.set("sort", params.sort);
     if (params?.page) searchParams.set("page", String(params.page));
     if (params?.limit) searchParams.set("limit", String(params.limit));

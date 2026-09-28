@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"strings"
+
 	"github.com/alazriel6/models-guide/backend/internal/models"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -21,6 +23,7 @@ func (r *ImageRepository) FindByModelID(modelID uint) ([]models.ModelImage, erro
 		Where("model_id = ?", modelID).
 		Preload("Resources").
 		Preload("Model").
+		Preload("Tags").
 		Order("created_at DESC").
 		Find(&images).Error
 
@@ -33,6 +36,7 @@ func (r *ImageRepository) FindByID(id uint) (*models.ModelImage, error) {
 	err := r.DB.
 		Preload("Resources").
 		Preload("Model").
+		Preload("Tags").
 		First(&image, id).Error
 	if err != nil {
 		return nil, err
@@ -43,6 +47,7 @@ func (r *ImageRepository) FindByID(id uint) (*models.ModelImage, error) {
 
 type ImageFilter struct {
 	ModelID   uint
+	Tag       string
 	Search    string
 	BaseModel string
 	Sort      string
@@ -56,23 +61,42 @@ func (r *ImageRepository) FindAll(filter ImageFilter) ([]models.ModelImage, int6
 
 	query := r.DB.Model(&models.ModelImage{}).
 		Preload("Resources").
-		Preload("Model")
+		Preload("Model").
+		Preload("Tags")
+
+	if filter.Tag != "" {
+		cleanTag := strings.TrimPrefix(strings.TrimSpace(filter.Tag), "#")
+		query = query.Joins("JOIN image_tags ON image_tags.image_id = model_images.id").
+			Joins("JOIN tags ON tags.id = image_tags.tag_id").
+			Where("tags.slug ILIKE ? OR LOWER(tags.name) = ?", strings.ToLower(cleanTag), strings.ToLower(cleanTag))
+	}
 
 	if filter.ModelID > 0 {
 		query = query.Where("model_images.model_id = ?", filter.ModelID)
 	}
 
 	if filter.Search != "" {
-		s := "%" + filter.Search + "%"
+		cleanSearch := strings.TrimSpace(filter.Search)
+		tagSearch := strings.ToLower(strings.TrimPrefix(cleanSearch, "#"))
+		s := "%" + cleanSearch + "%"
+		ts := "%" + tagSearch + "%"
+
 		query = query.Joins("LEFT JOIN models ON models.id = model_images.model_id").
-			Where("model_images.caption LIKE ? OR model_images.positive_prompt LIKE ? OR model_images.model_name LIKE ? OR models.name LIKE ?", s, s, s, s)
+			Where(
+				"model_images.caption ILIKE ? OR "+
+					"model_images.positive_prompt ILIKE ? OR "+
+					"model_images.model_name ILIKE ? OR "+
+					"models.name ILIKE ? OR "+
+					"EXISTS (SELECT 1 FROM image_tags it JOIN tags t ON t.id = it.tag_id WHERE it.image_id = model_images.id AND (LOWER(t.name) LIKE ? OR t.slug LIKE ?))",
+				s, s, s, s, ts, ts,
+			)
 	}
 
 	if filter.BaseModel != "" {
 		if filter.Search == "" {
 			query = query.Joins("LEFT JOIN models ON models.id = model_images.model_id")
 		}
-		query = query.Where("models.base_model = ? OR model_images.model_name LIKE ?", filter.BaseModel, "%"+filter.BaseModel+"%")
+		query = query.Where("models.base_model ILIKE ? OR model_images.model_name ILIKE ?", filter.BaseModel, "%"+filter.BaseModel+"%")
 	}
 
 	if err := query.Count(&total).Error; err != nil {

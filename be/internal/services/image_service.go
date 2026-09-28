@@ -55,6 +55,7 @@ type CreateImageMetadataInput struct {
 	DenoisingStr   float64              `json:"denoising_strength" form:"denoising_strength"`
 	RawMetadata    datatypes.JSON       `json:"raw_metadata" form:"raw_metadata"`
 	Resources      []ImageResourceInput `json:"resources" form:"resources"`
+	Tags           []string             `json:"tags" form:"tags"`
 }
 
 type UpdateImageInput struct {
@@ -74,12 +75,14 @@ type UpdateImageInput struct {
 	HiresUpscaler  *string         `json:"hires_upscaler"`
 	DenoisingStr   *float64        `json:"denoising_strength"`
 	RawMetadata    *datatypes.JSON `json:"raw_metadata"`
+	Tags           *[]string       `json:"tags"`
 }
 
 type ImageService struct {
 	imageRepo    *repositories.ImageRepository
 	modelRepo    *repositories.ModelRepository
 	resourceRepo *repositories.ResourceRepository
+	tagRepo      *repositories.TagRepository
 	storagePath  string
 }
 
@@ -87,12 +90,14 @@ func NewImageService(
 	imageRepo *repositories.ImageRepository,
 	modelRepo *repositories.ModelRepository,
 	resourceRepo *repositories.ResourceRepository,
+	tagRepo *repositories.TagRepository,
 	storagePath string,
 ) *ImageService {
 	return &ImageService{
 		imageRepo:    imageRepo,
 		modelRepo:    modelRepo,
 		resourceRepo: resourceRepo,
+		tagRepo:      tagRepo,
 		storagePath:  storagePath,
 	}
 }
@@ -299,6 +304,13 @@ func (s *ImageService) Upload(modelID *uint, fileHeader *multipart.FileHeader, m
 		}
 	}
 
+	// Attach tags if provided
+	if len(meta.Tags) > 0 {
+		if tags, err := s.tagRepo.FindOrCreateByNames(meta.Tags); err == nil && len(tags) > 0 {
+			_ = s.tagRepo.SetImageTags(modelImage.ID, tags)
+		}
+	}
+
 	// Auto-set model's thumbnail if model exists and its thumbnail is currently empty
 	if model != nil && strings.TrimSpace(model.ThumbnailURL) == "" {
 		model.ThumbnailURL = modelImage.ImageURL
@@ -356,7 +368,15 @@ func (s *ImageService) Update(id uint, input UpdateImageInput) (*models.ModelIma
 		return nil, err
 	}
 
-	return img, nil
+	// Update tags if provided
+	if input.Tags != nil {
+		tags, err := s.tagRepo.FindOrCreateByNames(*input.Tags)
+		if err == nil {
+			_ = s.tagRepo.SetImageTags(img.ID, tags)
+		}
+	}
+
+	return s.imageRepo.FindByID(img.ID)
 }
 
 func (s *ImageService) Delete(id uint) error {

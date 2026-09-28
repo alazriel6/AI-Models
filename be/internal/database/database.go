@@ -31,8 +31,16 @@ func Connect(cfg config.Config) *gorm.DB {
 		ALTER TABLE model_images ADD COLUMN IF NOT EXISTS model_name VARCHAR(255);
 		ALTER TABLE model_images ALTER COLUMN model_id DROP NOT NULL;
 		ALTER TABLE model_images ADD COLUMN IF NOT EXISTS scheduler VARCHAR(100);
+
+		CREATE TABLE IF NOT EXISTS image_tags (
+			image_id INTEGER NOT NULL REFERENCES model_images(id) ON DELETE CASCADE,
+			tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+			PRIMARY KEY (image_id, tag_id)
+		);
+		CREATE INDEX IF NOT EXISTS idx_image_tags_image_id ON image_tags(image_id);
+		CREATE INDEX IF NOT EXISTS idx_image_tags_tag_id ON image_tags(tag_id);
 	`).Error; err != nil {
-		log.Printf("Warning: Failed to execute manual DDL on model_images: %v\n", err)
+		log.Printf("Warning: Failed to execute manual DDL on model_images/image_tags: %v\n", err)
 	}
 
 	// AutoMigrate ensures all tables/columns exist

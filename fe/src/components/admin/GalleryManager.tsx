@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import type { Model, ModelImage } from "../../api/models";
 import { getAllGalleryImagesApi, deleteGalleryImageApi } from "../../api/admin";
+import { resolveImageUrl } from "../../api/client";
 import { GalleryImageModal } from "./GalleryImageModal";
 
 interface GalleryManagerProps {
@@ -16,7 +17,20 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
     // Filters & Search
     const [searchQuery, setSearchQuery] = useState("");
     const [modelFilter, setModelFilter] = useState<string>("all");
+    const [selectedTag, setSelectedTag] = useState<string>("all");
     const [sortBy, setSortBy] = useState<string>("newest");
+    const [isSearchFocused, setIsSearchFocused] = useState(false);
+    const searchWrapRef = React.useRef<HTMLDivElement | null>(null);
+
+    React.useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+                setIsSearchFocused(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -55,6 +69,49 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         loadImages();
     }, [sortBy]);
 
+    // Unique tags aggregated from all images
+    const allTags = useMemo(() => {
+        const counts = new Map<string, number>();
+        for (const img of images) {
+            if (img.tags) {
+                for (const t of img.tags) {
+                    if (t.name) {
+                        counts.set(t.name, (counts.get(t.name) || 0) + 1);
+                    }
+                }
+            }
+        }
+        return Array.from(counts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count]) => ({ name, count }));
+    }, [images]);
+
+    // Compute tag suggestions for autocomplete (Pixiv style)
+    const tagSuggestions = useMemo(() => {
+        if (!isSearchFocused) return [];
+        const trimmed = searchQuery.trim().toLowerCase();
+        if (!trimmed) return allTags.slice(0, 6);
+
+        const tokens = trimmed.split(/\s+/);
+        const last = tokens[tokens.length - 1];
+        const cleanLast = last.startsWith("#") ? last.slice(1) : last;
+        if (!cleanLast) return allTags.slice(0, 6);
+
+        return allTags.filter((t) => t.name.toLowerCase().includes(cleanLast)).slice(0, 8);
+    }, [allTags, searchQuery, isSearchFocused]);
+
+    const handleSelectTagSuggestion = (tagName: string) => {
+        const tokens = searchQuery.trim().split(/\s+/).filter(Boolean);
+        if (tokens.length > 1) {
+            tokens[tokens.length - 1] = `#${tagName}`;
+            setSearchQuery(tokens.join(" ") + " ");
+        } else {
+            setSelectedTag(tagName);
+            setSearchQuery("");
+        }
+        setIsSearchFocused(false);
+    };
+
     // Client-side filtering
     const filteredImages = useMemo(() => {
         return images.filter((img) => {
@@ -67,24 +124,44 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                 }
             }
 
-            // Search query
-            if (searchQuery.trim()) {
-                const q = searchQuery.toLowerCase();
-                const captionMatch = img.caption?.toLowerCase().includes(q);
-                const promptMatch = img.positive_prompt?.toLowerCase().includes(q);
-                const modelMatch =
-                    img.model_name?.toLowerCase().includes(q) ||
-                    img.model?.name?.toLowerCase().includes(q);
-                const samplerMatch = img.sampler?.toLowerCase().includes(q);
+            // Tag Filter (Pixiv style)
+            if (selectedTag !== "all" && selectedTag.trim() !== "") {
+                const hasTag = img.tags?.some(
+                    (t) => t.name.toLowerCase() === selectedTag.toLowerCase() || t.slug === selectedTag.toLowerCase()
+                );
+                if (!hasTag) return false;
+            }
 
-                if (!captionMatch && !promptMatch && !modelMatch && !samplerMatch) {
-                    return false;
-                }
+            // Search query (Pixiv-style multi-token AND search)
+            if (searchQuery.trim()) {
+                const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+                const matchesAllTokens = tokens.every((token) => {
+                    const isExplicitTag = token.startsWith("#");
+                    const cleanToken = isExplicitTag ? token.slice(1) : token;
+                    if (!cleanToken) return true;
+
+                    const tagMatch = img.tags?.some((t) =>
+                        t.name.toLowerCase().includes(cleanToken) || (t.slug && t.slug.toLowerCase().includes(cleanToken))
+                    );
+
+                    if (isExplicitTag) return tagMatch;
+
+                    const captionMatch = img.caption?.toLowerCase().includes(cleanToken);
+                    const promptMatch = img.positive_prompt?.toLowerCase().includes(cleanToken);
+                    const modelMatch =
+                        img.model_name?.toLowerCase().includes(cleanToken) ||
+                        img.model?.name?.toLowerCase().includes(cleanToken);
+                    const samplerMatch = img.sampler?.toLowerCase().includes(cleanToken);
+
+                    return tagMatch || captionMatch || promptMatch || modelMatch || samplerMatch;
+                });
+
+                if (!matchesAllTokens) return false;
             }
 
             return true;
         });
-    }, [images, modelFilter, searchQuery]);
+    }, [images, modelFilter, selectedTag, searchQuery]);
 
     const handleDropFile = (e: React.DragEvent) => {
         e.preventDefault();
@@ -135,7 +212,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         <div style={{ marginTop: "16px" }}>
             {/* Toolbar */}
             <div className="admin-toolbar" style={{ marginBottom: "16px" }}>
-                <div className="admin-search-wrapper" style={{ flex: 1, minWidth: "260px" }}>
+                <div className="admin-search-wrapper" ref={searchWrapRef} style={{ flex: 1, minWidth: "260px", position: "relative", display: "flex", alignItems: "center" }}>
                     <svg
                         className="admin-search-icon"
                         width="14"
@@ -150,13 +227,61 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
+
+                    {selectedTag !== "all" && (
+                        <span className="gallery-search-active-pill" style={{ marginLeft: "28px" }}>
+                            <span>#{selectedTag}</span>
+                            <button
+                                type="button"
+                                onClick={() => setSelectedTag("all")}
+                                title="Remove tag filter"
+                            >
+                                ✕
+                            </button>
+                        </span>
+                    )}
+
                     <input
                         type="text"
                         className="admin-search-input"
-                        placeholder="Filter by prompt, caption, checkpoint, sampler..."
+                        style={selectedTag !== "all" ? { paddingLeft: "8px" } : undefined}
+                        placeholder={selectedTag !== "all" ? "Add more keywords..." : "Filter by #tags, prompt, checkpoint, sampler..."}
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onFocus={() => setIsSearchFocused(true)}
+                        onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            setIsSearchFocused(true);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Escape") {
+                                setIsSearchFocused(false);
+                            }
+                        }}
                     />
+
+                    {/* Autocomplete Menu (Pixiv Style) */}
+                    {isSearchFocused && tagSuggestions.length > 0 && (
+                        <div className="gallery-search-suggest-menu">
+                            <div className="gallery-search-suggest-header">
+                                <span>Tag Suggestions</span>
+                                <span style={{ fontSize: "9px", opacity: 0.7 }}>Click tag to filter</span>
+                            </div>
+                            {tagSuggestions.map((tag) => (
+                                <button
+                                    key={tag.name}
+                                    type="button"
+                                    className="gallery-search-suggest-item"
+                                    onClick={() => handleSelectTagSuggestion(tag.name)}
+                                >
+                                    <span className="suggest-tag-name">
+                                        <span className="suggest-hash">#</span>
+                                        <span>{tag.name}</span>
+                                    </span>
+                                    <span className="suggest-count">{tag.count} works</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
@@ -229,6 +354,86 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                     </button>
                 </div>
             </div>
+
+            {/* Pixiv-Style Tags Filter Ribbon */}
+            {allTags.length > 0 && (
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                        overflowX: "auto",
+                        paddingBottom: "8px",
+                        marginBottom: "14px",
+                    }}
+                >
+                    <span style={{ fontSize: "11px", color: "#6C727D", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600, marginRight: "4px", whiteSpace: "nowrap" }}>
+                        Tags:
+                    </span>
+                    <button
+                        type="button"
+                        style={{
+                            fontSize: "11px",
+                            fontFamily: "ui-monospace, monospace",
+                            padding: "3px 10px",
+                            borderRadius: "12px",
+                            background: selectedTag === "all" ? "rgba(99, 102, 241, 0.2)" : "#171A1F",
+                            border: selectedTag === "all" ? "1px solid #818CF8" : "1px solid #282D36",
+                            color: selectedTag === "all" ? "#C7D2FE" : "#9AA0AC",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                        }}
+                        onClick={() => setSelectedTag("all")}
+                    >
+                        All ({images.length})
+                    </button>
+                    {allTags.map(({ name, count }) => {
+                        const isActive = selectedTag.toLowerCase() === name.toLowerCase();
+                        return (
+                            <button
+                                key={name}
+                                type="button"
+                                style={{
+                                    fontSize: "11px",
+                                    fontFamily: "ui-monospace, monospace",
+                                    padding: "3px 10px",
+                                    borderRadius: "12px",
+                                    background: isActive ? "rgba(99, 102, 241, 0.2)" : "#171A1F",
+                                    border: isActive ? "1px solid #818CF8" : "1px solid #282D36",
+                                    color: isActive ? "#C7D2FE" : "#9AA0AC",
+                                    cursor: "pointer",
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: "5px",
+                                    whiteSpace: "nowrap",
+                                }}
+                                onClick={() => setSelectedTag(isActive ? "all" : name)}
+                            >
+                                <span>#{name}</span>
+                                <span style={{ opacity: 0.6, fontSize: "10px" }}>{count}</span>
+                            </button>
+                        );
+                    })}
+                    {selectedTag !== "all" && (
+                        <button
+                            type="button"
+                            onClick={() => setSelectedTag("all")}
+                            style={{
+                                background: "transparent",
+                                border: "none",
+                                color: "#EF4444",
+                                fontSize: "11px",
+                                cursor: "pointer",
+                                padding: "2px 6px",
+                                textDecoration: "underline",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            Clear Tag
+                        </button>
+                    )}
+                </div>
+            )}
 
             {/* Error Banner */}
             {error && (
@@ -354,11 +559,6 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                     }}
                 >
                     {filteredImages.map((img) => {
-                        const modelDisplay =
-                            img.model?.name ||
-                            img.model_name ||
-                            "Standalone Checkpoint";
-
                         const isCopied = copiedId === img.id;
 
                         return (
@@ -370,7 +570,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                     title="Click to view full image"
                                 >
                                     <img
-                                        src={img.image_url}
+                                        src={resolveImageUrl(img.image_url)}
                                         alt={img.caption || "Gallery item"}
                                         loading="lazy"
                                     />
@@ -417,27 +617,23 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
 
                                 {/* Content Details */}
                                 <div style={{ padding: "12px 14px", flex: 1, display: "flex", flexDirection: "column" }}>
-                                    {/* Model Tag */}
-                                    <div style={{ marginBottom: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px" }}>
-                                        <span
+                                    {/* Artwork Title / Caption as primary title */}
+                                    <div style={{ marginBottom: "6px", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                                        <div
                                             style={{
-                                                fontSize: "11px",
+                                                fontSize: "13px",
                                                 fontWeight: 600,
-                                                color: img.model_id ? "#818cf8" : "#94a3b8",
-                                                background: img.model_id ? "rgba(99, 102, 241, 0.12)" : "rgba(100, 116, 139, 0.12)",
-                                                border: img.model_id ? "1px solid rgba(99, 102, 241, 0.25)" : "1px solid rgba(100, 116, 139, 0.25)",
-                                                padding: "2px 7px",
-                                                borderRadius: "3px",
+                                                color: "#FFFFFF",
+                                                lineHeight: "1.3",
                                                 overflow: "hidden",
                                                 textOverflow: "ellipsis",
                                                 whiteSpace: "nowrap",
-                                                maxWidth: "180px",
-                                                fontFamily: "ui-monospace, monospace",
+                                                flex: 1,
                                             }}
-                                            title={modelDisplay}
+                                            title={img.caption || `Artwork #${img.id}`}
                                         >
-                                            {modelDisplay}
-                                        </span>
+                                            {img.caption || `Artwork #${img.id}`}
+                                        </div>
 
                                         {img.positive_prompt && (
                                             <button
@@ -453,17 +649,14 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                                     alignItems: "center",
                                                     gap: "4px",
                                                     padding: "2px 4px",
+                                                    whiteSpace: "nowrap",
+                                                    flexShrink: 0,
                                                 }}
                                                 title="Copy prompt to clipboard"
                                             >
                                                 {isCopied ? "Copied!" : "Copy Prompt"}
                                             </button>
                                         )}
-                                    </div>
-
-                                    {/* Caption */}
-                                    <div style={{ fontSize: "12px", fontWeight: 600, color: "#FFFFFF", marginBottom: "4px" }}>
-                                        {img.caption || "Sample Generation"}
                                     </div>
 
                                     {/* Prompt preview */}
@@ -484,6 +677,48 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                     >
                                         {img.positive_prompt || "(No prompt recorded)"}
                                     </div>
+
+                                    {/* Pixiv Tags */}
+                                    {img.tags && img.tags.length > 0 && (
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "8px" }}>
+                                            {img.tags.slice(0, 5).map((t) => {
+                                                const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
+                                                return (
+                                                    <button
+                                                        key={t.id}
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTag(isActive ? "all" : t.name);
+                                                        }}
+                                                        style={{
+                                                            background: isActive ? "rgba(99, 102, 241, 0.25)" : "#16191E",
+                                                            border: isActive ? "1px solid #818CF8" : "1px solid #282D37",
+                                                            color: isActive ? "#C7D2FE" : "#8E95A2",
+                                                            fontSize: "10px",
+                                                            padding: "1px 6px",
+                                                            borderRadius: "4px",
+                                                            cursor: "pointer",
+                                                            fontFamily: "ui-monospace, monospace",
+                                                            display: "inline-flex",
+                                                            alignItems: "center",
+                                                            gap: "2px",
+                                                            transition: "all 0.15s ease",
+                                                        }}
+                                                        title={`Filter by #${t.name}`}
+                                                    >
+                                                        <span style={{ color: isActive ? "#818CF8" : "#6366F1", fontWeight: 700 }}>#</span>
+                                                        <span>{t.name}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                            {img.tags.length > 5 && (
+                                                <span style={{ fontSize: "10px", color: "#64748B", alignSelf: "center", padding: "0 2px", fontFamily: "ui-monospace, monospace" }}>
+                                                    +{img.tags.length - 5}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* Parameters tags */}
                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "12px" }}>
@@ -609,7 +844,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                     >
                         <div style={{ position: "relative", background: "#0a0a0b", textAlign: "center" }}>
                             <img
-                                src={previewImage.image_url}
+                                src={resolveImageUrl(previewImage.image_url)}
                                 alt="Full preview"
                                 style={{ maxHeight: "75vh", maxWidth: "100%", objectFit: "contain", display: "block", margin: "0 auto" }}
                             />
@@ -631,13 +866,34 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                 ✕
                             </button>
                         </div>
-                        <div style={{ padding: "16px", background: "#16181B" }}>
-                            <div style={{ fontSize: "13px", fontWeight: 600, color: "#E6E8EB", marginBottom: "4px" }}>
-                                {previewImage.caption || `Sample #${previewImage.id}`}
+                        <div style={{ padding: "16px 20px", background: "#16181B" }}>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px", flexWrap: "wrap", gap: "8px" }}>
+                                <div style={{ fontSize: "15px", fontWeight: 700, color: "#FFFFFF" }}>
+                                    {previewImage.caption || `Artwork #${previewImage.id}`}
+                                </div>
+                                <span
+                                    style={{
+                                        fontSize: "11px",
+                                        fontWeight: 600,
+                                        color: previewImage.model_id ? "#818cf8" : "#94a3b8",
+                                        background: previewImage.model_id ? "rgba(99, 102, 241, 0.15)" : "rgba(100, 116, 139, 0.15)",
+                                        border: previewImage.model_id ? "1px solid rgba(99, 102, 241, 0.3)" : "1px solid rgba(100, 116, 139, 0.3)",
+                                        padding: "3px 8px",
+                                        borderRadius: "4px",
+                                        fontFamily: "ui-monospace, monospace",
+                                    }}
+                                >
+                                    Checkpoint: {previewImage.model?.name || previewImage.model_name || "Standalone Checkpoint"}
+                                </span>
                             </div>
-                            <div style={{ fontSize: "11px", color: "#9A9FA8", fontFamily: "monospace" }}>
-                                Model: {previewImage.model?.name || previewImage.model_name || "Custom Checkpoint"} • {previewImage.width}×{previewImage.height} • Steps: {previewImage.steps} • CFG: {previewImage.cfg_scale} • Seed: {previewImage.seed || "-"}
+                            <div style={{ fontSize: "11px", color: "#8E95A2", fontFamily: "ui-monospace, monospace", lineHeight: "1.6" }}>
+                                Resolution: {previewImage.width}×{previewImage.height} • Steps: {previewImage.steps} • Sampler: {previewImage.sampler || "Auto"} • CFG: {previewImage.cfg_scale} • Seed: {previewImage.seed ?? "Random"}
                             </div>
+                            {previewImage.positive_prompt && (
+                                <div style={{ marginTop: "10px", padding: "10px", background: "#0E1013", border: "1px solid #252A34", borderRadius: "6px", fontSize: "11px", color: "#B0B7C3", fontFamily: "ui-monospace, monospace", maxHeight: "100px", overflowY: "auto" }}>
+                                    {previewImage.positive_prompt}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
