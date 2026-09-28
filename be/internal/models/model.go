@@ -6,7 +6,7 @@ type Model struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 
 	Name string `json:"name" gorm:"not null"`
-	Slug string `json:"slug" gorm:"uniqueIndex;not null"`
+	Slug string `json:"slug" gorm:"unique;not null"`
 
 	Type      string `json:"type" gorm:"not null"` // checkpoint, lora, extensible
 	BaseModel string `json:"base_model"`          // Illustrious, NoobAI, Flux, Pony, SD 1.5, etc.

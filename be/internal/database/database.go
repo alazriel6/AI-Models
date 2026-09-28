@@ -26,8 +26,17 @@ func Connect(cfg config.Config) *gorm.DB {
 
 	log.Println("PostgreSQL connected")
 
+	// Ensure critical columns and constraints exist for gallery & standalone images
+	if err := db.Exec(`
+		ALTER TABLE model_images ADD COLUMN IF NOT EXISTS model_name VARCHAR(255);
+		ALTER TABLE model_images ALTER COLUMN model_id DROP NOT NULL;
+		ALTER TABLE model_images ADD COLUMN IF NOT EXISTS scheduler VARCHAR(100);
+	`).Error; err != nil {
+		log.Printf("Warning: Failed to execute manual DDL on model_images: %v\n", err)
+	}
+
 	// AutoMigrate ensures all tables/columns exist
-	if err := db.AutoMigrate(
+	tables := []interface{}{
 		&models.Model{},
 		&models.ModelVersion{},
 		&models.Tag{},
@@ -36,8 +45,11 @@ func Connect(cfg config.Config) *gorm.DB {
 		&models.ImageResource{},
 		&models.ModelTriggerWord{},
 		&models.Review{},
-	); err != nil {
-		log.Printf("Warning: AutoMigrate failed: %v\n", err)
+	}
+	for _, t := range tables {
+		if err := db.AutoMigrate(t); err != nil {
+			log.Printf("Warning: AutoMigrate failed for %T: %v\n", t, err)
+		}
 	}
 
 	return db
