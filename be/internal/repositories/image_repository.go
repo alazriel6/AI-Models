@@ -65,14 +65,14 @@ func (r *ImageRepository) FindAll(filter ImageFilter) ([]models.ModelImage, int6
 	if filter.Search != "" {
 		s := "%" + filter.Search + "%"
 		query = query.Joins("LEFT JOIN models ON models.id = model_images.model_id").
-			Where("model_images.caption LIKE ? OR model_images.positive_prompt LIKE ? OR models.name LIKE ?", s, s, s)
+			Where("model_images.caption LIKE ? OR model_images.positive_prompt LIKE ? OR model_images.model_name LIKE ? OR models.name LIKE ?", s, s, s, s)
 	}
 
 	if filter.BaseModel != "" {
 		if filter.Search == "" {
 			query = query.Joins("LEFT JOIN models ON models.id = model_images.model_id")
 		}
-		query = query.Where("models.base_model = ?", filter.BaseModel)
+		query = query.Where("models.base_model = ? OR model_images.model_name LIKE ?", filter.BaseModel, "%"+filter.BaseModel+"%")
 	}
 
 	if err := query.Count(&total).Error; err != nil {

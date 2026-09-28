@@ -12,6 +12,7 @@ export interface Resource {
 export interface ModelImage {
     id: number;
     model_id?: number;
+    model_name?: string;
     model?: {
         id: number;
         name: string;

@@ -12,6 +12,7 @@ import { useAdminAuth } from "./AdminAuth";
 import { AdminGateModal } from "./AdminGateModal";
 import { ModelFormModal } from "./ModelFormModal";
 import { ModelImagesModal } from "./ModelImagesModal";
+import { GalleryManager } from "./GalleryManager";
 import "./admin.css";
 
 interface ToastNotification {
@@ -22,6 +23,9 @@ interface ToastNotification {
 
 export const AdminDashboard: React.FC = () => {
     const { isAdmin, logout, updatePasscode } = useAdminAuth();
+
+    // Active Admin Section Tab
+    const [adminTab, setAdminTab] = useState<"models" | "gallery">("models");
 
     // Data state
     const [models, setModels] = useState<Model[]>([]);
@@ -249,65 +253,34 @@ export const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Stats Overview */}
-            <div className="admin-stats-grid">
-                <div className="admin-stat-card">
-                    <div className="admin-stat-info">
-                        <div className="stat-label">Total Models</div>
-                        <div className="stat-value">{stats.total}</div>
-                    </div>
-                    <div className="admin-stat-icon blue">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                            <polyline points="2 17 12 22 22 17"></polyline>
-                            <polyline points="2 12 12 17 22 12"></polyline>
-                        </svg>
-                    </div>
+            {/* Developer Metric Ribbon */}
+            <div className="admin-metric-ribbon">
+                <div className="admin-metric-item">
+                    <span className="metric-label">Total Models</span>
+                    <span className="metric-value">{stats.total}</span>
                 </div>
-
-                <div className="admin-stat-card">
-                    <div className="admin-stat-info">
-                        <div className="stat-label">Checkpoints</div>
-                        <div className="stat-value">{stats.checkpoints}</div>
-                    </div>
-                    <div className="admin-stat-icon teal">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                    </div>
+                <div className="admin-metric-divider" />
+                <div className="admin-metric-item">
+                    <span className="metric-label">Checkpoints</span>
+                    <span className="metric-value">{stats.checkpoints}</span>
                 </div>
-
-                <div className="admin-stat-card">
-                    <div className="admin-stat-info">
-                        <div className="stat-label">LoRA Adapters</div>
-                        <div className="stat-value">{stats.loras}</div>
-                    </div>
-                    <div className="admin-stat-icon orange">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="4" y1="21" x2="4" y2="14"></line>
-                            <line x1="4" y1="10" x2="4" y2="3"></line>
-                            <line x1="12" y1="21" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12" y2="3"></line>
-                            <line x1="20" y1="21" x2="20" y2="16"></line>
-                            <line x1="20" y1="12" x2="20" y2="3"></line>
-                            <line x1="1" y1="14" x2="7" y2="14"></line>
-                            <line x1="9" y1="8" x2="15" y2="8"></line>
-                            <line x1="17" y1="16" x2="23" y2="16"></line>
-                        </svg>
-                    </div>
+                <div className="admin-metric-divider" />
+                <div className="admin-metric-item">
+                    <span className="metric-label">LoRA Adapters</span>
+                    <span className="metric-value">{stats.loras}</span>
                 </div>
-
-                <div className="admin-stat-card">
-                    <div className="admin-stat-info">
-                        <div className="stat-label">Other / VAE</div>
-                        <div className="stat-value">{stats.other}</div>
-                    </div>
-                    <div className="admin-stat-icon purple">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="16 18 22 12 16 6"></polyline>
-                            <polyline points="8 6 2 12 8 18"></polyline>
-                        </svg>
-                    </div>
+                <div className="admin-metric-divider" />
+                <div className="admin-metric-item">
+                    <span className="metric-label">VAE & Components</span>
+                    <span className="metric-value">{stats.other}</span>
+                </div>
+                <div className="admin-metric-divider" />
+                <div className="admin-metric-item">
+                    <span className="metric-label">Database</span>
+                    <span className="metric-value" style={{ color: backendOnline ? "#4ADE80" : "#EF4444", display: "flex", alignItems: "center", gap: "6px" }}>
+                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: backendOnline ? "#4ADE80" : "#EF4444" }} />
+                        {backendOnline ? "PostgreSQL Connected" : "Service Offline"}
+                    </span>
                 </div>
             </div>
 
@@ -338,10 +311,43 @@ export const AdminDashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Toolbar: Search, Filters & Add Button */}
-            <div className="admin-toolbar">
-                <div className="admin-toolbar-left">
-                    <div className="admin-search-wrapper">
+            {/* Section Navigation Tabs */}
+            <div className="admin-nav-tabs">
+                <button
+                    type="button"
+                    className={`admin-nav-tab ${adminTab === "models" ? "active" : ""}`}
+                    onClick={() => setAdminTab("models")}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <span>Models Catalog</span>
+                    <span className="tab-badge">{models.length}</span>
+                </button>
+
+                <button
+                    type="button"
+                    className={`admin-nav-tab ${adminTab === "gallery" ? "active" : ""}`}
+                    onClick={() => setAdminTab("gallery")}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>Showcase Gallery</span>
+                    <span className="tab-badge">Images CRUD</span>
+                </button>
+            </div>
+
+            {adminTab === "models" ? (
+                <>
+                    {/* Toolbar: Search, Filters & Add Button */}
+                    <div className="admin-toolbar">
+                        <div className="admin-toolbar-left">
+                            <div className="admin-search-wrapper">
                         <span className="admin-search-icon">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="11" cy="11" r="8"></circle>
@@ -565,6 +571,10 @@ export const AdminDashboard: React.FC = () => {
                     </table>
                 )}
             </div>
+            </>
+            ) : (
+                <GalleryManager availableModels={models} onToast={addToast} />
+            )}
 
             {/* Create / Edit Modal */}
             {isFormOpen && (

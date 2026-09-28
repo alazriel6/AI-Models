@@ -138,8 +138,125 @@ export async function deleteModelImageApi(imageId: number): Promise<{ message?: 
     });
 }
 
+export const deleteGalleryImageApi = deleteModelImageApi;
+
 export async function setModelThumbnailApi(modelId: number, imageId: number): Promise<{ message?: string }> {
     return apiFetch<{ message?: string }>(`/models/${modelId}/thumbnail/${imageId}`, {
         method: "PUT",
     });
+}
+
+export interface CreateGalleryImagePayload extends CreateImagePayload {
+    model_id?: number;
+    model_name?: string;
+}
+
+export async function createGalleryImageApi(data: CreateGalleryImagePayload): Promise<ModelImage> {
+    return apiFetch<ModelImage>("/images", {
+        method: "POST",
+        body: JSON.stringify(data),
+    });
+}
+
+export async function uploadGalleryImageFileApi(formData: FormData): Promise<ModelImage> {
+    const res = await fetch(`${API_BASE_URL}/images`, {
+        method: "POST",
+        body: formData,
+    });
+    if (!res.ok) {
+        let errMsg = `Upload failed: ${res.status}`;
+        try {
+            const json = await res.json();
+            if (json?.error) errMsg = json.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
+    return res.json();
+}
+
+export async function updateGalleryImageApi(
+    imageId: number,
+    data: Partial<CreateGalleryImagePayload>
+): Promise<ModelImage> {
+    return apiFetch<ModelImage>(`/images/${imageId}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+    });
+}
+
+export async function getAllGalleryImagesApi(params?: {
+    search?: string;
+    base_model?: string;
+    model_id?: number;
+    sort?: string;
+    page?: number;
+    limit?: number;
+}): Promise<{ data: ModelImage[]; pagination: { total: number; page: number; limit: number; total_pages: number } }> {
+    const searchParams = new URLSearchParams();
+    if (params?.search) searchParams.set("search", params.search);
+    if (params?.base_model) searchParams.set("base_model", params.base_model);
+    if (params?.model_id) searchParams.set("model_id", String(params.model_id));
+    if (params?.sort) searchParams.set("sort", params.sort);
+    if (params?.page) searchParams.set("page", String(params.page));
+    if (params?.limit) searchParams.set("limit", String(params.limit));
+
+    const qs = searchParams.toString();
+    const endpoint = `/images${qs ? `?${qs}` : ""}`;
+    return apiFetch<{ data: ModelImage[]; pagination: { total: number; page: number; limit: number; total_pages: number } }>(endpoint);
+}
+
+export interface ParsedLora {
+    name: string;
+    weight: number;
+}
+
+export interface ParsedImageMetadata {
+    source: "comfyui" | "a1111" | "novelai" | "unknown";
+    positive_prompt?: string;
+    negative_prompt?: string;
+    steps?: number;
+    sampler?: string;
+    scheduler?: string;
+    cfg_scale?: number;
+    seed?: number;
+    width?: number;
+    height?: number;
+    model_name?: string;
+    clip_skip?: number;
+    denoising_strength?: number;
+    hires_upscale?: number;
+    hires_steps?: number;
+    hires_upscaler?: string;
+    loras?: ParsedLora[];
+    raw_prompt?: string;
+}
+
+export interface ParseMetadataResponse {
+    success: boolean;
+    source: string;
+    metadata: ParsedImageMetadata;
+}
+
+export async function parseImageMetadataApi(file: File): Promise<ParseMetadataResponse> {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`${API_BASE_URL}/images/parse-metadata`, {
+        method: "POST",
+        body: formData,
+    });
+    if (!res.ok) {
+        let errMsg = `Parsing failed: ${res.status}`;
+        try {
+            const json = await res.json();
+            if (json?.message) errMsg = json.message;
+            else if (json?.error) errMsg = json.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
+    return res.json();
 }

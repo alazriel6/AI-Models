@@ -1,7 +1,11 @@
 .env
 
+# Storage / Uploaded Images
+be/storage/images/*
+!be/storage/images/.gitkeep
 storage/images/*
 !storage/images/.gitkeep
+
 
 tmp/
 bin/

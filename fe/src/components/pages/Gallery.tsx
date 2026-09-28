@@ -218,7 +218,7 @@ export default function Gallery() {
         const q = searchQuery.toLowerCase().trim();
         const captionMatch = (img.caption || '').toLowerCase().includes(q);
         const promptMatch = (img.positive_prompt || '').toLowerCase().includes(q);
-        const modelNameMatch = (img.model?.name || '').toLowerCase().includes(q);
+        const modelNameMatch = (img.model?.name || img.model_name || '').toLowerCase().includes(q);
         const baseModelMatch = (img.model?.base_model || '').toLowerCase().includes(q);
         const samplerMatch = (img.sampler || '').toLowerCase().includes(q);
         const resourceMatch = img.resources?.some((r) => r.name.toLowerCase().includes(q)) ?? false;
@@ -689,8 +689,8 @@ export default function Gallery() {
         <div className={`gallery-${layoutMode}-view density-${density}`}>
           {filteredImages.map((img) => {
             const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
-            const modelName = img.model?.name || 'Checkpoint Model';
-            const baseModel = img.model?.base_model || 'SDXL';
+            const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
+            const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
 
             return (
               <article
@@ -906,10 +906,10 @@ export default function Gallery() {
                   <div className="spec-model-block">
                     <div className="spec-model-text">
                       <span className="spec-model-name">
-                        {selectedImage.model?.name || 'Checkpoint Model'}
+                        {selectedImage.model?.name || selectedImage.model_name || 'Checkpoint Model'}
                       </span>
                       <div className="spec-model-meta">
-                        <span>{selectedImage.model?.base_model || 'SDXL'}</span>
+                        <span>{selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL')}</span>
                         <span>·</span>
                         <span>{selectedImage.model?.type?.toUpperCase() || 'CHECKPOINT'}</span>
                         {selectedImage.model?.author && (

@@ -6,6 +6,7 @@ import {
     uploadModelImageFileApi,
     deleteModelImageApi,
     setModelThumbnailApi,
+    parseImageMetadataApi,
 } from "../../api/admin";
 import type { CreateImagePayload } from "../../api/admin";
 
@@ -52,6 +53,16 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
     const [width, setWidth] = useState<number>(832);
     const [height, setHeight] = useState<number>(1216);
 
+    // Metadata extraction states
+    const [isParsingMeta, setIsParsingMeta] = useState(false);
+    const [isDragOver, setIsDragOver] = useState(false);
+    const [metaParseStatus, setMetaParseStatus] = useState<{
+        source?: string;
+        message: string;
+        isSuccess: boolean;
+        detectedCount?: number;
+    } | null>(null);
+
     // Resources used
     const [resources, setResources] = useState<ResourceItemInput[]>([
         {
@@ -84,13 +95,110 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
 
     if (!isOpen) return null;
 
+    // Process file and extract metadata automatically
+    const processFileMetadata = async (file: File) => {
+        setSelectedFile(file);
+        const previewUrl = URL.createObjectURL(file);
+        setFilePreview(previewUrl);
+        setMetaParseStatus(null);
+
+        // Auto-extract metadata if it's a PNG file
+        if (file.name.toLowerCase().endsWith(".png") || file.type === "image/png") {
+            try {
+                setIsParsingMeta(true);
+                const res = await parseImageMetadataApi(file);
+                if (res.success && res.metadata) {
+                    const m = res.metadata;
+                    let detected = 0;
+
+                    if (m.positive_prompt) {
+                        setPositivePrompt(m.positive_prompt);
+                        detected++;
+                    }
+                    if (m.negative_prompt) {
+                        setNegativePrompt(m.negative_prompt);
+                        detected++;
+                    }
+                    if (m.steps && m.steps > 0) {
+                        setSteps(m.steps);
+                        detected++;
+                    }
+                    if (m.sampler) {
+                        setSampler(m.sampler);
+                        detected++;
+                    }
+                    if (m.scheduler) {
+                        setScheduler(m.scheduler);
+                        detected++;
+                    }
+                    if (m.cfg_scale && m.cfg_scale > 0) {
+                        setCfgScale(m.cfg_scale);
+                        detected++;
+                    }
+                    if (m.seed !== undefined && m.seed !== null && m.seed !== 0) {
+                        setSeed(String(m.seed));
+                        detected++;
+                    }
+                    if (m.width && m.width > 0) {
+                        setWidth(m.width);
+                        detected++;
+                    }
+                    if (m.height && m.height > 0) {
+                        setHeight(m.height);
+                        detected++;
+                    }
+
+                    // Add detected LoRAs if any
+                    if (m.loras && m.loras.length > 0) {
+                        setResources((prev) => {
+                            const currentNames = new Set(prev.map((r) => r.name.toLowerCase()));
+                            const newResources = [...prev];
+                            for (const lora of m.loras!) {
+                                if (!currentNames.has(lora.name.toLowerCase())) {
+                                    newResources.push({
+                                        name: lora.name,
+                                        type: "lora",
+                                        weight: lora.weight || 0.8,
+                                    });
+                                }
+                            }
+                            return newResources;
+                        });
+                        detected += m.loras.length;
+                    }
+
+                    const sourceLabel =
+                        m.source === "comfyui"
+                            ? "ComfyUI Node Graph"
+                            : m.source === "a1111"
+                            ? "Automatic1111 / WebUI Parameters"
+                            : m.source === "novelai"
+                            ? "NovelAI Meta"
+                            : "Embedded PNG Chunks";
+
+                    setMetaParseStatus({
+                        source: m.source,
+                        message: `Metadata detected from ${sourceLabel}! Prompts, seed, steps, and resolution auto-filled.`,
+                        isSuccess: true,
+                        detectedCount: detected,
+                    });
+                }
+            } catch (err: any) {
+                console.log("No metadata extracted:", err?.message);
+                setMetaParseStatus({
+                    message: "No generation parameters embedded in this PNG file. You can enter values manually.",
+                    isSuccess: false,
+                });
+            } finally {
+                setIsParsingMeta(false);
+            }
+        }
+    };
+
     // Handle file selection
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setSelectedFile(file);
-            const previewUrl = URL.createObjectURL(file);
-            setFilePreview(previewUrl);
+            processFileMetadata(e.target.files[0]);
         }
     };
 
@@ -496,23 +604,191 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                                 </div>
                             ) : (
                                 <div className="form-group">
-                                    <label className="form-label">
-                                        Choose File <span className="required">*</span>
+                                    <label className="form-label" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                        <span>
+                                            Image File (PNG, JPG, WebP) <span className="required">*</span>
+                                        </span>
+                                        <span style={{ fontSize: "11px", color: "#6366f1", fontWeight: 500 }}>
+                                            ⚡ Auto-extracts ComfyUI / A1111 prompts
+                                        </span>
                                     </label>
-                                    <input
-                                        type="file"
-                                        className="form-input"
-                                        accept="image/png,image/jpeg,image/webp"
-                                        onChange={handleFileChange}
-                                        required
-                                    />
-                                    {filePreview && (
-                                        <div style={{ marginTop: "10px", textAlign: "center" }}>
-                                            <img
-                                                src={filePreview}
-                                                alt="File preview"
-                                                style={{ maxHeight: "160px", maxWidth: "100%", borderRadius: "4px", border: "1px solid #292D32" }}
-                                            />
+
+                                    {/* Drag & Drop Upload Box */}
+                                    <div
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setIsDragOver(true);
+                                        }}
+                                        onDragLeave={(e) => {
+                                            e.preventDefault();
+                                            setIsDragOver(false);
+                                        }}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            setIsDragOver(false);
+                                            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                                                processFileMetadata(e.dataTransfer.files[0]);
+                                            }
+                                        }}
+                                        style={{
+                                            border: isDragOver ? "2px dashed #6366f1" : "1px dashed #34383E",
+                                            borderRadius: "4px",
+                                            padding: "20px",
+                                            background: isDragOver ? "rgba(99, 102, 241, 0.05)" : "#16181B",
+                                            textAlign: "center",
+                                            cursor: "pointer",
+                                            transition: "all 0.15s ease",
+                                        }}
+                                        onClick={() => {
+                                            const fileInput = document.getElementById("model-image-file-input");
+                                            if (fileInput) fileInput.click();
+                                        }}
+                                    >
+                                        <input
+                                            id="model-image-file-input"
+                                            type="file"
+                                            style={{ display: "none" }}
+                                            accept="image/png,image/jpeg,image/webp"
+                                            onChange={handleFileChange}
+                                        />
+
+                                        {filePreview ? (
+                                            <div>
+                                                <img
+                                                    src={filePreview}
+                                                    alt="File preview"
+                                                    style={{
+                                                        maxHeight: "160px",
+                                                        maxWidth: "100%",
+                                                        borderRadius: "4px",
+                                                        border: "1px solid #292D32",
+                                                        objectFit: "contain",
+                                                    }}
+                                                />
+                                                <div style={{ marginTop: "8px", fontSize: "12px", color: "#E6E8EB", fontFamily: "monospace" }}>
+                                                    {selectedFile?.name} ({(selectedFile ? selectedFile.size / 1024 : 0).toFixed(1)} KB)
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="btn-secondary-admin"
+                                                    style={{ marginTop: "8px", fontSize: "11px", padding: "4px 10px" }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const fileInput = document.getElementById("model-image-file-input");
+                                                        if (fileInput) fileInput.click();
+                                                    }}
+                                                >
+                                                    Choose Different File
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <svg
+                                                    width="28"
+                                                    height="28"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="#666C75"
+                                                    strokeWidth="1.75"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    style={{ margin: "0 auto 8px auto", display: "block" }}
+                                                >
+                                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                    <polyline points="17 8 12 3 7 8"></polyline>
+                                                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                                                </svg>
+                                                <div style={{ fontSize: "13px", fontWeight: 600, color: "#E6E8EB", marginBottom: "4px" }}>
+                                                    Click to browse or drag & drop PNG file
+                                                </div>
+                                                <div style={{ fontSize: "11px", color: "#666C75" }}>
+                                                    Directly upload ComfyUI or Automatic1111 outputs to auto-fill prompt & settings
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Parsing State & Result Banner */}
+                                    {isParsingMeta && (
+                                        <div
+                                            style={{
+                                                marginTop: "10px",
+                                                padding: "8px 12px",
+                                                background: "rgba(99, 102, 241, 0.08)",
+                                                border: "1px solid rgba(99, 102, 241, 0.25)",
+                                                borderRadius: "4px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: "8px",
+                                                fontSize: "12px",
+                                                color: "#818cf8",
+                                            }}
+                                        >
+                                            <svg
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                style={{ animation: "spin 1s linear infinite" }}
+                                            >
+                                                <line x1="12" y1="2" x2="12" y2="6"></line>
+                                                <line x1="12" y1="18" x2="12" y2="22"></line>
+                                                <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+                                                <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+                                                <line x1="2" y1="12" x2="6" y2="12"></line>
+                                                <line x1="18" y1="12" x2="22" y2="12"></line>
+                                                <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+                                                <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+                                            </svg>
+                                            <span>Extracting ComfyUI / Automatic1111 generation metadata...</span>
+                                        </div>
+                                    )}
+
+                                    {metaParseStatus && !isParsingMeta && (
+                                        <div
+                                            style={{
+                                                marginTop: "10px",
+                                                padding: "10px 12px",
+                                                background: metaParseStatus.isSuccess
+                                                    ? "rgba(34, 197, 94, 0.08)"
+                                                    : "rgba(100, 116, 139, 0.08)",
+                                                border: metaParseStatus.isSuccess
+                                                    ? "1px solid rgba(34, 197, 94, 0.25)"
+                                                    : "1px solid rgba(100, 116, 139, 0.25)",
+                                                borderRadius: "4px",
+                                                fontSize: "12px",
+                                                color: metaParseStatus.isSuccess ? "#4ade80" : "#94a3b8",
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "4px" }}>
+                                                {metaParseStatus.isSuccess ? (
+                                                    <>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                        </svg>
+                                                        <strong style={{ textTransform: "uppercase", fontSize: "11px", letterSpacing: "0.05em" }}>
+                                                            {metaParseStatus.source ? `${metaParseStatus.source} Metadata Extracted` : "Metadata Extracted"}
+                                                        </strong>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                            <circle cx="12" cy="12" r="10"></circle>
+                                                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                                                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                                                        </svg>
+                                                        <strong style={{ fontSize: "11px" }}>Metadata Status</strong>
+                                                    </>
+                                                )}
+                                            </div>
+                                            <div style={{ fontSize: "11px", opacity: 0.9 }}>
+                                                {metaParseStatus.message}
+                                            </div>
                                         </div>
                                     )}
                                 </div>

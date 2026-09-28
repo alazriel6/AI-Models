@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/alazriel6/models-guide/backend/internal/parser"
 	"github.com/alazriel6/models-guide/backend/internal/repositories"
 	"github.com/alazriel6/models-guide/backend/internal/services"
 	"github.com/gin-gonic/gin"
@@ -127,7 +128,7 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		imageRecord, err := h.service.Upload(modelID, nil, meta)
+		imageRecord, err := h.service.Upload(&modelID, nil, meta)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})
@@ -198,12 +199,106 @@ func (h *ImageHandler) UploadImage(c *gin.Context) {
 		}
 	}
 
-	imageRecord, err := h.service.Upload(modelID, file, meta)
+	imageRecord, err := h.service.Upload(&modelID, file, meta)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Model not found"})
 			return
 		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, imageRecord)
+}
+
+// UploadGalleryImage handles standalone or model-linked image creation directly into the gallery.
+func (h *ImageHandler) UploadGalleryImage(c *gin.Context) {
+	var meta services.CreateImageMetadataInput
+
+	// Check if JSON request
+	if strings.Contains(c.ContentType(), "application/json") {
+		if err := c.ShouldBindJSON(&meta); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		imageRecord, err := h.service.Upload(meta.ModelID, nil, meta)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusCreated, imageRecord)
+		return
+	}
+
+	// Multipart / Form-Data
+	file, _ := c.FormFile("image")
+	if file == nil {
+		file, _ = c.FormFile("file")
+	}
+
+	meta.ImageURL = c.PostForm("image_url")
+	if file == nil && strings.TrimSpace(meta.ImageURL) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file ('image' or 'file') or 'image_url' is required"})
+		return
+	}
+
+	if modelIDStr := c.PostForm("model_id"); modelIDStr != "" {
+		if id, err := strconv.ParseUint(modelIDStr, 10, 32); err == nil && id > 0 {
+			uid := uint(id)
+			meta.ModelID = &uid
+		}
+	}
+
+	meta.ModelName = c.PostForm("model_name")
+	meta.Caption = c.PostForm("caption")
+	meta.PositivePrompt = c.PostForm("positive_prompt")
+	meta.NegativePrompt = c.PostForm("negative_prompt")
+	meta.Sampler = c.PostForm("sampler")
+	meta.Scheduler = c.PostForm("scheduler")
+	meta.HiresUpscaler = c.PostForm("hires_upscaler")
+
+	if widthStr := c.PostForm("width"); widthStr != "" {
+		meta.Width, _ = strconv.Atoi(widthStr)
+	}
+	if heightStr := c.PostForm("height"); heightStr != "" {
+		meta.Height, _ = strconv.Atoi(heightStr)
+	}
+	if seedStr := c.PostForm("seed"); seedStr != "" {
+		meta.Seed, _ = strconv.ParseInt(seedStr, 10, 64)
+	}
+	if stepsStr := c.PostForm("steps"); stepsStr != "" {
+		meta.Steps, _ = strconv.Atoi(stepsStr)
+	}
+	if cfgStr := c.PostForm("cfg_scale"); cfgStr != "" {
+		meta.CFGScale, _ = strconv.ParseFloat(cfgStr, 64)
+	}
+	if clipStr := c.PostForm("clip_skip"); clipStr != "" {
+		meta.ClipSkip, _ = strconv.Atoi(clipStr)
+	}
+	if hiresUpStr := c.PostForm("hires_upscale"); hiresUpStr != "" {
+		meta.HiresUpscale, _ = strconv.ParseFloat(hiresUpStr, 64)
+	}
+	if hiresStepsStr := c.PostForm("hires_steps"); hiresStepsStr != "" {
+		meta.HiresSteps, _ = strconv.Atoi(hiresStepsStr)
+	}
+	if denoiseStr := c.PostForm("denoising_strength"); denoiseStr != "" {
+		meta.DenoisingStr, _ = strconv.ParseFloat(denoiseStr, 64)
+	}
+	if rawMetaStr := c.PostForm("raw_metadata"); rawMetaStr != "" {
+		if json.Valid([]byte(rawMetaStr)) {
+			meta.RawMetadata = datatypes.JSON([]byte(rawMetaStr))
+		}
+	}
+	if resourcesStr := c.PostForm("resources"); resourcesStr != "" {
+		var resList []services.ImageResourceInput
+		if err := json.Unmarshal([]byte(resourcesStr), &resList); err == nil {
+			meta.Resources = resList
+		}
+	}
+
+	imageRecord, err := h.service.Upload(meta.ModelID, file, meta)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -331,4 +426,38 @@ func (h *ImageHandler) DetachResource(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Resource detached from image successfully"})
+}
+
+// ParseMetadata inspects an uploaded PNG file and extracts ComfyUI / Automatic1111 generation metadata.
+func (h *ImageHandler) ParseMetadata(c *gin.Context) {
+	file, err := c.FormFile("image")
+	if file == nil {
+		file, err = c.FormFile("file")
+	}
+	if file == nil || err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file ('image' or 'file') is required"})
+		return
+	}
+
+	f, err := file.Open()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read file: " + err.Error()})
+		return
+	}
+	defer f.Close()
+
+	meta, err := parser.ParsePNGMetadata(f)
+	if err != nil {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{
+			"error":   err.Error(),
+			"message": "No embedded ComfyUI or Automatic1111 generation parameters found in this PNG.",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":  true,
+		"source":   meta.Source,
+		"metadata": meta,
+	})
 }

@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/alazriel6/models-guide/backend/internal/models"
+	"github.com/alazriel6/models-guide/backend/internal/parser"
 	"github.com/alazriel6/models-guide/backend/internal/repositories"
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
@@ -34,6 +35,8 @@ type ImageResourceInput struct {
 }
 
 type CreateImageMetadataInput struct {
+	ModelID        *uint                `json:"model_id" form:"model_id"`
+	ModelName      string               `json:"model_name" form:"model_name"`
 	ImageURL       string               `json:"image_url" form:"image_url"`
 	Caption        string               `json:"caption" form:"caption"`
 	Width          int                  `json:"width" form:"width"`
@@ -55,6 +58,8 @@ type CreateImageMetadataInput struct {
 }
 
 type UpdateImageInput struct {
+	ModelID        *uint           `json:"model_id"`
+	ModelName      *string         `json:"model_name"`
 	Caption        *string         `json:"caption"`
 	PositivePrompt *string         `json:"positive_prompt"`
 	NegativePrompt *string         `json:"negative_prompt"`
@@ -107,10 +112,24 @@ func (s *ImageService) GetByID(id uint) (*models.ModelImage, error) {
 	return s.imageRepo.FindByID(id)
 }
 
-func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, meta CreateImageMetadataInput) (*models.ModelImage, error) {
-	model, err := s.modelRepo.FindByID(modelID)
-	if err != nil {
-		return nil, err
+func (s *ImageService) Upload(modelID *uint, fileHeader *multipart.FileHeader, meta CreateImageMetadataInput) (*models.ModelImage, error) {
+	var model *models.Model
+	if modelID != nil && *modelID > 0 {
+		m, err := s.modelRepo.FindByID(*modelID)
+		if err == nil {
+			model = m
+		}
+	} else if meta.ModelID != nil && *meta.ModelID > 0 {
+		modelID = meta.ModelID
+		m, err := s.modelRepo.FindByID(*modelID)
+		if err == nil {
+			model = m
+		}
+	}
+
+	modelName := strings.TrimSpace(meta.ModelName)
+	if modelName == "" && model != nil {
+		modelName = model.Name
 	}
 
 	var relImagePath string
@@ -134,6 +153,70 @@ func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, me
 			return nil, fmt.Errorf("failed to open uploaded file: %w", err)
 		}
 		defer file.Close()
+
+		// Auto-extract generation metadata if uploading a PNG file
+		if ext == ".png" {
+			if parsed, err := parser.ParsePNGMetadata(file); err == nil && parsed != nil {
+				if strings.TrimSpace(meta.PositivePrompt) == "" && parsed.PositivePrompt != "" {
+					meta.PositivePrompt = parsed.PositivePrompt
+				}
+				if strings.TrimSpace(meta.NegativePrompt) == "" && parsed.NegativePrompt != "" {
+					meta.NegativePrompt = parsed.NegativePrompt
+				}
+				if meta.Steps == 0 && parsed.Steps > 0 {
+					meta.Steps = parsed.Steps
+				}
+				if strings.TrimSpace(meta.Sampler) == "" && parsed.Sampler != "" {
+					meta.Sampler = parsed.Sampler
+				}
+				if strings.TrimSpace(meta.Scheduler) == "" && parsed.Scheduler != "" {
+					meta.Scheduler = parsed.Scheduler
+				}
+				if meta.CFGScale == 0 && parsed.CFGScale > 0 {
+					meta.CFGScale = parsed.CFGScale
+				}
+				if meta.Seed == 0 && parsed.Seed != 0 {
+					meta.Seed = parsed.Seed
+				}
+				if width <= 0 && parsed.Width > 0 {
+					width = parsed.Width
+				}
+				if height <= 0 && parsed.Height > 0 {
+					height = parsed.Height
+				}
+				if meta.ClipSkip == 0 && parsed.ClipSkip > 0 {
+					meta.ClipSkip = parsed.ClipSkip
+				}
+				if meta.DenoisingStr == 0 && parsed.DenoisingStr > 0 {
+					meta.DenoisingStr = parsed.DenoisingStr
+				}
+				if meta.HiresUpscale == 0 && parsed.HiresUpscale > 0 {
+					meta.HiresUpscale = parsed.HiresUpscale
+				}
+				if meta.HiresSteps == 0 && parsed.HiresSteps > 0 {
+					meta.HiresSteps = parsed.HiresSteps
+				}
+				if strings.TrimSpace(meta.HiresUpscaler) == "" && parsed.HiresUpscaler != "" {
+					meta.HiresUpscaler = parsed.HiresUpscaler
+				}
+				if modelName == "" && parsed.ModelName != "" {
+					modelName = parsed.ModelName
+				}
+				if len(meta.Resources) == 0 && len(parsed.Loras) > 0 {
+					for _, lora := range parsed.Loras {
+						meta.Resources = append(meta.Resources, ImageResourceInput{
+							Name:   lora.Name,
+							Type:   "lora",
+							Weight: lora.Weight,
+						})
+					}
+				}
+			}
+			// Reset seeker offset back to beginning after parsing
+			if seeker, ok := file.(io.ReadSeeker); ok {
+				_, _ = seeker.Seek(0, io.SeekStart)
+			}
+		}
 
 		// Try reading image dimensions if not provided
 		if width <= 0 || height <= 0 {
@@ -175,6 +258,7 @@ func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, me
 
 	modelImage := &models.ModelImage{
 		ModelID:        modelID,
+		ModelName:      modelName,
 		ImagePath:      relImagePath,
 		ImageURL:       imageURL,
 		Caption:        strings.TrimSpace(meta.Caption),
@@ -215,8 +299,8 @@ func (s *ImageService) Upload(modelID uint, fileHeader *multipart.FileHeader, me
 		}
 	}
 
-	// Auto-set model's thumbnail if it's currently empty
-	if strings.TrimSpace(model.ThumbnailURL) == "" {
+	// Auto-set model's thumbnail if model exists and its thumbnail is currently empty
+	if model != nil && strings.TrimSpace(model.ThumbnailURL) == "" {
 		model.ThumbnailURL = modelImage.ImageURL
 		_ = s.modelRepo.Update(model)
 	}
@@ -230,6 +314,16 @@ func (s *ImageService) Update(id uint, input UpdateImageInput) (*models.ModelIma
 		return nil, err
 	}
 
+	if input.ModelID != nil {
+		if *input.ModelID == 0 {
+			img.ModelID = nil
+		} else {
+			img.ModelID = input.ModelID
+		}
+	}
+	if input.ModelName != nil {
+		img.ModelName = strings.TrimSpace(*input.ModelName)
+	}
 	if input.Caption != nil {
 		img.Caption = strings.TrimSpace(*input.Caption)
 	}
@@ -251,6 +345,9 @@ func (s *ImageService) Update(id uint, input UpdateImageInput) (*models.ModelIma
 	if input.Sampler != nil {
 		img.Sampler = strings.TrimSpace(*input.Sampler)
 	}
+	if input.Scheduler != nil {
+		img.Scheduler = strings.TrimSpace(*input.Scheduler)
+	}
 	if input.RawMetadata != nil {
 		img.RawMetadata = *input.RawMetadata
 	}
@@ -268,8 +365,6 @@ func (s *ImageService) Delete(id uint) error {
 		return err
 	}
 
-	modelID := img.ModelID
-
 	// Delete from DB
 	if err := s.imageRepo.Delete(id); err != nil {
 		return err
@@ -281,15 +376,18 @@ func (s *ImageService) Delete(id uint) error {
 	}
 
 	// Check if this was the model's thumbnail
-	if model, err := s.modelRepo.FindByID(modelID); err == nil && model != nil {
-		if model.ThumbnailURL == img.ImageURL {
-			remaining, _ := s.imageRepo.FindByModelID(modelID)
-			if len(remaining) > 0 {
-				model.ThumbnailURL = remaining[0].ImageURL
-			} else {
-				model.ThumbnailURL = ""
+	if img.ModelID != nil && *img.ModelID > 0 {
+		modelID := *img.ModelID
+		if model, err := s.modelRepo.FindByID(modelID); err == nil && model != nil {
+			if model.ThumbnailURL == img.ImageURL {
+				remaining, _ := s.imageRepo.FindByModelID(modelID)
+				if len(remaining) > 0 {
+					model.ThumbnailURL = remaining[0].ImageURL
+				} else {
+					model.ThumbnailURL = ""
+				}
+				_ = s.modelRepo.Update(model)
 			}
-			_ = s.modelRepo.Update(model)
 		}
 	}
 

@@ -9,8 +9,9 @@ import (
 type ModelImage struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 
-	ModelID uint `json:"model_id" gorm:"not null;index"`
-	Model   *Model `json:"model,omitempty" gorm:"foreignKey:ModelID"`
+	ModelID   *uint  `json:"model_id,omitempty" gorm:"index"`
+	Model     *Model `json:"model,omitempty" gorm:"foreignKey:ModelID"`
+	ModelName string `json:"model_name"`
 
 	ImagePath string `json:"image_path"`
 	ImageURL  string `json:"image_url"`

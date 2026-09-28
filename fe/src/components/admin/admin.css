@@ -7,9 +7,9 @@
    Container & Layout
    -------------------------------------------------------------------------- */
 .admin-container {
-    max-width: 1560px;
+    max-width: 1400px;
     margin: 0 auto;
-    padding: 24px;
+    padding: 24px 32px 48px 32px;
     color: #E6E8EB;
 }
 
@@ -22,9 +22,9 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 16px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #292D32;
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #202328;
 }
 
 .admin-title-area {
@@ -37,19 +37,19 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px;
-    height: 36px;
-    background: #1C1F23;
-    border: 1px solid #292D32;
-    border-radius: 6px;
-    color: #3B82F6;
+    width: 32px;
+    height: 32px;
+    background: #141619;
+    border: 1px solid #262930;
+    border-radius: 4px;
+    color: #818CF8;
     flex-shrink: 0;
 }
 
 .admin-title-area h1 {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
-    color: #E6E8EB;
+    color: #FFFFFF;
     margin: 0;
     display: flex;
     align-items: center;
@@ -63,11 +63,11 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    background: rgba(34, 197, 94, 0.1);
-    color: #22C55E;
-    border: 1px solid rgba(34, 197, 94, 0.25);
-    padding: 2px 6px;
-    border-radius: 4px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #818CF8;
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    padding: 1px 6px;
+    border-radius: 3px;
 }
 
 .admin-header-actions {
@@ -82,22 +82,22 @@
     gap: 6px;
     font-size: 11px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-    padding: 5px 10px;
-    border-radius: 4px;
-    border: 1px solid #292D32;
-    background: #17191C;
+    padding: 4px 9px;
+    border-radius: 3px;
+    border: 1px solid #24272D;
+    background: #131518;
 }
 
 .backend-status-badge.online {
-    color: #22C55E;
-    border-color: rgba(34, 197, 94, 0.25);
-    background: rgba(34, 197, 94, 0.06);
+    color: #4ADE80;
+    border-color: rgba(74, 222, 128, 0.2);
+    background: rgba(74, 222, 128, 0.04);
 }
 
 .backend-status-badge.offline {
     color: #EF4444;
     border-color: rgba(239, 68, 68, 0.25);
-    background: rgba(239, 68, 68, 0.06);
+    background: rgba(239, 68, 68, 0.05);
 }
 
 .status-dot {
@@ -105,66 +105,104 @@
     height: 6px;
     border-radius: 50%;
     background: currentColor;
+    box-shadow: 0 0 6px currentColor;
 }
 
 /* --------------------------------------------------------------------------
-   Stats Grid Overview
+   Developer Metric Ribbon (Replaces generic stat boxes)
    -------------------------------------------------------------------------- */
-.admin-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px;
-    margin-bottom: 20px;
-}
-
-.admin-stat-card {
-    background: #17191C;
-    border: 1px solid #292D32;
-    border-radius: 6px;
-    padding: 14px 16px;
+.admin-metric-ribbon {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    transition: border-color 0.12s ease;
+    background: #131518;
+    border: 1px solid #202328;
+    border-radius: 4px;
+    padding: 8px 16px;
+    margin-bottom: 20px;
+    gap: 20px;
+    overflow-x: auto;
 }
 
-.admin-stat-card:hover {
-    border-color: #3B82F6;
+.admin-metric-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
-.admin-stat-info .stat-label {
+.admin-metric-item .metric-label {
     font-size: 11px;
-    font-weight: 600;
+    color: #6C727D;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #666C75;
-    margin-bottom: 2px;
+    font-weight: 500;
 }
 
-.admin-stat-info .stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    color: #E6E8EB;
+.admin-metric-item .metric-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFFFFF;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
-.admin-stat-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #1C1F23;
-    border: 1px solid #292D32;
-    color: #9A9FA8;
+.admin-metric-divider {
+    width: 1px;
+    height: 14px;
+    background: #24272E;
     flex-shrink: 0;
 }
 
-.admin-stat-icon.blue { color: #3B82F6; border-color: rgba(59, 130, 246, 0.3); }
-.admin-stat-icon.teal { color: #22C55E; border-color: rgba(34, 197, 94, 0.3); }
-.admin-stat-icon.orange { color: #F59E0B; border-color: rgba(245, 158, 11, 0.3); }
-.admin-stat-icon.purple { color: #A855F7; border-color: rgba(168, 85, 247, 0.3); }
+/* --------------------------------------------------------------------------
+   Tab Navigation Strip (Linear / GitHub Repository Style)
+   -------------------------------------------------------------------------- */
+.admin-nav-tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid #202328;
+    margin-bottom: 18px;
+}
+
+.admin-nav-tab {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 4px 12px 4px;
+    color: #8C929C;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin-bottom: -1px;
+}
+
+.admin-nav-tab:hover {
+    color: #E6E8EB;
+}
+
+.admin-nav-tab.active {
+    color: #FFFFFF;
+    border-bottom-color: #818CF8;
+    font-weight: 600;
+}
+
+.admin-nav-tab .tab-badge {
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    padding: 1px 6px;
+    border-radius: 10px;
+    background: #17191D;
+    color: #8A9099;
+    border: 1px solid #262930;
+}
+
+.admin-nav-tab.active .tab-badge {
+    background: rgba(99, 102, 241, 0.12);
+    color: #818CF8;
+    border-color: rgba(99, 102, 241, 0.3);
+}
 
 /* --------------------------------------------------------------------------
    Alert Banner (Offline / Warning)
@@ -315,10 +353,10 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #3B82F6;
-    color: #ffffff;
-    border: 1px solid #3B82F6;
-    padding: 6px 14px;
+    background: #E6E8EB;
+    color: #0E1012;
+    border: 1px solid #FFFFFF;
+    padding: 6px 13px;
     border-radius: 4px;
     font-size: 12px;
     font-weight: 600;
@@ -327,17 +365,17 @@
 }
 
 .btn-primary-admin:hover {
-    background: #2563EB;
-    border-color: #2563EB;
+    background: #FFFFFF;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 .btn-secondary-admin {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #1C1F23;
+    background: #141619;
     color: #9A9FA8;
-    border: 1px solid #292D32;
+    border: 1px solid #262930;
     padding: 6px 12px;
     border-radius: 4px;
     font-size: 12px;
@@ -347,9 +385,9 @@
 }
 
 .btn-secondary-admin:hover {
-    background: #22252A;
-    color: #E6E8EB;
-    border-color: #3B82F6;
+    background: #1C1F24;
+    color: #FFFFFF;
+    border-color: #383D48;
 }
 
 .btn-danger-admin {
@@ -950,3 +988,93 @@
         max-width: 100%;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Interactive Ingestion Dropzone & Gallery Showcase
+   -------------------------------------------------------------------------- */
+.gallery-dropzone {
+    background: radial-gradient(ellipse at top, #181B20 0%, #111316 100%);
+    border: 1px dashed #2B303A;
+    border-radius: 6px;
+    padding: 48px 24px;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+}
+
+.gallery-dropzone:hover {
+    border-color: #4A5160;
+    background: radial-gradient(ellipse at top, #1C1F25 0%, #131518 100%);
+}
+
+.gallery-dropzone.drag-active {
+    border-color: #818CF8;
+    background: radial-gradient(ellipse at top, rgba(99, 102, 241, 0.12) 0%, #131518 100%);
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.18), inset 0 0 16px rgba(99, 102, 241, 0.08);
+}
+
+.gallery-format-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.gallery-format-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #8C93A0;
+    background: #171A1F;
+    border: 1px solid #262A33;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.gallery-format-chip .chip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #6366F1;
+}
+
+.gallery-card {
+    background: #141619;
+    border: 1px solid #23272E;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.18s ease;
+}
+
+.gallery-card:hover {
+    border-color: #383F4C;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.gallery-thumb-wrap {
+    position: relative;
+    height: 220px;
+    background: #0E1012;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.gallery-thumb-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.3s ease;
+}
+
+.gallery-card:hover .gallery-thumb-wrap img {
+    transform: scale(1.03);
+}
+

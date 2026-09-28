@@ -71,6 +71,8 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string) {
 		images := api.Group("/images")
 		{
 			images.GET("", h.ImageHandler.GetAllImages)
+			images.POST("", h.ImageHandler.UploadGalleryImage)
+			images.POST("/parse-metadata", h.ImageHandler.ParseMetadata)
 			images.GET("/:id", h.ImageHandler.GetImage)
 			images.PUT("/:id", h.ImageHandler.UpdateImage)
 			images.DELETE("/:id", h.ImageHandler.DeleteImage)
