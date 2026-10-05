@@ -13,7 +13,7 @@ func TestHealthCheck(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
-	Setup(router, RouteHandlers{}, "")
+	Setup(router, RouteHandlers{}, "", "admin123")
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/health", nil)
@@ -33,5 +33,21 @@ func TestHealthCheck(t *testing.T) {
 	}
 	if body["service"] != "models-guide-backend" {
 		t.Errorf("expected service 'models-guide-backend', got %q", body["service"])
+	}
+}
+
+func TestAdminAuthProtection(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+
+	Setup(router, RouteHandlers{}, "", "admin123")
+
+	// Call protected endpoint without token
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/models", nil)
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected status 401 Unauthorized, got %d", w.Code)
 	}
 }

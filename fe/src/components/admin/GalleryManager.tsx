@@ -3,6 +3,7 @@ import type { Model, ModelImage } from "../../api/models";
 import { getAllGalleryImagesApi, deleteGalleryImageApi } from "../../api/admin";
 import { resolveImageUrl } from "../../api/client";
 import { GalleryImageModal } from "./GalleryImageModal";
+import { BulkUploadModal } from "./BulkUploadModal";
 
 interface GalleryManagerProps {
     availableModels: Model[];
@@ -39,6 +40,11 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
     const [isDraggingFile, setIsDraggingFile] = useState(false);
     const [copiedId, setCopiedId] = useState<number | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+
+    // Bulk upload modal state
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkInitialFiles, setBulkInitialFiles] = useState<File[]>([]);
+    const bulkFileInputRef = React.useRef<HTMLInputElement | null>(null);
 
     // Delete confirmation
     const [imageToDelete, setImageToDelete] = useState<ModelImage | null>(null);
@@ -167,7 +173,10 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         e.preventDefault();
         e.stopPropagation();
         setIsDraggingFile(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 1) {
+            setBulkInitialFiles(Array.from(e.dataTransfer.files));
+            setIsBulkModalOpen(true);
+        } else if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
             setImageToEdit(null);
             setDroppedFile(file);
@@ -176,7 +185,11 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
     };
 
     const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
+        if (e.target.files && e.target.files.length > 1) {
+            setBulkInitialFiles(Array.from(e.target.files));
+            setIsBulkModalOpen(true);
+            e.target.value = "";
+        } else if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setImageToEdit(null);
             setDroppedFile(file);
@@ -312,7 +325,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                         <option value="steps_asc">Lowest Steps</option>
                     </select>
 
-                    {/* Hidden Native File Input */}
+                    {/* Hidden Native File Input (Single) */}
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -321,19 +334,66 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                         onChange={handleFileInputChange}
                     />
 
-                    {/* Quick Ingest PNG Button */}
+                    {/* Hidden Native File Input (Bulk Multiple) */}
+                    <input
+                        ref={bulkFileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/png,image/jpeg,image/webp"
+                        style={{ display: "none" }}
+                        onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                                setBulkInitialFiles(Array.from(e.target.files));
+                                setIsBulkModalOpen(true);
+                                e.target.value = "";
+                            }
+                        }}
+                    />
+
+                    {/* Quick Ingest Image Button */}
                     <button
                         type="button"
                         className="btn-secondary-admin"
                         onClick={() => fileInputRef.current?.click()}
-                        title="Upload PNG from disk to auto-parse metadata"
+                        title="Upload PNG/WebP/JPEG from disk to auto-parse metadata"
                     >
                         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                             <polyline points="17 8 12 3 7 8"></polyline>
                             <line x1="12" y1="3" x2="12" y2="15"></line>
                         </svg>
-                        <span>Parse PNG</span>
+                        <span>Parse Image</span>
+                    </button>
+
+                    {/* Full Inspector Link */}
+                    <a
+                        href="/inspector"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-secondary-admin"
+                        title="Buka Metadata Inspector lengkap (cek EXIF, chunks, ComfyUI graph)"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="16" x2="12" y2="12" />
+                            <line x1="12" y1="8" x2="12.01" y2="8" />
+                        </svg>
+                        <span>Inspector Tool</span>
+                    </a>
+
+                    {/* Bulk Ingest Batch Button */}
+                    <button
+                        type="button"
+                        className="btn-secondary-admin"
+                        onClick={() => bulkFileInputRef.current?.click()}
+                        title="Unggah batch gambar generasi (ComfyUI / WebUI) sekaligus"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="16 16 12 12 8 16" />
+                            <line x1="12" y1="12" x2="12" y2="21" />
+                            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+                        </svg>
+                        <span>Bulk Ingest</span>
                     </button>
 
                     {/* Add Image Button */}
@@ -790,6 +850,21 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                         onToast("success", imageToEdit ? "Image updated successfully!" : "Image published to gallery!");
                         loadImages();
                     }}
+                />
+            )}
+
+            {/* Bulk Batch Ingest Modal */}
+            {isBulkModalOpen && (
+                <BulkUploadModal
+                    isOpen={isBulkModalOpen}
+                    onClose={() => {
+                        setIsBulkModalOpen(false);
+                        setBulkInitialFiles([]);
+                    }}
+                    availableModels={availableModels}
+                    initialFiles={bulkInitialFiles}
+                    onSuccess={loadImages}
+                    onToast={onToast}
                 />
             )}
 

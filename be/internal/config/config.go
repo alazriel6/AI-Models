@@ -21,6 +21,7 @@ type Config struct {
 
 	StoragePath string
 	CORSOrigin  string
+	AdminSecretKey string
 }
 
 func Load() Config {
@@ -53,6 +54,7 @@ func Load() Config {
 
 		StoragePath: storagePath,
 		CORSOrigin:  getEnv("CORS_ORIGIN", "http://localhost:5173"),
+		AdminSecretKey: getEnv("ADMIN_SECRET_KEY", "admin123"),
 	}
 }
 

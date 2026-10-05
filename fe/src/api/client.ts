@@ -21,14 +21,27 @@ export function resolveImageUrl(url?: string | null): string {
     return url;
 }
 
+export function getAdminToken(): string {
+    const isAuth = typeof window !== "undefined" && sessionStorage.getItem("models_guide_admin_authenticated") === "true";
+    if (!isAuth) return "";
+    return localStorage.getItem("models_guide_admin_key") || "admin123";
+}
+
+export function getAuthHeaders(): Record<string, string> {
+    const token = getAdminToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 export async function apiFetch<T>(
     endpoint: string,
     options?: RequestInit
 ): Promise<T> {
+    const authHeaders = getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: {
             "Content-Type": "application/json",
+            ...authHeaders,
             ...options?.headers,
         },
     });

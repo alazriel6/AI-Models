@@ -431,7 +431,7 @@ func (h *ImageHandler) DetachResource(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Resource detached from image successfully"})
 }
 
-// ParseMetadata inspects an uploaded PNG file and extracts ComfyUI / Automatic1111 generation metadata.
+// ParseMetadata inspects an uploaded file (PNG, WebP, JPEG, JSON) and extracts full generation parameters.
 func (h *ImageHandler) ParseMetadata(c *gin.Context) {
 	file, err := c.FormFile("image")
 	if file == nil {
@@ -449,11 +449,11 @@ func (h *ImageHandler) ParseMetadata(c *gin.Context) {
 	}
 	defer f.Close()
 
-	meta, err := parser.ParsePNGMetadata(f)
+	meta, err := parser.ParseImageMetadata(f, file.Filename)
 	if err != nil {
 		c.JSON(http.StatusUnprocessableEntity, gin.H{
 			"error":   err.Error(),
-			"message": "No embedded ComfyUI or Automatic1111 generation parameters found in this PNG.",
+			"message": "No embedded ComfyUI, Automatic1111, or generation parameters found in this file.",
 		})
 		return
 	}
@@ -461,6 +461,7 @@ func (h *ImageHandler) ParseMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success":  true,
 		"source":   meta.Source,
+		"format":   meta.Format,
 		"metadata": meta,
 	})
 }

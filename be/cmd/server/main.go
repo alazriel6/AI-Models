@@ -56,7 +56,7 @@ func main() {
 	router := gin.Default()
 	router.Use(middleware.CORS(cfg.CORSOrigin))
 
-	routes.Setup(router, h, cfg.StoragePath)
+	routes.Setup(router, h, cfg.StoragePath, cfg.AdminSecretKey)
 
 	log.Println("Server running on http://localhost:" + cfg.AppPort)
 	if err := router.Run(":" + cfg.AppPort); err != nil {

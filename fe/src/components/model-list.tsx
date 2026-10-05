@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getModels, getModel, type Model as ApiModel } from "../api/models";
 import { resolveImageUrl } from "../api/client";
+import { useFavorites } from "../api/favorites";
 import "../style/ModelList.css";
 
 export interface ResourceUsed {
@@ -84,6 +85,24 @@ export interface CatalogModel {
     reviews?: ReviewItem[];
     versions?: VersionItem[];
     images: ImageItem[];
+}
+
+function StarIcon({ filled, size = 14, style }: { filled?: boolean; size?: number; style?: React.CSSProperties }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill={filled ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={style}
+        >
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+    );
 }
 
 function formatCount(val: number): string {
@@ -198,6 +217,8 @@ export default function ModelList() {
     const [selectedVersionId, setSelectedVersionId] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const { isModelFav, toggleModel, favoriteModels } = useFavorites();
 
     // Derive active tab from URL search parameters, and update URL when tab changes
     const activeTab = tabParam || "all";
@@ -357,6 +378,10 @@ export default function ModelList() {
     const filteredCatalog = useMemo(() => {
         return catalog
             .filter((m) => {
+                if (activeTab === "favorites") {
+                    return isModelFav(m.id);
+                }
+
                 if (activeTab === "checkpoints" && m.type !== "checkpoint") return false;
                 if (activeTab === "lora" && m.type !== "lora") return false;
 
@@ -397,7 +422,7 @@ export default function ModelList() {
                 }
                 return 0;
             });
-    }, [catalog, activeTab, searchQuery, sortBy]);
+    }, [catalog, activeTab, searchQuery, sortBy, isModelFav]);
 
     // Active version item in Detail View
     const currentVersion = useMemo(() => {
@@ -491,6 +516,36 @@ export default function ModelList() {
                         </div>
 
                         <div className="header-action-icons">
+                            {/* Share Link Button */}
+                            <button
+                                type="button"
+                                className="icon-circle-btn"
+                                onClick={() => {
+                                    const shareUrl = `${window.location.origin}/models?model=${selectedModel.slug || selectedModel.id}`;
+                                    copyToClipboard(shareUrl, "Link model");
+                                }}
+                                title="Salin link langsung ke model ini (Share link)"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                            </button>
+
+                            {/* Favorite Button */}
+                            <button
+                                type="button"
+                                className={`icon-circle-btn ${isModelFav(selectedModel.id) ? "favorited" : ""}`}
+                                onClick={() => {
+                                    const nextState = toggleModel(selectedModel.id);
+                                    setCopiedText(nextState ? "Ditambahkan ke Favorit" : "Dihapus dari Favorit");
+                                    setTimeout(() => setCopiedText(null), 2000);
+                                }}
+                                title={isModelFav(selectedModel.id) ? "Favorit (Klik untuk hapus)" : "Tambah ke Favorit"}
+                            >
+                                <StarIcon filled={isModelFav(selectedModel.id)} size={15} />
+                            </button>
+
                             {selectedModel.sourceUrl && (
                                 <a
                                     href={selectedModel.sourceUrl}
@@ -1109,6 +1164,16 @@ export default function ModelList() {
                             All ({catalog.length})
                         </button>
                         <button
+                            className={`filter-pill ${activeTab === "favorites" ? "active" : ""}`}
+                            onClick={() => setActiveTab("favorites")}
+                            style={{ color: favoriteModels.length > 0 ? "#fab005" : undefined }}
+                        >
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                <StarIcon filled={favoriteModels.length > 0} size={13} />
+                                Favorit ({favoriteModels.length})
+                            </span>
+                        </button>
+                        <button
                             className={`filter-pill ${activeTab === "checkpoints" ? "active" : ""}`}
                             onClick={() => setActiveTab("checkpoints")}
                         >
@@ -1225,6 +1290,18 @@ export default function ModelList() {
                                     </div>
                                 )}
 
+                                <button
+                                    type="button"
+                                    className={`card-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleModel(item.id);
+                                    }}
+                                    title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+                                >
+                                    <StarIcon filled={isModelFav(item.id)} size={14} />
+                                </button>
+
                                 <div className="card-top-badges">
                                     <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
                                         {item.type.toUpperCase()}
@@ -1338,7 +1415,18 @@ export default function ModelList() {
                                 <span>{item.publishedAt || "-"}</span>
                             </div>
 
-                            <div className="col-action">
+                            <div className="col-action" style={{ display: "flex", alignItems: "center" }}>
+                                <button
+                                    type="button"
+                                    className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleModel(item.id);
+                                    }}
+                                    title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+                                >
+                                    <StarIcon filled={isModelFav(item.id)} size={13} />
+                                </button>
                                 <button className="list-view-btn">Inspect →</button>
                             </div>
                         </div>

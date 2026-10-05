@@ -80,8 +80,29 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
         setFilePreview(previewUrl);
         setMetaParseStatus(null);
 
-        // Auto-extract metadata if it's a PNG file
-        if (file.name.toLowerCase().endsWith(".png") || file.type === "image/png") {
+        // CRITICAL: Always reset previous metadata when a new file is loaded!
+        setPositivePrompt("");
+        setNegativePrompt("");
+        setSeed("");
+        setCustomModelName("");
+        setResources([]);
+        setSteps(28);
+        setSampler("Euler a");
+        setScheduler("Automatic");
+        setCfgScale(7.0);
+        setWidth(832);
+        setHeight(1216);
+
+        // Auto-extract metadata for supported formats (PNG, WebP, JPEG)
+        const lowerName = file.name.toLowerCase();
+        const isSupportedImage =
+            lowerName.endsWith(".png") ||
+            lowerName.endsWith(".webp") ||
+            lowerName.endsWith(".jpg") ||
+            lowerName.endsWith(".jpeg") ||
+            file.type.startsWith("image/");
+
+        if (isSupportedImage) {
             try {
                 setIsParsingMeta(true);
                 const res = await parseImageMetadataApi(file);
@@ -130,22 +151,22 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                         });
                     }
 
-                    const srcEngine = m.source || "PNG Info";
+                    const srcEngine = m.source || "Image Metadata";
                     setMetaParseStatus({
                         source: srcEngine,
-                        message: `Successfully extracted metadata from ${srcEngine}!`,
+                        message: `Metadata berhasil diekstrak dari ${srcEngine}!`,
                         isSuccess: true,
                     });
                 } else {
                     setMetaParseStatus({
-                        message: "No generation metadata found in this PNG chunk.",
+                        message: "Tidak ada metadata generasi yang ditemukan di file ini. Form telah direset.",
                         isSuccess: false,
                     });
                 }
             } catch (err: any) {
-                console.warn("Failed to parse PNG metadata:", err);
+                console.warn("Failed to parse image metadata:", err);
                 setMetaParseStatus({
-                    message: "Could not auto-read metadata. You can fill parameters manually.",
+                    message: "File ini tidak memiliki metadata generasi tertanam (mungkin di-strip oleh Pixiv/CDN). Form telah direset.",
                     isSuccess: false,
                 });
             } finally {

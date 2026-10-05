@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
+import { useFavorites } from '../../api/favorites';
 import '../../style/Gallery.css';
 
 // ============================================================================
@@ -106,9 +107,20 @@ const Icons = {
       <line x1="1" y1="15" x2="4" y2="15" />
     </svg>
   ),
+  Star: ({ filled }: { filled?: boolean }) => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  ),
 };
 
 export default function Gallery() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const imageParam = searchParams.get('image');
+
+  const { isImageFav, toggleImage, favoriteImages } = useFavorites();
+  const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
+
   const [images, setImages] = useState<ModelImage[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +144,27 @@ export default function Gallery() {
   const [isZoomed, setIsZoomed] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Modal open/close helpers syncing URL query parameters for deep linking
+  const handleSelectImage = useCallback((img: ModelImage) => {
+    setSelectedImage(img);
+    setIsZoomed(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('image', String(img.id));
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const handleCloseModal = useCallback(() => {
+    setSelectedImage(null);
+    setIsZoomed(false);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('image');
+      return next;
+    });
+  }, [setSearchParams]);
 
   // Trigger toast
   const triggerToast = useCallback((msg: string) => {
@@ -199,6 +232,16 @@ export default function Gallery() {
       ignore = true;
     };
   }, []);
+
+  // Deep link sync: if ?image=<id> is in URL, auto open lightbox
+  useEffect(() => {
+    if (imageParam && images.length > 0) {
+      const match = images.find((img) => String(img.id) === imageParam);
+      if (match) {
+        setSelectedImage(match);
+      }
+    }
+  }, [imageParam, images]);
 
   // Extract unique base models
   const availableBaseModels = useMemo(() => {
@@ -275,6 +318,11 @@ export default function Gallery() {
   // Filtered & Sorted Images list
   const filteredImages = useMemo(() => {
     return images.filter((img) => {
+      // 0. Filter Only Favorites
+      if (filterOnlyFavorites && !isImageFav(img.id)) {
+        return false;
+      }
+
       // 0. Selected Tag filter (Pixiv style)
       if (selectedTag) {
         const hasTag = img.tags?.some(
@@ -373,7 +421,7 @@ export default function Gallery() {
           return (b.id || 0) - (a.id || 0);
       }
     });
-  }, [images, searchQuery, selectedTag, sortBy, filterBaseModel, filterModelId, filterResource, filterOrientation]);
+  }, [images, searchQuery, selectedTag, sortBy, filterBaseModel, filterModelId, filterResource, filterOrientation, filterOnlyFavorites, isImageFav]);
 
   // Overall Statistics (Compact Inline Metadata)
   const stats = useMemo(() => {
@@ -416,9 +464,10 @@ export default function Gallery() {
     setFilterModelId('all');
     setFilterResource('all');
     setFilterOrientation('all');
+    setFilterOnlyFavorites(false);
   };
 
-  const hasActiveFilters = searchQuery || !!selectedTag || filterBaseModel !== 'all' || filterModelId !== 'all' || filterResource !== 'all' || filterOrientation !== 'all';
+  const hasActiveFilters = searchQuery || !!selectedTag || filterBaseModel !== 'all' || filterModelId !== 'all' || filterResource !== 'all' || filterOrientation !== 'all' || filterOnlyFavorites;
 
   // Keyboard navigation for Lightbox Modal
   useEffect(() => {
@@ -426,32 +475,27 @@ export default function Gallery() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setSelectedImage(null);
-        setIsZoomed(false);
+        handleCloseModal();
       } else if (e.key === 'ArrowLeft') {
         const curIdx = filteredImages.findIndex((img) => img.id === selectedImage.id);
         if (curIdx > 0) {
-          setSelectedImage(filteredImages[curIdx - 1]);
-          setIsZoomed(false);
+          handleSelectImage(filteredImages[curIdx - 1]);
         } else if (curIdx === 0 && filteredImages.length > 1) {
-          setSelectedImage(filteredImages[filteredImages.length - 1]);
-          setIsZoomed(false);
+          handleSelectImage(filteredImages[filteredImages.length - 1]);
         }
       } else if (e.key === 'ArrowRight') {
         const curIdx = filteredImages.findIndex((img) => img.id === selectedImage.id);
         if (curIdx >= 0 && curIdx < filteredImages.length - 1) {
-          setSelectedImage(filteredImages[curIdx + 1]);
-          setIsZoomed(false);
+          handleSelectImage(filteredImages[curIdx + 1]);
         } else if (curIdx === filteredImages.length - 1 && filteredImages.length > 1) {
-          setSelectedImage(filteredImages[0]);
-          setIsZoomed(false);
+          handleSelectImage(filteredImages[0]);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedImage, filteredImages]);
+  }, [selectedImage, filteredImages, handleSelectImage, handleCloseModal]);
 
   // Format full parameter text for WebUI / ComfyUI clipboard export
   const buildFullParametersText = (img: ModelImage) => {
@@ -649,8 +693,18 @@ export default function Gallery() {
             <span className="gallery-filter-label">Filter:</span>
 
             <button
-              className={`gallery-btn-segment ${filterResource === 'all' && filterOrientation === 'all' ? 'active' : ''}`}
+              className={`gallery-btn-segment ${filterOnlyFavorites ? 'active' : ''}`}
+              onClick={() => setFilterOnlyFavorites(!filterOnlyFavorites)}
+              title="Tampilkan hanya gambar yang difavoritkan"
+            >
+              <Icons.Star filled={favoriteImages.length > 0} />
+              <span>Favorit ({favoriteImages.length})</span>
+            </button>
+
+            <button
+              className={`gallery-btn-segment ${!filterOnlyFavorites && filterResource === 'all' && filterOrientation === 'all' ? 'active' : ''}`}
               onClick={() => {
+                setFilterOnlyFavorites(false);
                 setFilterResource('all');
                 setFilterOrientation('all');
               }}
@@ -881,10 +935,7 @@ export default function Gallery() {
               <article
                 key={img.id}
                 className="gallery-item-card"
-                onClick={() => {
-                  setSelectedImage(img);
-                  setIsZoomed(false);
-                }}
+                onClick={() => handleSelectImage(img)}
               >
                 <div className="gallery-card-viewport">
                   <img
@@ -920,12 +971,24 @@ export default function Gallery() {
                       className="gallery-action-link-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedImage(img);
-                        setIsZoomed(false);
+                        handleSelectImage(img);
                       }}
                     >
                       <Icons.Inspect />
                       Inspect
+                    </button>
+
+                    <button
+                      className={`gallery-copy-icon-btn ${isImageFav(img.id) ? 'favorited' : ''}`}
+                      title={isImageFav(img.id) ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isFav = toggleImage(img.id);
+                        triggerToast(isFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
+                      }}
+                      style={{ color: isImageFav(img.id) ? '#f59e0b' : undefined }}
+                    >
+                      <Icons.Star filled={isImageFav(img.id)} />
                     </button>
 
                     {img.positive_prompt && (
@@ -1004,19 +1067,13 @@ export default function Gallery() {
       {selectedImage && (
         <div
           className="gallery-modal-overlay"
-          onClick={() => {
-            setSelectedImage(null);
-            setIsZoomed(false);
-          }}
+          onClick={handleCloseModal}
         >
           <div className="gallery-modal-frame" onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
             <button
               className="gallery-modal-close-btn"
-              onClick={() => {
-                setSelectedImage(null);
-                setIsZoomed(false);
-              }}
+              onClick={handleCloseModal}
               title="Close inspector (Esc)"
             >
               <Icons.Clear />
@@ -1031,8 +1088,7 @@ export default function Gallery() {
                   onClick={() => {
                     const curIdx = filteredImages.findIndex((img) => img.id === selectedImage.id);
                     const prevIdx = (curIdx - 1 + filteredImages.length) % filteredImages.length;
-                    setSelectedImage(filteredImages[prevIdx]);
-                    setIsZoomed(false);
+                    handleSelectImage(filteredImages[prevIdx]);
                   }}
                   title="Previous generation (←)"
                 >
@@ -1047,8 +1103,7 @@ export default function Gallery() {
                   onClick={() => {
                     const curIdx = filteredImages.findIndex((img) => img.id === selectedImage.id);
                     const nextIdx = (curIdx + 1) % filteredImages.length;
-                    setSelectedImage(filteredImages[nextIdx]);
-                    setIsZoomed(false);
+                    handleSelectImage(filteredImages[nextIdx]);
                   }}
                   title="Next generation (→)"
                 >
@@ -1076,6 +1131,37 @@ export default function Gallery() {
                   onClick={() => setIsZoomed(!isZoomed)}
                 >
                   {isZoomed ? 'Fit' : 'Zoom'}
+                </button>
+
+                {/* Share Deep Link */}
+                <button
+                  type="button"
+                  className="modal-tool-link"
+                  onClick={() => {
+                    const shareUrl = `${window.location.origin}/gallery?image=${selectedImage.id}`;
+                    navigator.clipboard.writeText(shareUrl).then(() => {
+                      triggerToast('Link gambar disalin ke clipboard!');
+                    });
+                  }}
+                  title="Salin link langsung ke gambar ini (Deep Link)"
+                >
+                  <Icons.ExternalLink />
+                  Share Link
+                </button>
+
+                {/* Favorite Button */}
+                <button
+                  type="button"
+                  className={`modal-tool-link ${isImageFav(selectedImage.id) ? 'favorited' : ''}`}
+                  onClick={() => {
+                    const isFav = toggleImage(selectedImage.id);
+                    triggerToast(isFav ? 'Ditambahkan ke Favorit!' : 'Dihapus dari Favorit!');
+                  }}
+                  title={isImageFav(selectedImage.id) ? 'Hapus dari Favorit' : 'Simpan ke Favorit'}
+                  style={{ color: isImageFav(selectedImage.id) ? '#f59e0b' : undefined }}
+                >
+                  <Icons.Star filled={isImageFav(selectedImage.id)} />
+                  <span>{isImageFav(selectedImage.id) ? 'Favorit' : 'Simpan'}</span>
                 </button>
 
                 <a

@@ -103,8 +103,28 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
         setFilePreview(previewUrl);
         setMetaParseStatus(null);
 
-        // Auto-extract metadata if it's a PNG file
-        if (file.name.toLowerCase().endsWith(".png") || file.type === "image/png") {
+        // CRITICAL: Always reset previous metadata when a new file is loaded!
+        setPositivePrompt("");
+        setNegativePrompt("");
+        setSeed("");
+        setResources([]);
+        setSteps(28);
+        setSampler("Euler a");
+        setScheduler("Automatic");
+        setCfgScale(7.0);
+        setWidth(832);
+        setHeight(1216);
+
+        // Auto-extract metadata for supported formats (PNG, WebP, JPEG)
+        const lowerName = file.name.toLowerCase();
+        const isSupportedImage =
+            lowerName.endsWith(".png") ||
+            lowerName.endsWith(".webp") ||
+            lowerName.endsWith(".jpg") ||
+            lowerName.endsWith(".jpeg") ||
+            file.type.startsWith("image/");
+
+        if (isSupportedImage) {
             try {
                 setIsParsingMeta(true);
                 const res = await parseImageMetadataApi(file);
@@ -175,7 +195,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
                             ? "Automatic1111 / WebUI Parameters"
                             : m.source === "novelai"
                             ? "NovelAI Meta"
-                            : "Embedded PNG Chunks";
+                            : "Image Metadata";
 
                     setMetaParseStatus({
                         source: m.source,
@@ -187,7 +207,7 @@ export const ModelImagesModal: React.FC<ModelImagesModalProps> = ({
             } catch (err: any) {
                 console.log("No metadata extracted:", err?.message);
                 setMetaParseStatus({
-                    message: "No generation parameters embedded in this PNG file. You can enter values manually.",
+                    message: "File ini tidak memiliki metadata generasi tertanam (mungkin di-strip oleh Pixiv/CDN). Form telah direset.",
                     isSuccess: false,
                 });
             } finally {

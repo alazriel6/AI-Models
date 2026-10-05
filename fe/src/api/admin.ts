@@ -1,4 +1,4 @@
-import { apiFetch, API_BASE_URL } from "./client";
+import { apiFetch, API_BASE_URL, getAuthHeaders } from "./client";
 import type { Model, Tag, ModelVersion, ModelImage } from "./models";
 
 export interface CreateModelPayload {
@@ -118,6 +118,9 @@ export async function createModelImageApi(modelId: number, data: CreateImagePayl
 export async function uploadModelImageFileApi(modelId: number, formData: FormData): Promise<ModelImage> {
     const res = await fetch(`${API_BASE_URL}/models/${modelId}/images`, {
         method: "POST",
+        headers: {
+            ...getAuthHeaders(),
+        },
         body: formData,
     });
     if (!res.ok) {
@@ -162,6 +165,9 @@ export async function createGalleryImageApi(data: CreateGalleryImagePayload): Pr
 export async function uploadGalleryImageFileApi(formData: FormData): Promise<ModelImage> {
     const res = await fetch(`${API_BASE_URL}/images`, {
         method: "POST",
+        headers: {
+            ...getAuthHeaders(),
+        },
         body: formData,
     });
     if (!res.ok) {
@@ -216,7 +222,8 @@ export interface ParsedLora {
 }
 
 export interface ParsedImageMetadata {
-    source: "comfyui" | "a1111" | "novelai" | "unknown";
+    source: "comfyui" | "a1111" | "novelai" | "fooocus" | "unknown" | string;
+    format?: "png" | "webp" | "jpeg" | "json" | "text" | string;
     positive_prompt?: string;
     negative_prompt?: string;
     steps?: number;
@@ -227,18 +234,25 @@ export interface ParsedImageMetadata {
     width?: number;
     height?: number;
     model_name?: string;
+    model_hash?: string;
     clip_skip?: number;
     denoising_strength?: number;
     hires_upscale?: number;
     hires_steps?: number;
     hires_upscaler?: string;
+    vae?: string;
     loras?: ParsedLora[];
+    workflow_json?: string;
+    prompt_json?: string;
     raw_prompt?: string;
+    raw_chunks?: Record<string, string>;
+    extra_params?: Record<string, string>;
 }
 
 export interface ParseMetadataResponse {
     success: boolean;
     source: string;
+    format?: string;
     metadata: ParsedImageMetadata;
 }
 
@@ -248,6 +262,9 @@ export async function parseImageMetadataApi(file: File): Promise<ParseMetadataRe
 
     const res = await fetch(`${API_BASE_URL}/images/parse-metadata`, {
         method: "POST",
+        headers: {
+            ...getAuthHeaders(),
+        },
         body: formData,
     });
     if (!res.ok) {

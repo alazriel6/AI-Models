@@ -159,9 +159,9 @@ func (s *ImageService) Upload(modelID *uint, fileHeader *multipart.FileHeader, m
 		}
 		defer file.Close()
 
-		// Auto-extract generation metadata if uploading a PNG file
-		if ext == ".png" {
-			if parsed, err := parser.ParsePNGMetadata(file); err == nil && parsed != nil {
+		// Auto-extract generation metadata if uploading an image file (PNG, WebP, JPEG)
+		if ext == ".png" || ext == ".webp" || ext == ".jpg" || ext == ".jpeg" {
+			if parsed, err := parser.ParseImageMetadata(file, fileHeader.Filename); err == nil && parsed != nil {
 				if strings.TrimSpace(meta.PositivePrompt) == "" && parsed.PositivePrompt != "" {
 					meta.PositivePrompt = parsed.PositivePrompt
 				}

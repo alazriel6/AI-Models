@@ -129,19 +129,27 @@ Endpoint REST API pada Go Gin (`be/internal/routes/routes.go`) yang sudah siap m
 
 Ketika Anda siap melanjutkan ke integrasi backend dan database penuh, berikut adalah panduan langkah demi langkah yang harus dilakukan:
 
-### A. Autentikasi Backend Admin (Keamanan Tingkat Server)
-1. **Buat Admin Middleware**:
-   - Buat file `be/internal/middleware/auth.go`.
-   - Periksa header `Authorization: Bearer <ADMIN_SECRET_KEY>` atau JWT token pada rute `POST`, `PUT`, dan `DELETE`.
-   - Daftarkan `ADMIN_SECRET_KEY` pada file `be/.env`.
+### A. Autentikasi Backend Admin (Keamanan Tingkat Server) - SELESAI
+1. **Admin Middleware**:
+   - `be/internal/middleware/auth.go`: `RequireAdminAuth(adminSecretKey)` memvalidasi header `Authorization: Bearer <ADMIN_SECRET_KEY>` atau `X-Admin-Key`.
+   - Melindungi seluruh endpoint mutasi (`POST`, `PUT`, `DELETE` untuk `/api/models`, `/api/images`, `/api/versions`, `/api/tags`, `/api/resources`).
+   - Konfigurasi `ADMIN_SECRET_KEY` terdaftar di `be/.env` dan `config.go` (default: `admin123`).
 2. **Kirim Header pada Frontend**:
-   - Di `fe/src/api/client.ts`, lampirkan token admin yang tersimpan di `sessionStorage` jika tersedia:
-     ```typescript
-     headers: {
-       "Authorization": `Bearer ${adminToken}`,
-       ...
-     }
-     ```
+   - `fe/src/api/client.ts`: fungsi `getAdminToken()` dan `getAuthHeaders()` otomatis menyertakan `Authorization: Bearer <token>` pada semua request `apiFetch` dan file upload multipart.
+
+### B. Deep Linking & Share Links - SELESAI
+- `/models?model=<slug>`: membuka detail drawer model secara langsung. Dilengkapi tombol "Salin Link".
+- `/gallery?image=<id>`: membuka modal inspeksi teknis gambar secara langsung. Dilengkapi tombol "Share Link".
+
+### C. Penyimpanan Bookmark / Favorit Lokal - SELESAI
+- Utilitas `fe/src/api/favorites.ts` dengan hook reaktif `useFavorites()`.
+- Filter tab **★ Favorit** di All Models (`/models`) dan toggle **★ Favorit** di Gallery (`/gallery`).
+- Tombol bintang cepat pada kartu model, baris list, kartu galeri, dan modal viewer.
+
+### D. Bulk Image Ingestion di Admin - SELESAI
+- Komponen `fe/src/components/admin/BulkUploadModal.tsx`.
+- Tombol **⚡ Bulk Ingest** dan multi-file drag & drop di `GalleryManager.tsx`.
+- Auto-parsing batch (ComfyUI / WebUI), antrian upload dengan visual progress bar, batch tags, dan target model selector.
 
 ### B. Database Setup & Seeding
 1. **Konfigurasi Database (`be/.env`)**:

@@ -1423,3 +1423,14 @@
   font-weight: 700;
 }
 
+/* Favorite state styles */
+.gallery-copy-icon-btn.favorited {
+  color: #fab005;
+  background: rgba(250, 176, 5, 0.2);
+  border-color: rgba(250, 176, 5, 0.4);
+}
+
+.modal-tool-link.favorited {
+  color: #fab005 !important;
+}
+

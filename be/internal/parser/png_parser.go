@@ -13,34 +13,6 @@ import (
 	"strings"
 )
 
-// ParsedLoraResource represents a detected LoRA and its weight.
-type ParsedLoraResource struct {
-	Name   string  `json:"name"`
-	Weight float64 `json:"weight"`
-}
-
-// ParsedMetadata represents the extracted generation parameters.
-type ParsedMetadata struct {
-	Source         string               `json:"source"` // "comfyui", "a1111", "novelai", "unknown"
-	PositivePrompt string               `json:"positive_prompt"`
-	NegativePrompt string               `json:"negative_prompt"`
-	Steps          int                  `json:"steps"`
-	Sampler        string               `json:"sampler"`
-	Scheduler      string               `json:"scheduler"`
-	CFGScale       float64              `json:"cfg_scale"`
-	Seed           int64                `json:"seed"`
-	Width          int                  `json:"width"`
-	Height         int                  `json:"height"`
-	ModelName      string               `json:"model_name"`
-	ClipSkip       int                  `json:"clip_skip"`
-	DenoisingStr   float64              `json:"denoising_strength"`
-	HiresUpscale   float64              `json:"hires_upscale"`
-	HiresSteps     int                  `json:"hires_steps"`
-	HiresUpscaler  string               `json:"hires_upscaler"`
-	Loras          []ParsedLoraResource `json:"loras"`
-	RawPrompt      string               `json:"raw_prompt,omitempty"`
-}
-
 var pngSignature = []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 
 // ParsePNGMetadata reads a PNG stream, extracts tEXt/iTXt/zTXt chunks, and parses ComfyUI / A1111 metadata.
@@ -109,9 +81,19 @@ func ParsePNGMetadata(r io.Reader) (*ParsedMetadata, error) {
 	}
 
 	meta := &ParsedMetadata{
-		Width:  ihdrWidth,
-		Height: ihdrHeight,
-		Source: "unknown",
+		Format:      "png",
+		Width:       ihdrWidth,
+		Height:      ihdrHeight,
+		Source:      "unknown",
+		RawChunks:   chunks,
+		ExtraParams: make(map[string]string),
+	}
+
+	if wf, ok := chunks["workflow"]; ok && strings.TrimSpace(wf) != "" {
+		meta.WorkflowJSON = wf
+	}
+	if pr, ok := chunks["prompt"]; ok && strings.TrimSpace(pr) != "" {
+		meta.PromptJSON = pr
 	}
 
 	// 1. Check for ComfyUI "prompt" JSON
@@ -439,6 +421,11 @@ func parseA1111Parameters(text string, meta *ParsedMetadata) {
 			key := strings.TrimSpace(kv[0])
 			val := strings.TrimSpace(kv[1])
 
+			if meta.ExtraParams == nil {
+				meta.ExtraParams = make(map[string]string)
+			}
+			meta.ExtraParams[key] = val
+
 			switch strings.ToLower(key) {
 			case "steps":
 				if s, err := strconv.Atoi(val); err == nil {
@@ -469,8 +456,15 @@ func parseA1111Parameters(text string, meta *ParsedMetadata) {
 			case "model":
 				meta.ModelName = val
 			case "model hash":
+				meta.ModelHash = val
 				if meta.ModelName == "" {
 					meta.ModelName = val
+				}
+			case "vae":
+				meta.VAE = val
+			case "vae hash":
+				if meta.VAE == "" {
+					meta.VAE = val
 				}
 			case "clip skip":
 				if cs, err := strconv.Atoi(val); err == nil {
