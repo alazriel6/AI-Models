@@ -80,9 +80,11 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         const counts = new Map<string, number>();
         for (const img of images) {
             if (img.tags) {
-                for (const t of img.tags) {
-                    if (t.name) {
-                        counts.set(t.name, (counts.get(t.name) || 0) + 1);
+                for (const t of img.tags as any[]) {
+                    const name = typeof t === "string" ? t : t?.name;
+                    if (name && name.trim()) {
+                        const clean = name.trim();
+                        counts.set(clean, (counts.get(clean) || 0) + 1);
                     }
                 }
             }
@@ -132,9 +134,12 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
 
             // Tag Filter (Pixiv style)
             if (selectedTag !== "all" && selectedTag.trim() !== "") {
-                const hasTag = img.tags?.some(
-                    (t) => t.name.toLowerCase() === selectedTag.toLowerCase() || t.slug === selectedTag.toLowerCase()
-                );
+                const normSelected = selectedTag.toLowerCase().trim();
+                const hasTag = img.tags?.some((t: any) => {
+                    const name = (typeof t === "string" ? t : t?.name || "").toLowerCase().trim();
+                    const slug = (typeof t === "string" ? t : t?.slug || "").toLowerCase().trim();
+                    return name === normSelected || slug === normSelected;
+                });
                 if (!hasTag) return false;
             }
 
@@ -146,9 +151,11 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                     const cleanToken = isExplicitTag ? token.slice(1) : token;
                     if (!cleanToken) return true;
 
-                    const tagMatch = img.tags?.some((t) =>
-                        t.name.toLowerCase().includes(cleanToken) || (t.slug && t.slug.toLowerCase().includes(cleanToken))
-                    );
+                    const tagMatch = img.tags?.some((t: any) => {
+                        const name = (typeof t === "string" ? t : t?.name || "").toLowerCase();
+                        const slug = (typeof t === "string" ? t : t?.slug || "").toLowerCase();
+                        return name.includes(cleanToken) || slug.includes(cleanToken);
+                    });
 
                     if (isExplicitTag) return tagMatch;
 

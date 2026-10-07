@@ -1,0 +1,295 @@
+/* ==========================================================================
+   Model Comparison Tool Styles (Civitai Dark / Side-by-Side Matrix)
+   ========================================================================== */
+
+.compare-container {
+    width: 100%;
+    max-width: var(--container-max, 1560px);
+    margin: 0 auto;
+    padding: 32px 24px 64px 24px;
+    box-sizing: border-box;
+}
+
+.compare-header {
+    margin-bottom: 24px;
+}
+
+.compare-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.02em;
+}
+
+.compare-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(129, 140, 248, 0.12);
+    color: #818cf8;
+    border: 1px solid rgba(129, 140, 248, 0.25);
+}
+
+.compare-subtitle {
+    font-size: 14px;
+    color: #909296;
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Slot Control Bar */
+.compare-slots-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.compare-slots-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.slot-toggle-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: #17191C;
+    border: 1px solid #282C34;
+    color: #909296;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.slot-toggle-btn:hover {
+    color: #ffffff;
+    border-color: #818cf8;
+}
+
+.slot-toggle-btn.active {
+    background: rgba(129, 140, 248, 0.15);
+    border-color: #818cf8;
+    color: #818cf8;
+    font-weight: 600;
+}
+
+/* Comparison Grid Layout */
+.compare-matrix-grid {
+    display: grid;
+    gap: 16px;
+    width: 100%;
+}
+
+.compare-matrix-grid.cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.compare-matrix-grid.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 900px) {
+    .compare-matrix-grid.cols-2,
+    .compare-matrix-grid.cols-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Model Card Column */
+.compare-model-col {
+    background: #17191C;
+    border: 1px solid #282C34;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+}
+
+/* Model Selector Header */
+.col-selector-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.col-slot-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #818cf8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.col-model-select {
+    width: 100%;
+    padding: 8px 12px;
+    background: #131518;
+    border: 1px solid #282C34;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+}
+
+.col-model-select:focus {
+    border-color: #818cf8;
+}
+
+/* Model Showcase Card */
+.compare-thumb-wrap {
+    width: 100%;
+    height: 240px;
+    background: #0f1113;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+}
+
+.compare-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.compare-hero-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.compare-model-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+}
+
+.compare-model-author {
+    font-size: 12px;
+    color: #909296;
+}
+
+.compare-pills-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.compare-pill {
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    font-weight: 600;
+}
+.compare-pill.ckpt { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+.compare-pill.lora { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+.compare-pill.arch { background: #23262D; color: #ffffff; border: 1px solid #282C34; }
+
+/* Specs Section */
+.compare-section {
+    background: #131518;
+    border: 1px solid #282C34;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.compare-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #666c75;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0;
+}
+
+.compare-param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.compare-param-row:last-child {
+    border-bottom: none;
+}
+
+.compare-param-key {
+    color: #909296;
+}
+
+.compare-param-val {
+    font-weight: 600;
+    color: #ffffff;
+    font-family: ui-monospace, monospace;
+}
+
+/* Trigger words in compare */
+.compare-triggers-box {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.compare-trigger-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #1A1D23;
+    border: 1px solid #282C34;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-family: ui-monospace, monospace;
+    color: #e5e7eb;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.compare-trigger-chip:hover {
+    border-color: #818cf8;
+    color: #818cf8;
+}
+
+/* Sample Images Row */
+.compare-samples-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.compare-sample-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #282C34;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+.compare-sample-thumb:hover {
+    transform: scale(1.05);
+    border-color: #818cf8;
+}

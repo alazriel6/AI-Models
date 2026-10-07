@@ -3,6 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
 import { useFavorites } from '../../api/favorites';
+import {
+  buildA1111ParametersText,
+  buildComfyUIWorkflowJSON,
+  buildWebUIApiPayload,
+  downloadTextAsFile,
+} from '../../utils/exportFormats';
 import '../../style/Gallery.css';
 
 // ============================================================================
@@ -274,9 +280,12 @@ export default function Gallery() {
   const allTags = useMemo(() => {
     const map = new Map<string, number>();
     images.forEach((img) => {
-      img.tags?.forEach((t) => {
-        const name = t.name;
-        map.set(name, (map.get(name) || 0) + 1);
+      img.tags?.forEach((t: any) => {
+        const name = typeof t === 'string' ? t : t?.name;
+        if (name && name.trim()) {
+          const clean = name.trim();
+          map.set(clean, (map.get(clean) || 0) + 1);
+        }
       });
     });
     return Array.from(map.entries())
@@ -325,9 +334,12 @@ export default function Gallery() {
 
       // 0. Selected Tag filter (Pixiv style)
       if (selectedTag) {
-        const hasTag = img.tags?.some(
-          (t) => t.name.toLowerCase() === selectedTag.toLowerCase()
-        ) ?? false;
+        const normSelected = selectedTag.toLowerCase().trim();
+        const hasTag = img.tags?.some((t: any) => {
+          const name = (typeof t === 'string' ? t : t?.name || '').toLowerCase().trim();
+          const slug = (typeof t === 'string' ? t : t?.slug || '').toLowerCase().trim();
+          return name === normSelected || slug === normSelected;
+        }) ?? false;
         if (!hasTag) return false;
       }
 
@@ -340,9 +352,11 @@ export default function Gallery() {
           if (!cleanToken) return true;
 
           // Check Tag matches (both name and slug)
-          const tagMatch = img.tags?.some((t) =>
-            t.name.toLowerCase().includes(cleanToken) || (t.slug && t.slug.toLowerCase().includes(cleanToken))
-          ) ?? false;
+          const tagMatch = img.tags?.some((t: any) => {
+            const name = (typeof t === 'string' ? t : t?.name || '').toLowerCase();
+            const slug = (typeof t === 'string' ? t : t?.slug || '').toLowerCase();
+            return name.includes(cleanToken) || slug.includes(cleanToken);
+          }) ?? false;
 
           if (isExplicitTag) {
             return tagMatch;
@@ -497,37 +511,6 @@ export default function Gallery() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedImage, filteredImages, handleSelectImage, handleCloseModal]);
 
-  // Format full parameter text for WebUI / ComfyUI clipboard export
-  const buildFullParametersText = (img: ModelImage) => {
-    const parts: string[] = [];
-    if (img.positive_prompt) {
-      parts.push(img.positive_prompt);
-    }
-    if (img.negative_prompt) {
-      parts.push(`Negative prompt: ${img.negative_prompt}`);
-    }
-
-    const settings: string[] = [];
-    if (img.steps) settings.push(`Steps: ${img.steps}`);
-    if (img.sampler) settings.push(`Sampler: ${img.sampler}`);
-    if (img.scheduler && img.scheduler !== 'normal') settings.push(`Schedule type: ${img.scheduler}`);
-    if (img.cfg_scale) settings.push(`CFG scale: ${img.cfg_scale}`);
-    if (img.seed !== undefined && img.seed !== null) settings.push(`Seed: ${img.seed}`);
-    if (img.width && img.height) settings.push(`Size: ${img.width}x${img.height}`);
-    if (img.model?.name) settings.push(`Model: ${img.model.name}`);
-    if (img.model?.base_model) settings.push(`Base Model: ${img.model.base_model}`);
-
-    if (img.resources && img.resources.length > 0) {
-      const loras = img.resources
-        .filter((r) => r.type === 'lora')
-        .map((r) => `${r.name}: ${r.weight ?? 1.0}`)
-        .join(', ');
-      if (loras) settings.push(`LoRA hashes: "${loras}"`);
-    }
-
-    parts.push(settings.join(', '));
-    return parts.join('\n');
-  };
 
   return (
     <div className="gallery-page">
@@ -1333,9 +1316,10 @@ export default function Gallery() {
                       </button>
                     )}
                   </div>
-
                   <div className="spec-code-box">
-                    {selectedImage.positive_prompt || 'No prompt metadata recorded for this generation.'}
+                    {selectedImage.positive_prompt || (
+                      <span style={{ color: 'var(--g-text-muted)' }}>Tidak ada prompt</span>
+                    )}
                   </div>
                 </div>
 
@@ -1352,7 +1336,6 @@ export default function Gallery() {
                         {copiedKey === 'neg-prompt' ? 'Copied' : 'Copy'}
                       </button>
                     </div>
-
                     <div className="spec-code-box negative">
                       {selectedImage.negative_prompt}
                     </div>
@@ -1411,18 +1394,74 @@ export default function Gallery() {
                   </div>
                 </div>
 
-                {/* Export Parameters Action */}
+                {/* Multi-Format Export Actions */}
                 <div className="modal-spec-footer">
                   <button
                     className="modal-export-btn"
                     onClick={() => {
-                      const fullText = buildFullParametersText(selectedImage);
-                      copyToClipboard(fullText, 'full-params', 'All Parameters');
+                      const fullText = buildA1111ParametersText({
+                        positive_prompt: selectedImage.positive_prompt,
+                        negative_prompt: selectedImage.negative_prompt,
+                        steps: selectedImage.steps,
+                        sampler: selectedImage.sampler,
+                        scheduler: selectedImage.scheduler,
+                        cfg_scale: selectedImage.cfg_scale,
+                        seed: selectedImage.seed,
+                        width: selectedImage.width,
+                        height: selectedImage.height,
+                        model_name: selectedImage.model?.name || selectedImage.model_name,
+                      });
+                      copyToClipboard(fullText, 'webui-params', 'A1111 / WebUI Parameters');
                     }}
                   >
                     <Icons.Copy />
-                    {copiedKey === 'full-params' ? 'Parameters Copied to Clipboard' : 'Copy Full Generation Parameters (WebUI)'}
+                    {copiedKey === 'webui-params' ? 'A1111 Parameters Copied to Clipboard!' : 'Copy as A1111 / WebUI Parameters'}
                   </button>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                    <button
+                      className="modal-export-btn"
+                      onClick={() => {
+                        const jsonStr = buildComfyUIWorkflowJSON({
+                          positive_prompt: selectedImage.positive_prompt,
+                          negative_prompt: selectedImage.negative_prompt,
+                          steps: selectedImage.steps,
+                          sampler: selectedImage.sampler,
+                          scheduler: selectedImage.scheduler,
+                          cfg_scale: selectedImage.cfg_scale,
+                          seed: selectedImage.seed,
+                          width: selectedImage.width,
+                          height: selectedImage.height,
+                          model_name: selectedImage.model?.name || selectedImage.model_name,
+                        });
+                        downloadTextAsFile(jsonStr, `comfyui_generation_${selectedImage.id}.json`);
+                        triggerToast('Workflow ComfyUI (.json) berhasil diunduh!');
+                      }}
+                    >
+                      <Icons.Download />
+                      <span>ComfyUI (.json)</span>
+                    </button>
+
+                    <button
+                      className="modal-export-btn"
+                      onClick={() => {
+                        const payload = buildWebUIApiPayload({
+                          positive_prompt: selectedImage.positive_prompt,
+                          negative_prompt: selectedImage.negative_prompt,
+                          steps: selectedImage.steps,
+                          sampler: selectedImage.sampler,
+                          cfg_scale: selectedImage.cfg_scale,
+                          seed: selectedImage.seed,
+                          width: selectedImage.width,
+                          height: selectedImage.height,
+                        });
+                        copyToClipboard(payload, 'api-payload', 'API Payload JSON');
+                      }}
+                    >
+                      <Icons.Copy />
+                      {copiedKey === 'api-payload' ? 'Copied JSON!' : 'Copy API Payload'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

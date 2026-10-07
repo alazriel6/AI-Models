@@ -62,6 +62,7 @@ func (r *ModelRepository) FindAll(page, limit int, search, filterType, filterBas
 		Preload("Versions").
 		Preload("Images").
 		Preload("Images.Resources").
+		Preload("Images.Tags").
 		Preload("Reviews").
 		Order("created_at DESC").
 		Offset(offset).
@@ -94,6 +95,7 @@ func (r *ModelRepository) FindByID(id uint) (*models.Model, error) {
 		Preload("Reviews").
 		Preload("Images").
 		Preload("Images.Resources").
+		Preload("Images.Tags").
 		Preload("Versions").
 		First(&model, id).Error
 
@@ -113,6 +115,7 @@ func (r *ModelRepository) FindByIDOrSlug(identifier string) (*models.Model, erro
 		Preload("Reviews").
 		Preload("Images").
 		Preload("Images.Resources").
+		Preload("Images.Tags").
 		Preload("Versions")
 
 	if id, err := strconv.ParseUint(identifier, 10, 32); err == nil {

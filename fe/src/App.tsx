@@ -5,6 +5,8 @@ import About from './components/pages/About';
 import Contact from './components/pages/Contact';
 import Gallery from './components/pages/Gallery';
 import MetadataInspector from './components/pages/MetadataInspector';
+import ModelComparison from './components/pages/ModelComparison';
+import ResolutionCalculator from './components/pages/ResolutionCalculator';
 import ModelList from './components/model-list';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { AdminAuthProvider } from './components/admin/AdminAuth';
@@ -33,6 +35,11 @@ function App() {
                   </NavLink>
                 </li>
                 <li>
+                  <NavLink to="/compare">
+                    Compare
+                  </NavLink>
+                </li>
+                <li>
                   <NavLink to="/gallery">
                     Gallery
                   </NavLink>
@@ -40,6 +47,11 @@ function App() {
                 <li>
                   <NavLink to="/inspector">
                     Inspector
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/calculator">
+                    Calculator
                   </NavLink>
                 </li>
                 <li>
@@ -66,9 +78,11 @@ function App() {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/models" element={<ModelList />} />
+              <Route path="/compare" element={<ModelComparison />} />
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/inspector" element={<MetadataInspector />} />
               <Route path="/metadata" element={<MetadataInspector />} />
+              <Route path="/calculator" element={<ResolutionCalculator />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/admin" element={<AdminDashboard />} />

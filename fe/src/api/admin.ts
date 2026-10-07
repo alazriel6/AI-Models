@@ -280,3 +280,103 @@ export async function parseImageMetadataApi(file: File): Promise<ParseMetadataRe
     }
     return res.json();
 }
+
+// ============================================================================
+// Auto-Importer from Civitai / Hugging Face
+// ============================================================================
+
+export interface InspectModelPayload {
+    url_or_id: string;
+    api_token?: string;
+}
+
+export interface InspectedVersion {
+    version_name: string;
+    version_number: string;
+    file_name: string;
+    file_size: number;
+    format: string;
+    download_url: string;
+    source_url: string;
+    base_model: string;
+    trigger_words?: string[];
+    recommended_settings?: {
+        steps?: number | string;
+        steps_range?: string;
+        width?: number;
+        height?: number;
+        sampler?: string;
+        cfg_scale?: number | string;
+        cfg_scale_range?: string;
+        clip_skip?: number;
+        scheduler?: string;
+        hires_upscale?: number;
+        hires_steps?: number;
+        hires_upscaler?: string;
+        denoising_strength?: string | number;
+        [key: string]: unknown;
+    };
+}
+
+export interface InspectedImage {
+    url: string;
+    caption: string;
+    width: number;
+    height: number;
+    positive_prompt?: string;
+    negative_prompt?: string;
+    seed?: number;
+    steps?: number;
+    sampler?: string;
+    scheduler?: string;
+    cfg_scale?: number;
+    nsfw_level?: number;
+}
+
+export interface InspectedModel {
+    platform: "civitai" | "huggingface";
+    original_id: string;
+    source_url: string;
+    name: string;
+    slug: string;
+    author: string;
+    description: string;
+    type: "checkpoint" | "lora";
+    base_model: string;
+    thumbnail_url: string;
+    tags: string[];
+    trigger_words: string[];
+    versions: InspectedVersion[];
+    sample_images: InspectedImage[];
+}
+
+export interface ImportModelSavePayload {
+    name: string;
+    slug?: string;
+    type: string;
+    base_model: string;
+    author?: string;
+    description?: string;
+    source_url?: string;
+    civitai_url?: string;
+    thumbnail_url?: string;
+    trigger_words?: string[];
+    tags?: string[];
+    versions?: InspectedVersion[];
+    sample_images?: InspectedImage[];
+    import_images?: boolean;
+}
+
+export async function inspectModelImportApi(payload: InspectModelPayload): Promise<InspectedModel> {
+    return apiFetch<InspectedModel>("/models/import/inspect", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function saveModelImportApi(payload: ImportModelSavePayload): Promise<{ message: string; data: Model }> {
+    return apiFetch<{ message: string; data: Model }>("/models/import/save", {
+        method: "POST",
+        body: JSON.stringify(payload),
+    });
+}

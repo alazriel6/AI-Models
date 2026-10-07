@@ -13,6 +13,7 @@ import { AdminGateModal } from "./AdminGateModal";
 import { ModelFormModal } from "./ModelFormModal";
 import { ModelImagesModal } from "./ModelImagesModal";
 import { GalleryManager } from "./GalleryManager";
+import { AutoImportModelModal } from "./AutoImportModelModal";
 import "./admin.css";
 
 interface ToastNotification {
@@ -41,6 +42,7 @@ export const AdminDashboard: React.FC = () => {
     // Modal state
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [selectedModel, setSelectedModel] = useState<Model | null>(null);
+    const [isAutoImportOpen, setIsAutoImportOpen] = useState(false);
 
     // Image Management modal state
     const [isImagesModalOpen, setIsImagesModalOpen] = useState(false);
@@ -400,7 +402,20 @@ export const AdminDashboard: React.FC = () => {
                     )}
                 </div>
 
-                <div className="admin-toolbar-right">
+                <div className="admin-toolbar-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <button
+                        type="button"
+                        className="btn-auto-import-admin"
+                        onClick={() => setIsAutoImportOpen(true)}
+                        title="Auto-import model, versions, triggers, and sample images directly from Civitai or Hugging Face"
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <span>✦ Auto-Import (Civitai / HF)</span>
+                    </button>
                     <button
                         className="btn-primary-admin"
                         onClick={() => {
@@ -587,6 +602,19 @@ export const AdminDashboard: React.FC = () => {
                     }}
                     onSubmit={handleFormSubmit}
                     initialData={selectedModel}
+                />
+            )}
+
+            {/* Civitai / HF Auto-Import Modal */}
+            {isAutoImportOpen && (
+                <AutoImportModelModal
+                    isOpen={isAutoImportOpen}
+                    onClose={() => setIsAutoImportOpen(false)}
+                    onSuccess={(msg) => {
+                        addToast("success", msg);
+                        fetchModelList();
+                    }}
+                    onError={(msg) => addToast("error", msg)}
                 />
             )}
 

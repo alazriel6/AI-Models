@@ -1,8 +1,9 @@
-import { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useEffect, useState, useMemo, useRef } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { getModels, getModel, type Model as ApiModel } from "../api/models";
 import { resolveImageUrl } from "../api/client";
 import { useFavorites } from "../api/favorites";
+import { CivitaiRichDescription } from "./CivitaiRichDescription";
 import "../style/ModelList.css";
 
 export interface ResourceUsed {
@@ -17,6 +18,7 @@ export interface ImageItem {
     alt: string;
     caption?: string;
     reactions: { laugh: number; heart: number; thumbsUp: number };
+    tags?: string[];
     meta: {
         prompt: string;
         negativePrompt: string;
@@ -49,11 +51,20 @@ export interface VersionItem {
     downloadUrl?: string;
     civitaiUrl?: string;
     recommendedSettings?: {
-        steps?: number;
+        steps?: number | string;
+        stepsRange?: string;
         width?: number;
         height?: number;
         sampler?: string;
-        cfgScale?: number;
+        cfgScale?: number | string;
+        cfgScaleRange?: string;
+        clipSkip?: number;
+        scheduler?: string;
+        hiresUpscale?: number;
+        hiresSteps?: number;
+        hiresUpscaler?: string;
+        denoise?: string | number;
+        [key: string]: unknown;
     };
 }
 
@@ -138,10 +149,18 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
               recommendedSettings: v.recommended_settings
                   ? {
                         steps: v.recommended_settings.steps,
+                        stepsRange: (v.recommended_settings as any).steps_range || (v.recommended_settings as any).stepsRange,
                         width: v.recommended_settings.width,
                         height: v.recommended_settings.height,
                         sampler: v.recommended_settings.sampler,
-                        cfgScale: v.recommended_settings.cfg_scale,
+                        cfgScale: v.recommended_settings.cfg_scale ?? (v.recommended_settings as any).cfgScale,
+                        cfgScaleRange: (v.recommended_settings as any).cfg_scale_range || (v.recommended_settings as any).cfgScaleRange,
+                        clipSkip: (v.recommended_settings as any).clip_skip ?? (v.recommended_settings as any).clipSkip,
+                        scheduler: (v.recommended_settings as any).scheduler,
+                        hiresUpscale: (v.recommended_settings as any).hires_upscale ?? (v.recommended_settings as any).hiresUpscale,
+                        hiresSteps: (v.recommended_settings as any).hires_steps ?? (v.recommended_settings as any).hiresSteps,
+                        hiresUpscaler: (v.recommended_settings as any).hires_upscaler ?? (v.recommended_settings as any).hiresUpscaler,
+                        denoise: (v.recommended_settings as any).denoising_strength ?? (v.recommended_settings as any).denoise,
                     }
                   : undefined
           }))
@@ -170,7 +189,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
         firstStageModel: m.first_stage_model ?? 0,
         modelTensor: m.model_tensor ?? 0,
         triggerWords: triggers.length > 0 ? triggers : undefined,
-        tags: m.tags?.length ? m.tags.map((t) => t.name.toUpperCase()) : [typeNorm.toUpperCase(), baseModelNorm.toUpperCase()],
+        tags: m.tags?.map((t) => t.name) || [],
         reviews: m.reviews?.map((r) => ({
             id: r.id,
             reviewer: r.reviewer,
@@ -185,6 +204,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
                   url: resolveImageUrl(img.image_url) || "/images/preview-1.png",
                   alt: img.caption || m.name,
                   reactions: { laugh: 0, heart: 0, thumbsUp: 0 },
+                  tags: img.tags?.map((t) => t.name) || [],
                   meta: {
                       prompt: img.positive_prompt || "",
                       negativePrompt: img.negative_prompt || "",
@@ -253,7 +273,8 @@ export default function ModelList() {
     const [resourceRating, setResourceRating] = useState<"like" | "dislike" | null>(null);
     const [isBookmarked, setIsBookmarked] = useState(false);
     const [isSubscribed, setIsSubscribed] = useState(false);
-    const [carouselOffset, setCarouselOffset] = useState(0);
+    const [activeImageIndex, setActiveImageIndex] = useState(0);
+    const thumbsTrackRef = useRef<HTMLDivElement>(null);
 
     // Fetch catalog from backend API on retry
     const fetchCatalog = () => {
@@ -324,7 +345,12 @@ export default function ModelList() {
                     const mapped = mapApiModelToCatalog(fullModel);
                     setDetailedModel(mapped);
                     if (mapped.versions && mapped.versions.length > 0) {
-                        setSelectedVersionId((prev) => prev || mapped.versions![0].id);
+                        setSelectedVersionId((prev) => {
+                            if (prev && mapped.versions!.some((v) => v.id === prev)) {
+                                return prev;
+                            }
+                            return mapped.versions![0].id;
+                        });
                     }
                 }
             })
@@ -464,6 +490,49 @@ export default function ModelList() {
         return [];
     }, [selectedModel]);
 
+    // Reset carousel index when active model changes
+    useEffect(() => {
+        setActiveImageIndex(0);
+    }, [selectedModel?.id]);
+
+    const safeActiveIndex = showcaseImages.length > 0
+        ? Math.min(Math.max(0, activeImageIndex), showcaseImages.length - 1)
+        : 0;
+    const activeShowcaseImg = showcaseImages[safeActiveIndex];
+
+    const handlePrevImage = () => {
+        if (showcaseImages.length <= 1) return;
+        setActiveImageIndex((prev) => (prev - 1 + showcaseImages.length) % showcaseImages.length);
+    };
+
+    const handleNextImage = () => {
+        if (showcaseImages.length <= 1) return;
+        setActiveImageIndex((prev) => (prev + 1) % showcaseImages.length);
+    };
+
+    const handleScrollThumbs = (direction: "left" | "right") => {
+        if (!thumbsTrackRef.current) return;
+        const scrollAmount = direction === "left" ? -240 : 240;
+        thumbsTrackRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    };
+
+    // Keyboard navigation: Left/Right arrows to cycle images when viewing model details
+    useEffect(() => {
+        if (!selectedModel || showcaseImages.length <= 1) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (activeInspectorImage) return; // avoid conflict with modal
+            if (e.key === "ArrowLeft") {
+                handlePrevImage();
+            } else if (e.key === "ArrowRight") {
+                handleNextImage();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [selectedModel, showcaseImages.length, activeInspectorImage]);
+
     // =========================================================================
     // VIEW 1: DETAILED MODEL VIEW
     // =========================================================================
@@ -531,6 +600,21 @@ export default function ModelList() {
                                     <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
                                 </svg>
                             </button>
+
+                            {/* Compare Button */}
+                            <Link
+                                to={`/compare?m1=${selectedModel.slug || selectedModel.id}`}
+                                className="icon-circle-btn"
+                                title="Adu Model ini di Side-by-Side Comparison Tool"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M16 3h5v5" />
+                                    <path d="M4 20L21 3" />
+                                    <path d="M21 16v5h-5" />
+                                    <path d="M15 15l6 6" />
+                                    <path d="M4 4l5 5" />
+                                </svg>
+                            </Link>
 
                             {/* Favorite Button */}
                             <button
@@ -607,70 +691,149 @@ export default function ModelList() {
                                 </p>
                             </div>
                         ) : (
-                            <div className="image-showcase-grid">
-                            {showcaseImages
-                                .map((_, i) => showcaseImages[(i + carouselOffset) % showcaseImages.length])
-                                .map((img, idx) => (
-                                    <div className="showcase-card" key={`${img.id}-${idx}`}>
-                                        <div className="card-image-wrapper">
+                            <div className="civitai-showcase-carousel">
+                                {/* Main Featured Stage */}
+                                <div className="carousel-main-stage">
+                                    <div className="carousel-image-wrapper">
+                                        {activeShowcaseImg && (
                                             <img
-                                                src={img.url}
-                                                alt={img.alt}
-                                                className="showcase-img clickable-image"
-                                                onClick={() => setActiveInspectorImage(img)}
-                                                title="Click to view full size"
+                                                src={activeShowcaseImg.url}
+                                                alt={activeShowcaseImg.alt || `Showcase image ${safeActiveIndex + 1}`}
+                                                className="carousel-active-img clickable-image"
+                                                onClick={() => setActiveInspectorImage(activeShowcaseImg)}
+                                                title="Klik untuk membuka prompt & parameter lengkap"
                                             />
+                                        )}
 
-                                            {idx === 1 && showcaseImages.length > 1 && (
-                                                <>
-                                                    <button
-                                                        className="carousel-nav-btn prev"
-                                                        onClick={() =>
-                                                            setCarouselOffset(
-                                                                (p) => (p - 1 + showcaseImages.length) % showcaseImages.length
-                                                            )
-                                                        }
-                                                    >
-                                                        ‹
-                                                    </button>
-                                                    <button
-                                                        className="carousel-nav-btn next"
-                                                        onClick={() =>
-                                                            setCarouselOffset((p) => (p + 1) % showcaseImages.length)
-                                                        }
-                                                    >
-                                                        ›
-                                                    </button>
-                                                </>
-                                            )}
+                                        {/* Camera Counter Badge */}
+                                        <div className="carousel-counter-badge">
+                                            <span className="badge-camera-icon">📷</span>
+                                            <span>
+                                                {safeActiveIndex + 1} / {showcaseImages.length}
+                                            </span>
+                                        </div>
 
+                                        {/* Prev & Next Floating Navigation Buttons */}
+                                        {showcaseImages.length > 1 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="carousel-arrow-btn prev-arrow"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handlePrevImage();
+                                                    }}
+                                                    title="Gambar sebelumnya (←)"
+                                                >
+                                                    ❮
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="carousel-arrow-btn next-arrow"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleNextImage();
+                                                    }}
+                                                    title="Gambar berikutnya (→)"
+                                                >
+                                                    ❯
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {/* Top-Right Quick Tool: Fullsize / Prompt Inspect */}
+                                        <div className="carousel-top-actions">
+                                            <button
+                                                type="button"
+                                                className="card-tool-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (activeShowcaseImg) setActiveInspectorImage(activeShowcaseImg);
+                                                }}
+                                                title="Buka Prompt & Metadata Lengkap"
+                                            >
+                                                🔍
+                                            </button>
+                                        </div>
+
+                                        {/* Bottom Action Overlay: Reactions & Prompt Inspector Button */}
+                                        {activeShowcaseImg && (
                                             <div className="image-bottom-overlay">
                                                 <div className="reactions-cluster">
-                                                    <button className="reaction-pill add-btn">+</button>
+                                                    <button className="reaction-pill add-btn" title="Tambah reaksi">+</button>
                                                     <button className="reaction-pill">
-                                                        <span>😆</span> <span>{img.reactions.laugh}</span>
+                                                        <span>😆</span> <span>{activeShowcaseImg.reactions.laugh}</span>
                                                     </button>
                                                     <button className="reaction-pill">
-                                                        <span>❤️</span> <span>{img.reactions.heart}</span>
+                                                        <span>❤️</span> <span>{activeShowcaseImg.reactions.heart}</span>
                                                     </button>
                                                     <button className="reaction-pill">
-                                                        <span>👍</span> <span>{img.reactions.thumbsUp}</span>
+                                                        <span>👍</span> <span>{activeShowcaseImg.reactions.thumbsUp}</span>
                                                     </button>
                                                 </div>
 
                                                 <button
+                                                    type="button"
                                                     className="info-badge-btn"
-                                                    onClick={() => setActiveInspectorImage(img)}
-                                                    title="View Generation Parameters & Resources"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setActiveInspectorImage(activeShowcaseImg);
+                                                    }}
+                                                    title="Lihat Prompt & Parameter Generasi Gambar ini"
                                                 >
                                                     <span className="info-icon">ⓘ</span>
                                                     <span>Prompt & Settings</span>
                                                 </button>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
-                                ))}
-                        </div>
+                                </div>
+
+                                {/* Bottom Horizontal Thumbnail Scrubbing Strip */}
+                                {showcaseImages.length > 1 && (
+                                    <div className="carousel-thumbnails-bar">
+                                        <button
+                                            type="button"
+                                            className="thumbnail-scroll-arrow left"
+                                            onClick={() => handleScrollThumbs("left")}
+                                            title="Geser thumbnail ke kiri"
+                                        >
+                                            ‹
+                                        </button>
+
+                                        <div className="carousel-thumbnails-track" ref={thumbsTrackRef}>
+                                            {showcaseImages.map((img, idx) => {
+                                                const isActive = idx === safeActiveIndex;
+                                                return (
+                                                    <button
+                                                        key={`${img.id}-${idx}`}
+                                                        type="button"
+                                                        className={`carousel-thumb-item ${isActive ? "active" : ""}`}
+                                                        onClick={() => setActiveImageIndex(idx)}
+                                                        title={`Lihat gambar ke-${idx + 1}`}
+                                                    >
+                                                        <img
+                                                            src={img.url}
+                                                            alt={`Thumb ${idx + 1}`}
+                                                            className="thumb-img"
+                                                        />
+                                                        {isActive && <div className="thumb-active-glow" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            className="thumbnail-scroll-arrow right"
+                                            onClick={() => handleScrollThumbs("right")}
+                                            title="Geser thumbnail ke kanan"
+                                        >
+                                            ›
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         )}
 
                         {/* Trigger Words for LoRA */}
@@ -694,51 +857,94 @@ export default function ModelList() {
                             </div>
                         )}
 
-                        {/* Recommended Settings Card (if present on active version) */}
-                        {currentVersion?.recommendedSettings && (
-                            <div className="civitai-card recommended-settings-card">
-                                <div className="download-card-header">
-                                    <span className="card-title-strong">Recommended Generation Settings</span>
-                                    <span className="variant-label">{currentVersion.name}</span>
-                                </div>
-                                <div className="settings-badge-grid">
-                                    {currentVersion.recommendedSettings.sampler && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Sampler</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.sampler}</span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.steps && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Steps</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.steps}</span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.cfgScale && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">CFG Scale</span>
-                                            <span className="setting-value">{currentVersion.recommendedSettings.cfgScale}</span>
-                                        </div>
-                                    )}
-                                    {currentVersion.recommendedSettings.width && currentVersion.recommendedSettings.height && (
-                                        <div className="setting-badge-item">
-                                            <span className="setting-key">Resolution</span>
-                                            <span className="setting-value">
-                                                {currentVersion.recommendedSettings.width} × {currentVersion.recommendedSettings.height}
-                                            </span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        {/* Recommended Settings Card (derived from Civitai / model version) */}
+                        {(() => {
+                            const rec = currentVersion?.recommendedSettings || selectedModel.versions?.[0]?.recommendedSettings;
+                            if (!rec) return null;
+                            const hasAnySetting = rec.sampler || rec.steps || rec.stepsRange || rec.cfgScale || rec.cfgScaleRange || (rec.width && rec.height) || rec.clipSkip || rec.hiresUpscale || rec.hiresUpscaler || rec.denoise;
+                            if (!hasAnySetting) return null;
 
-                        {/* Article & Description */}
-                        <article className="model-article">
-                            <h2 className="article-main-title">{selectedModel.name}</h2>
-                            <p className="article-paragraph">
-                                {selectedModel.description || "Tidak ada deskripsi rinci untuk model ini."}
-                            </p>
-                        </article>
+                            const displaySteps = rec.stepsRange || rec.steps;
+                            const displayCFG = rec.cfgScaleRange || rec.cfgScale;
+
+                            return (
+                                <div className="civitai-card recommended-settings-card">
+                                    <div className="download-card-header">
+                                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                            <span className="card-title-strong">Recommended Generation Settings</span>
+                                            <span style={{ fontSize: "11px", color: "#666c75" }}>from Civitai</span>
+                                        </div>
+                                        {currentVersion?.name && <span className="variant-label">{currentVersion.name}</span>}
+                                    </div>
+                                    <div className="settings-badge-grid">
+                                        {rec.sampler && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Sampler</span>
+                                                <span className="setting-value">{rec.sampler}</span>
+                                            </div>
+                                        )}
+                                        {displaySteps !== undefined && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Steps</span>
+                                                <span className="setting-value">{displaySteps}</span>
+                                            </div>
+                                        )}
+                                        {displayCFG !== undefined && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">CFG Scale</span>
+                                                <span className="setting-value">{displayCFG}</span>
+                                            </div>
+                                        )}
+                                        {rec.width && rec.height && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Resolution</span>
+                                                <span className="setting-value">
+                                                    {rec.width} × {rec.height}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {rec.clipSkip !== undefined && rec.clipSkip > 0 && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Clip Skip</span>
+                                                <span className="setting-value">{rec.clipSkip}</span>
+                                            </div>
+                                        )}
+                                        {rec.scheduler && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Scheduler</span>
+                                                <span className="setting-value">{rec.scheduler}</span>
+                                            </div>
+                                        )}
+                                        {rec.hiresUpscale !== undefined && rec.hiresUpscale > 0 && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Hires Upscale</span>
+                                                <span className="setting-value">
+                                                    {rec.hiresUpscale}x {rec.hiresSteps ? `(${rec.hiresSteps} st)` : ""}
+                                                </span>
+                                            </div>
+                                        )}
+                                        {rec.hiresUpscaler && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Hires Upscaler</span>
+                                                <span className="setting-value">{rec.hiresUpscaler}</span>
+                                            </div>
+                                        )}
+                                        {rec.denoise && (
+                                            <div className="setting-badge-item">
+                                                <span className="setting-key">Denoise</span>
+                                                <span className="setting-value">{rec.denoise}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Article & Rich Civitai Description */}
+                        <CivitaiRichDescription
+                            content={selectedModel.description}
+                            modelName={selectedModel.name}
+                        />
 
                         {/* Reviews Section */}
                         {selectedModel.reviews && selectedModel.reviews.length > 0 && (
@@ -1096,6 +1302,20 @@ export default function ModelList() {
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Image Tags */}
+                                    {activeInspectorImage.tags && activeInspectorImage.tags.length > 0 && (
+                                        <div className="lightbox-section">
+                                            <label className="lightbox-section-title">🏷 Tags</label>
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '6px' }}>
+                                                {activeInspectorImage.tags.map((tag, i) => (
+                                                    <span key={i} className="tag-badge" style={{ fontSize: '11px', textTransform: 'none' }}>
+                                                        #{tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1151,6 +1371,21 @@ export default function ModelList() {
                             </svg>
                             List
                         </button>
+                        <Link
+                            to="/compare"
+                            className="view-toggle-btn"
+                            title="Compare Models Side-by-Side (Fitur Adu Model)"
+                            style={{ textDecoration: 'none' }}
+                        >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: '4px' }}>
+                                <path d="M16 3h5v5" />
+                                <path d="M4 20L21 3" />
+                                <path d="M21 16v5h-5" />
+                                <path d="M15 15l6 6" />
+                                <path d="M4 4l5 5" />
+                            </svg>
+                            Compare
+                        </Link>
                     </div>
                 </div>
 

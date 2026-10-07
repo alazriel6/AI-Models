@@ -14,6 +14,7 @@ type RouteHandlers struct {
 	TagHandler      *handlers.TagHandler
 	ImageHandler    *handlers.ImageHandler
 	ResourceHandler *handlers.ResourceHandler
+	ImporterHandler *handlers.ImporterHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -37,6 +38,8 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 		{
 			models.GET("", h.ModelHandler.GetModels)
 			models.POST("", adminAuth, h.ModelHandler.CreateModel)
+			models.POST("/import/inspect", adminAuth, h.ImporterHandler.InspectModel)
+			models.POST("/import/save", adminAuth, h.ImporterHandler.SaveImportedModel)
 			models.GET("/:id", h.ModelHandler.GetModel)
 			models.PUT("/:id", adminAuth, h.ModelHandler.UpdateModel)
 			models.DELETE("/:id", adminAuth, h.ModelHandler.DeleteModel)

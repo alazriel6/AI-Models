@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { parseImageMetadataApi, type ParsedImageMetadata } from "../../api/admin";
+import {
+    buildA1111ParametersText,
+    buildWebUIApiPayload,
+    buildComfyUIWorkflowJSON,
+    downloadTextAsFile,
+} from "../../utils/exportFormats";
 import "../../style/MetadataInspector.css";
 
 // Clean technical SVG icons
@@ -474,17 +480,64 @@ export default function MetadataInspector() {
 
                                 <div className="preview-actions-column">
                                     {metaResult.positive_prompt && (
-                                        <button
-                                            type="button"
-                                            className="preview-btn preview-btn-primary"
-                                            onClick={() => handleCopy(metaResult.positive_prompt || "", "left-pos")}
-                                        >
-                                            {copiedKey === "left-pos" ? <Icons.Check /> : <Icons.Copy />}
-                                            <span>Copy Positive Prompt</span>
-                                        </button>
+                                        <>
+                                            <button
+                                                type="button"
+                                                className="preview-btn preview-btn-primary"
+                                                onClick={() => handleCopy(metaResult.positive_prompt || "", "left-pos")}
+                                            >
+                                                {copiedKey === "left-pos" ? <Icons.Check /> : <Icons.Copy />}
+                                                <span>Copy Positive Prompt</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="preview-btn preview-btn-secondary"
+                                                onClick={() => {
+                                                    const fullText = buildA1111ParametersText({
+                                                        positive_prompt: metaResult.positive_prompt,
+                                                        negative_prompt: metaResult.negative_prompt,
+                                                        steps: metaResult.steps,
+                                                        sampler: metaResult.sampler,
+                                                        scheduler: metaResult.scheduler,
+                                                        cfg_scale: metaResult.cfg_scale,
+                                                        seed: metaResult.seed,
+                                                        width: metaResult.width,
+                                                        height: metaResult.height,
+                                                        model_name: metaResult.model_name,
+                                                        model_hash: metaResult.model_hash,
+                                                    });
+                                                    handleCopy(fullText, "left-webui");
+                                                }}
+                                            >
+                                                {copiedKey === "left-webui" ? <Icons.Check /> : <Icons.Copy />}
+                                                <span>Copy WebUI Parameters</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="preview-btn preview-btn-secondary"
+                                                onClick={() => {
+                                                    const payload = buildWebUIApiPayload({
+                                                        positive_prompt: metaResult.positive_prompt,
+                                                        negative_prompt: metaResult.negative_prompt,
+                                                        steps: metaResult.steps,
+                                                        sampler: metaResult.sampler,
+                                                        cfg_scale: metaResult.cfg_scale,
+                                                        seed: metaResult.seed,
+                                                        width: metaResult.width,
+                                                        height: metaResult.height,
+                                                    });
+                                                    handleCopy(payload, "left-api");
+                                                }}
+                                            >
+                                                {copiedKey === "left-api" ? <Icons.Check /> : <Icons.Code />}
+                                                <span>Copy API Payload (JSON)</span>
+                                            </button>
+                                        </>
                                     )}
 
-                                    {(metaResult.workflow_json || metaResult.prompt_json) && (
+                                    {(metaResult.workflow_json || metaResult.prompt_json) ? (
                                         <button
                                             type="button"
                                             className="preview-btn preview-btn-primary"
@@ -493,7 +546,33 @@ export default function MetadataInspector() {
                                             <Icons.Download />
                                             <span>Download Workflow (.json)</span>
                                         </button>
-                                    )}
+                                    ) : metaResult.positive_prompt ? (
+                                        <button
+                                            type="button"
+                                            className="preview-btn preview-btn-primary"
+                                            onClick={() => {
+                                                const workflowJson = buildComfyUIWorkflowJSON({
+                                                    positive_prompt: metaResult.positive_prompt,
+                                                    negative_prompt: metaResult.negative_prompt,
+                                                    steps: metaResult.steps,
+                                                    sampler: metaResult.sampler,
+                                                    scheduler: metaResult.scheduler,
+                                                    cfg_scale: metaResult.cfg_scale,
+                                                    seed: metaResult.seed,
+                                                    width: metaResult.width,
+                                                    height: metaResult.height,
+                                                    model_name: metaResult.model_name,
+                                                });
+                                                downloadTextAsFile(
+                                                    workflowJson,
+                                                    `${currentFile?.name.replace(/\.[^/.]+$/, "") || "exported"}_workflow.json`
+                                                );
+                                            }}
+                                        >
+                                            <Icons.Download />
+                                            <span>Export ComfyUI Workflow (.json)</span>
+                                        </button>
+                                    ) : null}
 
                                     <button
                                         type="button"
