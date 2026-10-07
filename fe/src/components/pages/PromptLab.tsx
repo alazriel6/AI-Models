@@ -123,22 +123,142 @@ const Icons = {
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
         </svg>
     ),
+    ArrowLeft: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+    ),
+    ArrowRight: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+        </svg>
+    ),
+    Star: ({ filled }: { filled?: boolean }) => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+        </svg>
+    ),
+    History: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+            <path d="M3 3v5h5"></path>
+            <polyline points="12 7 12 12 15 15"></polyline>
+        </svg>
+    ),
+    Image: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+    ),
+    Layout: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+        </svg>
+    ),
+    Clipboard: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </svg>
+    ),
+    Undo: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 7v6h6"></path>
+            <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"></path>
+        </svg>
+    ),
+    Wand: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 4V2"></path>
+            <path d="M15 16v-2"></path>
+            <path d="M8 9h2"></path>
+            <path d="M20 9h2"></path>
+            <path d="M17.8 11.8L19 13"></path>
+            <path d="M15 9h0"></path>
+            <path d="M17.8 6.2L19 5"></path>
+            <path d="M3 21l9-9"></path>
+            <path d="M12.2 6.2L11 5"></path>
+        </svg>
+    ),
+    X: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+    ),
 };
 
-const STANDARD_NEGATIVE_TAGS = [
-    "worst quality",
-    "low quality",
-    "bad anatomy",
-    "blurry",
-    "watermark",
-    "bad hands",
-    "extra limbs",
-    "missing fingers",
-    "deformed",
-    "jpeg artifacts",
-    "signature",
-    "ugly",
-];
+const classifyTag = (tokenStr: string): "quality" | "subject" | "outfit" | "scene" | "lighting" | "lora" | "general" => {
+    const lower = tokenStr.toLowerCase().trim();
+    if (lower.startsWith("<lora:")) return "lora";
+    if (
+        lower.includes("masterpiece") ||
+        lower.includes("best quality") ||
+        lower.includes("aesthetic") ||
+        lower.includes("newest") ||
+        lower.includes("high quality") ||
+        lower.includes("detailed")
+    ) {
+        return "quality";
+    }
+    if (
+        lower.includes("girl") ||
+        lower.includes("boy") ||
+        lower.includes("hair") ||
+        lower.includes("eyes") ||
+        lower.includes("face") ||
+        lower.includes("smile") ||
+        lower.includes("looking at") ||
+        lower.includes("solo") ||
+        lower.includes("twintails") ||
+        lower.includes("ponytail")
+    ) {
+        return "subject";
+    }
+    if (
+        lower.includes("uniform") ||
+        lower.includes("dress") ||
+        lower.includes("shirt") ||
+        lower.includes("jacket") ||
+        lower.includes("skirt") ||
+        lower.includes("collar") ||
+        lower.includes("necktie") ||
+        lower.includes("suit") ||
+        lower.includes("outfit") ||
+        lower.includes("hoodie") ||
+        lower.includes("blazer")
+    ) {
+        return "outfit";
+    }
+    if (
+        lower.includes("light") ||
+        lower.includes("shadow") ||
+        lower.includes("sun") ||
+        lower.includes("neon") ||
+        lower.includes("glow") ||
+        lower.includes("bloom")
+    ) {
+        return "lighting";
+    }
+    if (
+        lower.includes("background") ||
+        lower.includes("indoors") ||
+        lower.includes("outdoors") ||
+        lower.includes("room") ||
+        lower.includes("office") ||
+        lower.includes("street") ||
+        lower.includes("sky") ||
+        lower.includes("cafe")
+    ) {
+        return "scene";
+    }
+    return "general";
+};
 
 const ARCHITECTURE_NEGATIVES: Record<string, string> = {
     Illustrious: "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, artist name, deformed",
@@ -146,6 +266,115 @@ const ARCHITECTURE_NEGATIVES: Record<string, string> = {
     Pony: "score_4, score_5, score_6, source_furry, source_pony, ugly, bad anatomy, bad hands, blurry, missing digits, extra arms",
     Flux: "worst quality, low quality, blurry, distorted, grainy, text, watermark, bad hands",
 };
+
+const NEGATIVE_PRESET_LABELS: Record<string, string> = {
+    Illustrious: "Illustrious Standard",
+    SDXL: "SDXL Crisp",
+    Pony: "Pony Clean",
+    Flux: "Flux Natural",
+};
+
+const CATEGORIZED_NEGATIVE_TAGS: { category: string; tags: string[] }[] = [
+    {
+        category: "Quality",
+        tags: ["worst quality", "low quality", "blurry", "jpeg artifacts", "grainy", "deformed"],
+    },
+    {
+        category: "Anatomy",
+        tags: ["bad anatomy", "bad hands", "missing fingers", "extra digits", "extra limbs", "bad feet"],
+    },
+    {
+        category: "Artifacts",
+        tags: ["watermark", "signature", "text", "username", "logo", "artist name"],
+    },
+    {
+        category: "Style/Aesthetic",
+        tags: ["ugly", "sketch", "monochrome", "mutated", "oversaturated", "3d render"],
+    },
+];
+
+const PRESET_CATEGORIES = [
+    { id: "anime", label: "Anime" },
+    { id: "realistic", label: "Realistic" },
+];
+
+const PRESET_STYLE_OPTIONS = [
+    { value: "anime", label: "Anime", hint: "Gaya gambar 2D / Manga / Illustrious" },
+    { value: "realistic", label: "Realistic", hint: "Fotografi / Cinematic / SDXL Realism" },
+];
+
+const WILDCARD_TEMPLATES = [
+    { title: "Lighting Mood", wildcard: "{golden hour | cinematic lighting | volumetric lighting | neon rim lighting | moody moonlight}" },
+    { title: "Camera Angle", wildcard: "{cowboy shot | dynamic angle | dutch angle | close up | from below | from above}" },
+    { title: "Outfit Variations", wildcard: "{school uniform | elegant gothic dress | casual streetwear | cyberpunk combat gear | formal suit}" },
+    { title: "Weather / Background", wildcard: "{cherry blossoms falling | rain soaked street | sunset sky | futuristic city rooftop | cozy sunlit cafe}" },
+    { title: "Facial Expression", wildcard: "{gentle smile | shy blush | confident grin | serious intense expression | mischievous smirk}" },
+    { title: "Artistic Medium", wildcard: "{anime official art | detailed digital illustration | key visual anime poster | oil painting aesthetic}" },
+];
+
+interface BlockGroup {
+    key: string;
+    label: string;
+    match: string[];
+    matchCategory?: string;
+    modalCategory: string;
+    defaults: string[];
+}
+
+const BLOCK_GROUPS: BlockGroup[] = [
+    {
+        key: "char",
+        label: "Face & Hair / Karakter",
+        match: ["hair", "eyes", "face", "character", "appearance", "hair/face"],
+        modalCategory: "Hair/Face",
+        defaults: ["1girl", "black hair", "long hair", "red eyes", "ponytail", "twintails", "looking at viewer", "blush", "smile"],
+    },
+    {
+        key: "outfit",
+        label: "Outfits & Pakaian",
+        match: ["outfit", "clothing", "dress", "uniform"],
+        modalCategory: "Outfit",
+        defaults: ["school uniform", "serafuku", "blazer", "white shirt", "pleated skirt", "sweater", "maid", "kimono", "hoodie"],
+    },
+    {
+        key: "pose",
+        label: "Pose & Aksi",
+        match: ["pose", "action", "gesture"],
+        modalCategory: "Pose",
+        defaults: ["standing", "sitting", "lying", "crossed arms", "hand on hip", "peace sign", "holding cup", "walking"],
+    },
+    {
+        key: "bg",
+        label: "Latar Belakang & Setting",
+        match: ["background", "environment", "setting"],
+        modalCategory: "Background",
+        defaults: ["indoors", "outdoors", "bedroom", "classroom", "cafe", "city street", "night sky", "sunset", "simple background"],
+    },
+    {
+        key: "lighting",
+        label: "Pencahayaan & Suasana",
+        match: ["lighting", "atmosphere"],
+        modalCategory: "Lighting",
+        defaults: ["cinematic lighting", "soft lighting", "rim lighting", "volumetric lighting", "sunlight", "god rays", "neon lights", "dramatic shadows"],
+    },
+    {
+        key: "camera",
+        label: "Kamera & Komposisi",
+        match: ["camera", "angle", "composition"],
+        modalCategory: "Camera",
+        defaults: ["cowboy shot", "close-up", "upper body", "full body", "wide shot", "dutch angle", "from above", "from below"],
+    },
+];
+
+const KNOWN_BLOCK_SUBCATS = BLOCK_GROUPS.flatMap((g) => g.match);
+
+interface PromptSnapshot {
+    id: string;
+    label: string;
+    positive: string;
+    negative: string;
+    timestamp: number;
+}
 
 export const PromptLab: React.FC = () => {
     // Canvas Prompts (Strictly kept together on unified canvas)
@@ -159,11 +388,63 @@ export const PromptLab: React.FC = () => {
     // Active Checkpoint Selection for LoRA Compatibility
     const [selectedCheckpointId, setSelectedCheckpointId] = useState<string>("");
 
-    // Active mode in positive prompt: text editor vs interactive tokenizer
-    const [viewMode, setViewMode] = useState<"editor" | "tokenizer">("editor");
+    // Active mode in positive prompt: text editor vs interactive tokenizer vs matrix
+    const [viewMode, setViewMode] = useState<"editor" | "tokenizer" | "matrix">("editor");
+
+    // Negative prompt insertion mode: replace or append
+    const [negativeInsertMode, setNegativeInsertMode] = useState<"replace" | "append">("replace");
+
+    // Collapsible sidebar for focus mode
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    // Preset sorting: favorites first, newest, alphabetical
+    const [presetSort, setPresetSort] = useState<"favorites" | "newest" | "alpha">("favorites");
+
+    // Preset favorites persisted in localStorage
+    const [favoritePresetIds, setFavoritePresetIds] = useState<number[]>(() => {
+        try {
+            const saved = localStorage.getItem("promptlab_favorites");
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    // LoRA search filter
+    const [loraSearch, setLoraSearch] = useState("");
+
+    // Modular block search filter
+    const [blockSearch, setBlockSearch] = useState("");
+
+    // Snapshots / History Drawer state
+    const [isHistoryDrawerOpen, setIsHistoryDrawerOpen] = useState(false);
+    const [promptSnapshots, setPromptSnapshots] = useState<PromptSnapshot[]>(() => {
+        try {
+            const saved = localStorage.getItem("promptlab_snapshots");
+            return saved ? JSON.parse(saved) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    // Wildcard Quick Insert Popover
+    const [isWildcardPickerOpen, setIsWildcardPickerOpen] = useState(false);
+
+    // Floating Studio Toast
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+    const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const showToast = (msg: string) => {
+        if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+        setToastMessage(msg);
+        toastTimeoutRef.current = setTimeout(() => {
+            setToastMessage(null);
+        }, 2600);
+    };
 
     // Interactive Tokenizer State
     const [selectedTokenIndex, setSelectedTokenIndex] = useState<number | null>(null);
+    const [newTokenInput, setNewTokenInput] = useState<string>("");
 
     // Feedback
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -172,7 +453,7 @@ export const PromptLab: React.FC = () => {
     const [sidebarTab, setSidebarTab] = useState<"presets" | "catalog" | "modular">("presets");
 
     // Presets Filtering
-    const [presetCategoryFilter, setPresetCategoryFilter] = useState<string>("all");
+    const [presetCategoryFilter, setPresetCategoryFilter] = useState<string>("anime");
     const [presetBaseModelFilter, setPresetBaseModelFilter] = useState<string>("all");
     const [presetSearch, setPresetSearch] = useState<string>("");
 
@@ -271,12 +552,20 @@ export const PromptLab: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchCatalog();
-        fetchModularPresets();
+        const timer = setTimeout(() => {
+            fetchCatalog();
+            fetchModularPresets();
+        }, 0);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
-        fetchPresets();
+        const timer = setTimeout(() => {
+            fetchPresets();
+        }, 0);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [presetCategoryFilter, presetBaseModelFilter, presetSearch]);
 
     // Active Checkpoint Object
@@ -286,22 +575,28 @@ export const PromptLab: React.FC = () => {
 
     // Compatible LoRAs matched to active checkpoint base_model
     const compatibleLoras = useMemo(() => {
-        const loras = models.filter((m) => m.type === "lora");
-        if (!activeCheckpoint) return loras;
-
-        const targetBase = (activeCheckpoint.base_model || "").toLowerCase();
-        if (!targetBase) return loras;
-
-        return loras.filter((lora) => {
-            const loraBase = (lora.base_model || "").toLowerCase();
-            return loraBase.includes(targetBase) || targetBase.includes(loraBase) || loraBase === "" || loraBase === "all";
-        });
-    }, [models, activeCheckpoint]);
+        let loras = models.filter((m) => m.type === "lora");
+        if (activeCheckpoint) {
+            const targetBase = (activeCheckpoint.base_model || "").toLowerCase();
+            if (targetBase) {
+                loras = loras.filter((lora) => {
+                    const loraBase = (lora.base_model || "").toLowerCase();
+                    return loraBase.includes(targetBase) || targetBase.includes(loraBase) || loraBase === "" || loraBase === "all";
+                });
+            }
+        }
+        if (loraSearch.trim()) {
+            const q = loraSearch.toLowerCase();
+            loras = loras.filter((m) => m.name.toLowerCase().includes(q) || (m.slug && m.slug.toLowerCase().includes(q)));
+        }
+        return loras;
+    }, [models, activeCheckpoint, loraSearch]);
 
     // Helper: Trigger temporary copied state
-    const triggerCopy = (text: string, key: string) => {
+    const triggerCopy = (text: string, key: string, toast?: string) => {
         navigator.clipboard.writeText(text);
         setCopiedKey(key);
+        if (toast) showToast(toast);
         setTimeout(() => setCopiedKey(null), 2000);
     };
 
@@ -361,14 +656,8 @@ export const PromptLab: React.FC = () => {
         if (!currentToken) return;
 
         const { clean } = parseTokenWeight(currentToken);
-        let formatted = clean;
-
         const rounded = Math.round(newWeight * 100) / 100;
-        if (rounded === 1.0) {
-            formatted = clean;
-        } else {
-            formatted = `(${clean}:${rounded.toFixed(2)})`;
-        }
+        const formatted = rounded === 1.0 ? clean : `(${clean}:${rounded.toFixed(2)})`;
 
         const newTokens = [...tokens];
         newTokens[index] = formatted;
@@ -380,6 +669,67 @@ export const PromptLab: React.FC = () => {
         const newTokens = tokens.filter((_, i) => i !== index);
         setPositivePrompt(newTokens.join(", "));
         setSelectedTokenIndex(null);
+    };
+
+    // Move token left or right
+    const moveToken = (index: number | null, direction: "left" | "right") => {
+        if (index === null) return;
+        const targetIndex = direction === "left" ? index - 1 : index + 1;
+        if (targetIndex < 0 || targetIndex >= tokens.length) return;
+
+        const newTokens = [...tokens];
+        const [moved] = newTokens.splice(index, 1);
+        newTokens.splice(targetIndex, 0, moved);
+        setPositivePrompt(newTokens.join(", "));
+        setSelectedTokenIndex(targetIndex);
+    };
+
+    // Deduplicate tokens
+    const handleDeduplicateTokens = () => {
+        handleTakeSnapshot("Before Deduplicate");
+        const seen = new Set<string>();
+        const uniqueTokens: string[] = [];
+        tokens.forEach((t) => {
+            const normalized = t.toLowerCase().trim();
+            if (!seen.has(normalized)) {
+                seen.add(normalized);
+                uniqueTokens.push(t.trim());
+            }
+        });
+        const removedCount = tokens.length - uniqueTokens.length;
+        setPositivePrompt(uniqueTokens.join(", "));
+        showToast(removedCount > 0 ? `${removedCount} token duplikat dihapus!` : "Tidak ada token duplikat.");
+    };
+
+    // Sort tokens by semantic category order
+    const handleSortTokensByCategory = () => {
+        handleTakeSnapshot("Before Organize Order");
+        const priority: Record<string, number> = {
+            quality: 1,
+            subject: 2,
+            outfit: 3,
+            scene: 4,
+            lighting: 5,
+            general: 6,
+            lora: 7,
+        };
+        const sorted = [...tokens].sort((a, b) => {
+            const catA = classifyTag(a);
+            const catB = classifyTag(b);
+            return (priority[catA] || 99) - (priority[catB] || 99);
+        });
+        setPositivePrompt(sorted.join(", "));
+        showToast("Urutan tag ditata berdasarkan kategori!");
+    };
+
+    // Add token in tokenizer mode
+    const handleAddTokenInTokenizer = (e: React.FormEvent) => {
+        e.preventDefault();
+        const tag = newTokenInput.trim();
+        if (!tag) return;
+        handleAppendPositive(tag);
+        setNewTokenInput("");
+        showToast(`Tag "${tag}" ditambahkan!`);
     };
 
     // Clean formatting
@@ -413,10 +763,86 @@ export const PromptLab: React.FC = () => {
         }
     };
 
+    // Snapshot Management
+    const handleTakeSnapshot = (customLabel?: string) => {
+        // eslint-disable-next-line react-hooks/purity
+        const now = Date.now();
+        const newSnap: PromptSnapshot = {
+            id: now.toString(),
+            label: customLabel || `Manual Snapshot #${promptSnapshots.length + 1}`,
+            positive: positivePrompt,
+            negative: negativePrompt,
+            timestamp: now,
+        };
+        const updated = [newSnap, ...promptSnapshots].slice(0, 15);
+        setPromptSnapshots(updated);
+        try {
+            localStorage.setItem("promptlab_snapshots", JSON.stringify(updated));
+        } catch (e) {
+            console.error("Failed to save snapshot to localStorage:", e);
+        }
+        showToast(customLabel ? `Snapshot tersimpan: ${customLabel}` : "Snapshot canvas berhasil diambil!");
+    };
+
+    const handleRestoreSnapshot = (snap: PromptSnapshot) => {
+        handleTakeSnapshot("Before Restore");
+        setPositivePrompt(snap.positive);
+        setNegativePrompt(snap.negative);
+        setIsHistoryDrawerOpen(false);
+        showToast(`Canvas dipulihkan ke: ${snap.label}`);
+    };
+
+    const handleDeleteSnapshot = (id: string, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        const updated = promptSnapshots.filter((s) => s.id !== id);
+        setPromptSnapshots(updated);
+        try {
+            localStorage.setItem("promptlab_snapshots", JSON.stringify(updated));
+        } catch (e) {
+            console.error("Failed to delete snapshot from localStorage:", e);
+        }
+        showToast("Snapshot dihapus");
+    };
+
+    // Toggle favorite preset
+    const toggleFavoritePreset = (id: number, e?: React.MouseEvent) => {
+        if (e) e.stopPropagation();
+        setFavoritePresetIds((prev) => {
+            const exists = prev.includes(id);
+            const next = exists ? prev.filter((favId) => favId !== id) : [...prev, id];
+            try {
+                localStorage.setItem("promptlab_favorites", JSON.stringify(next));
+            } catch (err) {
+                console.error("Failed to save favorites:", err);
+            }
+            showToast(exists ? "Dihapus dari favorit" : "Ditambahkan ke favorit ⭐");
+            return next;
+        });
+    };
+
+    // LoRA helper checks
+    const isLoraInPrompt = (m: Model) => {
+        const slug = (m.slug || m.name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")).toLowerCase();
+        return positivePrompt.toLowerCase().includes(`<lora:${slug}:`);
+    };
+
+    const handleRemoveLoRA = (m: Model) => {
+        const slug = (m.slug || m.name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")).toLowerCase();
+        const regex = new RegExp(`<lora:${slug}:[0-9.]+>,?\\s*`, "gi");
+        const updated = positivePrompt.replace(regex, "");
+        setPositivePrompt(cleanPromptText(updated));
+        showToast(`LoRA ${m.name} dihapus dari prompt`);
+    };
+
     // Apply architecture negative
     const handleApplyArchitectureNegative = (arch: string) => {
         const neg = ARCHITECTURE_NEGATIVES[arch] || ARCHITECTURE_NEGATIVES.Illustrious;
-        setNegativePrompt(neg);
+        if (negativeInsertMode === "append" && negativePrompt.trim()) {
+            setNegativePrompt(cleanPromptText(`${negativePrompt.trim()}, ${neg}`));
+        } else {
+            setNegativePrompt(neg);
+        }
+        showToast(`Negative preset untuk ${arch} dimuat!`);
     };
 
     // Keyboard shortcut for weight adjusting (Ctrl+Up / Ctrl+Down)
@@ -494,20 +920,22 @@ export const PromptLab: React.FC = () => {
         });
     }, [positivePrompt]);
 
-    // Apply preset fully (Positive & Negative together)
+
+    // Apply preset fully
     const handleApplyPreset = (p: PromptPreset) => {
+        handleTakeSnapshot(`Before "${p.title}"`);
         setPositivePrompt(p.positive_prompt);
         if (p.negative_prompt) {
             setNegativePrompt(p.negative_prompt);
         }
+        showToast(`Preset "${p.title}" diterapkan!`);
     };
 
     // Append preset positive
     const handleAppendPositive = (text: string) => {
-        const updated = positivePrompt.trim()
-            ? `${positivePrompt.trim()}, ${text}`
-            : text;
+        const updated = positivePrompt.trim() ? `${positivePrompt.trim()}, ${text}` : text;
         setPositivePrompt(cleanPromptText(updated));
+        showToast(`Disisipkan: ${text.slice(0, 30)}...`);
     };
 
     // Insert LoRA with compatibility weight
@@ -519,6 +947,21 @@ export const PromptLab: React.FC = () => {
         const addition = triggers.length > 0 ? `${loraSyntax}, ${triggers.join(", ")}` : loraSyntax;
 
         handleAppendPositive(addition);
+        showToast(`LoRA ${m.name} (${loraInsertWeight.toFixed(2)}) disisipkan!`);
+    };
+
+    // Helper: parse sample images from JSON string
+    const parseSampleImages = (jsonStr?: string): string[] => {
+        if (!jsonStr) return [];
+        try {
+            const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed)) return parsed;
+        } catch {
+            if (jsonStr.startsWith("http") || jsonStr.startsWith("/")) {
+                return [jsonStr];
+            }
+        }
+        return [];
     };
 
     // Upload sample image from local PC
@@ -534,9 +977,11 @@ export const PromptLab: React.FC = () => {
             setIsUploadingSample(true);
             const res = await uploadPresetSampleImageApi(file);
             setNewPresetSampleList((prev) => [...prev, res.url].slice(0, 5));
-        } catch (err: any) {
+            showToast("Foto sample berhasil diunggah!");
+        } catch (err) {
             console.error("Failed to upload sample image:", err);
-            alert("Upload failed: " + (err?.message || "Unknown error"));
+            const msg = err instanceof Error ? err.message : "Unknown error";
+            alert("Upload failed: " + msg);
         } finally {
             setIsUploadingSample(false);
             if (e.target) e.target.value = "";
@@ -583,7 +1028,7 @@ export const PromptLab: React.FC = () => {
         setEditingPreset(null);
         setNewPresetTitle("");
         setNewPresetCharacterName("");
-        setNewPresetStyle("character");
+        setNewPresetStyle("anime");
         setNewPresetSubcategory("");
         setNewPresetTriggerWords("");
         setNewPresetBaseModelTarget(activeCheckpoint?.base_model || "Illustrious");
@@ -600,7 +1045,7 @@ export const PromptLab: React.FC = () => {
         setEditingPreset(preset);
         setNewPresetTitle(preset.title);
         setNewPresetCharacterName("");
-        setNewPresetStyle(preset.category || "character");
+        setNewPresetStyle(["realistic", "photorealistic"].includes((preset.category || "").toLowerCase()) ? "realistic" : "anime");
         setNewPresetSubcategory(preset.subcategory || "");
         setNewPresetTriggerWords(preset.trigger_words || "");
         setNewPresetBaseModelTarget(preset.base_model_target || "Illustrious");
@@ -611,7 +1056,7 @@ export const PromptLab: React.FC = () => {
         setIsSavePresetModalOpen(true);
     };
 
-    // Save Preset to Database (Create or Update Full Preset)
+    // Save Preset to Database
     const handleSavePreset = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newPresetTitle.trim()) return;
@@ -637,6 +1082,7 @@ export const PromptLab: React.FC = () => {
                     sample_images: newPresetSampleList.length > 0 ? JSON.stringify(newPresetSampleList) : "",
                     description: newPresetDescription.trim() || undefined,
                 });
+                showToast(`Preset "${effectiveTitle}" diperbarui!`);
             } else {
                 await createPromptPresetApi({
                     title: effectiveTitle,
@@ -651,6 +1097,7 @@ export const PromptLab: React.FC = () => {
                     sample_images: newPresetSampleList.length > 0 ? JSON.stringify(newPresetSampleList) : undefined,
                     description: newPresetDescription.trim() || undefined,
                 });
+                showToast(`Preset "${effectiveTitle}" berhasil disimpan!`);
             }
             setIsSavePresetModalOpen(false);
             setEditingPreset(null);
@@ -662,14 +1109,12 @@ export const PromptLab: React.FC = () => {
         }
     };
 
-    // Save Modular Building Block / Outfit Token to Database
+    // Save Modular Building Block / Outfit Token
     const handleSaveModularPreset = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!modularToken.trim()) return;
 
-        const effectiveSubcategory = modularCategory === "Custom" 
-            ? (modularCustomSubcategory.trim() || "Custom") 
-            : modularCategory;
+        const effectiveSubcategory = modularCategory === "Custom" ? modularCustomSubcategory.trim() || "Custom" : modularCategory;
         const effectiveTitle = modularTitle.trim() || modularToken.trim().slice(0, 30);
 
         try {
@@ -690,13 +1135,14 @@ export const PromptLab: React.FC = () => {
             setModularSampleImages("");
             fetchModularPresets();
             fetchPresets();
+            showToast(`Token "${effectiveTitle}" berhasil disimpan!`);
         } catch (err) {
             console.error("Failed to save modular preset:", err);
             alert("Gagal menyimpan modular token: " + err);
         }
     };
 
-    // Delete custom or system preset
+    // Delete preset
     const handleDeletePreset = async (id: number, title?: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
         const name = title || "preset ini";
@@ -705,6 +1151,7 @@ export const PromptLab: React.FC = () => {
             await deletePromptPresetApi(id);
             setPresets((prev) => prev.filter((p) => p.id !== id));
             setModularPresets((prev) => prev.filter((p) => p.id !== id));
+            showToast(`Preset "${name}" dihapus`);
         } catch (err) {
             console.error("Failed to delete preset:", err);
             alert("Gagal menghapus preset: " + err);
@@ -719,47 +1166,132 @@ export const PromptLab: React.FC = () => {
             await deletePromptPresetApi(id);
             setModularPresets((prev) => prev.filter((p) => p.id !== id));
             setPresets((prev) => prev.filter((p) => p.id !== id));
+            showToast("Token dihapus dari database");
         } catch (err) {
             console.error("Failed to delete modular preset:", err);
             alert("Gagal menghapus token: " + err);
         }
     };
 
-    // Parse sample image URLs safely from JSON string
-    const parseSampleImages = (sampleStr?: string): string[] => {
-        if (!sampleStr) return [];
-        try {
-            const parsed = JSON.parse(sampleStr);
-            if (Array.isArray(parsed)) return parsed;
-        } catch {
-            if (sampleStr.startsWith("http") || sampleStr.startsWith("/")) {
-                return [sampleStr];
-            }
-        }
-        return [];
+    // Copy full prompt
+    const handleCopyFullPrompt = () => {
+        const full = `${positivePrompt}\nNegative prompt: ${negativePrompt}`;
+        triggerCopy(full, "copy-full", "Positive & Negative prompt disalin (WebUI/ComfyUI format)");
     };
+
+    // Reset canvas
+    const handleResetCanvas = () => {
+        if (!positivePrompt && !negativePrompt) return;
+        if (window.confirm("Kosongkan prompt canvas (positif & negatif)?")) {
+            handleTakeSnapshot("Before Reset Canvas");
+            setPositivePrompt("");
+            setNegativePrompt("");
+            showToast("Canvas dikosongkan");
+        }
+    };
+
+    // Sorted Presets list based on favorites & sort state
+    const displayPresets = useMemo(() => {
+        let list = [...presets];
+
+        if (presetCategoryFilter === "anime") {
+            list = list.filter((p) =>
+                ["anime", "character", "style"].includes((p.category || "").toLowerCase()) ||
+                (!["photorealistic", "realistic"].includes((p.category || "").toLowerCase()))
+            );
+        } else if (presetCategoryFilter === "realistic") {
+            list = list.filter((p) =>
+                ["realistic", "photorealistic"].includes((p.category || "").toLowerCase())
+            );
+        }
+
+        if (presetSort === "favorites") {
+            list.sort((a, b) => {
+                const aFav = favoritePresetIds.includes(a.id);
+                const bFav = favoritePresetIds.includes(b.id);
+                if (aFav && !bFav) return -1;
+                if (!aFav && bFav) return 1;
+                return b.id - a.id;
+            });
+        } else if (presetSort === "newest") {
+            list.sort((a, b) => b.id - a.id);
+        } else if (presetSort === "alpha") {
+            list.sort((a, b) => a.title.localeCompare(b.title));
+        }
+
+        return list;
+    }, [presets, presetCategoryFilter, favoritePresetIds, presetSort]);
 
     return (
         <div className="prompt-lab-container">
-            {/* Header */}
-            <div className="prompt-lab-header">
+            {/* Studio Header Bar */}
+            <header className="prompt-lab-header">
                 <div className="prompt-lab-title-row">
-                    <h1 className="prompt-lab-title">
+                    <div className="prompt-lab-heading">
                         <div className="prompt-lab-title-icon">
                             <Icons.Sliders />
                         </div>
-                        Prompt Matrix & Studio Lab
-                    </h1>
+                        <div className="prompt-lab-heading-text">
+                            <div className="prompt-lab-eyebrow-row">
+                                <span className="prompt-lab-eyebrow">STUDIO WORKSTATION</span>
+                                <span className="studio-status-pill">
+                                    <span className="studio-status-dot" />
+                                    Active Studio
+                                </span>
+                            </div>
+                            <h1 className="prompt-lab-title">Prompt Matrix &amp; Studio Lab</h1>
+                        </div>
+                    </div>
 
                     <div className="prompt-lab-header-actions">
                         <button
                             type="button"
                             className="prompt-btn-sm"
+                            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                            title={isSidebarCollapsed ? "Tampilkan Library & Explorer" : "Sembunyikan Sidebar untuk Focus Mode"}
+                        >
+                            <Icons.Layout />
+                            <span>{isSidebarCollapsed ? "Show Library" : "Focus Mode"}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="prompt-btn-sm"
+                            onClick={() => setIsHistoryDrawerOpen(true)}
+                            title="Buka riwayat iterasi & snapshot canvas"
+                        >
+                            <Icons.History />
+                            <span>Snapshots ({promptSnapshots.length})</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="prompt-btn-sm"
+                            onClick={handleCopyFullPrompt}
+                            title="Copy Positive & Negative prompt formatted for WebUI / ComfyUI"
+                        >
+                            {copiedKey === "copy-full" ? <Icons.Check /> : <Icons.Clipboard />}
+                            <span>{copiedKey === "copy-full" ? "Copied All!" : "Copy Full"}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="prompt-btn-primary"
                             onClick={handleOpenCreatePreset}
-                            title="Save current prompt concoction as preset"
+                            title="Simpan racikan prompt saat ini sebagai preset baru"
                         >
                             <Icons.Bookmark />
                             <span>Save Preset</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="prompt-btn-sm text-muted-hover"
+                            onClick={handleResetCanvas}
+                            title="Clear both positive and negative prompt"
+                        >
+                            <Icons.Undo />
+                            <span>Reset</span>
                         </button>
 
                         <Link
@@ -768,98 +1300,131 @@ export const PromptLab: React.FC = () => {
                             title="Find matching artworks in local gallery"
                         >
                             <Icons.Search />
-                            <span>Search in Gallery</span>
+                            <span>Gallery</span>
                         </Link>
                     </div>
                 </div>
 
-                <p className="prompt-lab-subtitle">
-                    Full prompt preset library, anime character building blocks, wildcard combinatorial matrix, and LoRA recommendations matched to your checkpoint.
-                </p>
-            </div>
+                {/* Subtitle & Telemetry Metrics Strip */}
+                <div className="prompt-lab-sub-row">
+                    <p className="prompt-lab-subtitle">
+                        Interactive prompt orchestrator with semantic tag tokenizing, wildcard permutations, architecture negative injection, and LoRA compatibility matcher.
+                    </p>
 
-            {/* Studio Workspace */}
-            <div className="prompt-lab-workspace">
-                {/* Left Column: Unified Positive & Negative Prompt Canvas */}
+                    <div className="studio-telemetry-strip">
+                        <div className="telemetry-pill pos" title="Positive Tokens count">
+                            <span className="telemetry-dot" />
+                            <span>Pos: <strong>{posTokenCount}</strong> tok ({Math.ceil(posTokenCount / 75) || 1} chk)</span>
+                        </div>
+                        <div className="telemetry-pill neg" title="Negative Tokens count">
+                            <span className="telemetry-dot" />
+                            <span>Neg: <strong>{negTokenCount}</strong> tok</span>
+                        </div>
+                        {matrixVariations.length > 0 && (
+                            <div className="telemetry-pill matrix" title="Active Wildcard Variations">
+                                <span className="telemetry-dot" />
+                                <span>Matrix: <strong>{matrixVariations.length}</strong> vars</span>
+                            </div>
+                        )}
+                        <div className="telemetry-pill arch" title="Active Checkpoint Architecture">
+                            <span>Arch: <strong>{activeCheckpoint?.base_model || "SDXL"}</strong></span>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            {/* Studio Workspace Layout */}
+            <div className={`prompt-lab-workspace ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+                {/* Left Column: Canvas Editors */}
                 <div className="prompt-canvas-col">
-                    {/* Active Checkpoint Banner & Architecture Bar */}
-                    <div style={{ background: "#16181D", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "8px", padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                            <Icons.Layers />
-                            <span style={{ fontSize: "12px", color: "#9CA3AF" }}>Target Checkpoint:</span>
-                            <select
-                                style={{ background: "#0E1013", border: "1px solid rgba(255,255,255,0.12)", color: "#FFFFFF", fontSize: "12px", padding: "4px 8px", borderRadius: "5px", outline: "none" }}
-                                value={selectedCheckpointId}
-                                onChange={(e) => setSelectedCheckpointId(e.target.value)}
-                            >
-                                <option value="">Standalone / Unspecified</option>
-                                {models
-                                    .filter((m) => m.type === "checkpoint")
-                                    .map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.name} ({m.base_model || "SDXL"})
-                                        </option>
-                                    ))}
-                            </select>
+                    {/* Active Checkpoint Architecture Bar */}
+                    <div className="prompt-target-checkpoint-bar">
+                        <div className="checkpoint-bar-left">
+                            <div className="checkpoint-bar-icon">
+                                <Icons.Layers />
+                            </div>
+                            <div className="checkpoint-bar-select-wrap">
+                                <span className="checkpoint-bar-label">Target Checkpoint:</span>
+                                <select
+                                    className="checkpoint-bar-select"
+                                    value={selectedCheckpointId}
+                                    onChange={(e) => setSelectedCheckpointId(e.target.value)}
+                                >
+                                    <option value="">Standalone / Unspecified</option>
+                                    {models
+                                        .filter((m) => m.type === "checkpoint")
+                                        .map((m) => (
+                                            <option key={m.id} value={m.id}>
+                                                {m.name} ({m.base_model || "SDXL"})
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
                         </div>
 
                         {activeCheckpoint && (
-                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ fontSize: "11px", color: "#6C727D" }}>Architecture:</span>
+                            <div className="checkpoint-bar-right">
+                                <span className="arch-label">Architecture</span>
                                 <span className={`preset-base-badge ${(activeCheckpoint.base_model || "sdxl").toLowerCase()}`}>
+                                    <span className="badge-dot" />
                                     {activeCheckpoint.base_model || "SDXL"}
                                 </span>
                             </div>
                         )}
                     </div>
 
-                    {/* Positive Prompt Card */}
-                    <div className="prompt-canvas-card">
+                    {/* POSITIVE PROMPT STUDIO CARD */}
+                    <div className="prompt-canvas-card positive-card">
                         <div className="prompt-canvas-header">
                             <div className="prompt-canvas-title-wrap">
                                 <span className="prompt-badge positive">Positive Prompt</span>
-                                <span className="prompt-token-pill">~{posTokenCount} tokens</span>
+                                <span className={`prompt-token-pill ${posTokenCount > 75 ? "over-chunk" : ""}`}>
+                                    ~{posTokenCount} tokens · Chunk {Math.ceil(posTokenCount / 75) || 1}/3
+                                </span>
                             </div>
 
                             <div className="prompt-canvas-actions">
-                                <div style={{ display: "inline-flex", background: "#101215", padding: "2px", borderRadius: "5px", border: "1px solid rgba(255,255,255,0.08)", marginRight: "6px" }}>
+                                {/* Mode Switcher (Editor / Tokenizer / Matrix) */}
+                                <div className="prompt-view-switcher">
                                     <button
                                         type="button"
-                                        style={{
-                                            background: viewMode === "editor" ? "#22262E" : "transparent",
-                                            color: viewMode === "editor" ? "#FFF" : "#71717A",
-                                            border: "none",
-                                            padding: "3px 8px",
-                                            borderRadius: "3px",
-                                            fontSize: "11px",
-                                            cursor: "pointer",
-                                        }}
+                                        className={`prompt-view-btn ${viewMode === "editor" ? "active" : ""}`}
                                         onClick={() => setViewMode("editor")}
+                                        title="Standard Text Prompt Editor"
                                     >
-                                        Text Editor
+                                        <Icons.Sliders />
+                                        <span>Editor</span>
                                     </button>
                                     <button
                                         type="button"
-                                        style={{
-                                            background: viewMode === "tokenizer" ? "#22262E" : "transparent",
-                                            color: viewMode === "tokenizer" ? "#FFF" : "#71717A",
-                                            border: "none",
-                                            padding: "3px 8px",
-                                            borderRadius: "3px",
-                                            fontSize: "11px",
-                                            cursor: "pointer",
-                                        }}
+                                        className={`prompt-view-btn ${viewMode === "tokenizer" ? "active" : ""}`}
                                         onClick={() => setViewMode("tokenizer")}
+                                        title="Interactive Tag Weight Adjuster & Semantic Viewer"
                                     >
-                                        Token Adjuster
+                                        <Icons.Tag />
+                                        <span>Tokens ({tokens.length})</span>
                                     </button>
+                                    {matrixVariations.length > 0 && (
+                                        <button
+                                            type="button"
+                                            className={`prompt-view-btn matrix-active ${viewMode === "matrix" ? "active" : ""}`}
+                                            onClick={() => setViewMode("matrix")}
+                                            title="View combinatorial matrix permutations"
+                                        >
+                                            <Icons.Matrix />
+                                            <span>Matrix ({matrixVariations.length})</span>
+                                        </button>
+                                    )}
                                 </div>
 
+                                <span className="prompt-toolbar-divider" aria-hidden="true" />
+
+                                {/* Quick Tools Toolbar */}
                                 <button
                                     type="button"
                                     className="prompt-btn-sm"
                                     onClick={() => setPositivePrompt(cleanPromptText(positivePrompt))}
-                                    title="Format commas and extra spaces"
+                                    title="Format commas, clean spaces, and strip stray punctuation"
                                 >
                                     <Icons.Clean />
                                     <span>Clean</span>
@@ -868,7 +1433,26 @@ export const PromptLab: React.FC = () => {
                                 <button
                                     type="button"
                                     className="prompt-btn-sm"
-                                    onClick={() => triggerCopy(positivePrompt, "copy-positive")}
+                                    onClick={handleDeduplicateTokens}
+                                    title="Hapus token duplikat"
+                                >
+                                    <span>Deduplicate</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="prompt-btn-sm"
+                                    onClick={() => setIsWildcardPickerOpen(!isWildcardPickerOpen)}
+                                    title="Sisipkan koleksi wildcard {a|b|c}"
+                                >
+                                    <Icons.Dice />
+                                    <span>Wildcards</span>
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className="prompt-btn-sm"
+                                    onClick={() => triggerCopy(positivePrompt, "copy-positive", "Positive prompt disalin!")}
                                     title="Copy positive prompt"
                                 >
                                     {copiedKey === "copy-positive" ? <Icons.Check /> : <Icons.Copy />}
@@ -886,42 +1470,132 @@ export const PromptLab: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Wildcard Quick Insert Dropdown Popover */}
+                        {isWildcardPickerOpen && (
+                            <div className="wildcard-popover-banner">
+                                <div className="wildcard-popover-header">
+                                    <span>Pilih Templat Wildcard Combinatorial:</span>
+                                    <button
+                                        type="button"
+                                        className="wildcard-popover-close"
+                                        onClick={() => setIsWildcardPickerOpen(false)}
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                                <div className="wildcard-popover-grid">
+                                    {WILDCARD_TEMPLATES.map((tmpl) => (
+                                        <div
+                                            key={tmpl.title}
+                                            className="wildcard-template-card"
+                                            onClick={() => {
+                                                handleAppendPositive(tmpl.wildcard);
+                                                setIsWildcardPickerOpen(false);
+                                            }}
+                                            title="Klik untuk menyisipkan ke prompt"
+                                        >
+                                            <span className="wildcard-card-title">{tmpl.title}</span>
+                                            <code className="wildcard-card-code">{tmpl.wildcard}</code>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="prompt-canvas-body">
-                            {viewMode === "editor" ? (
+                            {/* VIEW 1: TEXT EDITOR */}
+                            {viewMode === "editor" && (
                                 <>
                                     <textarea
                                         ref={textareaRef}
                                         className="prompt-textarea"
-                                        rows={5}
+                                        rows={6}
                                         value={positivePrompt}
                                         onChange={(e) => setPositivePrompt(e.target.value)}
                                         onKeyDown={handleTextareaKeyDown}
-                                        placeholder="e.g. masterpiece, best quality, 1girl, {cyberpunk | gothic} outfit..."
+                                        placeholder="e.g. masterpiece, best quality, 1girl, {cyberpunk | gothic} outfit, neon street..."
                                     />
+
+                                    {/* Keyboard Hint & Wildcard Quick Banner */}
                                     <div className="prompt-keyboard-hint">
-                                        <span>Tip: Select any word and press <kbd>Ctrl + ↑</kbd> or <kbd>Ctrl + ↓</kbd> to adjust weight.</span>
-                                        <span>Syntax: <code>(word:1.2)</code> or <code>{"{option A | option B}"}</code></span>
+                                        <div className="hint-left">
+                                            <span>Bobot kata: Sorot kata lalu tekan <kbd>Ctrl</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd></span>
+                                            <span className="hint-separator">·</span>
+                                            <span>Wildcard: <code>{"{pilihan A | pilihan B}"}</code></span>
+                                        </div>
+                                        {matrixVariations.length > 0 && (
+                                            <div className="hint-matrix-quick">
+                                                <button
+                                                    type="button"
+                                                    className="hint-quick-roll-btn"
+                                                    onClick={() => {
+                                                        const randomIdx = Math.floor(Math.random() * matrixVariations.length);
+                                                        triggerCopy(matrixVariations[randomIdx], "quick-roll", "Variasi acak berhasil disalin!");
+                                                    }}
+                                                    title="Roll 1 random variation and copy"
+                                                >
+                                                    <Icons.Dice />
+                                                    <span>{copiedKey === "quick-roll" ? "Rolled & Copied!" : `Roll 1 of ${matrixVariations.length}`}</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="hint-quick-switch-btn"
+                                                    onClick={() => setViewMode("matrix")}
+                                                >
+                                                    Open Matrix →
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 </>
-                            ) : (
+                            )}
+
+                            {/* VIEW 2: INTERACTIVE TOKENIZER CHIPS */}
+                            {viewMode === "tokenizer" && (
                                 <>
+                                    <div className="tokenizer-toolbar-note">
+                                        <div className="tokenizer-note-left">
+                                            <span>Semantik:</span>
+                                            <span className="legend-chip quality">Quality</span>
+                                            <span className="legend-chip character">Subject</span>
+                                            <span className="legend-chip outfit">Outfit</span>
+                                            <span className="legend-chip scene">Scene</span>
+                                            <span className="legend-chip lighting">Lighting</span>
+                                            <span className="legend-chip lora">LoRA</span>
+                                        </div>
+
+                                        <div className="tokenizer-note-right">
+                                            <button
+                                                type="button"
+                                                className="tokenizer-action-btn"
+                                                onClick={handleSortTokensByCategory}
+                                                title="Urutkan tags secara teratur (Quality -> Subject -> Outfit -> Scenery)"
+                                            >
+                                                <Icons.Wand />
+                                                <span>Organize Order</span>
+                                            </button>
+                                            <span>Total: <strong>{tokens.length}</strong> tags</span>
+                                        </div>
+                                    </div>
+
                                     <div className="prompt-tokenizer-container">
                                         {tokens.length === 0 ? (
-                                            <span style={{ color: "#71717A", fontSize: "12px", fontStyle: "italic" }}>
-                                                Prompt is empty. Type tokens or switch to Text Editor.
-                                            </span>
+                                            <div className="tokenizer-empty-note">
+                                                Prompt kosong. Tulis prompt di tab Editor atau pilih preset dari sidebar.
+                                            </div>
                                         ) : (
                                             tokens.map((tokenStr, idx) => {
                                                 const { clean, weight, isWeighted } = parseTokenWeight(tokenStr);
                                                 const isSelected = selectedTokenIndex === idx;
+                                                const category = classifyTag(tokenStr);
 
                                                 return (
                                                     <span
                                                         key={`${idx}-${clean}`}
-                                                        className={`prompt-token-chip ${isSelected ? "active" : ""} ${isWeighted ? "weighted" : ""}`}
+                                                        className={`prompt-token-chip cat-${category} ${isSelected ? "active" : ""} ${isWeighted ? "weighted" : ""}`}
                                                         onClick={() => setSelectedTokenIndex(isSelected ? null : idx)}
                                                     >
-                                                        <span>{clean}</span>
+                                                        <span className="token-text">{clean}</span>
                                                         {isWeighted && (
                                                             <span className="prompt-token-weight-badge">
                                                                 {weight.toFixed(2)}x
@@ -933,7 +1607,22 @@ export const PromptLab: React.FC = () => {
                                         )}
                                     </div>
 
-                                    {/* Inline Weight Adjuster Bar */}
+                                    {/* Inline Add Token Input in Tokenizer */}
+                                    <form onSubmit={handleAddTokenInTokenizer} className="tokenizer-add-row">
+                                        <Icons.Plus />
+                                        <input
+                                            type="text"
+                                            className="tokenizer-add-input"
+                                            placeholder="Tambahkan tag baru lalu tekan Enter (misal: 1girl, smiling, cyberpunk jacket)..."
+                                            value={newTokenInput}
+                                            onChange={(e) => setNewTokenInput(e.target.value)}
+                                        />
+                                        <button type="submit" className="tokenizer-add-btn" disabled={!newTokenInput.trim()}>
+                                            Add Tag
+                                        </button>
+                                    </form>
+
+                                    {/* Inline Token Inspector Popover */}
                                     {selectedTokenIndex !== null && tokens[selectedTokenIndex] && (
                                         <div className="token-weight-popover">
                                             {(() => {
@@ -943,10 +1632,33 @@ export const PromptLab: React.FC = () => {
                                                 return (
                                                     <>
                                                         <div className="token-popover-header">
-                                                            <span>Token: <code>{clean}</code></span>
-                                                            <span style={{ color: "#818CF8", fontFamily: "ui-monospace, monospace" }}>
-                                                                Current Weight: {weight.toFixed(2)}x
-                                                            </span>
+                                                            <div className="token-popover-meta">
+                                                                <span>Token: <code>{clean}</code></span>
+                                                                <span className="token-popover-pos">Posisi: #{selectedTokenIndex + 1}/{tokens.length}</span>
+                                                            </div>
+
+                                                            <div className="token-popover-move-buttons">
+                                                                <button
+                                                                    type="button"
+                                                                    className="token-move-btn"
+                                                                    onClick={() => moveToken(selectedTokenIndex, "left")}
+                                                                    disabled={selectedTokenIndex === 0}
+                                                                    title="Pindahkan token ke kiri"
+                                                                >
+                                                                    <Icons.ArrowLeft />
+                                                                    <span>Geser Kiri</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="token-move-btn"
+                                                                    onClick={() => moveToken(selectedTokenIndex, "right")}
+                                                                    disabled={selectedTokenIndex === tokens.length - 1}
+                                                                    title="Pindahkan token ke kanan"
+                                                                >
+                                                                    <span>Geser Kanan</span>
+                                                                    <Icons.ArrowRight />
+                                                                </button>
+                                                            </div>
                                                         </div>
 
                                                         <div className="token-popover-slider-row">
@@ -959,8 +1671,8 @@ export const PromptLab: React.FC = () => {
                                                                 className="token-popover-slider"
                                                                 onChange={(e) => updateTokenWeight(selectedTokenIndex, parseFloat(e.target.value))}
                                                             />
-                                                            <span style={{ fontSize: "12px", fontFamily: "ui-monospace, monospace", color: "#C7D2FE", minWidth: "40px" }}>
-                                                                {weight.toFixed(2)}
+                                                            <span className="token-popover-number">
+                                                                {weight.toFixed(2)}x
                                                             </span>
                                                         </div>
 
@@ -968,30 +1680,37 @@ export const PromptLab: React.FC = () => {
                                                             <button
                                                                 type="button"
                                                                 className="token-stepper-btn"
-                                                                onClick={() => updateTokenWeight(selectedTokenIndex, weight - 0.1)}
+                                                                onClick={() => updateTokenWeight(selectedTokenIndex, weight - 0.05)}
                                                             >
-                                                                -0.10
+                                                                -0.05
                                                             </button>
                                                             <button
                                                                 type="button"
                                                                 className="token-stepper-btn"
-                                                                onClick={() => updateTokenWeight(selectedTokenIndex, weight + 0.1)}
+                                                                onClick={() => updateTokenWeight(selectedTokenIndex, weight + 0.05)}
                                                             >
-                                                                +0.10
+                                                                +0.05
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                className="token-stepper-btn"
+                                                                className="token-stepper-btn highlight"
                                                                 onClick={() => updateTokenWeight(selectedTokenIndex, 1.1)}
                                                             >
-                                                                ( + ) 1.1x
+                                                                (+) 1.1x
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                className="token-stepper-btn"
+                                                                className="token-stepper-btn highlight"
+                                                                onClick={() => updateTokenWeight(selectedTokenIndex, 1.2)}
+                                                            >
+                                                                (++) 1.2x
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="token-stepper-btn highlight"
                                                                 onClick={() => updateTokenWeight(selectedTokenIndex, 0.9)}
                                                             >
-                                                                [ - ] 0.9x
+                                                                [-] 0.9x
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -1002,11 +1721,10 @@ export const PromptLab: React.FC = () => {
                                                             </button>
                                                             <button
                                                                 type="button"
-                                                                className="token-stepper-btn"
-                                                                style={{ color: "#F87171", borderColor: "rgba(239, 68, 68, 0.3)" }}
+                                                                className="token-stepper-btn danger"
                                                                 onClick={() => removeToken(selectedTokenIndex)}
                                                             >
-                                                                Remove
+                                                                Hapus Token
                                                             </button>
                                                         </div>
                                                     </>
@@ -1016,11 +1734,86 @@ export const PromptLab: React.FC = () => {
                                     )}
                                 </>
                             )}
+
+                            {/* VIEW 3: INLINE WILDCARD MATRIX COMBINATOR */}
+                            {viewMode === "matrix" && (
+                                <div className="prompt-matrix-tab-view">
+                                    <div className="matrix-tab-header">
+                                        <div className="matrix-tab-title">
+                                            <Icons.Matrix />
+                                            <span>Combinatorial Variations</span>
+                                            <span className="matrix-count-badge">
+                                                {matrixVariations.length} Combinations
+                                            </span>
+                                        </div>
+
+                                        <div className="matrix-tab-actions">
+                                            <button
+                                                type="button"
+                                                className="prompt-btn-sm"
+                                                onClick={() => {
+                                                    if (matrixVariations.length === 0) return;
+                                                    const randomIndex = Math.floor(Math.random() * matrixVariations.length);
+                                                    triggerCopy(matrixVariations[randomIndex], "random-rolled-matrix", "Variasi acak berhasil disalin!");
+                                                }}
+                                                title="Pick and copy 1 random permutation"
+                                            >
+                                                <Icons.Dice />
+                                                <span>{copiedKey === "random-rolled-matrix" ? "Rolled & Copied!" : "Roll Random"}</span>
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                className="prompt-btn-sm"
+                                                onClick={() => triggerCopy(matrixVariations.join("\n"), "copy-all-vars", "Seluruh variasi berhasil disalin!")}
+                                                title="Copy all combinations separated by newlines"
+                                            >
+                                                <Icons.Copy />
+                                                <span>{copiedKey === "copy-all-vars" ? "All Copied!" : "Copy All"}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="matrix-permutations-list">
+                                        {matrixVariations.slice(0, 50).map((variant, idx) => (
+                                            <div key={idx} className="matrix-row-item">
+                                                <span className="matrix-row-index">#{idx + 1}</span>
+                                                <span className="matrix-row-text" title={variant}>
+                                                    {variant}
+                                                </span>
+                                                <div className="matrix-row-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="prompt-btn-sm"
+                                                        onClick={() => triggerCopy(variant, `matrix-item-${idx}`)}
+                                                        title="Copy this variation"
+                                                    >
+                                                        {copiedKey === `matrix-item-${idx}` ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === `matrix-item-${idx}` ? "Copied" : "Copy"}</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="prompt-btn-sm highlight"
+                                                        onClick={() => {
+                                                            setPositivePrompt(variant);
+                                                            setViewMode("editor");
+                                                            showToast(`Variasi #${idx + 1} dimuat ke Editor`);
+                                                        }}
+                                                        title="Load into positive editor"
+                                                    >
+                                                        Apply
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Negative Prompt Card (Unified directly below positive) */}
-                    <div className="prompt-canvas-card">
+                    {/* NEGATIVE PROMPT STUDIO CARD */}
+                    <div className="prompt-canvas-card negative-card">
                         <div className="prompt-canvas-header">
                             <div className="prompt-canvas-title-wrap">
                                 <span className="prompt-badge negative">Negative Prompt</span>
@@ -1028,30 +1821,51 @@ export const PromptLab: React.FC = () => {
                             </div>
 
                             <div className="prompt-canvas-actions">
-                                <div style={{ display: "flex", gap: "4px" }}>
+                                {/* Mode Selector: Replace vs Append */}
+                                <div className="neg-mode-selector">
+                                    <span className="neg-mode-label">Mode:</span>
                                     <button
                                         type="button"
-                                        className="prompt-btn-sm"
-                                        onClick={() => handleApplyArchitectureNegative("Illustrious")}
-                                        title="Load recommended Illustrious anime negative"
+                                        className={`neg-mode-toggle ${negativeInsertMode === "replace" ? "active" : ""}`}
+                                        onClick={() => setNegativeInsertMode("replace")}
+                                        title="Ganti total negative prompt saat memilih preset"
                                     >
-                                        Anime Neg
+                                        Replace
                                     </button>
                                     <button
                                         type="button"
-                                        className="prompt-btn-sm"
-                                        onClick={() => handleApplyArchitectureNegative("SDXL")}
-                                        title="Load recommended SDXL photorealistic negative"
+                                        className={`neg-mode-toggle ${negativeInsertMode === "append" ? "active" : ""}`}
+                                        onClick={() => setNegativeInsertMode("append")}
+                                        title="Gabungkan / sisipkan ke negative prompt yang ada"
                                     >
-                                        Real Neg
+                                        Append
                                     </button>
                                 </div>
+
+                                <span className="prompt-toolbar-divider" aria-hidden="true" />
+
+                                {/* Architecture Negative Quick Selectors */}
+                                <div className="negative-presets-group">
+                                    {(["Illustrious", "SDXL", "Pony", "Flux"] as const).map((arch) => (
+                                        <button
+                                            key={arch}
+                                            type="button"
+                                            className={`neg-quick-btn ${(activeCheckpoint?.base_model || "SDXL").toLowerCase() === arch.toLowerCase() ? "recommended" : ""}`}
+                                            onClick={() => handleApplyArchitectureNegative(arch)}
+                                            title={`Muat recommended ${arch} negative prompt (${negativeInsertMode})`}
+                                        >
+                                            {NEGATIVE_PRESET_LABELS[arch]}
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <span className="prompt-toolbar-divider" aria-hidden="true" />
 
                                 <button
                                     type="button"
                                     className="prompt-btn-sm"
                                     onClick={() => setNegativePrompt(cleanPromptText(negativePrompt))}
-                                    title="Clean commas and spaces"
+                                    title="Format commas and extra spaces"
                                 >
                                     <Icons.Clean />
                                     <span>Clean</span>
@@ -1060,7 +1874,7 @@ export const PromptLab: React.FC = () => {
                                 <button
                                     type="button"
                                     className="prompt-btn-sm"
-                                    onClick={() => triggerCopy(negativePrompt, "copy-negative")}
+                                    onClick={() => triggerCopy(negativePrompt, "copy-negative", "Negative prompt disalin!")}
                                     title="Copy negative prompt"
                                 >
                                     {copiedKey === "copy-negative" ? <Icons.Check /> : <Icons.Copy />}
@@ -1081,765 +1895,770 @@ export const PromptLab: React.FC = () => {
                         <div className="prompt-canvas-body">
                             <textarea
                                 className="prompt-textarea"
-                                rows={3}
+                                rows={4}
                                 value={negativePrompt}
                                 onChange={(e) => setNegativePrompt(e.target.value)}
-                                placeholder="e.g. worst quality, low quality, bad anatomy, blurry..."
+                                placeholder="e.g. worst quality, low quality, bad anatomy, bad hands, blurry..."
                             />
 
-                            {/* Quick Negative Tag Chips */}
-                            <div className="quick-neg-tags">
-                                {STANDARD_NEGATIVE_TAGS.map((tag) => {
-                                    const isActive = negativePrompt.toLowerCase().includes(tag.toLowerCase());
-                                    return (
-                                        <button
-                                            key={tag}
-                                            type="button"
-                                            className={`quick-neg-tag-chip ${isActive ? "active" : ""}`}
-                                            onClick={() => toggleNegativeTag(tag)}
-                                        >
-                                            {isActive ? "✕ " : "+ "}
-                                            {tag}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Combinatorial Matrix Card */}
-                    {matrixVariations.length > 0 && (
-                        <div className="prompt-matrix-card">
-                            <div className="prompt-matrix-header">
-                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                    <Icons.Matrix />
-                                    <span style={{ fontSize: "13px", fontWeight: 700, color: "#FFFFFF" }}>
-                                        Wildcard Matrix Combinator
-                                    </span>
-                                    <span className="matrix-count-badge">
-                                        {matrixVariations.length} Combinations
-                                    </span>
-                                </div>
-
-                                <div style={{ display: "flex", gap: "6px" }}>
-                                    <button
-                                        type="button"
-                                        className="prompt-btn-sm"
-                                        onClick={() => {
-                                            if (matrixVariations.length === 0) return;
-                                            const randomIndex = Math.floor(Math.random() * matrixVariations.length);
-                                            triggerCopy(matrixVariations[randomIndex], "random-rolled");
-                                        }}
-                                        title="Pick and copy 1 random permutation"
-                                    >
-                                        <Icons.Dice />
-                                        <span>{copiedKey === "random-rolled" ? "Rolled & Copied!" : "Roll Random"}</span>
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        className="prompt-btn-sm"
-                                        onClick={() => triggerCopy(matrixVariations.join("\n"), "copy-all-variations")}
-                                        title="Copy all combinations separated by newlines"
-                                    >
-                                        <Icons.Copy />
-                                        <span>{copiedKey === "copy-all-variations" ? "All Copied!" : "Copy All Permutations"}</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="matrix-permutations-list">
-                                {matrixVariations.slice(0, 50).map((variant, idx) => (
-                                    <div key={idx} className="matrix-row-item">
-                                        <span className="matrix-row-index">#{idx + 1}</span>
-                                        <span className="matrix-row-text" title={variant}>
-                                            {variant}
-                                        </span>
-                                        <div className="matrix-row-actions">
-                                            <button
-                                                type="button"
-                                                className="prompt-btn-sm"
-                                                style={{ fontSize: "10px", padding: "2px 7px" }}
-                                                onClick={() => triggerCopy(variant, `matrix-copy-${idx}`)}
-                                                title="Copy prompt"
-                                            >
-                                                {copiedKey === `matrix-copy-${idx}` ? <Icons.Check /> : <Icons.Copy />}
-                                                <span>{copiedKey === `matrix-copy-${idx}` ? "Copied" : "Copy"}</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="prompt-btn-sm"
-                                                style={{ fontSize: "10px", padding: "2px 7px" }}
-                                                onClick={() => setPositivePrompt(variant)}
-                                                title="Load this variation into positive prompt"
-                                            >
-                                                Use
-                                            </button>
+                            {/* Categorized Quick Negative Exclusion Pills Cloud */}
+                            <div className="quick-neg-groups-wrap">
+                                {CATEGORIZED_NEGATIVE_TAGS.map((grp) => (
+                                    <div key={grp.category} className="quick-neg-group">
+                                        <span className="quick-neg-label">{grp.category}:</span>
+                                        <div className="quick-neg-chips">
+                                            {grp.tags.map((tag) => {
+                                                const isActive = negativePrompt.toLowerCase().includes(tag.toLowerCase());
+                                                return (
+                                                    <button
+                                                        key={tag}
+                                                        type="button"
+                                                        className={`quick-neg-tag-chip ${isActive ? "active" : ""}`}
+                                                        onClick={() => toggleNegativeTag(tag)}
+                                                        title={isActive ? `Hapus "${tag}" dari negative prompt` : `Tambahkan "${tag}" ke negative prompt`}
+                                                    >
+                                                        <span className="chip-symbol">{isActive ? "✕" : "+"}</span>
+                                                        <span>{tag}</span>
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
 
-                {/* Right Column: Presets Library, Compatible LoRAs & Building Blocks */}
-                <div className="prompt-sidebar-col">
-                    {/* Navigation Tabs */}
-                    <div className="prompt-sidebar-nav">
-                        <button
-                            type="button"
-                            className={`sidebar-tab-btn ${sidebarTab === "presets" ? "active" : ""}`}
-                            onClick={() => setSidebarTab("presets")}
-                        >
-                            <Icons.Bookmark />
-                            <span>Presets ({presets.length})</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={`sidebar-tab-btn ${sidebarTab === "catalog" ? "active" : ""}`}
-                            onClick={() => setSidebarTab("catalog")}
-                        >
-                            <Icons.Layers />
-                            <span>Compatible LoRAs</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={`sidebar-tab-btn ${sidebarTab === "modular" ? "active" : ""}`}
-                            onClick={() => setSidebarTab("modular")}
-                        >
-                            <Icons.Tag />
-                            <span>Building Blocks</span>
-                        </button>
-                    </div>
+                {/* Right Column: Dockable Library & Resource Explorer */}
+                {!isSidebarCollapsed && (
+                    <div className="prompt-sidebar-col">
+                        {/* Navigation Tabs */}
+                        <div className="prompt-sidebar-nav">
+                            <button
+                                type="button"
+                                className={`sidebar-tab-btn ${sidebarTab === "presets" ? "active" : ""}`}
+                                onClick={() => setSidebarTab("presets")}
+                            >
+                                <Icons.Bookmark />
+                                <span>Presets</span>
+                                <span className="sidebar-tab-count">{presets.length}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`sidebar-tab-btn ${sidebarTab === "catalog" ? "active" : ""}`}
+                                onClick={() => setSidebarTab("catalog")}
+                            >
+                                <Icons.Layers />
+                                <span>LoRA Matcher</span>
+                                <span className="sidebar-tab-count">{compatibleLoras.length}</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`sidebar-tab-btn ${sidebarTab === "modular" ? "active" : ""}`}
+                                onClick={() => setSidebarTab("modular")}
+                            >
+                                <Icons.Tag />
+                                <span>Blocks</span>
+                                <span className="sidebar-tab-count">{modularPresets.length}</span>
+                            </button>
+                        </div>
 
-                    {/* Tab Content */}
-                    <div className="prompt-sidebar-content">
-                        {/* TAB 1: PRESET BROWSER */}
-                        {sidebarTab === "presets" && (
-                            <>
-                                {/* Category Filter Pills */}
-                                <div className="prompt-category-nav">
-                                    {[
-                                        { id: "all", label: "All" },
-                                        { id: "character", label: "Characters" },
-                                        { id: "photorealistic", label: "Realism" },
-                                        { id: "style", label: "Styles" },
-                                        { id: "modular", label: "Snippets" },
-                                    ].map((cat) => (
-                                        <button
-                                            key={cat.id}
-                                            type="button"
-                                            className={`prompt-cat-chip ${presetCategoryFilter === cat.id ? "active" : ""}`}
-                                            onClick={() => setPresetCategoryFilter(cat.id)}
+                        {/* Tab Content Area */}
+                        <div className="prompt-sidebar-content">
+                            {/* TAB 1: PRESET BROWSER */}
+                            {sidebarTab === "presets" && (
+                                <>
+                                    {/* Category Filter Pills (Anime vs Realistic) */}
+                                    <div className="prompt-category-nav">
+                                        {PRESET_CATEGORIES.map((cat) => (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                className={`prompt-cat-chip ${presetCategoryFilter === cat.id ? "active" : ""}`}
+                                                onClick={() => setPresetCategoryFilter(cat.id)}
+                                            >
+                                                <span>{cat.id === "anime" ? "🌸" : "📷"}</span>
+                                                <span>{cat.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Architecture Filter, Sort & Search Bar */}
+                                    <div className="preset-search-filter-bar">
+                                        <div className="preset-search-input-wrap">
+                                            <Icons.Search />
+                                            <input
+                                                type="text"
+                                                className="preset-search-input"
+                                                placeholder="Cari judul, karakter, trigger..."
+                                                value={presetSearch}
+                                                onChange={(e) => setPresetSearch(e.target.value)}
+                                            />
+                                            {presetSearch && (
+                                                <button
+                                                    type="button"
+                                                    className="preset-search-clear"
+                                                    onClick={() => setPresetSearch("")}
+                                                    title="Clear search"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <select
+                                            className="preset-arch-select"
+                                            value={presetBaseModelFilter}
+                                            onChange={(e) => setPresetBaseModelFilter(e.target.value)}
                                         >
-                                            {cat.label}
+                                            <option value="all">All Archs</option>
+                                            <option value="Illustrious">Illustrious</option>
+                                            <option value="SDXL">SDXL</option>
+                                            <option value="Pony">Pony</option>
+                                        </select>
+
+                                        <select
+                                            className="preset-arch-select"
+                                            value={presetSort}
+                                            onChange={(e) => setPresetSort(e.target.value as "favorites" | "newest" | "alpha")}
+                                            title="Urutkan preset"
+                                        >
+                                            <option value="favorites">⭐ Favorites First</option>
+                                            <option value="newest">Newest</option>
+                                            <option value="alpha">A-Z Title</option>
+                                        </select>
+
+                                        <button
+                                            type="button"
+                                            className="preset-new-btn"
+                                            onClick={handleOpenCreatePreset}
+                                            title="Buat preset baru dari canvas saat ini"
+                                        >
+                                            <Icons.Plus />
+                                            <span>New</span>
                                         </button>
-                                    ))}
-                                </div>
-
-                                {/* Architecture Filter & Search */}
-                                <div className="catalog-search-row">
-                                    <input
-                                        type="text"
-                                        className="catalog-search-input"
-                                        placeholder="Cari judul, karakter, trigger..."
-                                        value={presetSearch}
-                                        onChange={(e) => setPresetSearch(e.target.value)}
-                                    />
-                                    <select
-                                        style={{ background: "#0E1013", border: "1px solid rgba(255,255,255,0.08)", color: "#C7D2FE", fontSize: "11px", borderRadius: "6px", padding: "0 6px" }}
-                                        value={presetBaseModelFilter}
-                                        onChange={(e) => setPresetBaseModelFilter(e.target.value)}
-                                    >
-                                        <option value="all">All Models</option>
-                                        <option value="Illustrious">Illustrious</option>
-                                        <option value="SDXL">SDXL</option>
-                                        <option value="Pony">Pony</option>
-                                    </select>
-                                    <button
-                                        type="button"
-                                        className="prompt-btn-primary"
-                                        style={{ fontSize: "11px", padding: "4px 8px", whiteSpace: "nowrap" }}
-                                        onClick={handleOpenCreatePreset}
-                                        title="Buat preset baru dari canvas saat ini"
-                                    >
-                                        <Icons.Plus />
-                                        <span>New</span>
-                                    </button>
-                                </div>
-
-                                {presetsLoading ? (
-                                    <div style={{ textAlign: "center", color: "#71717A", fontSize: "12px", padding: "20px" }}>
-                                        Loading preset catalog...
                                     </div>
-                                ) : presets.length === 0 ? (
-                                    <div style={{ textAlign: "center", color: "#71717A", fontSize: "12px", padding: "20px" }}>
-                                        No presets found. Try clearing filters or saving a new one.
-                                    </div>
-                                ) : (
-                                    presets.map((preset) => {
-                                        const sampleImgs = parseSampleImages(preset.sample_images);
 
-                                        return (
-                                            <div key={preset.id} className="preset-item-card">
-                                                <div className="preset-item-title">
-                                                    <div className="preset-title-left">
-                                                        <span className="preset-title-text" title={preset.title}>
-                                                            {preset.title}
-                                                        </span>
-                                                        {preset.subcategory && (
-                                                            <span className="preset-sub-badge">
-                                                                {preset.subcategory}
+                                    {presetsLoading ? (
+                                        <div className="preset-empty-state">
+                                            <div className="preset-empty-icon">
+                                                <Icons.Bookmark />
+                                            </div>
+                                            <div className="preset-empty-title">Memuat Katalog Preset...</div>
+                                        </div>
+                                    ) : displayPresets.length === 0 ? (
+                                        <div className="preset-empty-state">
+                                            <div className="preset-empty-icon">
+                                                <Icons.Bookmark />
+                                            </div>
+                                            <div className="preset-empty-title">Tidak ada preset ditemukan</div>
+                                            <div className="preset-empty-desc">
+                                                {presetCategoryFilter === "favorites"
+                                                    ? "Belum ada preset yang difavoritkan. Klik ikon bintang ⭐ pada kartu preset untuk menyematkannya."
+                                                    : presetSearch || presetBaseModelFilter !== "all" || presetCategoryFilter !== "all"
+                                                    ? "Coba reset filter arsitektur atau kata kunci pencarian Anda."
+                                                    : "Belum ada preset tersimpan di database."}
+                                            </div>
+                                            {(presetSearch || presetBaseModelFilter !== "all" || presetCategoryFilter !== "anime") && (
+                                                <button
+                                                    type="button"
+                                                    className="preset-empty-reset-btn"
+                                                    onClick={() => {
+                                                        setPresetSearch("");
+                                                        setPresetBaseModelFilter("all");
+                                                        setPresetCategoryFilter("anime");
+                                                    }}
+                                                >
+                                                    Reset Filter
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        displayPresets.map((preset) => {
+                                            const sampleImgs = parseSampleImages(preset.sample_images);
+                                            const isFav = favoritePresetIds.includes(preset.id);
+
+                                            return (
+                                                <div key={preset.id} className={`preset-item-card ${isFav ? "favorited" : ""}`}>
+                                                    <div className="preset-item-title">
+                                                        <div className="preset-title-left">
+                                                            <button
+                                                                type="button"
+                                                                className={`preset-fav-btn ${isFav ? "active" : ""}`}
+                                                                onClick={(e) => toggleFavoritePreset(preset.id, e)}
+                                                                title={isFav ? "Hapus dari favorit" : "Sematkan ke favorit ⭐"}
+                                                            >
+                                                                <Icons.Star filled={isFav} />
+                                                            </button>
+
+                                                            <span className="preset-title-text" title={preset.title}>
+                                                                {preset.title}
                                                             </span>
+                                                            {preset.subcategory && (
+                                                                <span className="preset-sub-badge" title={preset.subcategory}>
+                                                                    {preset.subcategory}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="preset-header-actions">
+                                                            <span className={`preset-base-badge ${(preset.base_model_target || "sdxl").toLowerCase()}`}>
+                                                                {preset.base_model_target || "All"}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                className="preset-card-tool-btn edit"
+                                                                onClick={(e) => handleOpenEditPreset(preset, e)}
+                                                                title="Edit preset (Judul, Prompt, Foto Sample)"
+                                                            >
+                                                                <Icons.Edit />
+                                                                <span>Edit</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                className="preset-card-tool-btn delete"
+                                                                onClick={(e) => handleDeletePreset(preset.id, preset.title, e)}
+                                                                title="Hapus preset dari database"
+                                                            >
+                                                                <Icons.Trash />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Sample Thumbnails Carousel */}
+                                                    {sampleImgs.length > 0 && (
+                                                        <div className={`preset-sample-strip count-${Math.min(sampleImgs.length, 5)}`}>
+                                                            {sampleImgs.slice(0, 5).map((imgUrl, sIdx) => (
+                                                                <div
+                                                                    key={sIdx}
+                                                                    className="preset-sample-thumb"
+                                                                    onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: preset.title })}
+                                                                    title="Klik untuk zoom preview"
+                                                                >
+                                                                    <img src={resolveImageUrl(imgUrl)} alt={`Sample ${sIdx + 1}`} loading="lazy" />
+                                                                    <span className="sample-thumb-badge">#{sIdx + 1}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Trigger words if present */}
+                                                    {preset.trigger_words && (
+                                                        <div
+                                                            className="preset-triggers-pill-row"
+                                                            onClick={() => handleAppendPositive(preset.trigger_words || "")}
+                                                            title="Klik untuk sisipkan trigger words ke positive prompt"
+                                                        >
+                                                            <span className="preset-triggers-label">TRIGGERS:</span>
+                                                            <span className="preset-triggers-content">
+                                                                {preset.trigger_words}
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="preset-item-snippet" title={preset.positive_prompt}>
+                                                        <span className="preset-snippet-label positive">POS</span>
+                                                        {preset.positive_prompt}
+                                                    </div>
+
+                                                    {preset.negative_prompt && (
+                                                        <div className="preset-item-snippet negative" title={preset.negative_prompt}>
+                                                            <span className="preset-snippet-label negative">NEG</span>
+                                                            {preset.negative_prompt}
+                                                        </div>
+                                                    )}
+
+                                                    {/* Action Buttons */}
+                                                    <div className="preset-item-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="preset-apply-btn"
+                                                            onClick={() => handleApplyPreset(preset)}
+                                                            title="Terapkan positive & negative prompt ke canvas"
+                                                        >
+                                                            <Icons.Sparkle />
+                                                            <span>Apply Full Preset</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="preset-append-btn"
+                                                            onClick={() => handleAppendPositive(preset.positive_prompt)}
+                                                            title="Sisipkan prompt ke positive canvas"
+                                                        >
+                                                            <Icons.Plus />
+                                                            <span>Append</span>
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            className="preset-copy-btn"
+                                                            onClick={() => triggerCopy(preset.positive_prompt, `preset-copy-${preset.id}`, "Prompt preset disalin!")}
+                                                            title="Salin positive prompt ke clipboard tanpa menimpa canvas"
+                                                        >
+                                                            {copiedKey === `preset-copy-${preset.id}` ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === `preset-copy-${preset.id}` ? "Copied" : "Copy"}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </>
+                            )}
+
+                            {/* TAB 2: COMPATIBLE LORAS */}
+                            {sidebarTab === "catalog" && (
+                                <>
+                                    {/* LoRA Compatibility Banner */}
+                                    <div className="lora-compat-banner">
+                                        <div className="lora-compat-header">
+                                            <span>Target Checkpoint Architecture</span>
+                                            <span className="lora-compat-badge match">
+                                                {activeCheckpoint?.base_model || "SDXL"} Compatible
+                                            </span>
+                                        </div>
+                                        <p className="lora-compat-desc">
+                                            Menyaring koleksi LoRA yang kompatibel dengan <strong>{activeCheckpoint?.name || "checkpoint aktif"}</strong> untuk mencegah mismatch arsitektur.
+                                        </p>
+                                    </div>
+
+                                    {/* Search LoRA */}
+                                    <div className="lora-search-bar">
+                                        <Icons.Search />
+                                        <input
+                                            type="text"
+                                            className="lora-search-input"
+                                            placeholder="Cari LoRA (nama atau slug)..."
+                                            value={loraSearch}
+                                            onChange={(e) => setLoraSearch(e.target.value)}
+                                        />
+                                        {loraSearch && (
+                                            <button type="button" className="preset-search-clear" onClick={() => setLoraSearch("")}>
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Insert Weight Stepper */}
+                                    <div className="lora-weight-row">
+                                        <span className="lora-weight-label">LoRA Insert Weight:</span>
+                                        <div className="lora-weight-controls">
+                                            <input
+                                                type="range"
+                                                min="0.3"
+                                                max="1.5"
+                                                step="0.05"
+                                                value={loraInsertWeight}
+                                                onChange={(e) => setLoraInsertWeight(parseFloat(e.target.value))}
+                                                className="lora-weight-slider"
+                                            />
+                                            <strong className="lora-weight-val">
+                                                {loraInsertWeight.toFixed(2)}
+                                            </strong>
+                                        </div>
+                                        <div className="lora-quick-weights">
+                                            {[0.6, 0.8, 1.0, 1.2].map((w) => (
+                                                <button
+                                                    key={w}
+                                                    type="button"
+                                                    className={`lora-quick-w-btn ${loraInsertWeight === w ? "active" : ""}`}
+                                                    onClick={() => setLoraInsertWeight(w)}
+                                                >
+                                                    {w.toFixed(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {catalogLoading ? (
+                                        <div className="catalog-loading-state">
+                                            Memuat katalog LoRA...
+                                        </div>
+                                    ) : compatibleLoras.length === 0 ? (
+                                        <div className="catalog-empty-state">
+                                            Tidak ditemukan LoRA untuk arsitektur {activeCheckpoint?.base_model || "SDXL"}.
+                                        </div>
+                                    ) : (
+                                        compatibleLoras.map((lora) => {
+                                            const triggers = lora.trigger_words || [];
+                                            const activeInPrompt = isLoraInPrompt(lora);
+
+                                            return (
+                                                <div key={lora.id} className={`catalog-item-card ${activeInPrompt ? "in-prompt" : ""}`}>
+                                                    <div className="catalog-item-top">
+                                                        <div className="catalog-item-title-wrap">
+                                                            <span className="catalog-item-name" title={lora.name}>
+                                                                {lora.name}
+                                                            </span>
+                                                            {activeInPrompt && (
+                                                                <span className="lora-in-prompt-badge">
+                                                                    <span className="badge-dot" />
+                                                                    Active In Prompt
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="catalog-item-badge lora">
+                                                            {lora.base_model || "LoRA"}
+                                                        </span>
+                                                    </div>
+
+                                                    <div className="catalog-item-btn-row">
+                                                        <button
+                                                            type="button"
+                                                            className="catalog-insert-btn"
+                                                            onClick={() => handleInsertLoRA(lora)}
+                                                            title={`Insert <lora:${lora.slug}:${loraInsertWeight.toFixed(2)}>`}
+                                                        >
+                                                            <Icons.Plus />
+                                                            <span>Sisipkan &lt;lora:{loraInsertWeight.toFixed(2)}&gt;</span>
+                                                        </button>
+
+                                                        {activeInPrompt && (
+                                                            <button
+                                                                type="button"
+                                                                className="catalog-remove-btn"
+                                                                onClick={() => handleRemoveLoRA(lora)}
+                                                                title="Hapus LoRA ini dari positive prompt"
+                                                            >
+                                                                <Icons.Trash />
+                                                                <span>Hapus</span>
+                                                            </button>
                                                         )}
                                                     </div>
-                                                    <div className="preset-header-actions">
-                                                        <span className={`preset-base-badge ${(preset.base_model_target || "sdxl").toLowerCase()}`}>
-                                                            {preset.base_model_target || "All"}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            className="preset-card-tool-btn edit"
-                                                            onClick={(e) => handleOpenEditPreset(preset, e)}
-                                                            title="Edit preset (Judul, Prompt, Foto Sample)"
-                                                        >
-                                                            <Icons.Edit />
-                                                            <span>Edit</span>
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="preset-card-tool-btn delete"
-                                                            onClick={(e) => handleDeletePreset(preset.id, preset.title, e)}
-                                                            title="Hapus preset dari database"
-                                                        >
-                                                            <Icons.Trash />
-                                                        </button>
-                                                    </div>
+
+                                                    {triggers.length > 0 && (
+                                                        <div className="catalog-triggers-box">
+                                                            {triggers.map((tw) => (
+                                                                <span
+                                                                    key={tw.id}
+                                                                    className="catalog-trigger-pill"
+                                                                    onClick={() => handleAppendPositive(tw.trigger_word)}
+                                                                    title="Klik untuk menyisipkan trigger word"
+                                                                >
+                                                                    +{tw.trigger_word}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
+                                            );
+                                        })
+                                    )}
+                                </>
+                            )}
 
-                                                {/* Up to 5 small sample thumbnails */}
-                                                {sampleImgs.length > 0 && (
-                                                    <div className="preset-sample-strip">
-                                                        {sampleImgs.slice(0, 5).map((imgUrl, sIdx) => (
-                                                            <div
-                                                                key={sIdx}
-                                                                className="preset-sample-thumb"
-                                                                onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: preset.title })}
-                                                                title="Klik untuk zoom preview"
-                                                            >
-                                                                <img src={resolveImageUrl(imgUrl)} alt={`Sample ${sIdx + 1}`} loading="lazy" />
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-
-                                                {/* Trigger words if present */}
-                                                {preset.trigger_words && (
-                                                    <div style={{ fontSize: "11px", color: "#818CF8", fontFamily: "monospace", display: "flex", gap: "4px", alignItems: "baseline" }}>
-                                                        <span style={{ color: "#64748B", fontSize: "10px" }}>Triggers:</span>
-                                                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                                            {preset.trigger_words}
-                                                        </span>
-                                                    </div>
-                                                )}
-
-                                                <div className="preset-item-snippet" title={preset.positive_prompt}>
-                                                    <span className="preset-snippet-label positive">POS</span>
-                                                    {preset.positive_prompt}
-                                                </div>
-
-                                                {preset.negative_prompt && (
-                                                    <div className="preset-item-snippet negative" title={preset.negative_prompt}>
-                                                        <span className="preset-snippet-label negative">NEG</span>
-                                                        {preset.negative_prompt}
-                                                    </div>
-                                                )}
-
-                                                {/* Action Buttons */}
-                                                <div className="preset-item-actions">
-                                                    <button
-                                                        type="button"
-                                                        className="prompt-btn-primary"
-                                                        style={{ fontSize: "11px", padding: "4px 10px" }}
-                                                        onClick={() => handleApplyPreset(preset)}
-                                                        title="Terapkan positive & negative prompt ke canvas"
-                                                    >
-                                                        <Icons.Sparkle />
-                                                        <span>Apply Full Preset</span>
-                                                    </button>
-
-                                                    <button
-                                                        type="button"
-                                                        className="prompt-btn-sm"
-                                                        style={{ fontSize: "11px", padding: "4px 10px" }}
-                                                        onClick={() => handleAppendPositive(preset.positive_prompt)}
-                                                        title="Sisipkan prompt ke positive canvas"
-                                                    >
-                                                        <Icons.Plus />
-                                                        <span>Append</span>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </>
-                        )}
-
-                        {/* TAB 2: COMPATIBLE LORAS */}
-                        {sidebarTab === "catalog" && (
-                            <>
-                                {/* LoRA Compatibility Banner */}
-                                <div className="lora-compat-banner">
-                                    <div className="lora-compat-header">
-                                        <span>Active Checkpoint Architecture</span>
-                                        <span className="lora-compat-badge match">
-                                            {activeCheckpoint?.base_model || "SDXL"} Compatible
-                                        </span>
-                                    </div>
-                                    <p style={{ margin: 0, fontSize: "11px", color: "#8E95A2", lineHeight: "1.4" }}>
-                                        Filtering catalog LoRAs matching <strong>{activeCheckpoint?.name || "your active model"}</strong> to prevent cross-architecture baking bugs.
-                                    </p>
-                                </div>
-
-                                {/* Default Weight Stepper */}
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "#16181D", padding: "6px 10px", borderRadius: "6px", fontSize: "11px" }}>
-                                    <span style={{ color: "#9CA3AF" }}>LoRA Insert Weight:</span>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                        <input
-                                            type="range"
-                                            min="0.3"
-                                            max="1.5"
-                                            step="0.05"
-                                            value={loraInsertWeight}
-                                            onChange={(e) => setLoraInsertWeight(parseFloat(e.target.value))}
-                                            style={{ width: "80px", accentColor: "#818CF8" }}
-                                        />
-                                        <strong style={{ color: "#C7D2FE", fontFamily: "ui-monospace, monospace" }}>
-                                            {loraInsertWeight.toFixed(2)}
-                                        </strong>
-                                    </div>
-                                </div>
-
-                                {catalogLoading ? (
-                                    <div style={{ textAlign: "center", color: "#71717A", fontSize: "12px", padding: "20px" }}>
-                                        Loading catalog LoRAs...
-                                    </div>
-                                ) : compatibleLoras.length === 0 ? (
-                                    <div style={{ textAlign: "center", color: "#71717A", fontSize: "12px", padding: "20px" }}>
-                                        No compatible LoRAs found for architecture {activeCheckpoint?.base_model || "SDXL"}.
-                                    </div>
-                                ) : (
-                                    compatibleLoras.map((lora) => {
-                                        const triggers = lora.trigger_words || [];
-
-                                        return (
-                                            <div key={lora.id} className="catalog-item-card">
-                                                <div className="catalog-item-top">
-                                                    <span className="catalog-item-name" title={lora.name}>
-                                                        {lora.name}
-                                                    </span>
-                                                    <span className="catalog-item-badge lora">
-                                                        {lora.base_model || "LoRA"}
-                                                    </span>
-                                                </div>
-
-                                                <div style={{ display: "flex", gap: "6px", marginTop: "2px" }}>
-                                                    <button
-                                                        type="button"
-                                                        className="prompt-btn-sm"
-                                                        style={{ fontSize: "11px", padding: "2px 8px", color: "#FACC15", borderColor: "rgba(234, 179, 8, 0.3)" }}
-                                                        onClick={() => handleInsertLoRA(lora)}
-                                                        title={`Insert <lora:${lora.slug}:${loraInsertWeight.toFixed(2)}>`}
-                                                    >
-                                                        <Icons.Plus />
-                                                        <span>Insert &lt;lora:{loraInsertWeight.toFixed(2)}&gt;</span>
-                                                    </button>
-                                                </div>
-
-                                                {triggers.length > 0 && (
-                                                    <div className="catalog-triggers-box">
-                                                        {triggers.map((tw) => (
-                                                            <span
-                                                                key={tw.id}
-                                                                className="catalog-trigger-pill"
-                                                                onClick={() => handleAppendPositive(tw.trigger_word)}
-                                                                title="Click to insert trigger"
-                                                            >
-                                                                +{tw.trigger_word}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </>
-                        )}
-
-                        {/* TAB 3: MODULAR BUILDING BLOCKS */}
-                        {sidebarTab === "modular" && (
-                            <>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "8px", background: "#14171C", padding: "8px 12px", borderRadius: "6px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <div style={{ fontSize: "11px", color: "#9CA3AF", lineHeight: "1.3" }}>
-                                        Click any token to append. Custom outfit/tokens saved to database appear here.
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="modular-add-btn"
-                                        onClick={() => {
-                                            setModularCategory("Outfit");
-                                            setIsAddModularModalOpen(true);
-                                        }}
-                                        title="Add new outfit or custom building block to database"
-                                    >
-                                        <Icons.Plus />
-                                        <span>Add Token</span>
-                                    </button>
-                                </div>
-
-                                {/* Fashion & Clothing */}
-                                <div style={{ background: "#16181D", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <div className="modular-section-header">
-                                        <span>Outfits & Clothing</span>
+                            {/* TAB 3: MODULAR BUILDING BLOCKS */}
+                            {sidebarTab === "modular" && (
+                                <>
+                                    <div className="modular-top-banner">
+                                        <div className="modular-banner-text">
+                                            Klik tag untuk menyisipkan ke prompt. Token kustom disimpan permanen di database.
+                                        </div>
                                         <button
                                             type="button"
-                                            className="modular-add-btn"
-                                            style={{ fontSize: "10px", padding: "2px 6px" }}
+                                            className="modular-banner-add-btn"
                                             onClick={() => {
                                                 setModularCategory("Outfit");
                                                 setIsAddModularModalOpen(true);
                                             }}
+                                            title="Tambah building block atau outfit kustom"
                                         >
                                             <Icons.Plus />
-                                            <span>Add Outfit</span>
+                                            <span>Tambah Token</span>
                                         </button>
                                     </div>
-                                    <div className="modular-pill-group">
-                                        {/* Built-in defaults */}
-                                        {["school uniform", "black blazer", "gothic lolita dress", "cyberpunk techwear jacket", "oversized hoodie", "flowing kimono", "plugsuit", "maid outfit", "plate armor", "off-shoulder sweater", "sundress", "bodysuit"].map((tag) => (
-                                            <span
-                                                key={tag}
-                                                className="modular-token-pill"
-                                                onClick={() => handleAppendPositive(tag)}
-                                                title={`Insert: ${tag}`}
-                                            >
-                                                +{tag}
-                                            </span>
-                                        ))}
 
-                                        {/* Dynamic DB Custom Outfits */}
-                                        {modularPresets
-                                            .filter((p) => ["outfit", "clothing", "fashion", "wear"].includes((p.subcategory || "").toLowerCase()) || p.category === "outfit")
-                                            .map((p) => {
-                                                const samples = parseSampleImages(p.sample_images);
-                                                return (
-                                                    <span
-                                                        key={p.id}
-                                                        className="modular-token-pill custom-token"
-                                                        onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                        title={`Custom DB Token: ${p.positive_prompt}`}
+                                    {/* Search Blocks */}
+                                    <div className="modular-search-bar">
+                                        <Icons.Search />
+                                        <input
+                                            type="text"
+                                            className="modular-search-input"
+                                            placeholder="Cari token building blocks..."
+                                            value={blockSearch}
+                                            onChange={(e) => setBlockSearch(e.target.value)}
+                                        />
+                                        {blockSearch && (
+                                            <button type="button" className="preset-search-clear" onClick={() => setBlockSearch("")}>
+                                                ✕
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Data-Driven Modular Categories */}
+                                    {BLOCK_GROUPS.map((group) => {
+                                        const customTokens = modularPresets.filter((p) => {
+                                            const sub = (p.subcategory || "").toLowerCase();
+                                            return group.match.includes(sub) || (group.matchCategory && p.category === group.matchCategory);
+                                        });
+
+                                        const filterTerm = blockSearch.toLowerCase().trim();
+                                        const filteredDefaults = filterTerm
+                                            ? group.defaults.filter((t) => t.toLowerCase().includes(filterTerm))
+                                            : group.defaults;
+                                        const filteredCustom = filterTerm
+                                            ? customTokens.filter((p) => (p.title || "").toLowerCase().includes(filterTerm) || p.positive_prompt.toLowerCase().includes(filterTerm))
+                                            : customTokens;
+
+                                        if (filterTerm && filteredDefaults.length === 0 && filteredCustom.length === 0) {
+                                            return null;
+                                        }
+
+                                        return (
+                                            <div key={group.key} className="modular-group-card">
+                                                <div className="modular-section-header">
+                                                    <span>{group.label}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="modular-add-btn"
+                                                        onClick={() => {
+                                                            setModularCategory(group.modalCategory);
+                                                            setIsAddModularModalOpen(true);
+                                                        }}
                                                     >
-                                                        +{p.title || p.positive_prompt}
-                                                        {samples.length > 0 && (
+                                                        <Icons.Plus />
+                                                        <span>Tambah</span>
+                                                    </button>
+                                                </div>
+
+                                                <div className="modular-pill-group">
+                                                    {/* Built-in default tags */}
+                                                    {filteredDefaults.map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="modular-token-pill"
+                                                            onClick={() => handleAppendPositive(tag)}
+                                                            title={`Sisipkan: ${tag}`}
+                                                        >
+                                                            +{tag}
+                                                        </span>
+                                                    ))}
+
+                                                    {/* Custom Database Tokens */}
+                                                    {filteredCustom.map((p) => {
+                                                        const samples = parseSampleImages(p.sample_images);
+                                                        return (
                                                             <span
-                                                                className="modular-pill-preview-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
-                                                                }}
-                                                                title="View Sample Preview"
+                                                                key={p.id}
+                                                                className="modular-token-pill custom-token"
+                                                                onClick={() => handleAppendPositive(p.positive_prompt)}
+                                                                title={`Custom Token: ${p.positive_prompt}`}
                                                             >
-                                                                📷
+                                                                +{p.title || p.positive_prompt}
+                                                                {samples.length > 0 && (
+                                                                    <span
+                                                                        className="modular-pill-preview-btn"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
+                                                                        }}
+                                                                        title="Lihat foto preview"
+                                                                    >
+                                                                        📷
+                                                                    </span>
+                                                                )}
+                                                                <span
+                                                                    className="modular-pill-del"
+                                                                    onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                    title="Hapus dari database"
+                                                                >
+                                                                    ✕
+                                                                </span>
                                                             </span>
-                                                        )}
-                                                        <span
-                                                            className="modular-pill-del"
-                                                            onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                            title="Delete from database"
-                                                        >
-                                                            ✕
-                                                        </span>
-                                                    </span>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
 
-                                {/* Subjects & Characters */}
-                                <div style={{ background: "#16181D", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <div className="modular-section-header">
-                                        <span>Characters & Subjects</span>
-                                        <button
-                                            type="button"
-                                            className="modular-add-btn"
-                                            style={{ fontSize: "10px", padding: "2px 6px" }}
-                                            onClick={() => {
-                                                setModularCategory("Character");
-                                                setIsAddModularModalOpen(true);
-                                            }}
-                                        >
-                                            <Icons.Plus />
-                                            <span>Add Subject</span>
-                                        </button>
-                                    </div>
-                                    <div className="modular-pill-group">
-                                        {["1girl", "1boy", "solo", "2girls", "bishoujo", "chibi", "mecha girl", "cyborg", "samurai warrior", "knight in armor"].map((tag) => (
-                                            <span
-                                                key={tag}
-                                                className="modular-token-pill"
-                                                onClick={() => handleAppendPositive(tag)}
-                                            >
-                                                +{tag}
-                                            </span>
-                                        ))}
-                                        {modularPresets
-                                            .filter((p) => ["character", "subject"].includes((p.subcategory || "").toLowerCase()) || p.category === "character")
-                                            .map((p) => {
-                                                const samples = parseSampleImages(p.sample_images);
-                                                return (
-                                                    <span
-                                                        key={p.id}
-                                                        className="modular-token-pill custom-token"
-                                                        onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                        title={`Custom Character: ${p.positive_prompt}`}
-                                                    >
-                                                        +{p.title || p.positive_prompt}
-                                                        {samples.length > 0 && (
+                                    {/* Other Custom User Categories */}
+                                    {modularPresets.filter((p) => {
+                                        const sub = (p.subcategory || "").toLowerCase();
+                                        return !KNOWN_BLOCK_SUBCATS.includes(sub);
+                                    }).length > 0 && (
+                                        <div className="modular-group-card">
+                                            <div className="modular-section-header">
+                                                <span>Token Kustom Lainnya</span>
+                                            </div>
+                                            <div className="modular-pill-group">
+                                                {modularPresets
+                                                    .filter((p) => {
+                                                        const sub = (p.subcategory || "").toLowerCase();
+                                                        return !KNOWN_BLOCK_SUBCATS.includes(sub);
+                                                    })
+                                                    .map((p) => (
+                                                        <span
+                                                            key={p.id}
+                                                            className="modular-token-pill custom-token"
+                                                            onClick={() => handleAppendPositive(p.positive_prompt)}
+                                                            title={`Custom: ${p.positive_prompt} (${p.subcategory})`}
+                                                        >
+                                                            +{p.title || p.positive_prompt}
                                                             <span
-                                                                className="modular-pill-preview-btn"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
-                                                                }}
+                                                                className="modular-pill-del"
+                                                                onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                title="Hapus dari database"
                                                             >
-                                                                📷
+                                                                ✕
                                                             </span>
-                                                        )}
-                                                        <span
-                                                            className="modular-pill-del"
-                                                            onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                            title="Delete from database"
-                                                        >
-                                                            ✕
                                                         </span>
-                                                    </span>
-                                                );
-                                            })}
-                                    </div>
-                                </div>
-
-                                {/* Scenery & Backgrounds */}
-                                <div style={{ background: "#16181D", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <div className="modular-section-header">
-                                        <span>Scenery & Backgrounds</span>
-                                        <button
-                                            type="button"
-                                            className="modular-add-btn"
-                                            style={{ fontSize: "10px", padding: "2px 6px" }}
-                                            onClick={() => {
-                                                setModularCategory("Background");
-                                                setIsAddModularModalOpen(true);
-                                            }}
-                                        >
-                                            <Icons.Plus />
-                                            <span>Add Background</span>
-                                        </button>
-                                    </div>
-                                    <div className="modular-pill-group">
-                                        {["neon shibuya street at night", "ancient overgrown shrine", "cyberpunk city skyline", "cozy coffee shop interior", "blossoming sakura park", "ruined gothic cathedral", "floating sky island"].map((tag) => (
-                                            <span
-                                                key={tag}
-                                                className="modular-token-pill"
-                                                onClick={() => handleAppendPositive(tag)}
-                                            >
-                                                +{tag}
-                                            </span>
-                                        ))}
-                                        {modularPresets
-                                            .filter((p) => ["background", "scenery", "environment"].includes((p.subcategory || "").toLowerCase()) || p.category === "background")
-                                            .map((p) => (
-                                                <span
-                                                    key={p.id}
-                                                    className="modular-token-pill custom-token"
-                                                    onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                    title={`Custom Scenery: ${p.positive_prompt}`}
-                                                >
-                                                    +{p.title || p.positive_prompt}
-                                                    <span
-                                                        className="modular-pill-del"
-                                                        onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                        title="Delete from database"
-                                                    >
-                                                        ✕
-                                                    </span>
-                                                </span>
-                                            ))}
-                                    </div>
-                                </div>
-
-                                {/* Lighting & Atmosphere */}
-                                <div style={{ background: "#16181D", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <div className="modular-section-header">
-                                        <span>Lighting & Atmosphere</span>
-                                        <button
-                                            type="button"
-                                            className="modular-add-btn"
-                                            style={{ fontSize: "10px", padding: "2px 6px" }}
-                                            onClick={() => {
-                                                setModularCategory("Lighting");
-                                                setIsAddModularModalOpen(true);
-                                            }}
-                                        >
-                                            <Icons.Plus />
-                                            <span>Add Lighting</span>
-                                        </button>
-                                    </div>
-                                    <div className="modular-pill-group">
-                                        {["volumetric god rays", "neon rim lighting", "golden hour backlight", "soft diffused window light", "dynamic low angle", "cowboy shot", "close-up portrait", "depth of field"].map((tag) => (
-                                            <span
-                                                key={tag}
-                                                className="modular-token-pill"
-                                                onClick={() => handleAppendPositive(tag)}
-                                            >
-                                                +{tag}
-                                            </span>
-                                        ))}
-                                        {modularPresets
-                                            .filter((p) => ["lighting", "light", "atmosphere", "camera", "angle", "composition"].includes((p.subcategory || "").toLowerCase()))
-                                            .map((p) => (
-                                                <span
-                                                    key={p.id}
-                                                    className="modular-token-pill custom-token"
-                                                    onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                    title={`Custom: ${p.positive_prompt}`}
-                                                >
-                                                    +{p.title || p.positive_prompt}
-                                                    <span
-                                                        className="modular-pill-del"
-                                                        onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                        title="Delete from database"
-                                                    >
-                                                        ✕
-                                                    </span>
-                                                </span>
-                                            ))}
-                                    </div>
-                                </div>
-
-                                {/* Custom User Categories */}
-                                {modularPresets.filter((p) => {
-                                    const sub = (p.subcategory || "").toLowerCase();
-                                    return !["outfit", "clothing", "fashion", "wear", "character", "subject", "background", "scenery", "environment", "lighting", "light", "atmosphere", "camera", "angle", "composition", "quality"].includes(sub);
-                                }).length > 0 && (
-                                    <div style={{ background: "#16181D", padding: "12px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.06)" }}>
-                                        <div className="modular-section-header">
-                                            <span>Custom Tokens</span>
+                                                    ))}
+                                            </div>
                                         </div>
-                                        <div className="modular-pill-group">
-                                            {modularPresets
-                                                .filter((p) => {
-                                                    const sub = (p.subcategory || "").toLowerCase();
-                                                    return !["outfit", "clothing", "fashion", "wear", "character", "subject", "background", "scenery", "environment", "lighting", "light", "atmosphere", "camera", "angle", "composition", "quality"].includes(sub);
-                                                })
-                                                .map((p) => (
-                                                    <span
-                                                        key={p.id}
-                                                        className="modular-token-pill custom-token"
-                                                        onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                        title={`Custom: ${p.positive_prompt} (${p.subcategory})`}
-                                                    >
-                                                        +{p.title || p.positive_prompt}
-                                                        <span
-                                                            className="modular-pill-del"
-                                                            onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                            title="Delete from database"
-                                                        >
-                                                            ✕
-                                                        </span>
-                                                    </span>
-                                                ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </>
-                        )}
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
-            {/* Save Preset Modal */}
+            {/* SNAPSHOTS & HISTORY DRAWER */}
+            {isHistoryDrawerOpen && (
+                <div className="prompt-modal-backdrop" onClick={() => setIsHistoryDrawerOpen(false)}>
+                    <div className="prompt-history-drawer-box" onClick={(e) => e.stopPropagation()}>
+                        <div className="prompt-modal-header">
+                            <div className="modal-header-title-wrap">
+                                <Icons.History />
+                                <h3 className="prompt-modal-title">Riwayat Iterasi &amp; Snapshots</h3>
+                            </div>
+                            <button
+                                type="button"
+                                className="modal-close-btn"
+                                onClick={() => setIsHistoryDrawerOpen(false)}
+                            >
+                                <Icons.X />
+                            </button>
+                        </div>
+
+                        <div className="history-drawer-body">
+                            <div className="history-take-bar">
+                                <button
+                                    type="button"
+                                    className="prompt-btn-primary"
+                                    onClick={() => handleTakeSnapshot()}
+                                    title="Simpan keadaan canvas saat ini ke riwayat"
+                                >
+                                    <Icons.Plus />
+                                    <span>Ambil Snapshot Sekarang</span>
+                                </button>
+                                <span className="history-take-hint">
+                                    Maksimum 15 snapshot tersimpan lokal di browser Anda.
+                                </span>
+                            </div>
+
+                            {promptSnapshots.length === 0 ? (
+                                <div className="history-empty-note">
+                                    Belum ada snapshot tersimpan. Klik "Ambil Snapshot Sekarang" atau ubah prompt untuk menyimpan versi.
+                                </div>
+                            ) : (
+                                <div className="history-list">
+                                    {promptSnapshots.map((snap) => (
+                                        <div key={snap.id} className="history-item-card">
+                                            <div className="history-item-header">
+                                                <div className="history-item-meta">
+                                                    <strong className="history-item-label">{snap.label}</strong>
+                                                    <span className="history-item-time">
+                                                        {new Date(snap.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                                    </span>
+                                                </div>
+                                                <div className="history-item-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="prompt-btn-sm highlight"
+                                                        onClick={() => handleRestoreSnapshot(snap)}
+                                                        title="Pulihkan canvas ke versi ini"
+                                                    >
+                                                        Restore
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="prompt-btn-sm text-muted-hover"
+                                                        onClick={(e) => handleDeleteSnapshot(snap.id, e)}
+                                                        title="Hapus snapshot ini"
+                                                    >
+                                                        <Icons.Trash />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div className="history-item-snippet" title={snap.positive}>
+                                                <span className="snippet-tag">POS</span>
+                                                {snap.positive || "(Kosong)"}
+                                            </div>
+                                            {snap.negative && (
+                                                <div className="history-item-snippet negative" title={snap.negative}>
+                                                    <span className="snippet-tag neg">NEG</span>
+                                                    {snap.negative}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* SAVE PRESET MODAL */}
             {isSavePresetModalOpen && (
                 <div className="prompt-modal-backdrop" onClick={() => { setIsSavePresetModalOpen(false); setEditingPreset(null); }}>
                     <div className="prompt-modal-box" onClick={(e) => e.stopPropagation()}>
                         <div className="prompt-modal-header">
-                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <div className="modal-header-title-wrap">
                                 <h3 className="prompt-modal-title">
-                                    {editingPreset ? "Edit Preset" : "Save Preset"}
+                                    {editingPreset ? "Edit Preset" : "Save Concoction as Preset"}
                                 </h3>
                                 {editingPreset && (
-                                    <span style={{ fontSize: "10px", background: "rgba(129, 140, 248, 0.2)", color: "#A5B4FC", padding: "1px 6px", borderRadius: "4px", border: "1px solid rgba(129, 140, 248, 0.4)" }}>
+                                    <span className="preset-id-badge">
                                         ID #{editingPreset.id}
                                     </span>
                                 )}
                             </div>
                             <button
                                 type="button"
-                                style={{ background: "transparent", border: "none", color: "#71717A", cursor: "pointer", fontSize: "14px" }}
+                                className="modal-close-btn"
                                 onClick={() => {
                                     setIsSavePresetModalOpen(false);
                                     setEditingPreset(null);
                                 }}
                             >
-                                ✕
+                                <Icons.X />
                             </button>
                         </div>
                         <form onSubmit={handleSavePreset}>
                             <div className="prompt-modal-body">
                                 {/* Style Selection */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>
+                                    <label className="modal-field-label">
                                         Image Style / Category *
                                     </label>
                                     <div className="prompt-style-toggle-group">
-                                        <button
-                                            type="button"
-                                            className={`prompt-style-toggle-btn ${newPresetStyle === "character" ? "active" : ""}`}
-                                            onClick={() => setNewPresetStyle("character")}
-                                        >
-                                            <span style={{ fontSize: "16px" }}>🎨</span>
-                                            <span>Anime / Manga</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`prompt-style-toggle-btn ${newPresetStyle === "photorealistic" ? "active" : ""}`}
-                                            onClick={() => setNewPresetStyle("photorealistic")}
-                                        >
-                                            <span style={{ fontSize: "16px" }}>📷</span>
-                                            <span>Photorealistic</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`prompt-style-toggle-btn ${newPresetStyle === "style" ? "active" : ""}`}
-                                            onClick={() => setNewPresetStyle("style")}
-                                        >
-                                            <span style={{ fontSize: "16px" }}>🖌️</span>
-                                            <span>Art Style</span>
-                                        </button>
+                                        {PRESET_STYLE_OPTIONS.map((opt) => (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                className={`prompt-style-toggle-btn ${newPresetStyle === opt.value ? "active" : ""}`}
+                                                onClick={() => setNewPresetStyle(opt.value)}
+                                            >
+                                                <span className="style-btn-title">{opt.label}</span>
+                                                <span className="style-btn-hint">{opt.hint}</span>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
                                 {/* Title & Character Name */}
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                <div className="modal-two-col-grid">
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                        <label className="modal-field-label">
                                             Character Name (Optional)
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
+                                            className="modal-input"
                                             placeholder="e.g. Rio Tsukatsuki, Frieren"
                                             value={newPresetCharacterName}
                                             onChange={(e) => setNewPresetCharacterName(e.target.value)}
@@ -1847,13 +2666,13 @@ export const PromptLab: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                        <label className="modal-field-label">
                                             Preset / Scene Title *
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
-                                            placeholder="e.g. Tactical Office Meeting"
+                                            className="modal-input"
+                                            placeholder="e.g. Tactical Seminar Office"
                                             value={newPresetTitle}
                                             onChange={(e) => setNewPresetTitle(e.target.value)}
                                             required
@@ -1863,14 +2682,14 @@ export const PromptLab: React.FC = () => {
                                 </div>
 
                                 {/* Trigger Words & Subcategory */}
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                <div className="modal-two-col-grid">
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                        <label className="modal-field-label">
                                             Trigger Words (Optional)
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
+                                            className="modal-input"
                                             placeholder="e.g. rio tsukatsuki, halo, red eyes"
                                             value={newPresetTriggerWords}
                                             onChange={(e) => setNewPresetTriggerWords(e.target.value)}
@@ -1878,12 +2697,12 @@ export const PromptLab: React.FC = () => {
                                     </div>
 
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                        <label className="modal-field-label">
                                             Subcategory / Franchise (Optional)
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
+                                            className="modal-input"
                                             placeholder="e.g. Blue Archive, Cyberpunk"
                                             value={newPresetSubcategory}
                                             onChange={(e) => setNewPresetSubcategory(e.target.value)}
@@ -1893,11 +2712,11 @@ export const PromptLab: React.FC = () => {
 
                                 {/* Target Checkpoint Architecture */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                        Target Checkpoint Architecture
+                                    <label className="modal-field-label">
+                                        Target Architecture
                                     </label>
                                     <select
-                                        style={{ width: "100%", background: "#0E1013", border: "1px solid rgba(255,255,255,0.08)", color: "#FFFFFF", fontSize: "12px", padding: "6px", borderRadius: "5px" }}
+                                        className="modal-select"
                                         value={newPresetBaseModelTarget}
                                         onChange={(e) => setNewPresetBaseModelTarget(e.target.value)}
                                     >
@@ -1905,19 +2724,19 @@ export const PromptLab: React.FC = () => {
                                         <option value="SDXL">SDXL 1.0</option>
                                         <option value="Pony">Pony Diffusion V6</option>
                                         <option value="SD 1.5">SD 1.5</option>
-                                        <option value="All">All / Universal</option>
+                                        <option value="All">Universal / All Archs</option>
                                     </select>
                                 </div>
 
                                 {/* Positive Prompt */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                    <label className="modal-field-label">
                                         Positive Prompt *
                                     </label>
                                     <textarea
-                                        className="prompt-textarea"
-                                        style={{ minHeight: "75px", maxHeight: "140px", fontSize: "12px", resize: "vertical" }}
-                                        placeholder="Masukkan prompt racikan positif..."
+                                        className="modal-textarea"
+                                        rows={3}
+                                        placeholder="Masukkan racikan prompt positif..."
                                         value={newPresetPositive}
                                         onChange={(e) => setNewPresetPositive(e.target.value)}
                                         required
@@ -1926,19 +2745,19 @@ export const PromptLab: React.FC = () => {
 
                                 {/* Negative Prompt */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
+                                    <label className="modal-field-label">
                                         Negative Prompt (Optional)
                                     </label>
                                     <textarea
-                                        className="prompt-textarea"
-                                        style={{ minHeight: "55px", maxHeight: "110px", fontSize: "12px", resize: "vertical" }}
+                                        className="modal-textarea"
+                                        rows={2}
                                         placeholder="Masukkan negative prompt..."
                                         value={newPresetNegative}
                                         onChange={(e) => setNewPresetNegative(e.target.value)}
                                     />
                                 </div>
 
-                                {/* Sample Images Manager (Upload Local / Pick from Gallery) */}
+                                {/* Sample Images Manager */}
                                 <div className="preset-sample-manager">
                                     <input
                                         type="file"
@@ -1948,7 +2767,7 @@ export const PromptLab: React.FC = () => {
                                         style={{ display: "none" }}
                                     />
                                     <div className="preset-sample-actions-bar">
-                                        <div style={{ fontSize: "11px", fontWeight: 600, color: "#C7D2FE" }}>
+                                        <div className="sample-manager-title">
                                             Sample Images ({newPresetSampleList.length}/5)
                                         </div>
                                         <div className="preset-sample-btn-group">
@@ -1959,16 +2778,18 @@ export const PromptLab: React.FC = () => {
                                                 disabled={isUploadingSample || newPresetSampleList.length >= 5}
                                                 title="Upload gambar dari komputer lokal"
                                             >
-                                                <span>📁 {isUploadingSample ? "Mengunggah..." : "Upload dari Lokal"}</span>
+                                                <Icons.Upload />
+                                                <span>{isUploadingSample ? "Mengunggah..." : "Upload Lokal"}</span>
                                             </button>
                                             <button
                                                 type="button"
                                                 className="preset-sample-gallery-btn"
                                                 onClick={handleOpenGalleryPicker}
                                                 disabled={newPresetSampleList.length >= 5}
-                                                title="Pilih gambar yang sudah ada di database galeri"
+                                                title="Pilih gambar dari galeri database"
                                             >
-                                                <span>🖼️ Pilih dari Galeri</span>
+                                                <Icons.Image />
+                                                <span>Pilih Galeri</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1984,7 +2805,6 @@ export const PromptLab: React.FC = () => {
                                                             src={resolveImageUrl(imgUrl)}
                                                             alt={`Sample ${slotIdx + 1}`}
                                                             onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: `Sample #${slotIdx + 1}` })}
-                                                            style={{ cursor: "zoom-in" }}
                                                         />
                                                         <span className="preset-slot-badge">#{slotIdx + 1}</span>
                                                         <button
@@ -2003,44 +2823,34 @@ export const PromptLab: React.FC = () => {
                                                     key={slotIdx}
                                                     className="preset-slot-card preset-slot-empty"
                                                     onClick={handleOpenGalleryPicker}
-                                                    style={{ cursor: "pointer" }}
-                                                    title="Klik untuk memilih foto dari galeri"
+                                                    title="Pilih foto dari galeri"
                                                 >
-                                                    <span style={{ fontSize: "16px", color: "#64748B" }}>+</span>
-                                                    <span>Slot #{slotIdx + 1}</span>
+                                                    <Icons.Plus />
+                                                    <span>Slot {slotIdx + 1}</span>
                                                 </div>
                                             );
                                         })}
                                     </div>
-                                    <div style={{ fontSize: "10px", color: "#64748B" }}>
-                                        Maks 5 foto. Klik foto untuk preview zoom atau klik ✕ untuk menghapus.
+                                    <div className="sample-manager-footnote">
+                                        Maksimum 5 foto representatif. Klik foto untuk zoom atau ✕ untuk menghapus.
                                     </div>
                                 </div>
 
-                                {/* Notes / Description */}
+                                {/* Description / Sampling Notes */}
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                        Description & Sampling Notes (Optional)
+                                    <label className="modal-field-label">
+                                        Sampling &amp; Generation Notes (Optional)
                                     </label>
                                     <input
                                         type="text"
-                                        className="catalog-search-input"
-                                        placeholder="e.g. Best at CFG 6.0, Steps 28, DPM++ 2M Karras, with Seminar LoRA 0.8"
+                                        className="modal-input"
+                                        placeholder="e.g. Best with DPM++ 2M Karras, CFG 6.0, Steps 28"
                                         value={newPresetDescription}
                                         onChange={(e) => setNewPresetDescription(e.target.value)}
                                     />
                                 </div>
-
-                                {/* Summary preview */}
-                                <div style={{ background: "#0E1013", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "6px", padding: "8px 12px", fontSize: "11px", color: "#9CA3AF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                    <span>
-                                        Target: <strong style={{ color: "#E2E8F0" }}>{newPresetBaseModelTarget || "Illustrious"}</strong>
-                                    </span>
-                                    <span>
-                                        Kategori: <strong style={{ color: "#818CF8" }}>{newPresetStyle}</strong>
-                                    </span>
-                                </div>
                             </div>
+
                             <div className="prompt-modal-footer">
                                 <button
                                     type="button"
@@ -2062,49 +2872,49 @@ export const PromptLab: React.FC = () => {
                 </div>
             )}
 
-            {/* Add Modular Building Block / Outfit Token Modal */}
+            {/* ADD BUILDING BLOCK / OUTFIT TOKEN MODAL */}
             {isAddModularModalOpen && (
                 <div className="prompt-modal-backdrop" onClick={() => setIsAddModularModalOpen(false)}>
                     <div className="prompt-modal-box" onClick={(e) => e.stopPropagation()}>
                         <div className="prompt-modal-header">
-                            <h3 className="prompt-modal-title">Add Modular Building Block / Outfit Token</h3>
+                            <h3 className="prompt-modal-title">Tambah Token Building Block</h3>
                             <button
                                 type="button"
-                                style={{ background: "transparent", border: "none", color: "#71717A", cursor: "pointer", fontSize: "14px" }}
+                                className="modal-close-btn"
                                 onClick={() => setIsAddModularModalOpen(false)}
                             >
-                                ✕
+                                <Icons.X />
                             </button>
                         </div>
                         <form onSubmit={handleSaveModularPreset}>
                             <div className="prompt-modal-body">
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                        Category / Type
+                                    <label className="modal-field-label">
+                                        Kategori / Jenis
                                     </label>
                                     <select
-                                        style={{ width: "100%", background: "#0E1013", border: "1px solid rgba(255,255,255,0.08)", color: "#FFFFFF", fontSize: "12px", padding: "6px", borderRadius: "5px" }}
+                                        className="modal-select"
                                         value={modularCategory}
                                         onChange={(e) => setModularCategory(e.target.value)}
                                     >
-                                        <option value="Outfit">Outfit & Clothing</option>
-                                        <option value="Character">Character & Subject</option>
-                                        <option value="Background">Scenery & Background</option>
-                                        <option value="Lighting">Lighting & Atmosphere</option>
-                                        <option value="Camera">Camera Angles & Framing</option>
-                                        <option value="Custom">Custom Category...</option>
+                                        <option value="Quality">Quality &amp; Rendering</option>
+                                        <option value="Character">Character &amp; Subject</option>
+                                        <option value="Outfit">Outfit &amp; Clothing</option>
+                                        <option value="Background">Scenery &amp; Background</option>
+                                        <option value="Lighting">Lighting &amp; Camera</option>
+                                        <option value="Custom">Kategori Kustom...</option>
                                     </select>
                                 </div>
 
                                 {modularCategory === "Custom" && (
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                            Custom Category Name
+                                        <label className="modal-field-label">
+                                            Nama Kategori Kustom
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
-                                            placeholder="e.g. Hairstyle, Accessories, Weapon"
+                                            className="modal-input"
+                                            placeholder="e.g. Hairstyle, Weapon, Expression"
                                             value={modularCustomSubcategory}
                                             onChange={(e) => setModularCustomSubcategory(e.target.value)}
                                             required
@@ -2113,13 +2923,13 @@ export const PromptLab: React.FC = () => {
                                 )}
 
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                        Token / Prompt Text (What gets inserted) *
+                                    <label className="modal-field-label">
+                                        Token Prompt (Teks yang disisipkan) *
                                     </label>
                                     <input
                                         type="text"
-                                        className="catalog-search-input"
-                                        placeholder="e.g. oversized off-shoulder knit sweater, white wool, ribbon"
+                                        className="modal-input"
+                                        placeholder="e.g. oversized off-shoulder knit sweater, white wool"
                                         value={modularToken}
                                         onChange={(e) => setModularToken(e.target.value)}
                                         required
@@ -2128,25 +2938,25 @@ export const PromptLab: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                        Display Title / Label (Optional)
+                                    <label className="modal-field-label">
+                                        Judul Tampilan / Label (Optional)
                                     </label>
                                     <input
                                         type="text"
-                                        className="catalog-search-input"
+                                        className="modal-input"
                                         placeholder="e.g. White Knit Sweater"
                                         value={modularTitle}
                                         onChange={(e) => setModularTitle(e.target.value)}
                                     />
                                 </div>
 
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                <div className="modal-two-col-grid">
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                            Base Model Architecture
+                                        <label className="modal-field-label">
+                                            Arsitektur Target
                                         </label>
                                         <select
-                                            style={{ width: "100%", background: "#0E1013", border: "1px solid rgba(255,255,255,0.08)", color: "#FFFFFF", fontSize: "12px", padding: "6px", borderRadius: "5px" }}
+                                            className="modal-select"
                                             value={modularBaseModel}
                                             onChange={(e) => setModularBaseModel(e.target.value)}
                                         >
@@ -2154,26 +2964,25 @@ export const PromptLab: React.FC = () => {
                                             <option value="Illustrious">Illustrious XL</option>
                                             <option value="SDXL">SDXL</option>
                                             <option value="Pony">Pony V6</option>
-                                            <option value="SD 1.5">SD 1.5</option>
                                         </select>
                                     </div>
 
                                     <div>
-                                        <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "4px" }}>
-                                            Sample Image Preview URL (Optional)
+                                        <label className="modal-field-label">
+                                            Sample Image URL (Optional)
                                         </label>
                                         <input
                                             type="text"
-                                            className="catalog-search-input"
-                                            placeholder="https://... or /images/..."
+                                            className="modal-input"
+                                            placeholder="https://... atau /uploads/..."
                                             value={modularSampleImages}
                                             onChange={(e) => setModularSampleImages(e.target.value)}
                                         />
                                     </div>
                                 </div>
 
-                                <div style={{ fontSize: "11px", color: "#71717A" }}>
-                                    Token will be saved permanently to your local PostgreSQL database and instantly appears under the selected modular tab.
+                                <div className="modal-tip-note">
+                                    Token ini disimpan permanen ke database lokal Anda dan langsung muncul di tab Blocks.
                                 </div>
                             </div>
                             <div className="prompt-modal-footer">
@@ -2185,7 +2994,8 @@ export const PromptLab: React.FC = () => {
                                     Cancel
                                 </button>
                                 <button type="submit" className="prompt-btn-primary">
-                                    Save Token to Database
+                                    <Icons.Check />
+                                    <span>Simpan ke Database</span>
                                 </button>
                             </div>
                         </form>
@@ -2193,31 +3003,32 @@ export const PromptLab: React.FC = () => {
                 </div>
             )}
 
-            {/* Gallery Image Picker Modal */}
+            {/* GALLERY IMAGE PICKER MODAL */}
             {isGalleryPickerOpen && (
                 <div className="prompt-modal-backdrop" onClick={() => setIsGalleryPickerOpen(false)}>
                     <div className="preset-gallery-picker-box" onClick={(e) => e.stopPropagation()}>
                         <div className="prompt-modal-header">
                             <div>
-                                <h3 className="prompt-modal-title">Pilih Foto dari Galeri Web / Database</h3>
-                                <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "2px" }}>
-                                    Klik foto untuk memilih / membatalkan (Terpilih: {newPresetSampleList.length}/5 foto)
+                                <h3 className="prompt-modal-title">Pilih Foto dari Galeri Database</h3>
+                                <div className="modal-header-sub">
+                                    Terpilih: {newPresetSampleList.length}/5 foto
                                 </div>
                             </div>
                             <button
                                 type="button"
-                                style={{ background: "transparent", border: "none", color: "#71717A", cursor: "pointer", fontSize: "14px" }}
+                                className="modal-close-btn"
                                 onClick={() => setIsGalleryPickerOpen(false)}
                             >
-                                ✕
+                                <Icons.X />
                             </button>
                         </div>
 
                         {/* Search in Gallery */}
-                        <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", background: "#111316" }}>
+                        <div className="gallery-picker-search-bar">
+                            <Icons.Search />
                             <input
                                 type="text"
-                                className="catalog-search-input"
+                                className="gallery-picker-search-input"
                                 placeholder="Cari foto di galeri (prompt, model, atau caption)..."
                                 value={gallerySearch}
                                 onChange={(e) => setGallerySearch(e.target.value)}
@@ -2227,12 +3038,12 @@ export const PromptLab: React.FC = () => {
                         {/* Gallery Image Grid */}
                         <div className="preset-gallery-grid">
                             {galleryLoading ? (
-                                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "30px", color: "#9CA3AF", fontSize: "12px" }}>
-                                    Memuat foto dari galeri database...
+                                <div className="gallery-picker-empty">
+                                    Memuat foto galeri...
                                 </div>
                             ) : galleryImages.length === 0 ? (
-                                <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "30px", color: "#9CA3AF", fontSize: "12px" }}>
-                                    Belum ada gambar di galeri database. Silakan gunakan tombol "Upload dari Lokal".
+                                <div className="gallery-picker-empty">
+                                    Belum ada gambar di database galeri. Gunakan tombol "Upload Lokal".
                                 </div>
                             ) : (
                                 galleryImages
@@ -2273,14 +3084,15 @@ export const PromptLab: React.FC = () => {
                                 className="prompt-btn-primary"
                                 onClick={() => setIsGalleryPickerOpen(false)}
                             >
-                                Gunakan Foto Terpilih ({newPresetSampleList.length}/5)
+                                <Icons.Check />
+                                <span>Gunakan Foto ({newPresetSampleList.length}/5)</span>
                             </button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Sample Image Lightbox Modal */}
+            {/* LIGHTBOX PREVIEW MODAL */}
             {lightboxImage && (
                 <div className="prompt-lightbox-backdrop" onClick={() => setLightboxImage(null)}>
                     <div className="prompt-lightbox-content" onClick={(e) => e.stopPropagation()}>
@@ -2288,18 +3100,25 @@ export const PromptLab: React.FC = () => {
                             <img src={lightboxImage.url} alt={lightboxImage.title} />
                         </div>
                         <div className="prompt-lightbox-info">
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                <strong style={{ color: "#FFFFFF", fontSize: "14px" }}>{lightboxImage.title}</strong>
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => setLightboxImage(null)}
-                                >
-                                    Close Preview
-                                </button>
-                            </div>
+                            <strong className="lightbox-title">{lightboxImage.title}</strong>
+                            <button
+                                type="button"
+                                className="prompt-btn-sm"
+                                onClick={() => setLightboxImage(null)}
+                            >
+                                <Icons.X />
+                                <span>Tutup</span>
+                            </button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* FLOATING STUDIO TOAST */}
+            {toastMessage && (
+                <div className="prompt-studio-toast">
+                    <Icons.Sparkle />
+                    <span>{toastMessage}</span>
                 </div>
             )}
         </div>

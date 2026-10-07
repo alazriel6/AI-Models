@@ -14,6 +14,11 @@ func Seed(db *gorm.DB) error {
 }
 
 func SeedData(db *gorm.DB, force bool) error {
+	// Always ensure PromptPresets are seeded if empty
+	if err := SeedPromptPresets(db); err != nil {
+		log.Printf("Warning: failed to seed prompt presets: %v\n", err)
+	}
+
 	var count int64
 	db.Model(&models.Model{}).Count(&count)
 	if count > 0 && !force {
@@ -485,5 +490,183 @@ func SeedData(db *gorm.DB, force bool) error {
 	}
 
 	log.Println("Seeding complete with models, LoRAs, images, generation settings, reviews, and trigger words")
+	return nil
+}
+
+func SeedPromptPresets(db *gorm.DB) error {
+	var presetCount int64
+	db.Model(&models.PromptPreset{}).Count(&presetCount)
+	if presetCount > 0 {
+		return nil
+	}
+
+	log.Println("Seeding initial high-quality Prompt Presets...")
+
+	presets := []models.PromptPreset{
+		{
+			Title:            "Rio Tsukatsuki - Seminar President",
+			Slug:             "rio-tsukatsuki",
+			Category:         "character",
+			Subcategory:      "Blue Archive",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office, sharp lineart",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, deformed halo",
+			TriggerWords:     "rio tsukatsuki, halo, black hair, red eyes",
+			RecommendedModel: "rinFlanime",
+			RecommendedLoras: `["detailed-anime-eyes"]`,
+			SampleImages:     `["/images/preview-2.png","/images/preview-1.png"]`,
+			Description:      "Rio Tsukatsuki from Blue Archive with signature black blazer, red eyes, and high-tech seminar office atmosphere.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Kitsune Shrine Maiden - Fox Spirit",
+			Slug:             "kitsune-shrine-maiden",
+			Category:         "character",
+			Subcategory:      "Fantasy Anime",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, best quality, ultra-detailed, 1girl, solo, kitsune, fox ears, fox girl, dark hair, red eyes, white floral hair accessory, traditional white and black layered yukata, golden ornaments, cherry blossom petals, looking at viewer, soft rim light",
+			NegativePrompt:   "(worst quality, low quality:1.4), deformed, bad hands, mutated fingers, blurry, watermark, bad lineart",
+			TriggerWords:     "kitsune, fox ears, fox girl, red eyes, yukata",
+			RecommendedModel: "Raehoshi Illust XL",
+			RecommendedLoras: `["soft-pastel-bloom"]`,
+			SampleImages:     `["/images/preview-1.png"]`,
+			Description:      "Mystical kitsune shrine maiden with golden ornaments and falling sakura petals.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Cyberpunk Streetwear Rebel",
+			Slug:             "cyberpunk-streetwear-rebel",
+			Category:         "character",
+			Subcategory:      "Cyberpunk",
+			BaseModelTarget:  "NoobAI",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, highly detailed illustration, 1girl, blonde hair, purple eyes, bucket hat with letter A, oversized techwear jacket, smirk, street anime style, rim lighting, vibrant neon colors, rainy asphalt reflections, neon signs background",
+			NegativePrompt:   "(worst quality, low quality:1.4), bad anatomy, extra limbs, poorly drawn face, blurry, washed out",
+			TriggerWords:     "streetwear, oversized jacket, bucket hat, neon rim lighting",
+			RecommendedModel: "rinFlanime",
+			RecommendedLoras: `["streetwear-aesthetic"]`,
+			SampleImages:     `["/images/preview-2.png"]`,
+			Description:      "Edgy anime streetwear aesthetic featuring bucket hat, techwear jacket, and vibrant rainy street lights.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "2B - YoRHa Combat Android",
+			Slug:             "2b-yorha-android",
+			Category:         "character",
+			Subcategory:      "NieR:Automata",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, best quality, ultra-detailed, 1girl, 2b, short white hair, blindfold over eyes, black headband, black gothic dress, puffy sleeves, black thigh-high boots, katana on back, dramatic ruined cathedral city background, floating dust motes, cinematic volumetric lighting",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, deformed eyes, extra limbs, watermark, cartoonish, lowres",
+			TriggerWords:     "2b, blindfold, gothic dress, katana on back",
+			RecommendedModel: "Raehoshi Illust XL",
+			RecommendedLoras: `["detailed-anime-eyes"]`,
+			SampleImages:     `["/images/preview-1.png","/images/preview-2.png"]`,
+			Description:      "Iconic 2B from NieR:Automata with ruined overgrown city backdrop and volumetric lighting.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Frieren - Ancient Elf Mage",
+			Slug:             "frieren-elf-mage",
+			Category:         "character",
+			Subcategory:      "Frieren",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, best quality, 1girl, frieren, elf ears, long white hair, twintails, green eyes, striped black and white scarf, white coat, holding wooden staff with red jewel, peaceful grimoire library background, floating glowing magic runes, warm morning sunlight",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, blurry, bad hands, missing fingers, extra digits",
+			TriggerWords:     "frieren, elf, white hair, twintails, wooden staff",
+			RecommendedModel: "Raehoshi Illust XL",
+			RecommendedLoras: `["soft-pastel-bloom"]`,
+			SampleImages:     `["/images/preview-1.png"]`,
+			Description:      "Frieren holding her mage staff amidst ancient glowing grimoires in soft morning sun.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Cinematic 85mm Golden Hour Portrait",
+			Slug:             "cinematic-85mm-portrait",
+			Category:         "photorealistic",
+			Subcategory:      "Portrait Photography",
+			BaseModelTarget:  "SDXL",
+			PresetType:       "full",
+			PositivePrompt:   "RAW photo, 8k uhd, cinematic portrait of a 22yo woman, elegant natural makeup, subtle freckles, wavy chestnut hair, sun flare backlight, soft rim lighting, shallow depth of field, 85mm f1.4 lens, Sony A7R IV, realistic skin pores, lifelike expressive eyes",
+			NegativePrompt:   "cartoon, anime, 3d render, plastic skin, oversaturated, deformed eyes, bad hands, blurry, watermark, airbrushed, digital art, flat lighting",
+			TriggerWords:     "RAW photo, 85mm portrait, realistic skin texture, shallow depth of field",
+			RecommendedModel: "SDXL Base",
+			SampleImages:     `["/images/preview-2.png"]`,
+			Description:      "Flawless photorealistic portrait with natural skin texture, golden hour lens flare, and creamy bokeh.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Tokyo Neon Rain Noir",
+			Slug:             "tokyo-neon-rain-noir",
+			Category:         "photorealistic",
+			Subcategory:      "Cinematic Street",
+			BaseModelTarget:  "SDXL",
+			PresetType:       "full",
+			PositivePrompt:   "cinematic film still, photorealistic, woman in translucent holographic techwear raincoat, damp hair, illuminated by vivid neon signs in dark rain-slicked Tokyo alley, anamorphic lens flare, Kodak Vision3 500T, high dynamic range, intricate puddle reflections, moody atmospheric fog",
+			NegativePrompt:   "illustration, 3d CGI, drawing, sketch, bad anatomy, extra fingers, cartoonish, low resolution, flat colors",
+			TriggerWords:     "cinematic film still, anamorphic lens, neon reflections, wet asphalt",
+			RecommendedModel: "SDXL Base",
+			SampleImages:     `["/images/preview-2.png"]`,
+			Description:      "Atmospheric cinematic photo of rainy Tokyo cyberpunk alley with anamorphic lens artifacts.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Retro 90s Cel Shaded Anime",
+			Slug:             "retro-90s-cel-anime",
+			Category:         "style",
+			Subcategory:      "Retro Anime",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, 1990s anime screenshot, cel shaded, subtle VHS scanlines, retro anime aesthetic, nostalgic warm color palette, sharp ink lineart, vintage anime lighting, aesthetic evening city skyline backdrop",
+			NegativePrompt:   "modern digital 3d, glossy, plastic, airbrush, blurry, modern CGI, oversaturated neon",
+			TriggerWords:     "1990s anime, retro anime aesthetic, cel shading, VHS grain",
+			RecommendedModel: "Raehoshi Illust XL",
+			SampleImages:     `["/images/preview-1.png"]`,
+			Description:      "Golden era 90s anime aesthetic with authentic cel-shading, vintage ink lines, and nostalgic colors.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Dreamy Pastel Bloom Fantasy",
+			Slug:             "dreamy-pastel-bloom",
+			Category:         "style",
+			Subcategory:      "Pastel Art",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "full",
+			PositivePrompt:   "<lora:soft_pastel_bloom_ilus:0.75>, pastel glow, soft bloom, luminous lighting, masterpiece, delicate pastel watercolor aesthetic, dreamy soft lighting, glowing particles, ethereal atmosphere, luminous eyes, gentle breeze, floating flower petals, high-key pastel palette",
+			NegativePrompt:   "high contrast, harsh black shadows, gritty, oversaturated, deformed, dark gothic",
+			TriggerWords:     "pastel glow, soft bloom, luminous lighting, ethereal",
+			RecommendedModel: "Raehoshi Illust XL",
+			RecommendedLoras: `["soft-pastel-bloom"]`,
+			SampleImages:     `["/images/preview-1.png"]`,
+			Description:      "Luminous, dreamy pastel illustration with high-key watercolor gradients and ethereal glow.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Dark Fantasy Baroque Oil Painting",
+			Slug:             "dark-fantasy-baroque",
+			Category:         "style",
+			Subcategory:      "Fine Art",
+			BaseModelTarget:  "SDXL",
+			PresetType:       "full",
+			PositivePrompt:   "masterpiece, dark fantasy oil painting on textured canvas, chiaroscuro lighting, heavy expressive brushstrokes, moody gothic atmosphere, dramatic tenebrism, intricate baroque armor details, Caravaggio and Rembrandt style, warm candlelight in shadow",
+			NegativePrompt:   "smooth digital vector, flat colors, cartoon, blurry, low quality, 3d render, modern clean aesthetic",
+			TriggerWords:     "oil on canvas, chiaroscuro, dark fantasy, baroque",
+			RecommendedModel: "SDXL Base",
+			SampleImages:     `["/images/preview-1.png"]`,
+			Description:      "Museum-quality dark fantasy oil painting with Rembrandt tenebrism and heavy textured canvas strokes.",
+			IsSystem:         true,
+		},
+	}
+
+	for _, p := range presets {
+		if err := db.Create(&p).Error; err != nil {
+			log.Printf("Failed to seed preset %s: %v\n", p.Title, err)
+		}
+	}
+
+	log.Printf("Successfully seeded %d prompt presets\n", len(presets))
 	return nil
 }

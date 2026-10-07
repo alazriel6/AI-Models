@@ -22,7 +22,13 @@ func (s *PromptPresetService) List(category, subcategory, baseModel, presetType,
 	query := s.db.Model(&models.PromptPreset{})
 
 	if category != "" && category != "all" {
-		query = query.Where("category = ?", category)
+		if category == "anime" {
+			query = query.Where("category IN ('anime', 'character', 'style')")
+		} else if category == "realistic" || category == "photorealistic" {
+			query = query.Where("category IN ('realistic', 'photorealistic')")
+		} else {
+			query = query.Where("category = ?", category)
+		}
 	}
 	if subcategory != "" && subcategory != "all" {
 		query = query.Where("subcategory = ?", subcategory)
