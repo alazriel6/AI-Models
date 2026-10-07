@@ -7,6 +7,7 @@ import Gallery from './components/pages/Gallery';
 import MetadataInspector from './components/pages/MetadataInspector';
 import ModelComparison from './components/pages/ModelComparison';
 import ResolutionCalculator from './components/pages/ResolutionCalculator';
+import PromptLab from './components/pages/PromptLab';
 import ModelList from './components/model-list';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { AdminAuthProvider } from './components/admin/AdminAuth';
@@ -50,6 +51,11 @@ function App() {
                   </NavLink>
                 </li>
                 <li>
+                  <NavLink to="/prompt-lab">
+                    Prompt Lab
+                  </NavLink>
+                </li>
+                <li>
                   <NavLink to="/calculator">
                     Calculator
                   </NavLink>
@@ -82,6 +88,8 @@ function App() {
               <Route path="/gallery" element={<Gallery />} />
               <Route path="/inspector" element={<MetadataInspector />} />
               <Route path="/metadata" element={<MetadataInspector />} />
+              <Route path="/prompt-lab" element={<PromptLab />} />
+              <Route path="/studio" element={<PromptLab />} />
               <Route path="/calculator" element={<ResolutionCalculator />} />
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />

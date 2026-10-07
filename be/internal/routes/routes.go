@@ -14,8 +14,9 @@ type RouteHandlers struct {
 	TagHandler      *handlers.TagHandler
 	ImageHandler    *handlers.ImageHandler
 	ResourceHandler *handlers.ResourceHandler
-	ImporterHandler *handlers.ImporterHandler
-	BackupHandler   *handlers.BackupHandler
+	ImporterHandler     *handlers.ImporterHandler
+	BackupHandler       *handlers.BackupHandler
+	PromptPresetHandler *handlers.PromptPresetHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -104,6 +105,17 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 		{
 			backup.GET("/export", adminAuth, h.BackupHandler.ExportBackup)
 			backup.POST("/import", adminAuth, h.BackupHandler.ImportBackup)
+		}
+
+		// Prompt Presets & Studio Lab
+		promptPresets := api.Group("/prompt-presets")
+		{
+			promptPresets.GET("", h.PromptPresetHandler.GetPresets)
+			promptPresets.GET("/:id", h.PromptPresetHandler.GetPreset)
+			promptPresets.POST("", h.PromptPresetHandler.CreatePreset)
+			promptPresets.POST("/upload-sample", h.PromptPresetHandler.UploadSampleImage)
+			promptPresets.PUT("/:id", h.PromptPresetHandler.UpdatePreset)
+			promptPresets.DELETE("/:id", h.PromptPresetHandler.DeletePreset)
 		}
 	}
 }

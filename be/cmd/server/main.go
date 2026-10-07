@@ -45,16 +45,18 @@ func main() {
 	imageService := services.NewImageService(imageRepo, modelRepo, resourceRepo, tagRepo, cfg.StoragePath)
 	importerService := services.NewImporterService(modelRepo, versionRepo, tagRepo, imageRepo)
 	backupService := services.NewBackupService(db)
+	promptPresetService := services.NewPromptPresetService(db)
 
 	// Handlers
 	h := routes.RouteHandlers{
-		ModelHandler:    handlers.NewModelHandler(modelService),
-		VersionHandler:  handlers.NewVersionHandler(versionService),
-		TagHandler:      handlers.NewTagHandler(tagService),
-		ImageHandler:    handlers.NewImageHandler(imageService),
-		ResourceHandler: handlers.NewResourceHandler(resourceService),
-		ImporterHandler: handlers.NewImporterHandler(importerService),
-		BackupHandler:   handlers.NewBackupHandler(backupService),
+		ModelHandler:        handlers.NewModelHandler(modelService),
+		VersionHandler:      handlers.NewVersionHandler(versionService),
+		TagHandler:          handlers.NewTagHandler(tagService),
+		ImageHandler:        handlers.NewImageHandler(imageService),
+		ResourceHandler:     handlers.NewResourceHandler(resourceService),
+		ImporterHandler:     handlers.NewImporterHandler(importerService),
+		BackupHandler:       handlers.NewBackupHandler(backupService),
+		PromptPresetHandler: handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
 	}
 
 	router := gin.Default()

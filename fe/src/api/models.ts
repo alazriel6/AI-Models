@@ -1,4 +1,4 @@
-import { apiFetch } from "./client";
+import { apiFetch, API_BASE_URL } from "./client";
 
 export interface Resource {
     id: number;
@@ -177,4 +177,94 @@ export function getModel(idOrSlug: string | number) {
 
 export function getImage(id: number | string) {
     return apiFetch<ModelImage>(`/images/${id}`);
+}
+
+export interface RecommendedLoraItem {
+    name: string;
+    slug: string;
+    weight: number;
+    base_model?: string;
+}
+
+export interface PromptPreset {
+    id: number;
+    title: string;
+    slug?: string;
+    category: string; // 'character' | 'anime' | 'photorealistic' | 'style' | 'environment' | 'modular'
+    subcategory?: string;
+    base_model_target: string; // 'Illustrious' | 'SDXL' | 'Pony' | 'Flux' | 'All'
+    preset_type: "full" | "modular";
+    positive_prompt: string;
+    negative_prompt?: string;
+    trigger_words?: string;
+    recommended_model?: string;
+    recommended_loras?: string; // JSON string or array
+    sample_images?: string; // JSON array of string URLs
+    description?: string;
+    is_system?: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface GetPromptPresetsParams {
+    category?: string;
+    subcategory?: string;
+    base_model?: string;
+    type?: string;
+    search?: string;
+}
+
+export async function getPromptPresets(params?: GetPromptPresetsParams): Promise<PromptPreset[]> {
+    const q = new URLSearchParams();
+    if (params?.category) q.append("category", params.category);
+    if (params?.subcategory) q.append("subcategory", params.subcategory);
+    if (params?.base_model) q.append("base_model", params.base_model);
+    if (params?.type) q.append("type", params.type);
+    if (params?.search) q.append("search", params.search);
+
+    const qs = q.toString();
+    const res = await apiFetch<{ data: PromptPreset[]; total: number }>(`/prompt-presets${qs ? `?${qs}` : ""}`);
+    return res.data || [];
+}
+
+export async function createPromptPresetApi(preset: Partial<PromptPreset>): Promise<PromptPreset> {
+    return apiFetch<PromptPreset>("/prompt-presets", {
+        method: "POST",
+        body: JSON.stringify(preset),
+    });
+}
+
+export async function updatePromptPresetApi(id: number, preset: Partial<PromptPreset>): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/prompt-presets/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(preset),
+    });
+}
+
+export async function deletePromptPresetApi(id: number): Promise<{ message: string }> {
+    return apiFetch<{ message: string }>(`/prompt-presets/${id}`, {
+        method: "DELETE",
+    });
+}
+
+export async function uploadPresetSampleImageApi(file: File): Promise<{ url: string; filename: string }> {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(`${API_BASE_URL}/prompt-presets/upload-sample`, {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!res.ok) {
+        let errMsg = `Upload failed: ${res.status}`;
+        try {
+            const json = await res.json();
+            if (json?.error) errMsg = json.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
+    return res.json();
 }
