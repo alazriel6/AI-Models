@@ -170,6 +170,50 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
         setBatchTags(batchTags.filter((t) => t !== tag));
     };
 
+    const handleExtractTagsFromBatch = () => {
+        const ignoreList = new Set([
+            "masterpiece", "best quality", "official art", "8k resolution", "8k",
+            "ultra-detailed", "highres", "absurdres", "cel shading", "looking at viewer",
+            "extremely detailed", "hyperrealistic", "unreal engine", "sharp focus",
+            "trending on artstation", "intricate details", "photorealistic", "raw photo",
+            "cinematic lighting", "high quality", "depth of field", "bokeh"
+        ]);
+
+        const extractedSet = new Set<string>(batchTags);
+        let foundNewCount = 0;
+
+        items.forEach((it) => {
+            if (!it.metadata?.positive_prompt) return;
+            const tokens = it.metadata.positive_prompt.split(",");
+            for (const raw of tokens) {
+                let clean = raw.trim().replace(/<lora:[^>]+>/gi, "").replace(/<embedding:[^>]+>/gi, "");
+                clean = clean.replace(/^[\(\[\{]+|[\)\]\}]+$/g, "").trim();
+                if (clean.includes(":")) {
+                    const parts = clean.split(":");
+                    if (parts.length === 2 && !isNaN(Number(parts[1]))) {
+                        clean = parts[0].trim();
+                    }
+                }
+                clean = clean.replace(/^#+/, "").trim().toLowerCase();
+                if (clean.length >= 2 && clean.length <= 40 && !ignoreList.has(clean)) {
+                    if (!extractedSet.has(clean)) {
+                        extractedSet.add(clean);
+                        foundNewCount++;
+                    }
+                }
+            }
+        });
+
+        const newTags = Array.from(extractedSet);
+        setBatchTags(newTags);
+        if (foundNewCount > 0) {
+            onToast("success", `Extracted ${foundNewCount} common tags from batch prompt!`);
+        } else {
+            onToast("info", "No new unique tags found in the parsed prompts.");
+        }
+    };
+
+
     const handleRemoveItem = (id: string) => {
         setItems((prev) => {
             const item = prev.find((it) => it.id === id);
@@ -359,9 +403,24 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
 
                         {/* Batch Tags */}
                         <div className="bulk-field-group">
-                            <label>
-                                <Icons.Tag /> Common Batch Tags
-                            </label>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <label style={{ margin: 0 }}>
+                                    <Icons.Tag /> Common Batch Tags
+                                </label>
+                                {items.some((it) => it.metadata?.positive_prompt) && (
+                                    <button
+                                        type="button"
+                                        className="btn-secondary-admin"
+                                        style={{ fontSize: "10px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                        onClick={handleExtractTagsFromBatch}
+                                        disabled={isUploading}
+                                        title="Extract common tags from all parsed prompts in the batch queue"
+                                    >
+                                        <Icons.Tag />
+                                        <span>Extract Batch Tags</span>
+                                    </button>
+                                )}
+                            </div>
                             <div className="bulk-tags-container">
                                 {batchTags.map((tag) => (
                                     <span key={tag} className="bulk-tag-chip">
@@ -445,8 +504,8 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                         <div className="bulk-queue-title">
                             Batch Queue ({items.length} files)
                             {successCount > 0 && (
-                                <span style={{ marginLeft: "8px", color: "#4ADE80" }}>
-                                    ✓ {successCount} uploaded
+                                <span style={{ marginLeft: "8px", color: "#4ADE80", display: "inline-flex", alignItems: "center", gap: "3px" }}>
+                                    <Icons.Check /> {successCount} uploaded
                                 </span>
                             )}
                         </div>

@@ -14,6 +14,7 @@ import { ModelFormModal } from "./ModelFormModal";
 import { ModelImagesModal } from "./ModelImagesModal";
 import { GalleryManager } from "./GalleryManager";
 import { AutoImportModelModal } from "./AutoImportModelModal";
+import { DatabaseBackupModal } from "./DatabaseBackupModal";
 import "./admin.css";
 
 interface ToastNotification {
@@ -57,6 +58,9 @@ export const AdminDashboard: React.FC = () => {
     const [oldPass, setOldPass] = useState("");
     const [newPass, setNewPass] = useState("");
     const [passcodeError, setPasscodeError] = useState("");
+
+    // Database backup & restore modal state
+    const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
 
     // Toasts
     const [toasts, setToasts] = useState<ToastNotification[]>([]);
@@ -231,6 +235,24 @@ export const AdminDashboard: React.FC = () => {
                         <span className="status-dot"></span>
                         {backendOnline ? "API :8080 ONLINE" : "API OFFLINE"}
                     </div>
+
+                    <button
+                        className="btn-secondary-admin"
+                        onClick={() => setIsBackupModalOpen(true)}
+                        title="Database Backup & Portability"
+                        style={{
+                            borderColor: "rgba(99, 102, 241, 0.4)",
+                            color: "#C7D2FE",
+                            background: "rgba(99, 102, 241, 0.12)",
+                        }}
+                    >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+                        </svg>
+                        Database Backup
+                    </button>
 
                     <button
                         className="btn-secondary-admin"
@@ -747,6 +769,15 @@ export const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Database Backup & Restore Modal */}
+            <DatabaseBackupModal
+                isOpen={isBackupModalOpen}
+                onClose={() => setIsBackupModalOpen(false)}
+                totalModels={models.length}
+                onSuccess={fetchModelList}
+                onToast={addToast}
+            />
 
             {/* Toast Notifications */}
             <div className="admin-toast-container">

@@ -2518,3 +2518,148 @@
     border-color: #fab005;
     color: #fab005;
 }
+
+/* ========================================================
+   Model Comparison Deep-Link Buttons & Promo Card
+   ======================================================== */
+.card-footer-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.card-quick-compare-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #e2e8f0;
+    background: rgba(34, 139, 230, 0.12);
+    border: 1px solid rgba(51, 154, 240, 0.35);
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.card-quick-compare-btn:hover {
+    background: #1971c2;
+    border-color: #339af0;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(34, 139, 230, 0.4);
+}
+
+.list-compare-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #339af0;
+    background: rgba(34, 139, 230, 0.1);
+    border: 1px solid rgba(51, 154, 240, 0.3);
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.list-compare-btn:hover {
+    background: #1971c2;
+    color: #ffffff;
+    border-color: #339af0;
+}
+
+.header-compare-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #74c0fc;
+    background: rgba(25, 113, 194, 0.15);
+    border: 1px solid rgba(51, 154, 240, 0.4);
+    transition: all 0.2s ease;
+}
+
+.header-compare-cta-btn:hover {
+    background: #1971c2;
+    color: #ffffff;
+    border-color: #339af0;
+    box-shadow: 0 0 12px rgba(51, 154, 240, 0.35);
+}
+
+.sidebar-compare-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #e2e8f0;
+    background: #1A1D21;
+    border: 1px solid #2C3036;
+    transition: all 0.2s ease;
+}
+
+.sidebar-compare-btn:hover {
+    background: rgba(34, 139, 230, 0.15);
+    border-color: #339af0;
+    color: #74c0fc;
+}
+
+.compare-promo-card {
+    background: linear-gradient(135deg, rgba(25, 113, 194, 0.12) 0%, rgba(20, 22, 26, 0.8) 100%);
+    border: 1px solid rgba(51, 154, 240, 0.28);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.compare-promo-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #dee2e6;
+    letter-spacing: 0.3px;
+}
+
+.compare-promo-card p {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #909296;
+}
+
+.btn-sidebar-compare-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: #1971c2;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-sidebar-compare-link:hover {
+    background: #228be6;
+    box-shadow: 0 0 12px rgba(34, 139, 230, 0.4);
+}

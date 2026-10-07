@@ -174,3 +174,7 @@ export function getAllImages(params?: {
 export function getModel(idOrSlug: string | number) {
     return apiFetch<Model>(`/models/${idOrSlug}`);
 }
+
+export function getImage(id: number | string) {
+    return apiFetch<ModelImage>(`/images/${id}`);
+}

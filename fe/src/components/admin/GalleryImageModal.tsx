@@ -23,6 +23,20 @@ interface ResourceRow {
     weight: number;
 }
 
+const ModalIcons = {
+    Clean: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.912 5.885a2 2 0 0 0 1.272 1.272L21 12l-5.816 1.843a2 2 0 0 0-1.272 1.272L12 21l-1.912-5.885a2 2 0 0 0-1.272-1.272L3 12l5.816-1.843a2 2 0 0 0 1.272-1.272L12 3z"></path>
+        </svg>
+    ),
+    Extract: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+            <line x1="7" y1="7" x2="7.01" y2="7"></line>
+        </svg>
+    ),
+};
+
 export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
     isOpen,
     onClose,
@@ -276,30 +290,56 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
 
     const handleSuggestTagsFromPrompt = () => {
         if (!positivePrompt) return;
-        const rawTokens = positivePrompt.split(",");
-        const suggested: string[] = [];
         const ignoreList = new Set([
-            "masterpiece", "best quality", "official art", "8k resolution",
-            "ultra-detailed", "highres", "absurdres", "cel shading", "looking at viewer"
+            "masterpiece", "best quality", "official art", "8k resolution", "8k",
+            "ultra-detailed", "highres", "absurdres", "cel shading", "looking at viewer",
+            "extremely detailed", "hyperrealistic", "unreal engine", "sharp focus",
+            "trending on artstation", "intricate details", "photorealistic", "raw photo",
+            "cinematic lighting", "high quality", "depth of field", "bokeh"
         ]);
 
+        const rawTokens = positivePrompt.split(",");
+        const suggested: string[] = [];
+
         for (const raw of rawTokens) {
-            let clean = raw.trim().replace(/^[\(\[\{]+|[\)\]\}]+$/g, "").trim();
+            let clean = raw.trim().replace(/<lora:[^>]+>/gi, "").replace(/<embedding:[^>]+>/gi, "").trim();
+            clean = clean.replace(/^[\(\[\{]+|[\)\]\}]+$/g, "").trim();
             if (clean.includes(":")) {
-                clean = clean.split(":")[0].trim();
+                const parts = clean.split(":");
+                if (parts.length === 2 && !isNaN(Number(parts[1]))) {
+                    clean = parts[0].trim();
+                }
             }
             clean = clean.replace(/^#+/, "").trim();
-            if (clean.length >= 2 && clean.length <= 36 && !ignoreList.has(clean.toLowerCase())) {
-                if (!tags.some((t) => t.toLowerCase() === clean.toLowerCase()) && !suggested.some((t) => t.toLowerCase() === clean.toLowerCase())) {
+            if (clean.length >= 2 && clean.length <= 40 && !ignoreList.has(clean.toLowerCase())) {
+                if (
+                    !tags.some((t) => t.toLowerCase() === clean.toLowerCase()) &&
+                    !suggested.some((t) => t.toLowerCase() === clean.toLowerCase())
+                ) {
                     suggested.push(clean);
                 }
             }
         }
 
         if (suggested.length > 0) {
-            setTags((prev) => [...prev, ...suggested.slice(0, 10)]);
+            setTags((prev) => [...prev, ...suggested.slice(0, 15)]);
         }
     };
+
+    const handleCleanPrompt = () => {
+        if (!positivePrompt) return;
+        let cleaned = positivePrompt
+            .replace(/\s+/g, " ")
+            .replace(/,\s*,+/g, ",")
+            .replace(/\(\s+/g, "(")
+            .replace(/\s+\)/g, ")")
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .join(", ");
+        setPositivePrompt(cleaned);
+    };
+
 
     const handleAddResource = () => {
         setResources((prev) => [...prev, { name: "", type: "lora", weight: 0.8 }]);
@@ -761,7 +801,21 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                         </div>
 
                         <div className="form-group">
-                            <label className="form-label">Positive Prompt</label>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                                <label className="form-label" style={{ margin: 0 }}>Positive Prompt</label>
+                                {positivePrompt.trim() && (
+                                    <button
+                                        type="button"
+                                        className="btn-secondary-admin"
+                                        style={{ fontSize: "11px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                        onClick={handleCleanPrompt}
+                                        title="Clean formatting: remove duplicate commas, extra spaces, and broken brackets"
+                                    >
+                                        <ModalIcons.Clean />
+                                        <span>Clean Syntax</span>
+                                    </button>
+                                )}
+                            </div>
                             <textarea
                                 className="form-input mono"
                                 rows={4}
@@ -793,11 +847,12 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                                     <button
                                         type="button"
                                         className="btn-secondary-admin"
-                                        style={{ fontSize: "11px", padding: "2px 8px", height: "auto" }}
+                                        style={{ fontSize: "11px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
                                         onClick={handleSuggestTagsFromPrompt}
                                         title="Extract comma-separated prompt tokens as tags automatically"
                                     >
-                                        ⚡ Auto-extract from Prompt
+                                        <ModalIcons.Extract />
+                                        <span>Extract Tags</span>
                                     </button>
                                 )}
                             </div>

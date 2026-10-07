@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { parseImageMetadataApi, type ParsedImageMetadata } from "../../api/admin";
+import { getImage, type ModelImage } from "../../api/models";
+import { resolveImageUrl } from "../../api/client";
 import {
     buildA1111ParametersText,
     buildWebUIApiPayload,
@@ -69,14 +72,25 @@ const Icons = {
             <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
     ),
+    ArrowLeft: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"></line>
+            <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+    ),
 };
 
 export default function MetadataInspector() {
+    const [searchParams] = useSearchParams();
+    const imageIdParam = searchParams.get("image_id") || searchParams.get("image");
+    const urlParam = searchParams.get("url");
+
     const [mode, setMode] = useState<"upload" | "paste">("upload");
     const [pastedText, setPastedText] = useState("");
     const [isDragging, setIsDragging] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [inspectedGalleryItem, setInspectedGalleryItem] = useState<ModelImage | null>(null);
 
     // Selected file & preview
     const [currentFile, setCurrentFile] = useState<{
@@ -100,7 +114,7 @@ export default function MetadataInspector() {
         setTimeout(() => setCopiedKey(null), 2000);
     };
 
-    const handleProcessFile = useCallback(async (file: File) => {
+    const handleProcessFile = useCallback(async (file: File, galleryItemFallback?: ModelImage | null) => {
         setIsLoading(true);
         setErrorMsg(null);
         // CRITICAL: Immediately wipe previous file's metadata to prevent state leak
@@ -123,24 +137,116 @@ export default function MetadataInspector() {
 
         try {
             const res = await parseImageMetadataApi(file);
-            setMetaResult(res.metadata);
+            let m = res.metadata;
+
+            // If parsed metadata has empty prompts but database has records, merge them
+            if (galleryItemFallback && (!m?.positive_prompt || m?.source === "unknown")) {
+                m = {
+                    ...m,
+                    source: m?.source && m.source !== "unknown" ? m.source : "gallery_db",
+                    positive_prompt: galleryItemFallback.positive_prompt || m?.positive_prompt || "",
+                    negative_prompt: galleryItemFallback.negative_prompt || m?.negative_prompt || "",
+                    steps: galleryItemFallback.steps || m?.steps,
+                    sampler: galleryItemFallback.sampler || m?.sampler,
+                    cfg_scale: galleryItemFallback.cfg_scale || m?.cfg_scale,
+                    seed: galleryItemFallback.seed !== undefined ? galleryItemFallback.seed : m?.seed,
+                    width: galleryItemFallback.width || m?.width,
+                    height: galleryItemFallback.height || m?.height,
+                    model_name: galleryItemFallback.model?.name || galleryItemFallback.model_name || m?.model_name,
+                    loras: galleryItemFallback.resources?.map((r) => ({ name: r.name, weight: r.weight || 0.8 })) || m?.loras,
+                };
+            }
+
+            setMetaResult(m);
             setActiveTab("params");
         } catch (err: any) {
             console.error("Metadata parsing failed:", err);
-            // Construct a clean, empty metadata object for this file so previous metadata is NEVER retained!
-            setMetaResult({
-                source: "unknown",
-                format: fileExt.toLowerCase(),
-                positive_prompt: "",
-                negative_prompt: "",
-                raw_chunks: {},
-                extra_params: {},
-            });
-            setErrorMsg(err?.message || "File ini tidak memiliki metadata generasi AI tertanam.");
+            if (galleryItemFallback) {
+                // Use database fallback!
+                setMetaResult({
+                    source: "gallery_db",
+                    format: fileExt.toLowerCase(),
+                    positive_prompt: galleryItemFallback.positive_prompt || "",
+                    negative_prompt: galleryItemFallback.negative_prompt || "",
+                    steps: galleryItemFallback.steps,
+                    sampler: galleryItemFallback.sampler,
+                    cfg_scale: galleryItemFallback.cfg_scale,
+                    seed: galleryItemFallback.seed,
+                    width: galleryItemFallback.width,
+                    height: galleryItemFallback.height,
+                    model_name: galleryItemFallback.model?.name || galleryItemFallback.model_name,
+                    loras: galleryItemFallback.resources?.map((r) => ({ name: r.name, weight: r.weight || 0.8 })),
+                    raw_chunks: {},
+                    extra_params: {},
+                });
+                setActiveTab("params");
+            } else {
+                setMetaResult({
+                    source: "unknown",
+                    format: fileExt.toLowerCase(),
+                    positive_prompt: "",
+                    negative_prompt: "",
+                    raw_chunks: {},
+                    extra_params: {},
+                });
+                setErrorMsg(err?.message || "File ini tidak memiliki metadata generasi AI tertanam.");
+            }
         } finally {
             setIsLoading(false);
         }
     }, []);
+
+    // Automatic loading when deep-linked with URL parameters (image_id or url)
+    useEffect(() => {
+        if (!imageIdParam && !urlParam) return;
+
+        let isMounted = true;
+
+        const loadTargetImage = async () => {
+            setIsLoading(true);
+            setErrorMsg(null);
+            try {
+                let fileToProcess: File | null = null;
+                let galleryItem: ModelImage | null = null;
+
+                if (imageIdParam) {
+                    const item = await getImage(imageIdParam);
+                    if (!isMounted) return;
+                    galleryItem = item;
+                    setInspectedGalleryItem(item);
+
+                    const resolved = resolveImageUrl(item.image_url);
+                    const resp = await fetch(resolved);
+                    const blob = await resp.blob();
+                    const filename = item.image_url?.split("/").pop() || `artwork_${item.id}.png`;
+                    fileToProcess = new File([blob], filename, { type: blob.type || "image/png" });
+                } else if (urlParam) {
+                    const resolved = resolveImageUrl(urlParam);
+                    const resp = await fetch(resolved);
+                    const blob = await resp.blob();
+                    const filename = urlParam.split("/").pop() || "image.png";
+                    fileToProcess = new File([blob], filename, { type: blob.type || "image/png" });
+                }
+
+                if (fileToProcess && isMounted) {
+                    await handleProcessFile(fileToProcess, galleryItem);
+                }
+            } catch (err: any) {
+                if (isMounted) {
+                    console.error("Failed to load image from URL param:", err);
+                    setErrorMsg(`Gagal memuat gambar galeri: ${err?.message || "Kesalahan jaringan"}`);
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        loadTargetImage();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [imageIdParam, urlParam, handleProcessFile]);
+
 
     // Global Paste Listener (Ctrl+V)
     useEffect(() => {
@@ -289,6 +395,23 @@ export default function MetadataInspector() {
                     <span className="format-pill">Client-Safe (In-Memory)</span>
                 </div>
             </div>
+
+            {/* Gallery Source Banner when loaded via URL param */}
+            {inspectedGalleryItem && (
+                <div className="inspector-gallery-source-banner">
+                    <div className="inspector-gallery-source-info">
+                        <span className="inspector-gallery-badge">Artwork #{inspectedGalleryItem.id}</span>
+                        <span className="inspector-gallery-title">{inspectedGalleryItem.caption || "Untitled Artwork"}</span>
+                        <span className="inspector-gallery-meta">
+                            Model: {inspectedGalleryItem.model?.name || inspectedGalleryItem.model_name || "Standalone Checkpoint"}
+                        </span>
+                    </div>
+                    <Link to={`/gallery?image=${inspectedGalleryItem.id}`} className="inspector-gallery-back-link">
+                        <Icons.ArrowLeft />
+                        <span>View in Gallery</span>
+                    </Link>
+                </div>
+            )}
 
             {/* Input Selection Bar */}
             <div className="inspector-mode-bar">

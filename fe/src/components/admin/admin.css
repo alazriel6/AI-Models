@@ -1393,3 +1393,610 @@
     transition: width 0.25s ease;
 }
 
+/* ==========================================================================
+   Pro Gallery Manager: View Modes, Multi-Select & Batch Toolbar
+   ========================================================================== */
+
+/* View Mode Switcher */
+.view-mode-btn-group {
+    display: inline-flex;
+    align-items: center;
+    background: #121417;
+    border: 1px solid #282C34;
+    border-radius: 6px;
+    padding: 2px;
+    gap: 2px;
+}
+
+.view-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    color: #7B828F;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.view-mode-btn:hover {
+    color: #E6E8EB;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.view-mode-btn.active {
+    background: #252830;
+    color: #818CF8;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Active Filter Chips Ribbon */
+.gallery-active-filters-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    background: #14161A;
+    border: 1px solid #22262E;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 14px;
+}
+
+.gallery-active-filter-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6C727D;
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+.gallery-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(129, 140, 248, 0.3);
+    color: #C7D2FE;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.gallery-filter-chip button {
+    background: transparent;
+    border: none;
+    color: #818CF8;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    transition: color 0.15s ease;
+}
+
+.gallery-filter-chip button:hover {
+    color: #EF4444;
+}
+
+.gallery-filter-clear-all {
+    background: transparent;
+    border: none;
+    color: #EF4444;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 6px;
+    margin-left: auto;
+    text-decoration: underline;
+    transition: opacity 0.15s ease;
+}
+
+.gallery-filter-clear-all:hover {
+    opacity: 0.8;
+}
+
+/* Card Selection Checkbox */
+.gallery-card-checkbox-wrap {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.gallery-checkbox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid #3B4252;
+    background: rgba(18, 20, 24, 0.85);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.gallery-checkbox:hover {
+    border-color: #818CF8;
+    background: rgba(30, 34, 42, 0.95);
+}
+
+.gallery-checkbox.checked {
+    background: #6366F1;
+    border-color: #818CF8;
+    color: #FFFFFF;
+}
+
+.gallery-card.selected {
+    border-color: #818CF8 !important;
+    box-shadow: 0 0 0 1px #818CF8, 0 8px 24px rgba(99, 102, 241, 0.2);
+}
+
+/* Compact Grid View */
+.gallery-compact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+
+.gallery-compact-card {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #111316;
+    border: 1px solid #23272E;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.gallery-compact-card:hover {
+    border-color: #4B5263;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.gallery-compact-card.selected {
+    border-color: #818CF8 !important;
+    box-shadow: 0 0 0 2px #818CF8, 0 6px 20px rgba(99, 102, 241, 0.25);
+}
+
+.gallery-compact-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.25s ease;
+}
+
+.gallery-compact-card:hover img {
+    transform: scale(1.05);
+}
+
+.gallery-compact-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.6) 100%);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 8px;
+    color: #FFFFFF;
+}
+
+.gallery-compact-card:hover .gallery-compact-overlay {
+    opacity: 1;
+}
+
+.gallery-compact-card.selected .gallery-compact-overlay {
+    opacity: 1;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.85) 0%, rgba(99, 102, 241, 0.15) 50%, rgba(0, 0, 0, 0.6) 100%);
+}
+
+.gallery-compact-caption {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gallery-compact-meta {
+    font-size: 9px;
+    font-family: ui-monospace, monospace;
+    color: #9CA3AF;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Pro Data Table View */
+.gallery-table-container {
+    background: #141619;
+    border: 1px solid #23272E;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+
+.gallery-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.gallery-table th {
+    background: #101215;
+    color: #7B828F;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 10px 12px;
+    border-bottom: 1px solid #23272E;
+    white-space: nowrap;
+}
+
+.gallery-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #1C2026;
+    color: #C5CBD4;
+    vertical-align: middle;
+}
+
+.gallery-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.gallery-table tr.selected td {
+    background: rgba(99, 102, 241, 0.08);
+}
+
+.gallery-table-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #0E1012;
+    border: 1px solid #22252C;
+    flex-shrink: 0;
+    cursor: pointer;
+}
+
+.gallery-table-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Floating Bulk Actions Bar */
+.gallery-floating-bulk-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(23, 25, 28, 0.95);
+    border: 1px solid #333842;
+    border-radius: 8px;
+    padding: 8px 16px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(129, 140, 248, 0.2);
+    backdrop-filter: blur(12px);
+    animation: slideUpBulkBar 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpBulkBar {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 16px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.gallery-bulk-count-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #C7D2FE;
+    background: rgba(99, 102, 241, 0.2);
+    border: 1px solid rgba(129, 140, 248, 0.4);
+    padding: 4px 10px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+
+.gallery-bulk-divider {
+    width: 1px;
+    height: 20px;
+    background: #333842;
+}
+
+.gallery-bulk-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    background: #1E222A;
+    border: 1px solid #333946;
+    color: #E6E8EB;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.gallery-bulk-btn:hover {
+    background: #282D38;
+    border-color: #444C5C;
+    color: #FFFFFF;
+}
+
+.gallery-bulk-btn.danger {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.35);
+    color: #F87171;
+}
+
+.gallery-bulk-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.22);
+    border-color: #EF4444;
+    color: #FFFFFF;
+}
+
+.gallery-bulk-close {
+    background: transparent;
+    border: none;
+    color: #7B828F;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.gallery-bulk-close:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   Database Backup & Restore Modal (DevOps-grade UI)
+   ========================================================================== */
+
+.backup-nav-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 20px;
+    background: #111316;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.backup-nav-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #8E95A2;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.backup-nav-tab:hover {
+    color: #E6E8EB;
+}
+
+.backup-nav-tab.active {
+    color: #FFFFFF;
+    border-bottom-color: #818CF8;
+    font-weight: 600;
+}
+
+.backup-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.backup-stat-card {
+    background: #121417;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    padding: 12px 14px;
+    text-align: left;
+}
+
+.backup-stat-label {
+    font-size: 11px;
+    color: #71717A;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.backup-stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #818CF8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.backup-stat-sub {
+    font-size: 11px;
+    color: #A1A1AA;
+    margin-top: 2px;
+}
+
+.backup-info-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(99, 102, 241, 0.06);
+    border: 1px solid rgba(129, 140, 248, 0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #A5B4FC;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+.backup-dropzone {
+    border: 1.5px dashed rgba(255, 255, 255, 0.14);
+    background: #121417;
+    border-radius: 8px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-bottom: 16px;
+}
+
+.backup-dropzone:hover,
+.backup-dropzone.dragging {
+    border-color: #818CF8;
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.backup-dropzone-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #181B20;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #818CF8;
+    margin: 0 auto 12px auto;
+}
+
+.backup-preview-box {
+    background: #0D0F12;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+}
+
+.backup-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 600;
+    color: #A1A1AA;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+}
+
+.backup-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    font-size: 12px;
+}
+
+.backup-mode-selector {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.backup-mode-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    background: #121417;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: left;
+}
+
+.backup-mode-card:hover {
+    border-color: rgba(255, 255, 255, 0.16);
+    background: #15181D;
+}
+
+.backup-mode-card.active {
+    border-color: #818CF8;
+    background: rgba(99, 102, 241, 0.08);
+    box-shadow: 0 0 0 1px #818CF8;
+}
+
+.backup-mode-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.backup-mode-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #FFFFFF;
+}
+
+.backup-mode-desc {
+    font-size: 11px;
+    color: #8E95A2;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.backup-mode-badge {
+    font-size: 10px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 3px;
+    letter-spacing: 0.03em;
+}
+
+.backup-mode-badge.safe {
+    background: rgba(74, 222, 128, 0.12);
+    color: #4ADE80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.backup-mode-badge.destructive {
+    background: rgba(248, 113, 113, 0.12);
+    color: #F87171;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+
+

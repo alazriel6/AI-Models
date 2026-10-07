@@ -15,6 +15,7 @@ type RouteHandlers struct {
 	ImageHandler    *handlers.ImageHandler
 	ResourceHandler *handlers.ResourceHandler
 	ImporterHandler *handlers.ImporterHandler
+	BackupHandler   *handlers.BackupHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -97,5 +98,13 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			resources.PUT("/:id", adminAuth, h.ResourceHandler.UpdateResource)
 			resources.DELETE("/:id", adminAuth, h.ResourceHandler.DeleteResource)
 		}
+
+		// Database Backup & Restore
+		backup := api.Group("/backup")
+		{
+			backup.GET("/export", adminAuth, h.BackupHandler.ExportBackup)
+			backup.POST("/import", adminAuth, h.BackupHandler.ImportBackup)
+		}
 	}
 }
+

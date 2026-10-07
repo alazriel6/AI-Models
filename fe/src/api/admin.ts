@@ -380,3 +380,59 @@ export async function saveModelImportApi(payload: ImportModelSavePayload): Promi
         body: JSON.stringify(payload),
     });
 }
+
+export interface DatabaseBackupPayload {
+    version: string;
+    exported_at: string;
+    total_models: number;
+    total_images: number;
+    total_tags: number;
+    models: Model[];
+    images: ModelImage[];
+    tags: Tag[];
+}
+
+export interface ImportBackupResponse {
+    success: boolean;
+    message: string;
+    result: {
+        models_imported: number;
+        images_imported: number;
+        tags_imported: number;
+        warnings?: string[];
+    };
+}
+
+export async function exportDatabaseBackupApi(): Promise<DatabaseBackupPayload> {
+    return apiFetch<DatabaseBackupPayload>("/backup/export");
+}
+
+export async function importDatabaseBackupApi(
+    file: File,
+    mode: "merge" | "overwrite" = "merge"
+): Promise<ImportBackupResponse> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("mode", mode);
+
+    const res = await fetch(`${API_BASE_URL}/backup/import`, {
+        method: "POST",
+        headers: {
+            ...getAuthHeaders(),
+        },
+        body: formData,
+    });
+
+    if (!res.ok) {
+        let errMsg = `Import failed with status ${res.status}`;
+        try {
+            const json = await res.json();
+            if (json?.error) errMsg = json.error;
+        } catch {
+            // ignore
+        }
+        throw new Error(errMsg);
+    }
+    return res.json();
+}
+

@@ -1147,6 +1147,18 @@ export default function Gallery() {
                   <span>{isImageFav(selectedImage.id) ? 'Favorit' : 'Simpan'}</span>
                 </button>
 
+                {/* Inspect in Metadata Inspector */}
+                <a
+                  href={`/inspector?image_id=${selectedImage.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="modal-tool-link"
+                  title="Buka seluruh node graph ComfyUI, chunks, dan parameter di Metadata Inspector"
+                >
+                  <Icons.Inspect />
+                  <span>Inspect</span>
+                </a>
+
                 <a
                   href={resolveImageUrl(selectedImage.image_url)}
                   target="_blank"
@@ -1376,7 +1388,7 @@ export default function Gallery() {
                             style={{ padding: '0 4px', fontSize: '10px' }}
                             onClick={() => copyToClipboard(String(selectedImage.seed), 'seed', 'Seed')}
                           >
-                            {copiedKey === 'seed' ? '✓' : 'Copy'}
+                            {copiedKey === 'seed' ? <Icons.Check /> : 'Copy'}
                           </button>
                         )}
                       </div>

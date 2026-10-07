@@ -44,6 +44,7 @@ func main() {
 	resourceService := services.NewResourceService(resourceRepo)
 	imageService := services.NewImageService(imageRepo, modelRepo, resourceRepo, tagRepo, cfg.StoragePath)
 	importerService := services.NewImporterService(modelRepo, versionRepo, tagRepo, imageRepo)
+	backupService := services.NewBackupService(db)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -53,6 +54,7 @@ func main() {
 		ImageHandler:    handlers.NewImageHandler(imageService),
 		ResourceHandler: handlers.NewResourceHandler(resourceService),
 		ImporterHandler: handlers.NewImporterHandler(importerService),
+		BackupHandler:   handlers.NewBackupHandler(backupService),
 	}
 
 	router := gin.Default()

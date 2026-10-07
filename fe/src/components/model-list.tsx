@@ -616,6 +616,14 @@ export default function ModelList() {
                                 </svg>
                             </Link>
 
+                            <Link
+                                to={`/compare?m1=${selectedModel.slug || selectedModel.id}`}
+                                className="header-compare-cta-btn"
+                                title="Buka Model ini langsung di Model Comparison Tool"
+                            >
+                                ⚔️ Adu Model
+                            </Link>
+
                             {/* Favorite Button */}
                             <button
                                 type="button"
@@ -977,6 +985,13 @@ export default function ModelList() {
                     <aside className="civitai-right-sidebar">
                         {/* Social Toolbar */}
                         <div className="sidebar-action-toolbar">
+                            <Link
+                                to={`/compare?m1=${selectedModel.slug || selectedModel.id}`}
+                                className="action-pill-btn sidebar-compare-btn"
+                                title="Adu Model ini di Side-by-Side Comparison Tool"
+                            >
+                                ⚔️ Adu
+                            </Link>
                             <button className="action-pill-btn" onClick={() => copyToClipboard(window.location.href, "Share Link")}>
                                 ↗ Share
                             </button>
@@ -1053,6 +1068,26 @@ export default function ModelList() {
                                     </a>
                                 );
                             })()}
+                        </div>
+
+                        {/* Compare Side-by-Side Card */}
+                        <div className="civitai-card compare-promo-card">
+                            <div className="download-card-header">
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "16px" }}>⚔️</span>
+                                    <span className="card-title-strong">Adu Model Side-by-Side</span>
+                                </div>
+                            </div>
+                            <p style={{ fontSize: "12px", color: "#909296", margin: "6px 0 12px 0", lineHeight: "1.45" }}>
+                                Bandingkan spesifikasi VRAM, parameter inference optimal, dan sampel render model ini secara berdampingan.
+                            </p>
+                            <Link
+                                to={`/compare?m1=${selectedModel.slug || selectedModel.id}`}
+                                className="btn-sidebar-compare-link"
+                                title="Buka Comparison Tool untuk Model ini"
+                            >
+                                Mulai Adu Model ➔
+                            </Link>
                         </div>
 
                         {/* Details Accordion Panel */}
@@ -1586,9 +1621,19 @@ export default function ModelList() {
                                     <span className="card-version-tag">
                                         {item.versions?.[0]?.name || item.baseModel}
                                     </span>
-                                    <button className="card-inspect-btn">
-                                        Inspect Model →
-                                    </button>
+                                    <div className="card-footer-actions">
+                                        <Link
+                                            to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
+                                            className="card-quick-compare-btn"
+                                            title="Bandingkan model ini di Model Comparison Tool"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            ⚔️ Adu
+                                        </Link>
+                                        <button className="card-inspect-btn">
+                                            Inspect Model →
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </article>
@@ -1650,7 +1695,15 @@ export default function ModelList() {
                                 <span>{item.publishedAt || "-"}</span>
                             </div>
 
-                            <div className="col-action" style={{ display: "flex", alignItems: "center" }}>
+                            <div className="col-action" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                <Link
+                                    to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
+                                    className="list-compare-btn"
+                                    title="Bandingkan model ini di Model Comparison Tool"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    ⚔️ Adu
+                                </Link>
                                 <button
                                     type="button"
                                     className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
