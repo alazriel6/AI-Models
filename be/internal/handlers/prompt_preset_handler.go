@@ -57,6 +57,12 @@ func (h *PromptPresetHandler) UploadSampleImage(c *gin.Context) {
 		return
 	}
 
+	// Pre-generate compressed thumbnail in background
+	go func(fname string) {
+		thumbSvc := services.NewThumbnailService(h.storagePath)
+		_, _ = thumbSvc.GetOrCreateThumbnail(fname, 480)
+	}(fileName)
+
 	url := "/storage/images/" + fileName
 	c.JSON(http.StatusOK, gin.H{
 		"url":      url,

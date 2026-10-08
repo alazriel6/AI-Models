@@ -1,9 +1,11 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { getModels, getModel, type Model as ApiModel } from "../api/models";
 import { resolveImageUrl } from "../api/client";
 import { useFavorites } from "../api/favorites";
 import { CivitaiRichDescription } from "./CivitaiRichDescription";
+import { OptimizedImage } from "./common/OptimizedImage";
 import "../style/ModelList.css";
 
 export interface ResourceUsed {
@@ -449,6 +451,50 @@ export default function ModelList() {
                 return 0;
             });
     }, [catalog, activeTab, searchQuery, sortBy, isModelFav]);
+
+    // Responsive Grid Virtualization & Window Virtualizer Setup
+    const gridContainerRef = useRef<HTMLDivElement>(null);
+    const [gridContainerWidth, setGridContainerWidth] = useState(1200);
+
+    useEffect(() => {
+        if (!gridContainerRef.current) return;
+        const updateWidth = () => {
+            if (gridContainerRef.current) {
+                setGridContainerWidth(gridContainerRef.current.clientWidth);
+            }
+        };
+        updateWidth();
+        const ro = new ResizeObserver(updateWidth);
+        ro.observe(gridContainerRef.current);
+        return () => ro.disconnect();
+    }, [viewMode, loading]);
+
+    const gridColumns = useMemo(() => {
+        return Math.max(1, Math.floor((gridContainerWidth + 14) / (260 + 14)));
+    }, [gridContainerWidth]);
+
+    const gridRows = useMemo(() => {
+        const rows: CatalogModel[][] = [];
+        for (let i = 0; i < filteredCatalog.length; i += gridColumns) {
+            rows.push(filteredCatalog.slice(i, i + gridColumns));
+        }
+        return rows;
+    }, [filteredCatalog, gridColumns]);
+
+    const gridVirtualizer = useWindowVirtualizer({
+        count: gridRows.length,
+        estimateSize: () => 480,
+        overscan: 2,
+        scrollMargin: gridContainerRef.current?.offsetTop ?? 0,
+    });
+
+    const listContainerRef = useRef<HTMLDivElement>(null);
+    const listVirtualizer = useWindowVirtualizer({
+        count: filteredCatalog.length,
+        estimateSize: () => 64,
+        overscan: 5,
+        scrollMargin: listContainerRef.current?.offsetTop ?? 0,
+    });
 
     // Active version item in Detail View
     const currentVersion = useMemo(() => {
@@ -1536,112 +1582,149 @@ export default function ModelList() {
                 </div>
             )}
 
-            {/* Catalog Grid View */}
+            {/* Catalog Grid View (Virtualized for high performance) */}
             {!loading && !error && viewMode === "grid" && filteredCatalog.length > 0 && (
-                <div className="catalog-cards-grid">
-                    {filteredCatalog.map((item) => (
-                        <article
-                            key={item.id}
-                            className="simple-model-card"
-                            onClick={() => handleSelectModel(item)}
-                        >
-                            {/* Card Media Preview */}
-                            <div className="card-media-preview">
-                                {item.thumbnailUrl ? (
-                                    <img src={item.thumbnailUrl} alt={item.name} className="card-img" />
-                                ) : (
-                                    <div className="card-img-placeholder">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                                            <circle cx="8.5" cy="8.5" r="1.5" />
-                                            <polyline points="21 15 16 10 5 21" />
-                                        </svg>
-                                        <span className="placeholder-text">No sample preview</span>
-                                    </div>
-                                )}
+                <div
+                    ref={gridContainerRef}
+                    className="catalog-cards-grid-viewport"
+                    style={{
+                        position: "relative",
+                        width: "100%",
+                        minHeight: `${gridVirtualizer.getTotalSize()}px`,
+                        marginTop: "16px",
+                    }}
+                >
+                    {gridVirtualizer.getVirtualItems().map((virtualRow) => {
+                        const rowItems = gridRows[virtualRow.index];
+                        if (!rowItems) return null;
+                        return (
+                            <div
+                                key={virtualRow.key}
+                                data-index={virtualRow.index}
+                                ref={gridVirtualizer.measureElement}
+                                style={{
+                                    position: "absolute",
+                                    top: 0,
+                                    left: 0,
+                                    width: "100%",
+                                    transform: `translateY(${virtualRow.start - (gridVirtualizer.options.scrollMargin || 0)}px)`,
+                                    display: "grid",
+                                    gridTemplateColumns: `repeat(${gridColumns}, minmax(0, 1fr))`,
+                                    gap: "14px",
+                                    paddingBottom: "14px",
+                                }}
+                            >
+                                {rowItems.map((item) => (
+                                    <article
+                                        key={item.id}
+                                        className="simple-model-card"
+                                        onClick={() => handleSelectModel(item)}
+                                    >
+                                        {/* Card Media Preview */}
+                                        <div className="card-media-preview">
+                                            {item.thumbnailUrl ? (
+                                                <OptimizedImage
+                                                    src={item.thumbnailUrl}
+                                                    alt={item.name}
+                                                    className="card-img"
+                                                    thumbnail={true}
+                                                />
+                                            ) : (
+                                                <div className="card-img-placeholder">
+                                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                                                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                                                        <circle cx="8.5" cy="8.5" r="1.5" />
+                                                        <polyline points="21 15 16 10 5 21" />
+                                                    </svg>
+                                                    <span className="placeholder-text">No sample preview</span>
+                                                </div>
+                                            )}
 
-                                <button
-                                    type="button"
-                                    className={`card-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleModel(item.id);
-                                    }}
-                                    title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
-                                >
-                                    <StarIcon filled={isModelFav(item.id)} size={14} />
-                                </button>
+                                            <button
+                                                type="button"
+                                                className={`card-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleModel(item.id);
+                                                }}
+                                                title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+                                            >
+                                                <StarIcon filled={isModelFav(item.id)} size={14} />
+                                            </button>
 
-                                <div className="card-top-badges">
-                                    <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
-                                        {item.type.toUpperCase()}
-                                    </span>
-                                    <span className="pill-badge base-pill">
-                                        {item.baseModel}
-                                    </span>
-                                </div>
+                                            <div className="card-top-badges">
+                                                <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
+                                                    {item.type.toUpperCase()}
+                                                </span>
+                                                <span className="pill-badge base-pill">
+                                                    {item.baseModel}
+                                                </span>
+                                            </div>
 
-                                <div className="card-bottom-stats-overlay">
-                                    <span>Likes: {formatCount(item.likes)}</span>
-                                    <span>·</span>
-                                    <span>Rating: {item.rating.toFixed(1)}</span>
-                                </div>
+                                            <div className="card-bottom-stats-overlay">
+                                                <span>Likes: {formatCount(item.likes)}</span>
+                                                <span>·</span>
+                                                <span>Rating: {item.rating.toFixed(1)}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Card Body - Urgent Details */}
+                                        <div className="card-info-body">
+                                            <h3 className="card-model-name" title={item.name}>
+                                                {item.name}
+                                            </h3>
+
+                                            <div className="card-author-row">
+                                                <span className="by-label">by</span>
+                                                <span className="author-name">{item.author}</span>
+                                                {item.publishedAt && (
+                                                    <span className="card-size-tag">{item.publishedAt}</span>
+                                                )}
+                                            </div>
+
+                                            <p className="card-short-desc">
+                                                {item.description || "Generative AI model weights and pipeline configuration."}
+                                            </p>
+
+                                            {/* Trigger words snippet for LoRAs */}
+                                            {item.type === "lora" && item.triggerWords && item.triggerWords.length > 0 && (
+                                                <div className="card-triggers-snippet">
+                                                    <span className="triggers-label">Trigger:</span>
+                                                    <span className="trigger-token">{item.triggerWords[0]}</span>
+                                                    {item.triggerWords.length > 1 && (
+                                                        <span className="more-token">+{item.triggerWords.length - 1}</span>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <div className="card-footer-row">
+                                                <span className="card-version-tag">
+                                                    {item.versions?.[0]?.name || item.baseModel}
+                                                </span>
+                                                <div className="card-footer-actions">
+                                                    <Link
+                                                        to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
+                                                        className="card-quick-compare-btn"
+                                                        title="Bandingkan model ini di Model Comparison Tool"
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        ⚔️ Adu
+                                                    </Link>
+                                                    <button className="card-inspect-btn">
+                                                        Inspect Model →
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </article>
+                                ))}
                             </div>
-
-                            {/* Card Body - Urgent Details */}
-                            <div className="card-info-body">
-                                <h3 className="card-model-name" title={item.name}>
-                                    {item.name}
-                                </h3>
-
-                                <div className="card-author-row">
-                                    <span className="by-label">by</span>
-                                    <span className="author-name">{item.author}</span>
-                                    {item.publishedAt && (
-                                        <span className="card-size-tag">{item.publishedAt}</span>
-                                    )}
-                                </div>
-
-                                <p className="card-short-desc">
-                                    {item.description || "Generative AI model weights and pipeline configuration."}
-                                </p>
-
-                                {/* Trigger words snippet for LoRAs */}
-                                {item.type === "lora" && item.triggerWords && item.triggerWords.length > 0 && (
-                                    <div className="card-triggers-snippet">
-                                        <span className="triggers-label">Trigger:</span>
-                                        <span className="trigger-token">{item.triggerWords[0]}</span>
-                                        {item.triggerWords.length > 1 && (
-                                            <span className="more-token">+{item.triggerWords.length - 1}</span>
-                                        )}
-                                    </div>
-                                )}
-
-                                <div className="card-footer-row">
-                                    <span className="card-version-tag">
-                                        {item.versions?.[0]?.name || item.baseModel}
-                                    </span>
-                                    <div className="card-footer-actions">
-                                        <Link
-                                            to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
-                                            className="card-quick-compare-btn"
-                                            title="Bandingkan model ini di Model Comparison Tool"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            ⚔️ Adu
-                                        </Link>
-                                        <button className="card-inspect-btn">
-                                            Inspect Model →
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </article>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
-            {/* Compact List View */}
+            {/* Compact List View (Virtualized for high performance) */}
             {!loading && !error && viewMode === "list" && filteredCatalog.length > 0 && (
                 <div className="catalog-list-view">
                     <div className="list-header-row">
@@ -1653,72 +1736,100 @@ export default function ModelList() {
                         <span className="col-action">Action</span>
                     </div>
 
-                    {filteredCatalog.map((item) => (
-                        <div
-                            key={item.id}
-                            className="list-item-row"
-                            onClick={() => handleSelectModel(item)}
-                        >
-                            <div className="col-model list-model-cell">
-                                {item.thumbnailUrl ? (
-                                    <img src={item.thumbnailUrl} alt={item.name} className="list-thumb" />
-                                ) : (
-                                    <div className="list-thumb-placeholder">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
-                                            <rect x="3" y="3" width="18" height="18" rx="2" />
-                                        </svg>
-                                    </div>
-                                )}
-                                <div>
-                                    <h4 className="list-title">{item.name}</h4>
-                                    <span className="list-author">by {item.author}</span>
-                                </div>
-                            </div>
-
-                            <div className="col-type">
-                                <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
-                                    {item.type.toUpperCase()}
-                                </span>
-                            </div>
-
-                            <div className="col-base">
-                                <span className="pill-badge base-pill">{item.baseModel}</span>
-                            </div>
-
-                            <div className="col-stats list-stats-cell">
-                                <span>Likes: {formatCount(item.likes)}</span>
-                                <span>·</span>
-                                <span>Rating: {item.rating.toFixed(1)}</span>
-                            </div>
-
-                            <div className="col-size list-size-cell">
-                                <span>{item.publishedAt || "-"}</span>
-                            </div>
-
-                            <div className="col-action" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                <Link
-                                    to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
-                                    className="list-compare-btn"
-                                    title="Bandingkan model ini di Model Comparison Tool"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    ⚔️ Adu
-                                </Link>
-                                <button
-                                    type="button"
-                                    className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleModel(item.id);
+                    <div
+                        ref={listContainerRef}
+                        style={{
+                            position: "relative",
+                            width: "100%",
+                            minHeight: `${listVirtualizer.getTotalSize()}px`,
+                        }}
+                    >
+                        {listVirtualizer.getVirtualItems().map((virtualRow) => {
+                            const item = filteredCatalog[virtualRow.index];
+                            if (!item) return null;
+                            return (
+                                <div
+                                    key={virtualRow.key}
+                                    data-index={virtualRow.index}
+                                    ref={listVirtualizer.measureElement}
+                                    className="list-item-row"
+                                    onClick={() => handleSelectModel(item)}
+                                    style={{
+                                        position: "absolute",
+                                        top: 0,
+                                        left: 0,
+                                        width: "100%",
+                                        transform: `translateY(${virtualRow.start - (listVirtualizer.options.scrollMargin || 0)}px)`,
                                     }}
-                                    title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
                                 >
-                                    <StarIcon filled={isModelFav(item.id)} size={13} />
-                                </button>
-                                <button className="list-view-btn">Inspect →</button>
-                            </div>
-                        </div>
-                    ))}
+                                    <div className="col-model list-model-cell">
+                                        {item.thumbnailUrl ? (
+                                            <OptimizedImage
+                                                src={item.thumbnailUrl}
+                                                alt={item.name}
+                                                className="list-thumb"
+                                                thumbnail={true}
+                                                wrapperStyle={{ width: "38px", height: "38px", borderRadius: "4px", flexShrink: 0 }}
+                                            />
+                                        ) : (
+                                            <div className="list-thumb-placeholder">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666c75" strokeWidth="1.5">
+                                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h4 className="list-title">{item.name}</h4>
+                                            <span className="list-author">by {item.author}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="col-type">
+                                        <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
+                                            {item.type.toUpperCase()}
+                                        </span>
+                                    </div>
+
+                                    <div className="col-base">
+                                        <span className="pill-badge base-pill">{item.baseModel}</span>
+                                    </div>
+
+                                    <div className="col-stats list-stats-cell">
+                                        <span>Likes: {formatCount(item.likes)}</span>
+                                        <span>·</span>
+                                        <span>Rating: {item.rating.toFixed(1)}</span>
+                                    </div>
+
+                                    <div className="col-size list-size-cell">
+                                        <span>{item.publishedAt || "-"}</span>
+                                    </div>
+
+                                    <div className="col-action" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                        <Link
+                                            to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
+                                            className="list-compare-btn"
+                                            title="Bandingkan model ini di Model Comparison Tool"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            ⚔️ Adu
+                                        </Link>
+                                        <button
+                                            type="button"
+                                            className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleModel(item.id);
+                                            }}
+                                            title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+                                        >
+                                            <StarIcon filled={isModelFav(item.id)} size={13} />
+                                        </button>
+                                        <button className="list-view-btn">Inspect →</button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

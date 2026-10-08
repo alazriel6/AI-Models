@@ -46,6 +46,7 @@ func main() {
 	importerService := services.NewImporterService(modelRepo, versionRepo, tagRepo, imageRepo)
 	backupService := services.NewBackupService(db)
 	promptPresetService := services.NewPromptPresetService(db)
+	thumbnailService := services.NewThumbnailService(cfg.StoragePath)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -57,6 +58,7 @@ func main() {
 		ImporterHandler:     handlers.NewImporterHandler(importerService),
 		BackupHandler:       handlers.NewBackupHandler(backupService),
 		PromptPresetHandler: handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
+		ThumbnailHandler:    handlers.NewThumbnailHandler(thumbnailService),
 	}
 
 	router := gin.Default()

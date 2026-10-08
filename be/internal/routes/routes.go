@@ -17,6 +17,7 @@ type RouteHandlers struct {
 	ImporterHandler     *handlers.ImporterHandler
 	BackupHandler       *handlers.BackupHandler
 	PromptPresetHandler *handlers.PromptPresetHandler
+	ThumbnailHandler    *handlers.ThumbnailHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -30,6 +31,12 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 
 	// Serve static images from storage directory
 	router.Static("/storage/images", storagePath)
+
+	// High-performance compressed thumbnail routes
+	if h.ThumbnailHandler != nil {
+		router.GET("/storage/thumbnails/:filename", h.ThumbnailHandler.ServeThumbnail)
+		router.GET("/api/images/thumbnail/:filename", h.ThumbnailHandler.ServeThumbnail)
+	}
 
 	adminAuth := middleware.RequireAdminAuth(adminSecretKey)
 

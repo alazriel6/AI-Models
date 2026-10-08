@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
 import { useFavorites } from '../../api/favorites';
+import { OptimizedImage } from '../common/OptimizedImage';
 import {
   buildA1111ParametersText,
   buildComfyUIWorkflowJSON,
@@ -457,6 +459,43 @@ export default function Gallery() {
     };
   }, [images, filteredImages]);
 
+  // Responsive Virtualization Setup
+  const galleryContainerRef = useRef<HTMLDivElement>(null);
+  const [galleryContainerWidth, setGalleryContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    if (!galleryContainerRef.current) return;
+    const updateWidth = () => {
+      if (galleryContainerRef.current) {
+        setGalleryContainerWidth(galleryContainerRef.current.clientWidth);
+      }
+    };
+    updateWidth();
+    const ro = new ResizeObserver(updateWidth);
+    ro.observe(galleryContainerRef.current);
+    return () => ro.disconnect();
+  }, [density, layoutMode, loading]);
+
+  const galleryColumns = useMemo(() => {
+    const colMin = density === 'sm' ? 200 : density === 'lg' ? 340 : 260;
+    return Math.max(1, Math.floor((galleryContainerWidth + 12) / (colMin + 12)));
+  }, [galleryContainerWidth, density]);
+
+  const galleryRows = useMemo(() => {
+    const rows: ModelImage[][] = [];
+    for (let i = 0; i < filteredImages.length; i += galleryColumns) {
+      rows.push(filteredImages.slice(i, i + galleryColumns));
+    }
+    return rows;
+  }, [filteredImages, galleryColumns]);
+
+  const galleryVirtualizer = useWindowVirtualizer({
+    count: galleryRows.length,
+    estimateSize: () => 460,
+    overscan: 2,
+    scrollMargin: galleryContainerRef.current?.offsetTop ?? 0,
+  });
+
   // Copy helper
   const copyToClipboard = useCallback((text: string, key: string, label: string) => {
     if (!text) return;
@@ -905,140 +944,171 @@ export default function Gallery() {
       )}
 
       {/* ===================================================================
-          Gallery Items Grid / Masonry
+          Gallery Items Grid / Masonry (Virtualized for high performance)
           =================================================================== */}
       {!loading && !error && filteredImages.length > 0 && (
-        <div className={`gallery-${layoutMode}-view density-${density}`}>
-          {filteredImages.map((img) => {
-            const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
-            const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
-            const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
-
+        <div
+          ref={galleryContainerRef}
+          className={`gallery-${layoutMode}-view density-${density}`}
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: `${galleryVirtualizer.getTotalSize()}px`,
+          }}
+        >
+          {galleryVirtualizer.getVirtualItems().map((virtualRow) => {
+            const rowImages = galleryRows[virtualRow.index];
+            if (!rowImages) return null;
             return (
-              <article
-                key={img.id}
-                className="gallery-item-card"
-                onClick={() => handleSelectImage(img)}
+              <div
+                key={virtualRow.key}
+                data-index={virtualRow.index}
+                ref={galleryVirtualizer.measureElement}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start - (galleryVirtualizer.options.scrollMargin || 0)}px)`,
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${galleryColumns}, minmax(0, 1fr))`,
+                  gap: '12px',
+                  paddingBottom: '12px',
+                }}
               >
-                <div className="gallery-card-viewport">
-                  <img
-                    src={resolveImageUrl(img.image_url)}
-                    alt={img.caption || modelName}
-                    className="gallery-item-img"
-                    loading="lazy"
-                  />
+                {rowImages.map((img) => {
+                  const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
+                  const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
+                  const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
 
-                  {/* Minimal Technical Tags on image */}
-                  <div className="gallery-card-tag-row">
-                    <span className="gallery-card-tag base">
-                      {baseModel.toUpperCase()}
-                    </span>
-
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      {loraCount > 0 && (
-                        <span className="gallery-card-tag lora">
-                          LoRA ({loraCount})
-                        </span>
-                      )}
-                      {img.width && img.height && (
-                        <span className="gallery-card-tag res">
-                          {img.width}×{img.height}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Hover Quick Action Overlay */}
-                  <div className="gallery-hover-actions">
-                    <button
-                      className="gallery-action-link-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleSelectImage(img);
-                      }}
+                  return (
+                    <article
+                      key={img.id}
+                      className="gallery-item-card"
+                      onClick={() => handleSelectImage(img)}
                     >
-                      <Icons.Inspect />
-                      Inspect
-                    </button>
+                      <div className="gallery-card-viewport">
+                        <OptimizedImage
+                          src={resolveImageUrl(img.image_url)}
+                          alt={img.caption || modelName}
+                          className="gallery-item-img"
+                          thumbnail={true}
+                        />
 
-                    <button
-                      className={`gallery-copy-icon-btn ${isImageFav(img.id) ? 'favorited' : ''}`}
-                      title={isImageFav(img.id) ? 'Hapus dari favorit' : 'Simpan ke favorit'}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const isFav = toggleImage(img.id);
-                        triggerToast(isFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
-                      }}
-                      style={{ color: isImageFav(img.id) ? '#f59e0b' : undefined }}
-                    >
-                      <Icons.Star filled={isImageFav(img.id)} />
-                    </button>
+                        {/* Minimal Technical Tags on image */}
+                        <div className="gallery-card-tag-row">
+                          <span className="gallery-card-tag base">
+                            {baseModel.toUpperCase()}
+                          </span>
 
-                    {img.positive_prompt && (
-                      <button
-                        className="gallery-copy-icon-btn"
-                        title="Copy positive prompt"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
-                        }}
-                      >
-                        {copiedKey === `card-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                          <div style={{ display: 'flex', gap: '4px' }}>
+                            {loraCount > 0 && (
+                              <span className="gallery-card-tag lora">
+                                LoRA ({loraCount})
+                              </span>
+                            )}
+                            {img.width && img.height && (
+                              <span className="gallery-card-tag res">
+                                {img.width}×{img.height}
+                              </span>
+                            )}
+                          </div>
+                        </div>
 
-                {/* Technical Metadata Footer */}
-                <div className="gallery-card-footer">
-                  <div className="gallery-card-model-row">
-                    <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
-                      {img.caption || `Artwork #${img.id}`}
-                    </span>
-                  </div>
-
-                  <div className="gallery-card-params-row">
-                    {img.steps ? <span>Steps {img.steps}</span> : null}
-                    {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
-                    {img.sampler ? <span>{img.sampler}</span> : null}
-                  </div>
-
-                  {/* Pixiv Tags */}
-                  {img.tags && img.tags.length > 0 && (
-                    <div className="gallery-card-tag-chips">
-                      {img.tags.slice(0, 4).map((t) => {
-                        const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
-                        return (
+                        {/* Hover Quick Action Overlay */}
+                        <div className="gallery-hover-actions">
                           <button
-                            key={t.id}
-                            type="button"
-                            className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
+                            className="gallery-action-link-btn"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedTag(isActive ? null : t.name);
+                              handleSelectImage(img);
                             }}
-                            title={`Filter by #${t.name}`}
                           >
-                            <span className="tag-hash">#</span>
-                            <span>{t.name}</span>
+                            <Icons.Inspect />
+                            Inspect
                           </button>
-                        );
-                      })}
-                      {img.tags.length > 4 && (
-                        <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
-                          +{img.tags.length - 4}
-                        </span>
-                      )}
-                    </div>
-                  )}
 
-                  {img.positive_prompt && (
-                    <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
-                      {img.positive_prompt}
-                    </div>
-                  )}
-                </div>
-              </article>
+                          <button
+                            className={`gallery-copy-icon-btn ${isImageFav(img.id) ? 'favorited' : ''}`}
+                            title={isImageFav(img.id) ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isFav = toggleImage(img.id);
+                              triggerToast(isFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
+                            }}
+                            style={{ color: isImageFav(img.id) ? '#f59e0b' : undefined }}
+                          >
+                            <Icons.Star filled={isImageFav(img.id)} />
+                          </button>
+
+                          {img.positive_prompt && (
+                            <button
+                              className="gallery-copy-icon-btn"
+                              title="Copy positive prompt"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
+                              }}
+                            >
+                              {copiedKey === `card-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Technical Metadata Footer */}
+                      <div className="gallery-card-footer">
+                        <div className="gallery-card-model-row">
+                          <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
+                            {img.caption || `Artwork #${img.id}`}
+                          </span>
+                        </div>
+
+                        <div className="gallery-card-params-row">
+                          {img.steps ? <span>Steps {img.steps}</span> : null}
+                          {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
+                          {img.sampler ? <span>{img.sampler}</span> : null}
+                        </div>
+
+                        {/* Pixiv Tags */}
+                        {img.tags && img.tags.length > 0 && (
+                          <div className="gallery-card-tag-chips">
+                            {img.tags.slice(0, 4).map((t) => {
+                              const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
+                              return (
+                                <button
+                                  key={t.id}
+                                  type="button"
+                                  className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedTag(isActive ? null : t.name);
+                                  }}
+                                  title={`Filter by #${t.name}`}
+                                >
+                                  <span className="tag-hash">#</span>
+                                  <span>{t.name}</span>
+                                </button>
+                              );
+                            })}
+                            {img.tags.length > 4 && (
+                              <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
+                                +{img.tags.length - 4}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {img.positive_prompt && (
+                          <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
+                            {img.positive_prompt}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             );
           })}
         </div>

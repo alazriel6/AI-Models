@@ -255,6 +255,12 @@ func (s *ImageService) Upload(modelID *uint, fileHeader *multipart.FileHeader, m
 
 		relImagePath = filepath.ToSlash(filepath.Join("storage", "images", fileName))
 		imageURL = "/storage/images/" + fileName
+
+		// Pre-generate compressed thumbnail in background
+		go func(fname string) {
+			thumbSvc := NewThumbnailService(s.storagePath)
+			_, _ = thumbSvc.GetOrCreateThumbnail(fname, 480)
+		}(fileName)
 	} else if strings.TrimSpace(meta.ImageURL) != "" {
 		imageURL = strings.TrimSpace(meta.ImageURL)
 	} else {

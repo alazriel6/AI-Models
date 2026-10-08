@@ -13,6 +13,7 @@ import {
     type ModelImage,
 } from "../../api/models";
 import { resolveImageUrl } from "../../api/client";
+import { OptimizedImage } from "../common/OptimizedImage";
 import "../../style/PromptLab.css";
 
 // SVG Technical Icons (No AI Slop)
@@ -3286,7 +3287,11 @@ export const PromptLab: React.FC = () => {
                                                                 onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: `${selectedCharacterForModal} - ${variantTitle}` })}
                                                                 title="Klik untuk zoom preview"
                                                             >
-                                                                <img src={resolveImageUrl(imgUrl)} alt={`Sample ${sIdx + 1}`} loading="lazy" />
+                                                                <OptimizedImage
+                                                                    src={imgUrl}
+                                                                    alt={`Sample ${sIdx + 1}`}
+                                                                    thumbnail={true}
+                                                                />
                                                                 <span className="sample-thumb-badge">#{sIdx + 1}</span>
                                                             </div>
                                                         ))}
@@ -3396,7 +3401,14 @@ export const PromptLab: React.FC = () => {
                     {charTooltipState.group.sampleImages.length > 0 && (
                         <div className="preset-char-tooltip-thumbs">
                             {charTooltipState.group.sampleImages.slice(0, 4).map((img, i) => (
-                                <img key={i} src={resolveImageUrl(img)} alt="" className="tooltip-thumb-img" />
+                                <OptimizedImage
+                                    key={i}
+                                    src={img}
+                                    alt=""
+                                    className="tooltip-thumb-img"
+                                    thumbnail={true}
+                                    wrapperStyle={{ width: "32px", height: "32px", borderRadius: "4px" }}
+                                />
                             ))}
                         </div>
                     )}
