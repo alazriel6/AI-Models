@@ -505,6 +505,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 	presets := []models.PromptPreset{
 		{
 			Title:            "Rio Tsukatsuki - Seminar President",
+			Character:        "Rio Tsukatsuki",
 			Slug:             "rio-tsukatsuki",
 			Category:         "character",
 			Subcategory:      "Blue Archive",
@@ -521,6 +522,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Kitsune Shrine Maiden - Fox Spirit",
+			Character:        "Kitsune Shrine Maiden",
 			Slug:             "kitsune-shrine-maiden",
 			Category:         "character",
 			Subcategory:      "Fantasy Anime",
@@ -537,6 +539,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Cyberpunk Streetwear Rebel",
+			Character:        "Streetwear Rebel",
 			Slug:             "cyberpunk-streetwear-rebel",
 			Category:         "character",
 			Subcategory:      "Cyberpunk",
@@ -553,6 +556,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "2B - YoRHa Combat Android",
+			Character:        "2B",
 			Slug:             "2b-yorha-android",
 			Category:         "character",
 			Subcategory:      "NieR:Automata",
@@ -569,6 +573,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Frieren - Ancient Elf Mage",
+			Character:        "Frieren",
 			Slug:             "frieren-elf-mage",
 			Category:         "character",
 			Subcategory:      "Frieren",
@@ -585,6 +590,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Cinematic 85mm Golden Hour Portrait",
+			Character:        "Portrait Photography",
 			Slug:             "cinematic-85mm-portrait",
 			Category:         "photorealistic",
 			Subcategory:      "Portrait Photography",
@@ -600,6 +606,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Tokyo Neon Rain Noir",
+			Character:        "Neon Rain Noir",
 			Slug:             "tokyo-neon-rain-noir",
 			Category:         "photorealistic",
 			Subcategory:      "Cinematic Street",
@@ -615,6 +622,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Retro 90s Cel Shaded Anime",
+			Character:        "Retro 90s Anime",
 			Slug:             "retro-90s-cel-anime",
 			Category:         "style",
 			Subcategory:      "Retro Anime",
@@ -630,6 +638,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Dreamy Pastel Bloom Fantasy",
+			Character:        "Pastel Fantasy",
 			Slug:             "dreamy-pastel-bloom",
 			Category:         "style",
 			Subcategory:      "Pastel Art",
@@ -646,6 +655,7 @@ func SeedPromptPresets(db *gorm.DB) error {
 		},
 		{
 			Title:            "Dark Fantasy Baroque Oil Painting",
+			Character:        "Dark Fantasy Baroque",
 			Slug:             "dark-fantasy-baroque",
 			Category:         "style",
 			Subcategory:      "Fine Art",

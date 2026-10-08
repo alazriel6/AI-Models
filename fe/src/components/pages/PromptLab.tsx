@@ -376,6 +376,37 @@ interface PromptSnapshot {
     timestamp: number;
 }
 
+interface CharacterGroup {
+    character: string;
+    presets: PromptPreset[];
+    count: number;
+    hasFavorite: boolean;
+    sampleImages: string[];
+    subcategories: string[];
+    baseModels: string[];
+}
+
+const getPresetCharacter = (p: PromptPreset): string => {
+    if (p.character && p.character.trim()) return p.character.trim();
+    const parenMatch = (p.title || "").match(/^([^(]+)\s*\((.+)\)$/);
+    if (parenMatch && parenMatch[1].trim()) return parenMatch[1].trim();
+    const dashMatch = (p.title || "").match(/^([^-]+)\s*-\s*(.+)$/);
+    if (dashMatch && dashMatch[1].trim()) return dashMatch[1].trim();
+    if (p.subcategory && p.subcategory.trim()) return p.subcategory.trim();
+    return (p.title || "").trim() || "Unknown Character";
+};
+
+const getPresetVariantTitle = (p: PromptPreset, characterName?: string): string => {
+    const char = characterName || getPresetCharacter(p);
+    let title = (p.title || "").trim();
+    if (title.toLowerCase().startsWith(char.toLowerCase())) {
+        const rest = title.slice(char.length).trim();
+        const cleaned = rest.replace(/^[-–—:]\s*/, "").replace(/^\((.*)\)$/, "$1").trim();
+        if (cleaned) return cleaned;
+    }
+    return title;
+};
+
 export const PromptLab: React.FC = () => {
     // Canvas Prompts (Strictly kept together on unified canvas)
     const [positivePrompt, setPositivePrompt] = useState<string>(
@@ -485,6 +516,15 @@ export const PromptLab: React.FC = () => {
     const [gallerySearch, setGallerySearch] = useState("");
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [newPresetDescription, setNewPresetDescription] = useState("");
+
+    // Character Tag Presets Modal & Hover Tooltip
+    const [selectedCharacterForModal, setSelectedCharacterForModal] = useState<string | null>(null);
+    const [charTooltipState, setCharTooltipState] = useState<{
+        visible: boolean;
+        character: string;
+        rect: { top: number; left: number; bottom: number; right: number };
+        group?: CharacterGroup;
+    } | null>(null);
 
     // Modular Building Block / Token Modal
     const [isAddModularModalOpen, setIsAddModularModalOpen] = useState(false);
@@ -1024,10 +1064,12 @@ export const PromptLab: React.FC = () => {
     };
 
     // Open modal to create brand new preset from current canvas
-    const handleOpenCreatePreset = () => {
+    const handleOpenCreatePreset = (prefill?: string | React.MouseEvent) => {
+        const prefillCharacter = typeof prefill === "string" ? prefill : (selectedCharacterForModal || "");
+        setSelectedCharacterForModal(null);
         setEditingPreset(null);
         setNewPresetTitle("");
-        setNewPresetCharacterName("");
+        setNewPresetCharacterName(prefillCharacter);
         setNewPresetStyle("anime");
         setNewPresetSubcategory("");
         setNewPresetTriggerWords("");
@@ -1042,9 +1084,11 @@ export const PromptLab: React.FC = () => {
     // Open modal to edit existing preset
     const handleOpenEditPreset = (preset: PromptPreset, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
+        setSelectedCharacterForModal(null);
         setEditingPreset(preset);
-        setNewPresetTitle(preset.title);
-        setNewPresetCharacterName("");
+        const char = getPresetCharacter(preset);
+        setNewPresetCharacterName(char);
+        setNewPresetTitle(getPresetVariantTitle(preset, char));
         setNewPresetStyle(["realistic", "photorealistic"].includes((preset.category || "").toLowerCase()) ? "realistic" : "anime");
         setNewPresetSubcategory(preset.subcategory || "");
         setNewPresetTriggerWords(preset.trigger_words || "");
@@ -1056,15 +1100,22 @@ export const PromptLab: React.FC = () => {
         setIsSavePresetModalOpen(true);
     };
 
-    // Save Preset to Database
+    // Save Preset to Database (Character Name is Mandatory)
     const handleSavePreset = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newPresetTitle.trim()) return;
+        const char = newPresetCharacterName.trim();
+        const title = newPresetTitle.trim();
 
-        const effectiveTitle = newPresetCharacterName.trim()
-            ? `${newPresetCharacterName.trim()} (${newPresetTitle.trim()})`
-            : newPresetTitle.trim();
+        if (!char) {
+            showToast("Nama karakter wajib diisi!");
+            return;
+        }
+        if (!title) {
+            showToast("Judul preset / scene wajib diisi!");
+            return;
+        }
 
+        const effectiveTitle = title;
         const effectivePos = newPresetPositive.trim() || positivePrompt;
         const effectiveNeg = newPresetNegative.trim() || undefined;
 
@@ -1072,6 +1123,7 @@ export const PromptLab: React.FC = () => {
             if (editingPreset) {
                 await updatePromptPresetApi(editingPreset.id, {
                     title: effectiveTitle,
+                    character: char,
                     category: newPresetStyle,
                     subcategory: newPresetSubcategory.trim() || undefined,
                     base_model_target: newPresetBaseModelTarget || activeCheckpoint?.base_model || "All",
@@ -1082,10 +1134,11 @@ export const PromptLab: React.FC = () => {
                     sample_images: newPresetSampleList.length > 0 ? JSON.stringify(newPresetSampleList) : "",
                     description: newPresetDescription.trim() || undefined,
                 });
-                showToast(`Preset "${effectiveTitle}" diperbarui!`);
+                showToast(`Preset "${char} - ${effectiveTitle}" diperbarui!`);
             } else {
                 await createPromptPresetApi({
                     title: effectiveTitle,
+                    character: char,
                     category: newPresetStyle,
                     subcategory: newPresetSubcategory.trim() || undefined,
                     base_model_target: newPresetBaseModelTarget || activeCheckpoint?.base_model || "All",
@@ -1097,7 +1150,7 @@ export const PromptLab: React.FC = () => {
                     sample_images: newPresetSampleList.length > 0 ? JSON.stringify(newPresetSampleList) : undefined,
                     description: newPresetDescription.trim() || undefined,
                 });
-                showToast(`Preset "${effectiveTitle}" berhasil disimpan!`);
+                showToast(`Preset "${char} - ${effectiveTitle}" berhasil disimpan!`);
             }
             setIsSavePresetModalOpen(false);
             setEditingPreset(null);
@@ -1152,6 +1205,9 @@ export const PromptLab: React.FC = () => {
             setPresets((prev) => prev.filter((p) => p.id !== id));
             setModularPresets((prev) => prev.filter((p) => p.id !== id));
             showToast(`Preset "${name}" dihapus`);
+            if (activeCharPresets.length <= 1) {
+                setSelectedCharacterForModal(null);
+            }
         } catch (err) {
             console.error("Failed to delete preset:", err);
             alert("Gagal menghapus preset: " + err);
@@ -1221,6 +1277,78 @@ export const PromptLab: React.FC = () => {
 
         return list;
     }, [presets, presetCategoryFilter, favoritePresetIds, presetSort]);
+
+    // Unique existing character names for autocomplete datalist
+    const existingCharacterNames = useMemo(() => {
+        const set = new Set<string>();
+        for (const p of presets) {
+            set.add(getPresetCharacter(p));
+        }
+        return Array.from(set).sort((a, b) => a.localeCompare(b));
+    }, [presets]);
+
+    // Group filtered presets by Character Name for compact sidebar tag buttons
+    const characterGroups = useMemo<CharacterGroup[]>(() => {
+        const map = new Map<string, PromptPreset[]>();
+        for (const p of displayPresets) {
+            const char = getPresetCharacter(p);
+            if (!map.has(char)) {
+                map.set(char, []);
+            }
+            map.get(char)!.push(p);
+        }
+
+        const groups: CharacterGroup[] = [];
+        map.forEach((presetList, char) => {
+            const hasFav = presetList.some((p) => favoritePresetIds.includes(p.id));
+            const samples: string[] = [];
+            const subcats = new Set<string>();
+            const archs = new Set<string>();
+
+            for (const p of presetList) {
+                const parsed = parseSampleImages(p.sample_images);
+                for (const s of parsed) {
+                    if (samples.length < 4 && !samples.includes(s)) samples.push(s);
+                }
+                if (p.subcategory) subcats.add(p.subcategory);
+                if (p.base_model_target) archs.add(p.base_model_target);
+            }
+
+            groups.push({
+                character: char,
+                presets: presetList,
+                count: presetList.length,
+                hasFavorite: hasFav,
+                sampleImages: samples,
+                subcategories: Array.from(subcats),
+                baseModels: Array.from(archs),
+            });
+        });
+
+        if (presetSort === "favorites") {
+            groups.sort((a, b) => {
+                if (a.hasFavorite && !b.hasFavorite) return -1;
+                if (!a.hasFavorite && b.hasFavorite) return 1;
+                return a.character.localeCompare(b.character);
+            });
+        } else if (presetSort === "alpha") {
+            groups.sort((a, b) => a.character.localeCompare(b.character));
+        } else {
+            groups.sort((a, b) => {
+                const maxA = Math.max(...a.presets.map((p) => p.id));
+                const maxB = Math.max(...b.presets.map((p) => p.id));
+                return maxB - maxA;
+            });
+        }
+
+        return groups;
+    }, [displayPresets, favoritePresetIds, presetSort]);
+
+    // Active character presets for the popup modal
+    const activeCharPresets = useMemo(() => {
+        if (!selectedCharacterForModal) return [];
+        return presets.filter((p) => getPresetCharacter(p).toLowerCase() === selectedCharacterForModal.toLowerCase());
+    }, [presets, selectedCharacterForModal]);
 
     return (
         <div className="prompt-lab-container">
@@ -2045,17 +2173,17 @@ export const PromptLab: React.FC = () => {
                                             <div className="preset-empty-icon">
                                                 <Icons.Bookmark />
                                             </div>
-                                            <div className="preset-empty-title">Memuat Katalog Preset...</div>
+                                            <div className="preset-empty-title">Memuat Karakter Preset...</div>
                                         </div>
-                                    ) : displayPresets.length === 0 ? (
+                                    ) : characterGroups.length === 0 ? (
                                         <div className="preset-empty-state">
                                             <div className="preset-empty-icon">
                                                 <Icons.Bookmark />
                                             </div>
-                                            <div className="preset-empty-title">Tidak ada preset ditemukan</div>
+                                            <div className="preset-empty-title">Tidak ada karakter ditemukan</div>
                                             <div className="preset-empty-desc">
                                                 {presetCategoryFilter === "favorites"
-                                                    ? "Belum ada preset yang difavoritkan. Klik ikon bintang ⭐ pada kartu preset untuk menyematkannya."
+                                                    ? "Belum ada preset karakter yang difavoritkan. Klik karakter untuk melihat dan menyematkan ⭐."
                                                     : presetSearch || presetBaseModelFilter !== "all" || presetCategoryFilter !== "all"
                                                     ? "Coba reset filter arsitektur atau kata kunci pencarian Anda."
                                                     : "Belum ada preset tersimpan di database."}
@@ -2075,134 +2203,53 @@ export const PromptLab: React.FC = () => {
                                             )}
                                         </div>
                                     ) : (
-                                        displayPresets.map((preset) => {
-                                            const sampleImgs = parseSampleImages(preset.sample_images);
-                                            const isFav = favoritePresetIds.includes(preset.id);
+                                        <div className="preset-char-cloud-wrap">
+                                            <div className="preset-char-cloud-header">
+                                                <span className="preset-char-cloud-title">Character Tags</span>
+                                                <span className="preset-char-cloud-badge">
+                                                    {characterGroups.length} Karakter ({displayPresets.length} Presets)
+                                                </span>
+                                            </div>
 
-                                            return (
-                                                <div key={preset.id} className={`preset-item-card ${isFav ? "favorited" : ""}`}>
-                                                    <div className="preset-item-title">
-                                                        <div className="preset-title-left">
-                                                            <button
-                                                                type="button"
-                                                                className={`preset-fav-btn ${isFav ? "active" : ""}`}
-                                                                onClick={(e) => toggleFavoritePreset(preset.id, e)}
-                                                                title={isFav ? "Hapus dari favorit" : "Sematkan ke favorit ⭐"}
-                                                            >
-                                                                <Icons.Star filled={isFav} />
-                                                            </button>
-
-                                                            <span className="preset-title-text" title={preset.title}>
-                                                                {preset.title}
-                                                            </span>
-                                                            {preset.subcategory && (
-                                                                <span className="preset-sub-badge" title={preset.subcategory}>
-                                                                    {preset.subcategory}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <div className="preset-header-actions">
-                                                            <span className={`preset-base-badge ${(preset.base_model_target || "sdxl").toLowerCase()}`}>
-                                                                {preset.base_model_target || "All"}
-                                                            </span>
-                                                            <button
-                                                                type="button"
-                                                                className="preset-card-tool-btn edit"
-                                                                onClick={(e) => handleOpenEditPreset(preset, e)}
-                                                                title="Edit preset (Judul, Prompt, Foto Sample)"
-                                                            >
-                                                                <Icons.Edit />
-                                                                <span>Edit</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="preset-card-tool-btn delete"
-                                                                onClick={(e) => handleDeletePreset(preset.id, preset.title, e)}
-                                                                title="Hapus preset dari database"
-                                                            >
-                                                                <Icons.Trash />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Sample Thumbnails Carousel */}
-                                                    {sampleImgs.length > 0 && (
-                                                        <div className={`preset-sample-strip count-${Math.min(sampleImgs.length, 5)}`}>
-                                                            {sampleImgs.slice(0, 5).map((imgUrl, sIdx) => (
-                                                                <div
-                                                                    key={sIdx}
-                                                                    className="preset-sample-thumb"
-                                                                    onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: preset.title })}
-                                                                    title="Klik untuk zoom preview"
-                                                                >
-                                                                    <img src={resolveImageUrl(imgUrl)} alt={`Sample ${sIdx + 1}`} loading="lazy" />
-                                                                    <span className="sample-thumb-badge">#{sIdx + 1}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Trigger words if present */}
-                                                    {preset.trigger_words && (
-                                                        <div
-                                                            className="preset-triggers-pill-row"
-                                                            onClick={() => handleAppendPositive(preset.trigger_words || "")}
-                                                            title="Klik untuk sisipkan trigger words ke positive prompt"
-                                                        >
-                                                            <span className="preset-triggers-label">TRIGGERS:</span>
-                                                            <span className="preset-triggers-content">
-                                                                {preset.trigger_words}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="preset-item-snippet" title={preset.positive_prompt}>
-                                                        <span className="preset-snippet-label positive">POS</span>
-                                                        {preset.positive_prompt}
-                                                    </div>
-
-                                                    {preset.negative_prompt && (
-                                                        <div className="preset-item-snippet negative" title={preset.negative_prompt}>
-                                                            <span className="preset-snippet-label negative">NEG</span>
-                                                            {preset.negative_prompt}
-                                                        </div>
-                                                    )}
-
-                                                    {/* Action Buttons */}
-                                                    <div className="preset-item-actions">
+                                            <div className="preset-char-cloud-grid">
+                                                {characterGroups.map((group) => {
+                                                    const isSelected = selectedCharacterForModal === group.character;
+                                                    return (
                                                         <button
+                                                            key={group.character}
                                                             type="button"
-                                                            className="preset-apply-btn"
-                                                            onClick={() => handleApplyPreset(preset)}
-                                                            title="Terapkan positive & negative prompt ke canvas"
+                                                            className={`preset-char-btn ${group.hasFavorite ? "has-favorite" : ""} ${isSelected ? "active" : ""}`}
+                                                            onClick={() => setSelectedCharacterForModal(group.character)}
+                                                            onMouseEnter={(e) => {
+                                                                const rect = e.currentTarget.getBoundingClientRect();
+                                                                setCharTooltipState({
+                                                                    visible: true,
+                                                                    character: group.character,
+                                                                    rect: {
+                                                                        top: rect.top,
+                                                                        left: rect.left,
+                                                                        bottom: rect.bottom,
+                                                                        right: rect.right,
+                                                                    },
+                                                                    group,
+                                                                });
+                                                            }}
+                                                            onMouseLeave={() => setCharTooltipState(null)}
                                                         >
-                                                            <Icons.Sparkle />
-                                                            <span>Apply Full Preset</span>
+                                                            <span className="preset-char-btn-icon">
+                                                                {group.hasFavorite ? "⭐" : "🏷️"}
+                                                            </span>
+                                                            <span className="preset-char-btn-name">
+                                                                {group.character}
+                                                            </span>
+                                                            <span className="preset-char-btn-count" title={`${group.count} preset tersedia`}>
+                                                                {group.count}
+                                                            </span>
                                                         </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className="preset-append-btn"
-                                                            onClick={() => handleAppendPositive(preset.positive_prompt)}
-                                                            title="Sisipkan prompt ke positive canvas"
-                                                        >
-                                                            <Icons.Plus />
-                                                            <span>Append</span>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className="preset-copy-btn"
-                                                            onClick={() => triggerCopy(preset.positive_prompt, `preset-copy-${preset.id}`, "Prompt preset disalin!")}
-                                                            title="Salin positive prompt ke clipboard tanpa menimpa canvas"
-                                                        >
-                                                            {copiedKey === `preset-copy-${preset.id}` ? <Icons.Check /> : <Icons.Copy />}
-                                                            <span>{copiedKey === `preset-copy-${preset.id}` ? "Copied" : "Copy"}</span>
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     )}
                                 </>
                             )}
@@ -2654,15 +2701,23 @@ export const PromptLab: React.FC = () => {
                                 <div className="modal-two-col-grid">
                                     <div>
                                         <label className="modal-field-label">
-                                            Character Name (Optional)
+                                            Character Name *
                                         </label>
                                         <input
                                             type="text"
+                                            list="character-names-datalist"
                                             className="modal-input"
-                                            placeholder="e.g. Rio Tsukatsuki, Frieren"
+                                            placeholder="e.g. Rio Tsukatsuki, Frieren, 2B"
                                             value={newPresetCharacterName}
                                             onChange={(e) => setNewPresetCharacterName(e.target.value)}
+                                            required
+                                            autoFocus
                                         />
+                                        <datalist id="character-names-datalist">
+                                            {existingCharacterNames.map((name) => (
+                                                <option key={name} value={name} />
+                                            ))}
+                                        </datalist>
                                     </div>
 
                                     <div>
@@ -2672,11 +2727,10 @@ export const PromptLab: React.FC = () => {
                                         <input
                                             type="text"
                                             className="modal-input"
-                                            placeholder="e.g. Tactical Seminar Office"
+                                            placeholder="e.g. Tactical Seminar Office, Gothic Dress"
                                             value={newPresetTitle}
                                             onChange={(e) => setNewPresetTitle(e.target.value)}
                                             required
-                                            autoFocus
                                         />
                                     </div>
                                 </div>
@@ -3110,6 +3164,244 @@ export const PromptLab: React.FC = () => {
                                 <span>Tutup</span>
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CHARACTER PRESETS MODAL POPUP ("modal pop up dengan full list char yang terkait") */}
+            {selectedCharacterForModal && (
+                <div
+                    className="prompt-modal-backdrop"
+                    onClick={() => setSelectedCharacterForModal(null)}
+                >
+                    <div
+                        className="prompt-modal-box char-presets-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="prompt-modal-header">
+                            <div className="modal-header-title-wrap">
+                                <div className="char-modal-title-row">
+                                    <span className="char-modal-icon">👤</span>
+                                    <div>
+                                        <h3 className="prompt-modal-title">
+                                            {selectedCharacterForModal}
+                                        </h3>
+                                        <span className="char-modal-subtitle">
+                                            {activeCharPresets.length} {activeCharPresets.length > 1 ? "Presets Terkait" : "Preset Terkait"}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="char-modal-header-actions">
+                                <button
+                                    type="button"
+                                    className="char-modal-add-btn"
+                                    onClick={() => handleOpenCreatePreset(selectedCharacterForModal)}
+                                    title={`Tambah preset baru untuk ${selectedCharacterForModal}`}
+                                >
+                                    <Icons.Plus />
+                                    <span>Tambah Preset</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="modal-close-btn"
+                                    onClick={() => setSelectedCharacterForModal(null)}
+                                    title="Tutup modal"
+                                >
+                                    <Icons.X />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="prompt-modal-body char-presets-modal-body">
+                            {activeCharPresets.length === 0 ? (
+                                <div className="preset-empty-state">
+                                    <div className="preset-empty-icon">
+                                        <Icons.Bookmark />
+                                    </div>
+                                    <div className="preset-empty-title">
+                                        Tidak ada preset tersisa untuk {selectedCharacterForModal}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="char-modal-card-list">
+                                    {activeCharPresets.map((preset) => {
+                                        const sampleImgs = parseSampleImages(preset.sample_images);
+                                        const isFav = favoritePresetIds.includes(preset.id);
+                                        const variantTitle = getPresetVariantTitle(preset, selectedCharacterForModal);
+
+                                        return (
+                                            <div key={preset.id} className={`preset-item-card ${isFav ? "favorited" : ""}`}>
+                                                <div className="preset-item-title">
+                                                    <div className="preset-title-left">
+                                                        <button
+                                                            type="button"
+                                                            className={`preset-fav-btn ${isFav ? "active" : ""}`}
+                                                            onClick={(e) => toggleFavoritePreset(preset.id, e)}
+                                                            title={isFav ? "Hapus dari favorit" : "Sematkan ke favorit ⭐"}
+                                                        >
+                                                            <Icons.Star filled={isFav} />
+                                                        </button>
+
+                                                        <span className="preset-title-text" title={preset.title}>
+                                                            {variantTitle}
+                                                        </span>
+                                                        {preset.subcategory && (
+                                                            <span className="preset-sub-badge" title={preset.subcategory}>
+                                                                {preset.subcategory}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="preset-header-actions">
+                                                        <span className={`preset-base-badge ${(preset.base_model_target || "sdxl").toLowerCase()}`}>
+                                                            {preset.base_model_target || "All"}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            className="preset-card-tool-btn edit"
+                                                            onClick={(e) => handleOpenEditPreset(preset, e)}
+                                                            title="Edit preset"
+                                                        >
+                                                            <Icons.Edit />
+                                                            <span>Edit</span>
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="preset-card-tool-btn delete"
+                                                            onClick={(e) => handleDeletePreset(preset.id, preset.title, e)}
+                                                            title="Hapus preset dari database"
+                                                        >
+                                                            <Icons.Trash />
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Sample Thumbnails Carousel */}
+                                                {sampleImgs.length > 0 && (
+                                                    <div className={`preset-sample-strip count-${Math.min(sampleImgs.length, 5)}`}>
+                                                        {sampleImgs.slice(0, 5).map((imgUrl, sIdx) => (
+                                                            <div
+                                                                key={sIdx}
+                                                                className="preset-sample-thumb"
+                                                                onClick={() => setLightboxImage({ url: resolveImageUrl(imgUrl), title: `${selectedCharacterForModal} - ${variantTitle}` })}
+                                                                title="Klik untuk zoom preview"
+                                                            >
+                                                                <img src={resolveImageUrl(imgUrl)} alt={`Sample ${sIdx + 1}`} loading="lazy" />
+                                                                <span className="sample-thumb-badge">#{sIdx + 1}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* Trigger words if present */}
+                                                {preset.trigger_words && (
+                                                    <div
+                                                        className="preset-triggers-pill-row"
+                                                        onClick={() => handleAppendPositive(preset.trigger_words || "")}
+                                                        title="Klik untuk sisipkan trigger words ke positive prompt"
+                                                    >
+                                                        <span className="preset-triggers-label">TRIGGERS:</span>
+                                                        <span className="preset-triggers-content">
+                                                            {preset.trigger_words}
+                                                        </span>
+                                                    </div>
+                                                )}
+
+                                                <div className="preset-item-snippet" title={preset.positive_prompt}>
+                                                    <span className="preset-snippet-label positive">POS</span>
+                                                    {preset.positive_prompt}
+                                                </div>
+
+                                                {preset.negative_prompt && (
+                                                    <div className="preset-item-snippet negative" title={preset.negative_prompt}>
+                                                        <span className="preset-snippet-label negative">NEG</span>
+                                                        {preset.negative_prompt}
+                                                    </div>
+                                                )}
+
+                                                {/* Action Buttons */}
+                                                <div className="preset-item-actions">
+                                                    <button
+                                                        type="button"
+                                                        className="preset-apply-btn"
+                                                        onClick={() => handleApplyPreset(preset)}
+                                                        title="Terapkan positive & negative prompt ke canvas"
+                                                    >
+                                                        <Icons.Sparkle />
+                                                        <span>Apply Full Preset</span>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="preset-append-btn"
+                                                        onClick={() => handleAppendPositive(preset.positive_prompt)}
+                                                        title="Sisipkan prompt ke positive canvas"
+                                                    >
+                                                        <Icons.Plus />
+                                                        <span>Append</span>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        className="preset-copy-btn"
+                                                        onClick={() => triggerCopy(preset.positive_prompt, `preset-copy-${preset.id}`, "Prompt preset disalin!")}
+                                                        title="Salin positive prompt ke clipboard tanpa menimpa canvas"
+                                                    >
+                                                        {copiedKey === `preset-copy-${preset.id}` ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === `preset-copy-${preset.id}` ? "Copied" : "Copy"}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* FLOATING CHARACTER TOOLTIP ("tulisan pop kecil yang jelasin kalo nama karakter panjang") */}
+            {charTooltipState && charTooltipState.visible && charTooltipState.group && (
+                <div
+                    className="preset-char-tooltip"
+                    style={{
+                        top: Math.max(10, Math.min(window.innerHeight - 200, charTooltipState.rect.top - 10)),
+                        left: charTooltipState.rect.right + 290 > window.innerWidth
+                            ? Math.max(10, charTooltipState.rect.left - 290)
+                            : charTooltipState.rect.right + 12,
+                    }}
+                >
+                    <div className="preset-char-tooltip-header">
+                        <span className="preset-char-tooltip-icon">🏷️</span>
+                        <span className="preset-char-tooltip-title">
+                            {charTooltipState.group.character}
+                        </span>
+                    </div>
+                    <div className="preset-char-tooltip-meta">
+                        <span className="tooltip-meta-pill count">
+                            {charTooltipState.group.count} {charTooltipState.group.count > 1 ? "Presets" : "Preset"}
+                        </span>
+                        {charTooltipState.group.subcategories.slice(0, 2).map((sub, i) => (
+                            <span key={i} className="tooltip-meta-pill sub">
+                                {sub}
+                            </span>
+                        ))}
+                        {charTooltipState.group.baseModels.slice(0, 2).map((arch, i) => (
+                            <span key={i} className="tooltip-meta-pill arch">
+                                {arch}
+                            </span>
+                        ))}
+                    </div>
+                    {charTooltipState.group.sampleImages.length > 0 && (
+                        <div className="preset-char-tooltip-thumbs">
+                            {charTooltipState.group.sampleImages.slice(0, 4).map((img, i) => (
+                                <img key={i} src={resolveImageUrl(img)} alt="" className="tooltip-thumb-img" />
+                            ))}
+                        </div>
+                    )}
+                    <div className="preset-char-tooltip-footer">
+                        <span>Klik untuk melihat list preset karakter ini</span>
                     </div>
                 </div>
             )}

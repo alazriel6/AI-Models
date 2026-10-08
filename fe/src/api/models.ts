@@ -189,6 +189,7 @@ export interface RecommendedLoraItem {
 export interface PromptPreset {
     id: number;
     title: string;
+    character?: string; // Character name tag (mandatory)
     slug?: string;
     category: string; // 'character' | 'anime' | 'photorealistic' | 'style' | 'environment' | 'modular'
     subcategory?: string;

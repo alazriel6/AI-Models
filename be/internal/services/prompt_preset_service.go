@@ -41,7 +41,7 @@ func (s *PromptPresetService) List(category, subcategory, baseModel, presetType,
 	}
 	if search != "" {
 		sTerm := "%" + strings.ToLower(search) + "%"
-		query = query.Where("LOWER(title) LIKE ? OR LOWER(positive_prompt) LIKE ? OR LOWER(trigger_words) LIKE ? OR LOWER(subcategory) LIKE ?", sTerm, sTerm, sTerm, sTerm)
+		query = query.Where("LOWER(title) LIKE ? OR LOWER(character) LIKE ? OR LOWER(positive_prompt) LIKE ? OR LOWER(trigger_words) LIKE ? OR LOWER(subcategory) LIKE ?", sTerm, sTerm, sTerm, sTerm, sTerm)
 	}
 
 	err := query.Order("is_system DESC, id ASC").Find(&presets).Error

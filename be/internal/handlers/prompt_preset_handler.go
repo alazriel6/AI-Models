@@ -112,6 +112,10 @@ func (h *PromptPresetHandler) CreatePreset(c *gin.Context) {
 		return
 	}
 
+	if preset.Character == "" {
+		preset.Character = preset.Title
+	}
+
 	if err := h.service.Create(&preset); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

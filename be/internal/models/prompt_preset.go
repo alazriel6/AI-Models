@@ -6,6 +6,7 @@ type PromptPreset struct {
 	ID uint `json:"id" gorm:"primaryKey"`
 
 	Title       string `json:"title" gorm:"not null"`
+	Character   string `json:"character" gorm:"index"`
 	Slug        string `json:"slug" gorm:"index"`
 	Category    string `json:"category" gorm:"index;not null"` // character, anime, photorealistic, style, environment, modular
 	Subcategory string `json:"subcategory"`                   // e.g. "Blue Archive", "Lighting", "Cyberpunk"

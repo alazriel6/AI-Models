@@ -1,35 +1,128 @@
+# ==============================================================================
+# Environment Variables & Secrets (SENSITIVE)
+# ==============================================================================
 .env
+.env.*
+*.env
+*.local
+be/.env
+be/.env.*
+fe/.env
+fe/.env.*
+fe/.env*.local
 
-# Storage / Uploaded Images
+# Allow example config templates
+!.env.example
+!be/.env.example
+!fe/.env.example
+
+# Credentials, Private Keys & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.token
+credentials.json
+service-account*.json
+id_rsa*
+id_ed25519*
+
+# ==============================================================================
+# Documentation & Internal Guides (Guides, Roadmaps, Manual Testing, etc.)
+# ==============================================================================
+ADMIN_GUIDE.md
+QA_MANUAL_TESTING_GUIDE.md
+*_GUIDE.md
+*.guide.md
+/*.md
+!/README.md
+!be/README.md
+!fe/README.md
+
+# ==============================================================================
+# Database Files, Dumps & Backups
+# ==============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.dump
+*.bak
+*.backup
+backup/
+backups/
+
+# Ignore raw SQL exports & dumps, but KEEP migration files tracked
+*.sql
+!be/migrations/*.sql
+!be/migrations/**/*.sql
+!migrations/*.sql
+!migrations/**/*.sql
+
+# ==============================================================================
+# Logs & Debugging
+# ==============================================================================
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==============================================================================
+# Storage & Uploaded Media
+# ==============================================================================
 be/storage/images/*
 !be/storage/images/.gitkeep
 storage/images/*
 !storage/images/.gitkeep
+uploads/
+storage/uploads/
 
-
+# ==============================================================================
+# Temporary & Cache Files
+# ==============================================================================
 tmp/
-bin/
-
-*.exe
-
-# Frontend
-fe/node_modules/
-fe/dist/
-fe/.vite/
-
-# Backend
-be/bin/
-be/*.exe
+temp/
+*.tmp
 be/tmp/
 
-# Go
+# ==============================================================================
+# Binaries & Build Artifacts
+# ==============================================================================
+bin/
+be/bin/
+*.exe
+server.exe
+*.dll
+*.so
+*.dylib
+
+# ==============================================================================
+# Frontend (React / Vite)
+# ==============================================================================
+fe/node_modules/
+fe/dist/
+fe/dist-ssr/
+fe/.vite/
+
+# ==============================================================================
+# Go Testing & Coverage
+# ==============================================================================
 *.test
 coverage.out
 
-# IDE
+# ==============================================================================
+# IDE & System Files
+# ==============================================================================
 .vscode/
 .idea/
-
-# OS
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 Thumbs.db
+desktop.ini
 .DS_Store
