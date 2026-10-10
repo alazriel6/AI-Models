@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
 import { useFavorites } from '../../api/favorites';
@@ -44,6 +43,16 @@ const Icons = {
       <rect x="14" y="3" width="7" height="6" />
       <rect x="14" y="12" width="7" height="9" />
       <rect x="3" y="17" width="7" height="4" />
+    </svg>
+  ),
+  List: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
   ),
   Copy: () => (
@@ -143,8 +152,28 @@ export default function Gallery() {
   const [filterResource, setFilterResource] = useState<string>('all'); // 'all' | 'has_lora' | 'no_lora' | 'has_prompt'
   const [filterOrientation, setFilterOrientation] = useState<string>('all'); // 'all' | 'portrait' | 'landscape' | 'square'
   
-  // View mode & density
-  const [layoutMode, setLayoutMode] = useState<'masonry' | 'grid'>('grid');
+  // View mode & density: Grid, Masonry waterfall, or List mode (optimized for mobile)
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'masonry' | 'list'>(() => {
+    try {
+      const saved = localStorage.getItem('models_gallery_layout');
+      if (saved === 'grid' || saved === 'masonry' || saved === 'list') {
+        return saved;
+      }
+    } catch {
+      // ignore
+    }
+    return 'grid';
+  });
+
+  const handleSetLayoutMode = useCallback((mode: 'grid' | 'masonry' | 'list') => {
+    setLayoutMode(mode);
+    try {
+      localStorage.setItem('models_gallery_layout', mode);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   const [density, setDensity] = useState<'sm' | 'md' | 'lg'>('md');
 
   // Modal / Lightbox state
@@ -476,25 +505,344 @@ export default function Gallery() {
     return () => ro.disconnect();
   }, [density, layoutMode, loading]);
 
+  // Responsive column calculation for Grid mode
   const galleryColumns = useMemo(() => {
-    const colMin = density === 'sm' ? 200 : density === 'lg' ? 340 : 260;
-    return Math.max(1, Math.floor((galleryContainerWidth + 12) / (colMin + 12)));
+    if (galleryContainerWidth <= 380) {
+      return density === 'sm' ? 2 : 1;
+    }
+    if (galleryContainerWidth <= 640) {
+      return density === 'lg' ? 1 : 2;
+    }
+    if (galleryContainerWidth <= 960) {
+      return density === 'sm' ? 3 : density === 'lg' ? 2 : 3;
+    }
+    if (galleryContainerWidth <= 1280) {
+      return density === 'sm' ? 5 : density === 'lg' ? 3 : 4;
+    }
+    const colMin = density === 'sm' ? 190 : density === 'lg' ? 320 : 250;
+    return Math.max(2, Math.floor((galleryContainerWidth + 12) / (colMin + 12)));
   }, [galleryContainerWidth, density]);
 
-  const galleryRows = useMemo(() => {
-    const rows: ModelImage[][] = [];
-    for (let i = 0; i < filteredImages.length; i += galleryColumns) {
-      rows.push(filteredImages.slice(i, i + galleryColumns));
+  // Responsive column count for Masonry Waterfall
+  const masonryColumnsCount = useMemo(() => {
+    if (galleryContainerWidth <= 380) {
+      return density === 'sm' ? 2 : 1;
     }
-    return rows;
-  }, [filteredImages, galleryColumns]);
+    if (galleryContainerWidth <= 640) {
+      return density === 'lg' ? 1 : 2;
+    }
+    if (galleryContainerWidth <= 960) {
+      return density === 'sm' ? 3 : density === 'lg' ? 2 : 3;
+    }
+    if (galleryContainerWidth <= 1280) {
+      return density === 'sm' ? 4 : density === 'lg' ? 2 : 3;
+    }
+    const colMin = density === 'sm' ? 200 : density === 'lg' ? 340 : 260;
+    return Math.max(2, Math.floor((galleryContainerWidth + 12) / (colMin + 12)));
+  }, [galleryContainerWidth, density]);
 
-  const galleryVirtualizer = useWindowVirtualizer({
-    count: galleryRows.length,
-    estimateSize: () => 460,
-    overscan: 2,
-    scrollMargin: galleryContainerRef.current?.offsetTop ?? 0,
-  });
+  // Distribute items across columns using greedy shortest-height balancing
+  const masonryColumns = useMemo(() => {
+    const colCount = masonryColumnsCount;
+    const cols: ModelImage[][] = Array.from({ length: colCount }, () => []);
+    const colHeights = new Array(colCount).fill(0);
+
+    filteredImages.forEach((img) => {
+      let minCol = 0;
+      let minH = colHeights[0];
+      for (let i = 1; i < colCount; i++) {
+        if (colHeights[i] < minH) {
+          minH = colHeights[i];
+          minCol = i;
+        }
+      }
+      cols[minCol].push(img);
+      const aspect = (img.height && img.width) ? (img.height / img.width) : 1.25;
+      colHeights[minCol] += aspect * 260 + 80;
+    });
+
+    return cols;
+  }, [filteredImages, masonryColumnsCount]);
+
+  // Shared card renderer for Grid and Masonry modes
+  const renderGalleryCard = (img: ModelImage, isMasonry: boolean = false) => {
+    const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
+    const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
+    const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
+    const isFav = isImageFav(img.id);
+    const hasDimensions = Boolean(img.width && img.height);
+    const aspectStyle = isMasonry && hasDimensions
+      ? { aspectRatio: `${img.width} / ${img.height}` }
+      : undefined;
+
+    return (
+      <article
+        key={img.id}
+        className={`gallery-item-card ${isMasonry ? 'masonry-card' : ''}`}
+        onClick={() => handleSelectImage(img)}
+      >
+        <div className="gallery-card-viewport" style={aspectStyle}>
+          <OptimizedImage
+            src={resolveImageUrl(img.image_url)}
+            alt={img.caption || modelName}
+            className="gallery-item-img"
+            thumbnail={true}
+          />
+
+          {/* Minimal Technical Tags on image */}
+          <div className="gallery-card-tag-row">
+            <span className="gallery-card-tag base">
+              {baseModel.toUpperCase()}
+            </span>
+
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {loraCount > 0 && (
+                <span className="gallery-card-tag lora">
+                  LoRA ({loraCount})
+                </span>
+              )}
+              {hasDimensions && (
+                <span className="gallery-card-tag res">
+                  {img.width}×{img.height}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Hover / Touch Quick Action Overlay */}
+          <div className="gallery-hover-actions">
+            <button
+              type="button"
+              className="gallery-action-link-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleSelectImage(img);
+              }}
+            >
+              <Icons.Inspect />
+              Inspect
+            </button>
+
+            <button
+              type="button"
+              className={`gallery-copy-icon-btn ${isFav ? 'favorited' : ''}`}
+              title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+              onClick={(e) => {
+                e.stopPropagation();
+                const nextFav = toggleImage(img.id);
+                triggerToast(nextFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
+              }}
+              style={{ color: isFav ? '#f59e0b' : undefined }}
+            >
+              <Icons.Star filled={isFav} />
+            </button>
+
+            {img.positive_prompt && (
+              <button
+                type="button"
+                className="gallery-copy-icon-btn"
+                title="Copy positive prompt"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
+                }}
+              >
+                {copiedKey === `card-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Technical Metadata Footer */}
+        <div className="gallery-card-footer">
+          <div className="gallery-card-model-row">
+            <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
+              {img.caption || `Artwork #${img.id}`}
+            </span>
+          </div>
+
+          <div className="gallery-card-params-row">
+            {img.steps ? <span>Steps {img.steps}</span> : null}
+            {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
+            {img.sampler ? <span>{img.sampler}</span> : null}
+          </div>
+
+          {/* Pixiv Tags */}
+          {img.tags && img.tags.length > 0 && (
+            <div className="gallery-card-tag-chips">
+              {img.tags.slice(0, 4).map((t) => {
+                const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedTag(isActive ? null : t.name);
+                    }}
+                    title={`Filter by #${t.name}`}
+                  >
+                    <span className="tag-hash">#</span>
+                    <span>{t.name}</span>
+                  </button>
+                );
+              })}
+              {img.tags.length > 4 && (
+                <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
+                  +{img.tags.length - 4}
+                </span>
+              )}
+            </div>
+          )}
+
+          {img.positive_prompt && (
+            <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
+              {img.positive_prompt}
+            </div>
+          )}
+        </div>
+      </article>
+    );
+  };
+
+  // Dedicated List card renderer optimized for mobile & detailed specs
+  const renderListCard = (img: ModelImage) => {
+    const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
+    const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
+    const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
+    const isFav = isImageFav(img.id);
+    const hasDimensions = Boolean(img.width && img.height);
+
+    return (
+      <article
+        key={img.id}
+        className="gallery-list-card"
+        onClick={() => handleSelectImage(img)}
+      >
+        <div className="gallery-list-thumb-col">
+          <div className="gallery-list-thumb-viewport">
+            <OptimizedImage
+              src={resolveImageUrl(img.image_url)}
+              alt={img.caption || modelName}
+              className="gallery-list-thumb-img"
+              thumbnail={true}
+            />
+            <span className="gallery-card-tag base">
+              {baseModel.toUpperCase()}
+            </span>
+            {hasDimensions && (
+              <span className="gallery-list-res-badge">
+                {img.width}×{img.height}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="gallery-list-info-col">
+          <div className="gallery-list-header-row">
+            <div className="gallery-list-title-wrap">
+              <h3 className="gallery-list-item-title" title={img.caption || `Artwork #${img.id}`}>
+                {img.caption || `Artwork #${img.id}`}
+              </h3>
+              <span className="gallery-list-model-pill" title={modelName}>
+                {modelName}
+              </span>
+              {loraCount > 0 && (
+                <span className="gallery-card-tag lora" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                  LoRA ({loraCount})
+                </span>
+              )}
+            </div>
+
+            <div className="gallery-list-actions">
+              <button
+                type="button"
+                className={`gallery-icon-btn-compact ${isFav ? 'favorited' : ''}`}
+                title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const nextFav = toggleImage(img.id);
+                  triggerToast(nextFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
+                }}
+              >
+                <Icons.Star filled={isFav} />
+              </button>
+
+              {img.positive_prompt && (
+                <button
+                  type="button"
+                  className="gallery-icon-btn-compact"
+                  title="Copy positive prompt"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(img.positive_prompt || '', `list-${img.id}`, 'Prompt');
+                  }}
+                >
+                  {copiedKey === `list-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
+                </button>
+              )}
+
+              <button
+                type="button"
+                className="gallery-icon-btn-compact inspect"
+                title="Inspect generation specs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSelectImage(img);
+                }}
+              >
+                <Icons.Inspect />
+              </button>
+            </div>
+          </div>
+
+          {img.positive_prompt && (
+            <p className="gallery-list-prompt" title={img.positive_prompt}>
+              {img.positive_prompt}
+            </p>
+          )}
+
+          <div className="gallery-list-meta-row">
+            <div className="gallery-list-params-cluster">
+              {img.steps ? <span className="gallery-list-param-tag">Steps {img.steps}</span> : null}
+              {img.cfg_scale ? <span className="gallery-list-param-tag">CFG {img.cfg_scale}</span> : null}
+              {img.sampler ? <span className="gallery-list-param-tag">{img.sampler}</span> : null}
+              {img.seed ? <span className="gallery-list-param-tag">Seed {img.seed}</span> : null}
+            </div>
+
+            {img.tags && img.tags.length > 0 && (
+              <div className="gallery-list-tags-cluster">
+                {img.tags.slice(0, 3).map((t) => {
+                  const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedTag(isActive ? null : t.name);
+                      }}
+                      title={`Filter by #${t.name}`}
+                    >
+                      <span className="tag-hash">#</span>
+                      <span>{t.name}</span>
+                    </button>
+                  );
+                })}
+                {img.tags.length > 3 && (
+                  <span className="gallery-list-more-tags">
+                    +{img.tags.length - 3}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </article>
+    );
+  };
 
   // Copy helper
   const copyToClipboard = useCallback((text: string, key: string, label: string) => {
@@ -788,46 +1136,62 @@ export default function Gallery() {
           <div className="gallery-utilities">
             <div className="gallery-segment-group">
               <button
+                type="button"
                 className={`gallery-icon-btn ${layoutMode === 'grid' ? 'active' : ''}`}
-                onClick={() => setLayoutMode('grid')}
-                title="Grid layout"
+                onClick={() => handleSetLayoutMode('grid')}
+                title="Grid layout (Standard equal cards)"
               >
                 <Icons.Grid />
-                Grid
+                <span>Grid</span>
               </button>
               <button
+                type="button"
                 className={`gallery-icon-btn ${layoutMode === 'masonry' ? 'active' : ''}`}
-                onClick={() => setLayoutMode('masonry')}
-                title="Masonry layout"
+                onClick={() => handleSetLayoutMode('masonry')}
+                title="Masonry layout (Waterfall natural heights)"
               >
                 <Icons.Masonry />
-                Masonry
+                <span>Masonry</span>
+              </button>
+              <button
+                type="button"
+                className={`gallery-icon-btn ${layoutMode === 'list' ? 'active' : ''}`}
+                onClick={() => handleSetLayoutMode('list')}
+                title="List layout (Detailed view for mobile & compact screens)"
+              >
+                <Icons.List />
+                <span>List</span>
               </button>
             </div>
 
-            <div className="gallery-segment-group">
-              <button
-                className={`gallery-icon-btn ${density === 'sm' ? 'active' : ''}`}
-                onClick={() => setDensity('sm')}
-                title="Compact density"
-              >
-                S
-              </button>
-              <button
-                className={`gallery-icon-btn ${density === 'md' ? 'active' : ''}`}
-                onClick={() => setDensity('md')}
-                title="Regular density"
-              >
-                M
-              </button>
-              <button
-                className={`gallery-icon-btn ${density === 'lg' ? 'active' : ''}`}
-                onClick={() => setDensity('lg')}
-                title="Large density"
-              >
-                L
-              </button>
-            </div>
+            {layoutMode !== 'list' && (
+              <div className="gallery-segment-group">
+                <button
+                  type="button"
+                  className={`gallery-icon-btn ${density === 'sm' ? 'active' : ''}`}
+                  onClick={() => setDensity('sm')}
+                  title="Compact density"
+                >
+                  S
+                </button>
+                <button
+                  type="button"
+                  className={`gallery-icon-btn ${density === 'md' ? 'active' : ''}`}
+                  onClick={() => setDensity('md')}
+                  title="Regular density"
+                >
+                  M
+                </button>
+                <button
+                  type="button"
+                  className={`gallery-icon-btn ${density === 'lg' ? 'active' : ''}`}
+                  onClick={() => setDensity('lg')}
+                  title="Large density"
+                >
+                  L
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -944,173 +1308,36 @@ export default function Gallery() {
       )}
 
       {/* ===================================================================
-          Gallery Items Grid / Masonry (Virtualized for high performance)
+          Gallery Items: Grid, Masonry Waterfall, or List View
           =================================================================== */}
       {!loading && !error && filteredImages.length > 0 && (
-        <div
-          ref={galleryContainerRef}
-          className={`gallery-${layoutMode}-view density-${density}`}
-          style={{
-            position: 'relative',
-            width: '100%',
-            minHeight: `${galleryVirtualizer.getTotalSize()}px`,
-          }}
-        >
-          {galleryVirtualizer.getVirtualItems().map((virtualRow) => {
-            const rowImages = galleryRows[virtualRow.index];
-            if (!rowImages) return null;
-            return (
-              <div
-                key={virtualRow.key}
-                data-index={virtualRow.index}
-                ref={galleryVirtualizer.measureElement}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start - (galleryVirtualizer.options.scrollMargin || 0)}px)`,
-                  display: 'grid',
-                  gridTemplateColumns: `repeat(${galleryColumns}, minmax(0, 1fr))`,
-                  gap: '12px',
-                  paddingBottom: '12px',
-                }}
-              >
-                {rowImages.map((img) => {
-                  const loraCount = img.resources?.filter((r) => r.type?.toLowerCase() === 'lora').length || 0;
-                  const modelName = img.model?.name || img.model_name || 'Checkpoint Model';
-                  const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
+        <div ref={galleryContainerRef} className="gallery-display-wrapper">
+          {layoutMode === 'grid' && (
+            <div
+              className={`gallery-grid-view density-${density}`}
+              style={{
+                gridTemplateColumns: `repeat(${galleryColumns}, minmax(0, 1fr))`,
+              }}
+            >
+              {filteredImages.map((img) => renderGalleryCard(img, false))}
+            </div>
+          )}
 
-                  return (
-                    <article
-                      key={img.id}
-                      className="gallery-item-card"
-                      onClick={() => handleSelectImage(img)}
-                    >
-                      <div className="gallery-card-viewport">
-                        <OptimizedImage
-                          src={resolveImageUrl(img.image_url)}
-                          alt={img.caption || modelName}
-                          className="gallery-item-img"
-                          thumbnail={true}
-                        />
+          {layoutMode === 'masonry' && (
+            <div className={`gallery-masonry-view density-${density}`}>
+              {masonryColumns.map((colImages, cIdx) => (
+                <div key={cIdx} className="gallery-masonry-column">
+                  {colImages.map((img) => renderGalleryCard(img, true))}
+                </div>
+              ))}
+            </div>
+          )}
 
-                        {/* Minimal Technical Tags on image */}
-                        <div className="gallery-card-tag-row">
-                          <span className="gallery-card-tag base">
-                            {baseModel.toUpperCase()}
-                          </span>
-
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            {loraCount > 0 && (
-                              <span className="gallery-card-tag lora">
-                                LoRA ({loraCount})
-                              </span>
-                            )}
-                            {img.width && img.height && (
-                              <span className="gallery-card-tag res">
-                                {img.width}×{img.height}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Hover Quick Action Overlay */}
-                        <div className="gallery-hover-actions">
-                          <button
-                            className="gallery-action-link-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSelectImage(img);
-                            }}
-                          >
-                            <Icons.Inspect />
-                            Inspect
-                          </button>
-
-                          <button
-                            className={`gallery-copy-icon-btn ${isImageFav(img.id) ? 'favorited' : ''}`}
-                            title={isImageFav(img.id) ? 'Hapus dari favorit' : 'Simpan ke favorit'}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const isFav = toggleImage(img.id);
-                              triggerToast(isFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
-                            }}
-                            style={{ color: isImageFav(img.id) ? '#f59e0b' : undefined }}
-                          >
-                            <Icons.Star filled={isImageFav(img.id)} />
-                          </button>
-
-                          {img.positive_prompt && (
-                            <button
-                              className="gallery-copy-icon-btn"
-                              title="Copy positive prompt"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
-                              }}
-                            >
-                              {copiedKey === `card-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Technical Metadata Footer */}
-                      <div className="gallery-card-footer">
-                        <div className="gallery-card-model-row">
-                          <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
-                            {img.caption || `Artwork #${img.id}`}
-                          </span>
-                        </div>
-
-                        <div className="gallery-card-params-row">
-                          {img.steps ? <span>Steps {img.steps}</span> : null}
-                          {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
-                          {img.sampler ? <span>{img.sampler}</span> : null}
-                        </div>
-
-                        {/* Pixiv Tags */}
-                        {img.tags && img.tags.length > 0 && (
-                          <div className="gallery-card-tag-chips">
-                            {img.tags.slice(0, 4).map((t) => {
-                              const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
-                              return (
-                                <button
-                                  key={t.id}
-                                  type="button"
-                                  className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTag(isActive ? null : t.name);
-                                  }}
-                                  title={`Filter by #${t.name}`}
-                                >
-                                  <span className="tag-hash">#</span>
-                                  <span>{t.name}</span>
-                                </button>
-                              );
-                            })}
-                            {img.tags.length > 4 && (
-                              <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
-                                +{img.tags.length - 4}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {img.positive_prompt && (
-                          <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
-                            {img.positive_prompt}
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            );
-          })}
+          {layoutMode === 'list' && (
+            <div className={`gallery-list-view density-${density}`}>
+              {filteredImages.map((img) => renderListCard(img))}
+            </div>
+          )}
         </div>
       )}
 

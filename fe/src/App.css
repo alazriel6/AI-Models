@@ -135,7 +135,8 @@ nav {
   text-transform: uppercase;
 }
 
-nav ul {
+nav ul,
+.nav-links {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -191,6 +192,62 @@ nav a.nav-admin-badge-link.active {
   background-color: rgba(59, 130, 246, 0.12);
   border-color: rgba(59, 130, 246, 0.35);
   color: #60a5fa;
+}
+
+/* Burger Button - Hidden on desktop */
+.nav-burger-btn {
+  display: none;
+  background: #1c1f23;
+  border: 1px solid #292d32;
+  border-radius: 6px;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  cursor: pointer;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s ease;
+  color: #e6e8eb;
+}
+
+.nav-burger-btn:hover {
+  border-color: #3b82f6;
+  background: #22262b;
+}
+
+.nav-burger-btn .burger-line {
+  display: block;
+  width: 18px;
+  height: 2px;
+  background-color: #e6e8eb;
+  border-radius: 2px;
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, background-color 0.15s ease;
+  transform-origin: center;
+}
+
+.nav-burger-btn.open .burger-line:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav-burger-btn.open .burger-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.nav-burger-btn.open .burger-line:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.nav-burger-btn.open {
+  border-color: rgba(59, 130, 246, 0.5);
+  background: #20242a;
+}
+
+/* Dimmed backdrop overlay for mobile menu */
+.nav-mobile-overlay {
+  display: none;
 }
 
 /* ==========================================================================
@@ -1487,13 +1544,18 @@ nav a.nav-admin-badge-link.active {
   }
 
   nav {
-    padding: 8px 14px;
+    padding: 10px 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
   }
 
   .nav-container {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    gap: 12px;
   }
 
   .nav-brand {
@@ -1501,28 +1563,96 @@ nav a.nav-admin-badge-link.active {
   }
 
   .nav-brand h1 {
-    font-size: 14px;
+    font-size: 15px;
   }
 
-  nav ul {
-    width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+  .nav-burger-btn {
     display: flex;
-    gap: 4px;
-    padding: 2px 0 4px;
   }
 
-  nav ul::-webkit-scrollbar {
+  .nav-links {
     display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: #17191C;
+    border: 1px solid #292D32;
+    border-radius: 8px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+    padding: 10px 12px 14px;
+    flex-direction: column;
+    gap: 4px;
+    max-height: calc(100vh - 75px);
+    overflow-y: auto;
+    z-index: 101;
+    animation: navMenuSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
-  nav a {
-    padding: 5px 10px;
-    font-size: 12px;
-    white-space: nowrap;
-    flex-shrink: 0;
+  .nav-links.mobile-open {
+    display: flex !important;
+  }
+
+  .nav-links li {
+    width: 100%;
+  }
+
+  .nav-links a {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-links a.active {
+    background-color: rgba(59, 130, 246, 0.16);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+  }
+
+  .nav-links a.nav-admin-badge-link {
+    margin-top: 4px;
+    border: 1px solid #292d32;
+    background: #1c1f23;
+  }
+
+  .nav-mobile-overlay {
+    display: block;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 99;
+    animation: navOverlayFade 0.18s ease;
+  }
+
+  @keyframes navMenuSlideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes navOverlayFade {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   .table-scroll-hint {
