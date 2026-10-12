@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { RainCanvas } from './RainCanvas';
+import { RainCanvas, type WeatherType } from './RainCanvas';
 import { getModels } from '../../api/models';
 
 interface HeroSectionProps {
@@ -190,6 +190,8 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const heroRef = useRef<HTMLElement | null>(null);
 
   const [deckModels, setDeckModels] = useState<DeckModel[]>(DECK_FALLBACK_MODELS);
+  const [weather, setWeather] = useState<WeatherType>('storm');
+  const [isWeatherHidden, setIsWeatherHidden] = useState(false);
   const [totalCatalogCount, setTotalCatalogCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCardIdx, setActiveCardIdx] = useState(0);
@@ -368,13 +370,13 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   };
 
   return (
-    <section className="mg-hero" id="hero" ref={heroRef}>
+    <section className={`mg-hero mg-weather-${weather}`} id="hero" ref={heroRef}>
       {/* Cinematic atmospheric rain forest background with water reflections */}
       <div className="mg-hero-forest-bg" aria-hidden="true" />
       <div className="mg-hero-forest-mist" aria-hidden="true" />
 
       {/* Cinematic multi-layer canvas rain background */}
-      <RainCanvas />
+      <RainCanvas weather={weather} />
 
       {/* Atmospheric depth lighting, subtle grid, and crosshair reticles */}
       <div className="mg-hero-atmosphere" aria-hidden="true" />
@@ -685,24 +687,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
           </div>
         </div>
 
-        {/* Beginner-friendly Technical Capability Spec Bar at Bottom */}
-        <div className="mg-hero-specs-bar" style={{ animationDelay: '950ms' }}>
-          <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">SUPPORTED MODELS:</span>
-            <span className="mg-spec-value">SDXL &bull; ILLUSTRIOUS-XL &bull; NOOB-AI &bull; FLUX</span>
-          </div>
-          <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">FILE FORMAT:</span>
-            <span className="mg-spec-value">SAFETENSORS (SECURE &amp; OPTIMIZED)</span>
-          </div>
-          <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">PRIVACY:</span>
-            <span className="mg-spec-value mg-spec-verified">
-              <span className="mg-verified-dot" />
-              100% LOCAL &bull; NO CLOUD UPLOAD
-            </span>
-          </div>
-        </div>
+
       </div>
 
       {/* Subtle Animated Vertical Scroll Indicator */}
@@ -718,6 +703,99 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
         </span>
         <span className="mg-scroll-label">SCROLL</span>
       </div>
+
+      {/* Interactive Weather Controller Widget in Bottom Right */}
+      {isWeatherHidden ? (
+        <button
+          type="button"
+          className="mg-weather-trigger-btn"
+          onClick={() => setIsWeatherHidden(false)}
+          title={`Cuaca: ${weather === 'clear' ? 'Cerah' : weather === 'rain' ? 'Hujan' : 'Badai'} (Klik untuk atur)`}
+          aria-label="Buka Pengaturan Cuaca"
+        >
+          {weather === 'clear' && (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="4" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+          )}
+          {weather === 'rain' && (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+              <path d="M16 14v6M8 14v6M12 16v6" />
+            </svg>
+          )}
+          {weather === 'storm' && (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+              <path d="m13 15-3 5h4l-1 5" />
+            </svg>
+          )}
+        </button>
+      ) : (
+        <div className="mg-weather-widget" role="group" aria-label="Pengaturan Cuaca">
+          <span className="mg-weather-label">WEATHER</span>
+          <div className="mg-weather-pill">
+            <button
+              type="button"
+              className={`mg-weather-btn ${weather === 'clear' ? 'active' : ''}`}
+              data-weather="clear"
+              onClick={() => setWeather('clear')}
+              title="Cerah (Sunny / Clear Sky)"
+              aria-pressed={weather === 'clear'}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+              </svg>
+              <span>Cerah</span>
+            </button>
+
+            <button
+              type="button"
+              className={`mg-weather-btn ${weather === 'rain' ? 'active' : ''}`}
+              data-weather="rain"
+              onClick={() => setWeather('rain')}
+              title="Hujan Biasa (Normal Rain)"
+              aria-pressed={weather === 'rain'}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                <path d="M16 14v6M8 14v6M12 16v6" />
+              </svg>
+              <span>Hujan</span>
+            </button>
+
+            <button
+              type="button"
+              className={`mg-weather-btn ${weather === 'storm' ? 'active' : ''}`}
+              data-weather="storm"
+              onClick={() => setWeather('storm')}
+              title="Hujan Badai (Storm & Lightning)"
+              aria-pressed={weather === 'storm'}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                <path d="m13 15-3 5h4l-1 5" />
+              </svg>
+              <span>Badai</span>
+            </button>
+
+            <button
+              type="button"
+              className="mg-weather-hide-btn"
+              onClick={() => setIsWeatherHidden(true)}
+              title="Sembunyikan / Hide"
+              aria-label="Sembunyikan Pengaturan Cuaca"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
