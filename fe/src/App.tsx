@@ -53,7 +53,18 @@ function PageLoadingFallback() {
 
 function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+
+  // Detect scroll for dynamic frosted navbar transition
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 25);
+    };
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Auto-close menu on route change
   useEffect(() => {
@@ -85,9 +96,11 @@ function AppLayout() {
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
+  const isHomePage = location.pathname === '/';
+
   return (
     <div className="main-app">  
-      <nav>
+      <nav className={`nav-editorial ${isScrolled ? 'nav-scrolled' : 'nav-top'}`}>
         <div className="nav-container">
           <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
             <div className="brand-icon">✦</div>
@@ -116,7 +129,7 @@ function AppLayout() {
             </li>
             <li>
               <NavLink to="/models" onClick={closeMobileMenu}>
-                All Models
+                Models
               </NavLink>
             </li>
             <li>
@@ -155,6 +168,11 @@ function AppLayout() {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/models" className="nav-cta-btn" onClick={closeMobileMenu}>
+                Explore Library
+              </NavLink>
+            </li>
+            <li>
               <NavLink to="/admin" className="nav-admin-badge-link" onClick={closeMobileMenu}>
                 Admin
               </NavLink>
@@ -172,8 +190,8 @@ function AppLayout() {
         />
       )}
 
-      {/* Global Content Container - Same 1560px max width across all pages */}
-      <main className="content">
+      {/* Global Content Container - Full-bleed on landing page, standard container on tool pages */}
+      <main className={`content ${isHomePage ? 'content-landing' : ''}`}>
         <Suspense fallback={<PageLoadingFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
