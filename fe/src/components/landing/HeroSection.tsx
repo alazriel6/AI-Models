@@ -190,8 +190,45 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const heroRef = useRef<HTMLElement | null>(null);
 
   const [deckModels, setDeckModels] = useState<DeckModel[]>(DECK_FALLBACK_MODELS);
-  const [weather, setWeather] = useState<WeatherType>('storm');
-  const [isWeatherHidden, setIsWeatherHidden] = useState(false);
+  const [weather, setWeather] = useState<WeatherType>(() => {
+    try {
+      const saved = localStorage.getItem('mg_hero_weather');
+      if (saved === 'clear' || saved === 'rain' || saved === 'storm') {
+        return saved;
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+    return 'storm';
+  });
+  const [isWeatherHidden, setIsWeatherHidden] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('mg_hero_weather_hidden');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+    } catch {
+      // Ignore localStorage access errors
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mg_hero_weather', weather);
+    } catch {
+      // Ignore
+    }
+  }, [weather]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mg_hero_weather_hidden', String(isWeatherHidden));
+    } catch {
+      // Ignore
+    }
+  }, [isWeatherHidden]);
+
   const [totalCatalogCount, setTotalCatalogCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCardIdx, setActiveCardIdx] = useState(0);

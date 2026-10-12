@@ -15,7 +15,7 @@ export function EditorialStatement() {
           observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.12 }
     );
 
     observer.observe(el);
@@ -28,6 +28,43 @@ export function EditorialStatement() {
       className={`mg-statement ${isVisible ? 'is-visible' : ''}`}
       id="editorial-statement"
     >
+      {/* Architectural Corner Reticles matching Hero */}
+      <div className="mg-corner-reticle top-left" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle top-right" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle bottom-left" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle bottom-right" aria-hidden="true">
+        <span>+</span>
+      </div>
+
+      {/* Seamless Transition Bridge from Hero Section */}
+      <div className="mg-statement-transition-bridge" aria-hidden="true">
+        <div className="mg-statement-bridge-datum">
+          <div className="mg-statement-bridge-line" />
+          <div className="mg-statement-bridge-badge">
+            <span className="mg-bridge-dot" />
+            <span className="mg-bridge-text">SPECIFICATION SUITE 01</span>
+          </div>
+          <div className="mg-statement-bridge-line" />
+        </div>
+      </div>
+
+      {/* Dedicated Atmospheric Dark Forest Background (Distinct from Hero, 50% Opacity) */}
+      <div className="mg-statement-forest-bg" aria-hidden="true" />
+
+      {/* Subtle Natural Forest Fog & Depth (Neutral, No Blue Tint) */}
+      <div className="mg-statement-forest-mist" aria-hidden="true" />
+      <div className="mg-statement-fog-ribbon ribbon-1" aria-hidden="true" />
+      <div className="mg-statement-fog-ribbon ribbon-2" aria-hidden="true" />
+
+      {/* Vignette Depth & Ambient Contrast Lighting */}
+      <div className="mg-statement-atmosphere" aria-hidden="true" />
+
       <div className="mg-container">
         {/* Editorial Statement Top Header */}
         <div className="mg-statement-header">
