@@ -7,24 +7,25 @@ interface HeroSectionProps {
   onDiscoverClick: () => void;
 }
 
-interface TelemetryModel {
+interface DeckModel {
   id: string;
   name: string;
   slug: string;
   baseModel: string;
   type: string;
   tensorCount: number;
-  vramGb: number;
-  vramPercent: number;
+  vramStr: string;
   nativeRes: string;
   sampler: string;
   steps: number;
   cfg: number;
   author: string;
+  description?: string;
+  tags?: string[];
   thumbnailUrl: string;
 }
 
-const TELEMETRY_FALLBACK_MODELS: TelemetryModel[] = [
+const DECK_FALLBACK_MODELS: DeckModel[] = [
   {
     id: 'wai-illustrious',
     name: 'WAI-illustrious-SDXL',
@@ -32,13 +33,14 @@ const TELEMETRY_FALLBACK_MODELS: TelemetryModel[] = [
     baseModel: 'Illustrious XL',
     type: 'CHECKPOINT',
     tensorCount: 587,
-    vramGb: 6,
-    vramPercent: 50,
+    vramStr: '6 GB',
     nativeRes: '832 × 1216',
     sampler: 'Euler a',
     steps: 28,
     cfg: 5.5,
     author: 'WAI0731',
+    description: 'High-performance Illustrious XL checkpoint tuned for crisp anime linework and vibrant contrast.',
+    tags: ['Anime', 'Checkpoint', 'Illustrious'],
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/original=true/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
   },
   {
@@ -48,13 +50,14 @@ const TELEMETRY_FALLBACK_MODELS: TelemetryModel[] = [
     baseModel: 'NoobAI',
     type: 'CHECKPOINT',
     tensorCount: 587,
-    vramGb: 6,
-    vramPercent: 50,
+    vramStr: '6 GB',
     nativeRes: '1024 × 1360',
     sampler: 'Euler a',
     steps: 30,
     cfg: 6.0,
     author: 'WAI0731',
+    description: 'Specialized NoobAI baseline fine-tune with score-conditioned weight distributions.',
+    tags: ['Anime', 'NoobAI', 'Score-tagged'],
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/original=true/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
   },
   {
@@ -64,26 +67,191 @@ const TELEMETRY_FALLBACK_MODELS: TelemetryModel[] = [
     baseModel: 'Illustrious XL',
     type: 'CHECKPOINT',
     tensorCount: 587,
-    vramGb: 8,
-    vramPercent: 67,
+    vramStr: '8 GB',
     nativeRes: '832 × 1216',
-    sampler: 'Euler a',
+    sampler: 'DPM++ 2M',
     steps: 26,
     cfg: 5.0,
     author: 'raehoshi',
+    description: 'Artistic checkpoint focusing on painterly volumetric lighting and anatomical fidelity.',
+    tags: ['Illustration', 'Painterly', 'Anime'],
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/original=true/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
   },
+];
+
+/**
+ * Strips raw HTML tags from Civitai descriptions, decodes entities,
+ * and filters out leading online generator / donation boilerplate.
+ */
+function cleanModelDescription(
+  rawDesc?: string,
+  baseModel?: string,
+  _modelName?: string
+): string {
+  if (!rawDesc) {
+    return `Specialized fine-tuned checkpoint for high-fidelity generative rendering on ${baseModel || 'SDXL'}.`;
+  }
+
+  // 1. Normalize HTML line breaks and structural tags to newlines before stripping
+  let text = rawDesc
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<\/(p|div|h[1-6]|li)>/gi, '\n')
+    .replace(/<br\s*[\/]?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ');
+
+  // 2. Decode common HTML entities
+  text = text
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/\r/g, '');
+
+  // 3. Filter out generic online generator promotions / Patreon plugs
+  const promoPattern = /^(if you want to use more|please visit|visit here|support me|buy me a coffee|patreon|ko-fi|discord|online generation|seaart|tensorart|shakker|liblib|https?:)/i;
+
+  const paragraphs = text
+    .split('\n')
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => p.length > 0);
+
+  // Look for the first genuine descriptive paragraph
+  let meaningful = paragraphs.find((p) => p.length >= 25 && !promoPattern.test(p));
+
+  if (!meaningful) {
+    meaningful = paragraphs.find((p) => p.length >= 15 && !promoPattern.test(p));
+  }
+
+  if (!meaningful || promoPattern.test(meaningful)) {
+    return `Generative checkpoint tuned on ${baseModel || 'Illustrious XL'} with calibrated latent distributions.`;
+  }
+
+  if (meaningful.length > 120) {
+    return meaningful.slice(0, 117).trim() + '...';
+  }
+
+  return meaningful;
+}
+
+/**
+ * Formats tag slugs into clean Title Case labels and filters redundant meta tags.
+ */
+function cleanModelTags(rawTags?: (string | { name?: string })[]): string[] {
+  if (!rawTags || !Array.isArray(rawTags) || rawTags.length === 0) {
+    return ['Fine-tuned', 'SafeTensors', 'High-Res'];
+  }
+
+  const ignored = new Set([
+    'base_model', 'base model', 'checkpoint', 'checkpoints', 'model', 'models',
+    'safetensors', 'sdxl', 'sd 1.5', 'sd xl', 'flux', 'flux.1', 'illustrious', 'illustrious-xl',
+    'noobai', 'noob-ai'
+  ]);
+
+  const cleaned = rawTags
+    .map((t) => {
+      const rawStr = typeof t === 'string' ? t : (t?.name || '');
+      return rawStr
+        .replace(/[_-]+/g, ' ')
+        .trim()
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join(' ');
+    })
+    .filter((t) => t.length > 1 && !ignored.has(t.toLowerCase()));
+
+  if (cleaned.length === 0) {
+    return ['Fine-tuned', 'SafeTensors', 'High-Res'];
+  }
+
+  return cleaned.slice(0, 3);
+}
+
+const HERO_QUICK_TAGS = [
+  { label: 'Illustrious XL', target: '/models?search=Illustrious' },
+  { label: 'Checkpoints', target: '/models?tab=checkpoints' },
+  { label: 'LoRA', target: '/models?tab=lora' },
+  { label: 'NoobAI', target: '/models?search=NoobAI' },
+  { label: 'Anime', target: '/models?search=Anime' },
+  { label: 'SDXL', target: '/models?search=SDXL' },
+];
+
+const TYPEWRITER_PHRASES = [
+  'Local Model Guide.',
+  'Generation Gallery.',
+  'Prompt & Settings Lab.',
+  'SafeTensors Catalog.',
 ];
 
 export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement | null>(null);
 
-  const [telemetryModels, setTelemetryModels] = useState<TelemetryModel[]>(TELEMETRY_FALLBACK_MODELS);
+  const [deckModels, setDeckModels] = useState<DeckModel[]>(DECK_FALLBACK_MODELS);
   const [totalCatalogCount, setTotalCatalogCount] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedModelIdx, setSelectedModelIdx] = useState(0);
-  const [isScanning, setIsScanning] = useState(false);
+  const [activeCardIdx, setActiveCardIdx] = useState(0);
+  const [isDeckPaused, setIsDeckPaused] = useState(false);
+  const [shufflingCardIdx, setShufflingCardIdx] = useState<number | null>(null);
+  const shuffleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Typewriter headline effect states
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [displayedText, setDisplayedText] = useState(TYPEWRITER_PHRASES[0]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Typewriter typing & backspacing loop
+  useEffect(() => {
+    const fullText = TYPEWRITER_PHRASES[phraseIdx];
+    let timer: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting) {
+      if (displayedText.length < fullText.length) {
+        timer = setTimeout(() => {
+          setDisplayedText(fullText.slice(0, displayedText.length + 1));
+        }, 80);
+      } else {
+        timer = setTimeout(() => {
+          setIsDeleting(true);
+        }, 2200);
+      }
+    } else {
+      if (displayedText.length > 0) {
+        timer = setTimeout(() => {
+          setDisplayedText(fullText.slice(0, displayedText.length - 1));
+        }, 40);
+      } else {
+        setIsDeleting(false);
+        setPhraseIdx((prev) => (prev + 1) % TYPEWRITER_PHRASES.length);
+        timer = setTimeout(() => {}, 280);
+      }
+    }
+
+    return () => clearTimeout(timer);
+  }, [displayedText, isDeleting, phraseIdx]);
+
+  const goToCard = (nextIdx: number) => {
+    if (nextIdx === activeCardIdx) return;
+    if (shuffleTimerRef.current) {
+      clearTimeout(shuffleTimerRef.current);
+    }
+    setShufflingCardIdx(activeCardIdx);
+    setActiveCardIdx(nextIdx);
+
+    shuffleTimerRef.current = setTimeout(() => {
+      setShufflingCardIdx(null);
+    }, 580);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (shuffleTimerRef.current) {
+        clearTimeout(shuffleTimerRef.current);
+      }
+    };
+  }, []);
 
   // Fetch real models from database on mount
   useEffect(() => {
@@ -95,10 +263,48 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
           setTotalCatalogCount(res.pagination.total);
         }
         if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: TelemetryModel[] = res.data.slice(0, 3).map((m, idx) => {
-            const vramMatch = m.vram_min ? parseInt(m.vram_min, 10) : (m.type === 'checkpoint' ? 6 : 2);
-            const vramGb = isNaN(vramMatch) || vramMatch <= 0 ? 6 : vramMatch;
-            const fallbackThumbnail = TELEMETRY_FALLBACK_MODELS[idx]?.thumbnailUrl || 'https://placehold.co/400x240?text=Preview';
+          const mapped: DeckModel[] = res.data.slice(0, 3).map((m, idx) => {
+            const fallbackItem = DECK_FALLBACK_MODELS[idx] || DECK_FALLBACK_MODELS[0];
+            const fallbackThumbnail = fallbackItem.thumbnailUrl;
+
+            // 1. Dynamic VRAM parsing
+            let vramStr = m.vram_min ? m.vram_min.trim() : (m.type === 'checkpoint' ? '6 GB' : '0.5 GB');
+            if (vramStr && !vramStr.toLowerCase().includes('gb')) {
+              vramStr = `${vramStr} GB`;
+            }
+
+            // 2. Dynamic Resolution from image metadata or version settings
+            let nativeRes = fallbackItem.nativeRes;
+            const primaryImg = m.images && m.images.length > 0 ? m.images[0] : null;
+            const recSettings = m.versions && m.versions.length > 0 ? m.versions[0].recommended_settings : null;
+
+            if (primaryImg && primaryImg.width && primaryImg.height) {
+              nativeRes = `${primaryImg.width} × ${primaryImg.height}`;
+            } else if (recSettings && recSettings.width && recSettings.height) {
+              nativeRes = `${recSettings.width} × ${recSettings.height}`;
+            } else if (m.base_model?.toLowerCase().includes('illustrious')) {
+              nativeRes = '832 × 1216';
+            } else if (m.base_model?.toLowerCase().includes('noob')) {
+              nativeRes = '1024 × 1360';
+            } else {
+              nativeRes = '1024 × 1024';
+            }
+
+            // 3. Dynamic Sampler
+            const sampler = primaryImg?.sampler || recSettings?.sampler || fallbackItem.sampler;
+
+            // 4. Dynamic Steps
+            const steps = primaryImg?.steps || recSettings?.steps || fallbackItem.steps;
+
+            // 5. Dynamic CFG Scale
+            const cfg = primaryImg?.cfg_scale || recSettings?.cfg_scale || fallbackItem.cfg;
+
+            // 6. Dynamic Cleaned Tags (Exclude raw tags like base_model, capitalize nicely)
+            const rawTags = m.tags && Array.isArray(m.tags) ? m.tags.map((t) => t.name) : (fallbackItem.tags || []);
+            const tags = cleanModelTags(rawTags);
+
+            // 7. Dynamic Sanitized Description (Strips HTML tags & filters online generator promo)
+            const description = cleanModelDescription(m.description || fallbackItem.description, m.base_model, m.name);
 
             return {
               id: String(m.id),
@@ -107,19 +313,20 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
               baseModel: m.base_model || 'Illustrious XL',
               type: m.type ? m.type.toUpperCase() : 'CHECKPOINT',
               tensorCount: m.tensor_size ? parseInt(m.tensor_size, 10) || 587 : 587,
-              vramGb,
-              vramPercent: Math.min(Math.round((vramGb / 12) * 100), 100),
-              nativeRes: m.base_model?.toLowerCase().includes('illustrious') ? '832 × 1216' : '1024 × 1024',
-              sampler: 'Euler a',
-              steps: 28,
-              cfg: 5.5,
+              vramStr,
+              nativeRes,
+              sampler,
+              steps,
+              cfg,
               author: m.author || 'Civitai Creator',
-              thumbnailUrl: m.thumbnail_url || fallbackThumbnail,
+              description,
+              tags,
+              thumbnailUrl: m.thumbnail_url || primaryImg?.image_url || fallbackThumbnail,
             };
           });
 
           if (mapped.length > 0) {
-            setTelemetryModels(mapped);
+            setDeckModels(mapped);
           }
         }
       })
@@ -132,46 +339,24 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
     };
   }, []);
 
-  const activeModel = telemetryModels[selectedModelIdx] || telemetryModels[0] || TELEMETRY_FALLBACK_MODELS[0];
+  const handleNextCard = () => {
+    goToCard((activeCardIdx + 1) % deckModels.length);
+  };
 
-  // Subtle interactive parallax tilt on mouse move
+  const handlePrevCard = () => {
+    goToCard((activeCardIdx - 1 + deckModels.length) % deckModels.length);
+  };
+
+  // Auto-cycle through card deck every 4.5 seconds (pauses when hovering deck)
   useEffect(() => {
-    const hero = heroRef.current;
-    if (!hero) return;
+    if (isDeckPaused || deckModels.length <= 1) return;
 
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return;
-    }
+    const timer = setInterval(() => {
+      goToCard((activeCardIdx + 1) % deckModels.length);
+    }, 4500);
 
-    let rafId: number;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        const rect = hero.getBoundingClientRect();
-        const xPercent = (e.clientX - rect.left) / rect.width - 0.5;
-        const yPercent = (e.clientY - rect.top) / rect.height - 0.5;
-
-        hero.style.setProperty('--hero-tilt-x', `${(xPercent * 8).toFixed(2)}px`);
-        hero.style.setProperty('--hero-tilt-y', `${(yPercent * 8).toFixed(2)}px`);
-      });
-    };
-
-    const handleMouseLeave = () => {
-      cancelAnimationFrame(rafId);
-      hero.style.setProperty('--hero-tilt-x', '0px');
-      hero.style.setProperty('--hero-tilt-y', '0px');
-    };
-
-    hero.addEventListener('mousemove', handleMouseMove, { passive: true });
-    hero.addEventListener('mouseleave', handleMouseLeave);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      hero.removeEventListener('mousemove', handleMouseMove);
-      hero.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, []);
+    return () => clearInterval(timer);
+  }, [isDeckPaused, deckModels.length, activeCardIdx]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,12 +365,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
     } else {
       navigate('/models');
     }
-  };
-
-  const handleSelectModel = (idx: number) => {
-    setIsScanning(true);
-    setSelectedModelIdx(idx);
-    setTimeout(() => setIsScanning(false), 450);
   };
 
   return (
@@ -220,19 +399,19 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
         <div className="mg-hero-split-grid">
           {/* Left Column: Editorial Typography, Live Status, Search & CTAs */}
           <div className="mg-hero-editorial-col">
-            {/* Live technical category pill */}
+            {/* Live catalog category pill */}
             <div className="mg-hero-badge-wrap">
               <div className="mg-hero-badge">
                 <span className="mg-hero-badge-dot" />
-                <span className="mg-hero-badge-mono">SYSTEM READY</span>
+                <span className="mg-hero-badge-mono">LOCAL LIBRARY</span>
                 <span className="mg-hero-badge-divider">/</span>
                 <span>
-                  {totalCatalogCount !== null ? `${totalCatalogCount} MODELS INDEXED` : 'AI MODEL LIBRARY'} &bull; LOCAL INFERENCE ARCHITECTURE
+                  {totalCatalogCount !== null ? `${totalCatalogCount} MODELS INDEXED` : 'CURATED MODEL REPOSITORY'}
                 </span>
               </div>
             </div>
 
-            {/* Editorial Headline with masked line reveal */}
+            {/* Editorial Headline with typewriter accent text */}
             <h1 className="mg-hero-title">
               <span className="mg-hero-title-line">
                 <span className="mg-hero-title-reveal" style={{ animationDelay: '150ms' }}>
@@ -240,16 +419,18 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 </span>
               </span>
               <span className="mg-hero-title-line">
-                <span className="mg-hero-title-reveal mg-hero-title-accent" style={{ animationDelay: '350ms' }}>
-                  Your Workflow.
+                <span className="mg-hero-title-reveal" style={{ animationDelay: '350ms' }}>
+                  <span className="mg-typewriter-container" aria-live="polite">
+                    <span className="mg-hero-title-accent mg-typewriter-text">{displayedText}</span>
+                    <span className="mg-typewriter-cursor" aria-hidden="true" />
+                  </span>
                 </span>
               </span>
             </h1>
 
             {/* Supporting Editorial Paragraph */}
             <p className="mg-hero-subtitle" style={{ animationDelay: '520ms' }}>
-              Explore, organize, compare, and understand your generative AI models in one focused,
-              zero-telemetry workspace. Direct SafeTensors tensor inspection, prompt trigger extraction, and verified VRAM allocation.
+              Jelajahi, bandingkan, dan pahami model generative AI kamu di satu workspace zero-telemetry.
             </p>
 
             {/* Quick Model Search Bar */}
@@ -272,27 +453,28 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                   <span className="mg-key-badge">&crarr;</span>
                 </button>
               </div>
-
-              {/* Quick filter jumping tags */}
-              <div className="mg-hero-quick-filters">
-                <span className="mg-quick-label">QUICK JUMP:</span>
-                <button type="button" className="mg-quick-chip" onClick={() => navigate('/models?tab=checkpoints')}>
-                  Checkpoints
-                </button>
-                <button type="button" className="mg-quick-chip" onClick={() => navigate('/models?tab=lora')}>
-                  LoRA Adapters
-                </button>
-                <button type="button" className="mg-quick-chip" onClick={() => navigate('/models?tab=illustrious')}>
-                  Illustrious XL
-                </button>
-                <button type="button" className="mg-quick-chip" onClick={() => navigate('/models?tab=noobai')}>
-                  NoobAI Base
-                </button>
-              </div>
             </form>
 
+            {/* Quick Tag Chips / Popular Filters */}
+            <div className="mg-hero-quick-filters" style={{ animationDelay: '780ms' }}>
+              <span className="mg-quick-label">POPULAR:</span>
+              <div className="mg-quick-chips-list">
+                {HERO_QUICK_TAGS.map((tag) => (
+                  <button
+                    key={tag.label}
+                    type="button"
+                    className="mg-quick-chip"
+                    onClick={() => navigate(tag.target)}
+                    title={`Browse ${tag.label} in models catalog`}
+                  >
+                    <span>{tag.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {/* Primary & Secondary Action CTAs */}
-            <div className="mg-hero-actions" style={{ animationDelay: '820ms' }}>
+            <div className="mg-hero-actions" style={{ animationDelay: '880ms' }}>
               <Link to="/models" className="mg-btn mg-btn-primary mg-btn-shimmer">
                 <span>Explore Models</span>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -316,134 +498,208 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             </div>
           </div>
 
-          {/* Right Column: Interactive Model Telemetry HUD */}
-          <div className="mg-hero-telemetry-col" style={{ animationDelay: '600ms' }}>
-            <div className={`mg-telemetry-card ${isScanning ? 'is-scanning' : ''}`}>
-              {/* Scanline beam passing across */}
-              <div className="mg-hud-scanline" aria-hidden="true" />
+          {/* Right Column: 3D Floating Model Card Deck */}
+          <div
+            className="mg-hero-deck-col"
+            style={{ animationDelay: '600ms' }}
+            onMouseEnter={() => setIsDeckPaused(true)}
+            onMouseLeave={() => setIsDeckPaused(false)}
+          >
+            {/* Ambient Background Glow behind Card Deck */}
+            <div className="mg-deck-ambient-glow" aria-hidden="true" />
 
-              {/* HUD Header Bar */}
-              <div className="mg-hud-topbar">
-                <div className="mg-hud-indicator-group">
-                  <span className="mg-hud-pulse-dot" />
-                  <span className="mg-hud-mono-tag">LIVE TELEMETRY &bull; SAFETENSORS HEADER</span>
-                </div>
-                <span className="mg-hud-spec-pill">FP16 PRUNED</span>
-              </div>
+            {/* 3D Stack of Cards */}
+            <div className="mg-deck-stack">
+              {deckModels.map((model, idx) => {
+                const total = deckModels.length;
+                const offset = (idx - activeCardIdx + total) % total;
+                const isFront = offset === 0;
+                const isShufflingOut = shufflingCardIdx === idx;
 
-              {/* Model Switcher Tabs */}
-              <div className="mg-hud-switcher" role="tablist" aria-label="Select model telemetry">
-                {telemetryModels.map((m, idx) => (
+                return (
+                  <div
+                    key={model.id}
+                    className={`mg-deck-card offset-${offset} ${isFront ? 'is-front' : 'is-stacked'} ${isShufflingOut ? 'is-shuffling-out' : ''}`}
+                    onClick={() => {
+                      if (!isFront) {
+                        goToCard(idx);
+                      }
+                    }}
+                    role={isFront ? undefined : 'button'}
+                    tabIndex={isFront ? undefined : 0}
+                    aria-label={isFront ? undefined : `Bring ${model.name} to front`}
+                  >
+                    {/* Optical Corner Reticles */}
+                    <div className="mg-card-reticle tl" aria-hidden="true" />
+                    <div className="mg-card-reticle tr" aria-hidden="true" />
+                    <div className="mg-card-reticle bl" aria-hidden="true" />
+                    <div className="mg-card-reticle br" aria-hidden="true" />
+
+                    {/* Scanline beam sweep on active card */}
+                    {isFront && <div className="mg-card-scanline" aria-hidden="true" />}
+
+                    {/* Card Media Wrapper (Portrait Aspect Ratio) */}
+                    <div className="mg-card-media-wrap">
+                      <img
+                        src={model.thumbnailUrl}
+                        alt={model.name}
+                        className="mg-card-img"
+                        loading={isFront ? 'eager' : 'lazy'}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/preview-1.png';
+                        }}
+                      />
+
+                      {/* Top Badges overlaying image */}
+                      <div className="mg-card-top-badges">
+                        <div className="mg-card-base-pill">
+                          <span className="mg-badge-accent-dot" />
+                          <span>{model.baseModel}</span>
+                        </div>
+                        <span className="mg-card-type-pill">{model.type}</span>
+                      </div>
+
+                      <div className="mg-card-media-gradient" />
+                    </div>
+
+                    {/* Card Bottom Meta & Spec Panel */}
+                    <div className="mg-card-body">
+                      <div className="mg-card-identity">
+                        <h3 className="mg-card-name" title={model.name}>
+                          {model.name}
+                        </h3>
+                        <span className="mg-card-author">
+                          by {model.author}
+                          <svg className="mg-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                            <polyline points="22 4 12 14.01 9 11.01" />
+                          </svg>
+                        </span>
+                      </div>
+
+                      {/* Model Description & Style Badges (Replacing Triggers) */}
+                      <div className="mg-card-desc-wrap">
+                        {(() => {
+                          const cleanDesc = cleanModelDescription(model.description, model.baseModel, model.name);
+                          return (
+                            <p className="mg-card-desc-snippet" title={cleanDesc}>
+                              {cleanDesc}
+                            </p>
+                          );
+                        })()}
+                        {(() => {
+                          const safeTags = cleanModelTags(model.tags);
+                          return safeTags.length > 0 ? (
+                            <div className="mg-card-tags-cloud">
+                              {safeTags.map((t) => (
+                                <span key={t} className="mg-card-tag-badge">
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+
+                      {/* Technical Specs Metric Bar */}
+                      <div className="mg-card-specs-grid">
+                        <div className="mg-card-spec-item">
+                          <span className="mg-card-spec-k">VRAM MIN</span>
+                          <span className="mg-card-spec-v">{model.vramStr}</span>
+                        </div>
+                        <div className="mg-card-spec-item">
+                          <span className="mg-card-spec-k">NATIVE RES</span>
+                          <span className="mg-card-spec-v">{model.nativeRes}</span>
+                        </div>
+                        <div className="mg-card-spec-item">
+                          <span className="mg-card-spec-k">SAMPLER</span>
+                          <span className="mg-card-spec-v">{model.sampler}</span>
+                        </div>
+                        <div className="mg-card-spec-item">
+                          <span className="mg-card-spec-k">CFG / STEPS</span>
+                          <span className="mg-card-spec-v">{model.cfg} / {model.steps}</span>
+                        </div>
+                      </div>
+
+                      {/* Card Action Link */}
+                      <div className="mg-card-footer">
+                        <Link
+                          to={`/models?model=${model.slug}`}
+                          className="mg-card-inspect-btn"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span>Inspect SafeTensors File</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                          </svg>
+                        </Link>
+                        <span className="mg-card-status">{model.tensorCount} LAYERS</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Deck Navigation Controls */}
+            <div className="mg-deck-controls">
+              <button
+                type="button"
+                className="mg-deck-arrow-btn"
+                onClick={handlePrevCard}
+                aria-label="Previous model card"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+
+              <div className="mg-deck-pills" role="tablist" aria-label="Model card selection">
+                {deckModels.map((m, idx) => (
                   <button
                     key={m.id}
                     type="button"
                     role="tab"
-                    aria-selected={selectedModelIdx === idx}
-                    className={`mg-hud-tab ${selectedModelIdx === idx ? 'active' : ''}`}
-                    onClick={() => handleSelectModel(idx)}
+                    aria-selected={activeCardIdx === idx}
+                    className={`mg-deck-pill ${activeCardIdx === idx ? 'active' : ''}`}
+                    onClick={() => goToCard(idx)}
                   >
-                    <span>0{idx + 1}</span>
-                    <span className="mg-tab-name">{m.name.split(' ')[0]}</span>
+                    <span className="mg-pill-num">0{idx + 1}</span>
+                    <span className="mg-pill-name">{m.name.split('-')[0] || m.name.split(' ')[0]}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Live Preview Media with Optical Corner Reticles */}
-              <div className="mg-hud-media-wrapper">
-                <div className="mg-hud-optical-corner tl" />
-                <div className="mg-hud-optical-corner tr" />
-                <div className="mg-hud-optical-corner bl" />
-                <div className="mg-hud-optical-corner br" />
-
-                <img
-                  src={activeModel.thumbnailUrl}
-                  alt={activeModel.name}
-                  className="mg-hud-img"
-                  loading="eager"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/preview-1.png';
-                  }}
-                />
-
-                <div className="mg-hud-media-overlay">
-                  <div className="mg-hud-overlay-title">
-                    <span className="mg-hud-base-badge">{activeModel.baseModel}</span>
-                    <h4>{activeModel.name}</h4>
-                  </div>
-                  <span className="mg-hud-author">by {activeModel.author}</span>
-                </div>
-              </div>
-
-              {/* Real-time Hardware & Tensor Gauges */}
-              <div className="mg-hud-gauges">
-                {/* VRAM Allocation Gauge Bar */}
-                <div className="mg-hud-gauge-item">
-                  <div className="mg-gauge-header">
-                    <span className="mg-gauge-k">GPU VRAM ALLOCATION</span>
-                    <span className="mg-gauge-v">{activeModel.vramGb} GB / 12 GB ({activeModel.vramPercent}%)</span>
-                  </div>
-                  <div className="mg-gauge-track">
-                    <div
-                      className="mg-gauge-fill"
-                      style={{ width: `${activeModel.vramPercent}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Tensor & Sampling Grid */}
-                <div className="mg-hud-specs-matrix">
-                  <div className="mg-hud-spec-cell">
-                    <span className="mg-cell-k">CONDITIONER TENSORS</span>
-                    <span className="mg-cell-v">{activeModel.tensorCount} Layers</span>
-                  </div>
-                  <div className="mg-hud-spec-cell">
-                    <span className="mg-cell-k">NATIVE RESOLUTION</span>
-                    <span className="mg-cell-v">{activeModel.nativeRes}</span>
-                  </div>
-                  <div className="mg-hud-spec-cell">
-                    <span className="mg-cell-k">RECOMMENDED SAMPLER</span>
-                    <span className="mg-cell-v">{activeModel.sampler} ({activeModel.steps} stp)</span>
-                  </div>
-                  <div className="mg-hud-spec-cell">
-                    <span className="mg-cell-k">CFG SCALE</span>
-                    <span className="mg-cell-v">{activeModel.cfg.toFixed(1)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Direct Inspection Action */}
-              <div className="mg-hud-footer">
-                <Link
-                  to={`/models?model=${activeModel.slug}`}
-                  className="mg-hud-inspect-btn"
-                >
-                  <span>Inspect SafeTensors File</span>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </Link>
-                <span className="mg-hud-status-text">STATUS: VERIFIED</span>
-              </div>
+              <button
+                type="button"
+                className="mg-deck-arrow-btn"
+                onClick={handleNextCard}
+                aria-label="Next model card"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Restrained Technical Architecture Spec Bar at Bottom */}
+        {/* Beginner-friendly Technical Capability Spec Bar at Bottom */}
         <div className="mg-hero-specs-bar" style={{ animationDelay: '950ms' }}>
           <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">ARCHITECTURES:</span>
-            <span className="mg-spec-value">SDXL 1.0 &bull; ILLUSTRIOUS-XL &bull; NOOB-AI &bull; FLUX.1</span>
+            <span className="mg-spec-label">SUPPORTED MODELS:</span>
+            <span className="mg-spec-value">SDXL &bull; ILLUSTRIOUS-XL &bull; NOOB-AI &bull; FLUX</span>
           </div>
           <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">CONTAINER:</span>
-            <span className="mg-spec-value">SAFETENSORS (FP16 / FP8 / BF16)</span>
+            <span className="mg-spec-label">FILE FORMAT:</span>
+            <span className="mg-spec-value">SAFETENSORS (SECURE &amp; OPTIMIZED)</span>
           </div>
           <div className="mg-hero-spec-item">
-            <span className="mg-spec-label">DATA PIPELINE:</span>
+            <span className="mg-spec-label">PRIVACY:</span>
             <span className="mg-spec-value mg-spec-verified">
               <span className="mg-verified-dot" />
-              INFERENCE VERIFIED &bull; ZERO CLOUD TELEMETRY
+              100% LOCAL &bull; NO CLOUD UPLOAD
             </span>
           </div>
         </div>

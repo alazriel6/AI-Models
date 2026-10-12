@@ -547,7 +547,11 @@ export function FeatureStorytelling() {
             <div className="mg-feature-bullets">
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Zero backend upload required: in-browser byte-level chunk extraction</span>
+                <span>Zero backend upload: in-browser byte-level chunk extraction without cloud latency</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>SafeTensors architecture: zero-copy memory mapping with zero executable code risk</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />

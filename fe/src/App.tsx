@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import { AdminAuthProvider } from './components/admin/AdminAuth';
@@ -53,8 +53,10 @@ function PageLoadingFallback() {
 
 function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const toolsDropdownRef = useRef<HTMLLIElement | null>(null);
 
   // Detect scroll for dynamic frosted navbar transition
   useEffect(() => {
@@ -66,20 +68,46 @@ function AppLayout() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Auto-close menu on route change
-  useEffect(() => {
+  // Auto-close menus on route change during render
+  const [prevPathname, setPrevPathname] = useState(location.pathname);
+  if (prevPathname !== location.pathname) {
+    setPrevPathname(location.pathname);
     setMobileMenuOpen(false);
-  }, [location.pathname]);
+    setToolsDropdownOpen(false);
+  }
 
-  // Close menu on Escape key press
+  // Close menus on Escape key press
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setMobileMenuOpen(false);
+        setToolsDropdownOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Close tools dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target as Node)) {
+        setToolsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+      }
+    };
   }, []);
 
   // Prevent background scroll when mobile menu is active
@@ -94,16 +122,49 @@ function AppLayout() {
     };
   }, [mobileMenuOpen]);
 
-  const closeMobileMenu = () => setMobileMenuOpen(false);
+  const closeMobileMenu = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setMobileMenuOpen(false);
+    setToolsDropdownOpen(false);
+  };
+
+  const handleMouseEnter = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setToolsDropdownOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setToolsDropdownOpen(false);
+    }, 220);
+  };
+
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+    setToolsDropdownOpen((prev) => !prev);
+  };
 
   const isHomePage = location.pathname === '/';
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator'].includes(location.pathname);
 
   return (
     <div className="main-app">  
       <nav className={`nav-editorial ${isScrolled ? 'nav-scrolled' : 'nav-top'}`}>
         <div className="nav-container">
           <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
-            <div className="brand-icon">✦</div>
             <h1>Models Guide</h1>
           </Link>
 
@@ -120,7 +181,7 @@ function AppLayout() {
             <span className="burger-line" />
           </button>
 
-          {/* Nav items list: horizontal on desktop, slide-down drawer on mobile */}
+          {/* Nav items list: Clean editorial structure with Tools dropdown */}
           <ul className={`nav-links ${mobileMenuOpen ? 'mobile-open' : ''}`}>
             <li>
               <NavLink to="/" end onClick={closeMobileMenu}>
@@ -133,48 +194,129 @@ function AppLayout() {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/compare" onClick={closeMobileMenu}>
-                Compare
-              </NavLink>
-            </li>
-            <li>
               <NavLink to="/gallery" onClick={closeMobileMenu}>
                 Gallery
               </NavLink>
             </li>
-            <li>
-              <NavLink to="/inspector" onClick={closeMobileMenu}>
-                Inspector
-              </NavLink>
+
+            {/* Generative Utilities & Tools Dropdown */}
+            <li
+              className={`nav-dropdown-item ${toolsDropdownOpen ? 'open' : ''}`}
+              ref={toolsDropdownRef}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <button
+                type="button"
+                className={`nav-dropdown-trigger ${isToolsActive ? 'active' : ''}`}
+                onClick={handleTriggerClick}
+                aria-expanded={toolsDropdownOpen}
+                aria-haspopup="true"
+              >
+                <span>Tools</span>
+                <svg
+                  className={`nav-caret ${toolsDropdownOpen ? 'open' : ''}`}
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              <div className={`nav-dropdown-menu ${toolsDropdownOpen ? 'show' : ''}`}>
+                <div className="nav-dropdown-header">GENERATIVE UTILITIES</div>
+                
+                <NavLink
+                  to="/compare"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="18" height="18" x="3" y="3" rx="2" />
+                      <line x1="12" y1="3" x2="12" y2="21" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Compare Models</span>
+                    <span className="nav-tool-desc">Side-by-side spec & tensor diff</span>
+                  </span>
+                </NavLink>
+
+                <NavLink
+                  to="/inspector"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14 2 14 8 20 8" />
+                      <circle cx="11.5" cy="14.5" r="2.5" />
+                      <path d="m13.5 16.5 2 2" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Metadata Inspector</span>
+                    <span className="nav-tool-desc">SafeTensors header & layer audit</span>
+                  </span>
+                </NavLink>
+
+                <NavLink
+                  to="/prompt-lab"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2" />
+                      <path d="M8.5 2h7" />
+                      <path d="M7 16h10" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Prompt Lab</span>
+                    <span className="nav-tool-desc">Trigger tokens & weight studio</span>
+                  </span>
+                </NavLink>
+
+                <NavLink
+                  to="/calculator"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect width="16" height="20" x="4" y="2" rx="2" />
+                      <line x1="8" y1="6" x2="16" y2="6" />
+                      <line x1="16" y1="14" x2="16" y2="18" />
+                      <path d="M16 10h.01" />
+                      <path d="M12 10h.01" />
+                      <path d="M8 10h.01" />
+                      <path d="M12 14h.01" />
+                      <path d="M8 14h.01" />
+                      <path d="M12 18h.01" />
+                      <path d="M8 18h.01" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Resolution Calculator</span>
+                    <span className="nav-tool-desc">Aspect ratio & snap-64 math</span>
+                  </span>
+                </NavLink>
+              </div>
             </li>
-            <li>
-              <NavLink to="/prompt-lab" onClick={closeMobileMenu}>
-                Prompt Lab
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/calculator" onClick={closeMobileMenu}>
-                Calculator
-              </NavLink>
-            </li>
+
             <li>
               <NavLink to="/about" onClick={closeMobileMenu}>
                 About
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/contact" onClick={closeMobileMenu}>
-                Contact
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/models" className="nav-cta-btn" onClick={closeMobileMenu}>
-                Explore Library
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/admin" className="nav-admin-badge-link" onClick={closeMobileMenu}>
-                Admin
               </NavLink>
             </li>
           </ul>
