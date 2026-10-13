@@ -185,6 +185,48 @@ const TYPEWRITER_PHRASES = [
   'SafeTensors Catalog.',
 ];
 
+function HeroTypewriter() {
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [displayedText, setDisplayedText] = useState(TYPEWRITER_PHRASES[0]);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  useEffect(() => {
+    const fullText = TYPEWRITER_PHRASES[phraseIdx];
+    let timer: ReturnType<typeof setTimeout>;
+
+    if (!isDeleting) {
+      if (displayedText.length < fullText.length) {
+        timer = setTimeout(() => {
+          setDisplayedText(fullText.slice(0, displayedText.length + 1));
+        }, 80);
+      } else {
+        timer = setTimeout(() => {
+          setIsDeleting(true);
+        }, 2200);
+      }
+    } else {
+      if (displayedText.length > 0) {
+        timer = setTimeout(() => {
+          setDisplayedText(fullText.slice(0, displayedText.length - 1));
+        }, 40);
+      } else {
+        setIsDeleting(false);
+        setPhraseIdx((prev) => (prev + 1) % TYPEWRITER_PHRASES.length);
+        timer = setTimeout(() => {}, 280);
+      }
+    }
+
+    return () => clearTimeout(timer);
+  }, [displayedText, isDeleting, phraseIdx]);
+
+  return (
+    <span className="mg-typewriter-container" aria-live="polite">
+      <span className="mg-hero-title-accent mg-typewriter-text">{displayedText}</span>
+      <span className="mg-typewriter-cursor" aria-hidden="true" />
+    </span>
+  );
+}
+
 export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement | null>(null);
@@ -235,41 +277,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const [isDeckPaused, setIsDeckPaused] = useState(false);
   const [shufflingCardIdx, setShufflingCardIdx] = useState<number | null>(null);
   const shuffleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Typewriter headline effect states
-  const [phraseIdx, setPhraseIdx] = useState(0);
-  const [displayedText, setDisplayedText] = useState(TYPEWRITER_PHRASES[0]);
-  const [isDeleting, setIsDeleting] = useState(false);
-
-  // Typewriter typing & backspacing loop
-  useEffect(() => {
-    const fullText = TYPEWRITER_PHRASES[phraseIdx];
-    let timer: ReturnType<typeof setTimeout>;
-
-    if (!isDeleting) {
-      if (displayedText.length < fullText.length) {
-        timer = setTimeout(() => {
-          setDisplayedText(fullText.slice(0, displayedText.length + 1));
-        }, 80);
-      } else {
-        timer = setTimeout(() => {
-          setIsDeleting(true);
-        }, 2200);
-      }
-    } else {
-      if (displayedText.length > 0) {
-        timer = setTimeout(() => {
-          setDisplayedText(fullText.slice(0, displayedText.length - 1));
-        }, 40);
-      } else {
-        setIsDeleting(false);
-        setPhraseIdx((prev) => (prev + 1) % TYPEWRITER_PHRASES.length);
-        timer = setTimeout(() => {}, 280);
-      }
-    }
-
-    return () => clearTimeout(timer);
-  }, [displayedText, isDeleting, phraseIdx]);
 
   const goToCard = (nextIdx: number) => {
     if (nextIdx === activeCardIdx) return;
@@ -459,10 +466,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
               </span>
               <span className="mg-hero-title-line">
                 <span className="mg-hero-title-reveal" style={{ animationDelay: '350ms' }}>
-                  <span className="mg-typewriter-container" aria-live="polite">
-                    <span className="mg-hero-title-accent mg-typewriter-text">{displayedText}</span>
-                    <span className="mg-typewriter-cursor" aria-hidden="true" />
-                  </span>
+                  <HeroTypewriter />
                 </span>
               </span>
             </h1>
@@ -529,7 +533,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 aria-label="Scroll down to discover application features"
               >
                 <span>Discover Features</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <polyline points="19 12 12 19 5 12" />
                 </svg>
@@ -584,6 +588,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                         alt={model.name}
                         className="mg-card-img"
                         loading={isFront ? 'eager' : 'lazy'}
+                        decoding="async"
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/images/preview-1.png';
                         }}
@@ -595,7 +600,9 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                           <span className="mg-badge-accent-dot" />
                           <span>{model.baseModel}</span>
                         </div>
-                        <span className="mg-card-type-pill">{model.type}</span>
+                        <span className={`mg-card-type-pill ${model.type?.toLowerCase() === 'lora' ? 'lora' : 'checkpoint'}`}>
+                          {model.type}
+                        </span>
                       </div>
 
                       <div className="mg-card-media-gradient" />
@@ -616,28 +623,22 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                         </span>
                       </div>
 
-                      {/* Model Description & Style Badges (Replacing Triggers) */}
+                      {/* Model Description & Style Badges (Pre-sanitized data) */}
                       <div className="mg-card-desc-wrap">
-                        {(() => {
-                          const cleanDesc = cleanModelDescription(model.description, model.baseModel, model.name);
-                          return (
-                            <p className="mg-card-desc-snippet" title={cleanDesc}>
-                              {cleanDesc}
-                            </p>
-                          );
-                        })()}
-                        {(() => {
-                          const safeTags = cleanModelTags(model.tags);
-                          return safeTags.length > 0 ? (
-                            <div className="mg-card-tags-cloud">
-                              {safeTags.map((t) => (
-                                <span key={t} className="mg-card-tag-badge">
-                                  {t}
-                                </span>
-                              ))}
-                            </div>
-                          ) : null;
-                        })()}
+                        {model.description && (
+                          <p className="mg-card-desc-snippet" title={model.description}>
+                            {model.description}
+                          </p>
+                        )}
+                        {model.tags && model.tags.length > 0 && (
+                          <div className="mg-card-tags-cloud">
+                            {model.tags.map((t) => (
+                              <span key={t} className="mg-card-tag-badge">
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Technical Specs Metric Bar */}

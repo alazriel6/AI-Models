@@ -864,23 +864,24 @@ nav a.active {
   left: 6px;
   font-size: 9px;
   font-weight: 700;
-  padding: 2px 5px;
-  border-radius: 3px;
-  letter-spacing: 0.3px;
+  padding: 2.5px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
   z-index: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .home-card-type-pill.type-checkpoint {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: #1d4ed8;
+  color: #ffffff;
+  border: 1px solid #2563eb;
 }
 
 .home-card-type-pill.type-lora {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
-  border: 1px solid rgba(168, 85, 247, 0.4);
+  background: #c2410c;
+  color: #ffffff;
+  border: 1px solid #ea580c;
 }
 
 .home-card-base-pill {
@@ -889,17 +890,18 @@ nav a.active {
   left: 6px;
   font-size: 9px;
   font-weight: 600;
-  padding: 2px 5px;
-  border-radius: 3px;
-  background: rgba(17, 19, 21, 0.88);
-  color: var(--text);
-  border: 1px solid var(--border);
+  padding: 2.5px 6px;
+  border-radius: 4px;
+  background: #111418;
+  color: #e2e8f0;
+  border: 1px solid #292D32;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   z-index: 1;
   max-width: calc(100% - 12px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .home-card-content {

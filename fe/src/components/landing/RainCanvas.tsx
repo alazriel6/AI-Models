@@ -81,8 +81,9 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       return;
     }
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let isVisible = true;
+    let isRunning = false;
     let width = 0;
     let height = 0;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -193,9 +194,25 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       }
     };
 
+    const startAnimation = () => {
+      if (!isRunning && isVisible) {
+        isRunning = true;
+        animationFrameId = requestAnimationFrame(render);
+      }
+    };
+
+    const stopAnimation = () => {
+      isRunning = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = 0;
+      }
+    };
+
     const render = (now: number) => {
       if (!isVisible) {
-        animationFrameId = requestAnimationFrame(render);
+        isRunning = false;
+        animationFrameId = 0;
         return;
       }
 
@@ -208,6 +225,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       if (currentWeather === 'clear') {
         currentStrike = null;
 
+        ctx.beginPath();
         for (let i = 0; i < sunMotes.length; i++) {
           const m = sunMotes[i];
           m.phase += m.pulseSpeed;
@@ -221,17 +239,12 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
           if (m.x < -15) m.x = width + 10;
           if (m.x > width + 15) m.x = -10;
 
-          const alpha = m.baseAlpha * (0.6 + 0.4 * Math.sin(m.phase));
-
-          ctx.beginPath();
-          ctx.fillStyle = `rgba(255, 228, 175, ${alpha})`;
-          ctx.shadowColor = 'rgba(255, 210, 130, 0.5)';
-          ctx.shadowBlur = 6;
+          ctx.moveTo(m.x + m.radius, m.y);
           ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
-          ctx.fill();
         }
+        ctx.fillStyle = 'rgba(255, 228, 175, 0.5)';
+        ctx.fill();
 
-        ctx.shadowBlur = 0;
         animationFrameId = requestAnimationFrame(render);
         return;
       }
@@ -388,34 +401,9 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
         }
       }
 
-      // Rain Drops Render Loop
+      // Update drop positions & spawn splashes
       for (let i = 0; i < activeDropCount; i++) {
         const d = drops[i];
-
-        let dropOpacity = d.opacity;
-        if (flashIntensity > 0.05) {
-          dropOpacity = Math.min(0.95, dropOpacity + flashIntensity * 0.45);
-        }
-
-        let strokeStyle: string;
-        if (flashIntensity > 0.2) {
-          strokeStyle = `rgba(240, 248, 255, ${dropOpacity})`;
-        } else if (d.layer === 2) {
-          strokeStyle = `rgba(205, 228, 255, ${dropOpacity})`;
-        } else if (d.layer === 1) {
-          strokeStyle = `rgba(180, 205, 238, ${dropOpacity})`;
-        } else {
-          strokeStyle = `rgba(155, 180, 215, ${dropOpacity})`;
-        }
-
-        ctx.beginPath();
-        ctx.strokeStyle = strokeStyle;
-        ctx.lineWidth = d.width;
-        ctx.lineCap = 'round';
-        ctx.moveTo(d.x, d.y);
-        ctx.lineTo(d.x + d.length * windDrift, d.y + d.length);
-        ctx.stroke();
-
         d.x += d.speed * speedMult * windDrift;
         d.y += d.speed * speedMult;
 
@@ -428,29 +416,78 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
         }
       }
 
-      // Splashes Loop
-      for (let i = splashes.length - 1; i >= 0; i--) {
-        const s = splashes[i];
-        s.life++;
-        s.x += s.vx * speedMult;
-        s.y += s.vy * speedMult;
-        s.vy += 0.16;
+      // Batched Rain Drops Render by Layer (drastically reduces stroke state changes)
+      ctx.lineCap = 'round';
 
-        const alpha = s.opacity * (1 - s.life / s.maxLife);
-        if (alpha <= 0 || s.life >= s.maxLife) {
-          splashes.splice(i, 1);
-          continue;
+      // Layer 0: Background drops
+      const l0Style = flashIntensity > 0.2
+        ? 'rgba(240, 248, 255, 0.38)'
+        : (flashIntensity > 0.05 ? 'rgba(200, 220, 245, 0.28)' : 'rgba(155, 180, 215, 0.22)');
+      ctx.lineWidth = 0.85;
+      ctx.strokeStyle = l0Style;
+      ctx.beginPath();
+      for (let i = 0; i < activeDropCount; i++) {
+        const d = drops[i];
+        if (d.layer === 0) {
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + d.length * windDrift, d.y + d.length);
         }
+      }
+      ctx.stroke();
 
-        const splashAlpha = flashIntensity > 0.2
-          ? Math.min(1, alpha + flashIntensity * 0.4)
-          : alpha;
+      // Layer 1: Midground drops
+      const l1Style = flashIntensity > 0.2
+        ? 'rgba(240, 248, 255, 0.62)'
+        : (flashIntensity > 0.05 ? 'rgba(215, 230, 250, 0.44)' : 'rgba(180, 205, 238, 0.36)');
+      ctx.lineWidth = 1.1;
+      ctx.strokeStyle = l1Style;
+      ctx.beginPath();
+      for (let i = 0; i < activeDropCount; i++) {
+        const d = drops[i];
+        if (d.layer === 1) {
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + d.length * windDrift, d.y + d.length);
+        }
+      }
+      ctx.stroke();
 
+      // Layer 2: Foreground drops
+      const l2Style = flashIntensity > 0.2
+        ? 'rgba(245, 250, 255, 0.88)'
+        : (flashIntensity > 0.05 ? 'rgba(230, 240, 255, 0.68)' : 'rgba(205, 228, 255, 0.56)');
+      ctx.lineWidth = 1.45;
+      ctx.strokeStyle = l2Style;
+      ctx.beginPath();
+      for (let i = 0; i < activeDropCount; i++) {
+        const d = drops[i];
+        if (d.layer === 2) {
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x + d.length * windDrift, d.y + d.length);
+        }
+      }
+      ctx.stroke();
+
+      // Batched Splashes Render
+      if (splashes.length > 0) {
         ctx.beginPath();
+        for (let i = splashes.length - 1; i >= 0; i--) {
+          const s = splashes[i];
+          s.life++;
+          s.x += s.vx * speedMult;
+          s.y += s.vy * speedMult;
+          s.vy += 0.16;
+
+          if (s.life >= s.maxLife) {
+            splashes.splice(i, 1);
+            continue;
+          }
+
+          ctx.moveTo(s.x + s.radius, s.y);
+          ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+        }
         ctx.fillStyle = flashIntensity > 0.2
-          ? `rgba(240, 250, 255, ${splashAlpha})`
-          : `rgba(185, 210, 245, ${splashAlpha})`;
-        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+          ? 'rgba(240, 250, 255, 0.65)'
+          : 'rgba(185, 210, 245, 0.45)';
         ctx.fill();
       }
 
@@ -458,7 +495,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
     };
 
     resizeCanvas();
-    animationFrameId = requestAnimationFrame(render);
+    startAnimation();
 
     let resizeTimer: number;
     const handleResize = () => {
@@ -468,23 +505,36 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
     window.addEventListener('resize', handleResize);
 
     const handleVisibilityChange = () => {
-      isVisible = document.visibilityState === 'visible';
+      const visible = document.visibilityState === 'visible';
+      if (!visible) {
+        stopAnimation();
+      } else if (isVisible) {
+        startAnimation();
+      }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        isVisible = entry ? entry.isIntersecting && document.visibilityState === 'visible' : true;
+        const visible = Boolean(entry && entry.isIntersecting && document.visibilityState === 'visible');
+        if (visible !== isVisible) {
+          isVisible = visible;
+          if (isVisible) {
+            startAnimation();
+          } else {
+            stopAnimation();
+          }
+        }
       },
-      { threshold: 0.05 }
+      { threshold: 0.02 }
     );
     if (canvas.parentElement) {
       observer.observe(canvas.parentElement);
     }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stopAnimation();
       window.removeEventListener('resize', handleResize);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       observer.disconnect();

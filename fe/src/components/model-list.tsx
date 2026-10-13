@@ -1660,12 +1660,6 @@ export default function ModelList() {
                                                     {item.baseModel}
                                                 </span>
                                             </div>
-
-                                            <div className="card-bottom-stats-overlay">
-                                                <span>Likes: {formatCount(item.likes)}</span>
-                                                <span>·</span>
-                                                <span>Rating: {item.rating.toFixed(1)}</span>
-                                            </div>
                                         </div>
 
                                         {/* Card Body - Urgent Details */}

@@ -358,15 +358,17 @@
 }
 
 .compare-pill.ckpt {
-    background: rgba(59, 130, 246, 0.85);
+    background: #1d4ed8;
     color: #ffffff;
-    border: 1px solid rgba(59, 130, 246, 0.5);
+    border: 1px solid #2563eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .compare-pill.lora {
-    background: rgba(168, 85, 247, 0.85);
+    background: #c2410c;
     color: #ffffff;
-    border: 1px solid rgba(168, 85, 247, 0.5);
+    border: 1px solid #ea580c;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .compare-pill.arch {

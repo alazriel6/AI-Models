@@ -3,9 +3,19 @@ import { Link } from 'react-router-dom';
 export function FinalCtaSection() {
   return (
     <section className="mg-final-cta" id="final-cta">
+      {/* Dedicated Nocturnal Forest Lake & Reflection Background (Distinct from 01, 02, 03, 04) */}
+      <div className="mg-final-forest-bg" aria-hidden="true" />
+
+      {/* Subtle Natural Forest Ground Mist Ribbons */}
+      <div className="mg-final-mist-ribbon mist-1" aria-hidden="true" />
+      <div className="mg-final-mist-ribbon mist-2" aria-hidden="true" />
+
+      {/* Ambient Vignette & Contrast Depth Lighting */}
       <div className="mg-final-atmosphere" aria-hidden="true" />
+
       <div className="mg-container">
         <div className="mg-final-inner">
+          {/* Editorial Tag */}
           <div className="mg-editorial-tag">
             <span className="mg-tag-num">05</span>
             <span className="mg-tag-line" />
@@ -21,41 +31,26 @@ export function FinalCtaSection() {
             Zero cloud lock-in. Full tensor transparency.
           </p>
 
+          {/* Primary CTA Action Buttons */}
           <div className="mg-final-actions">
             <Link to="/models" className="mg-btn mg-btn-primary mg-btn-large">
-              <span>Explore Models</span>
+              <span>Explore Full Model Directory</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
               </svg>
             </Link>
 
-            <Link to="/about" className="mg-btn mg-btn-secondary mg-btn-large">
-              <span>Learn About Models Guide</span>
+            <Link to="/compare" className="mg-btn mg-btn-secondary mg-btn-large">
+              <span>Compare Model Architectures</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
+                <path d="M16 3h5v5" />
+                <path d="M4 20L21 3" />
+                <path d="M21 16v5h-5" />
+                <path d="M15 15l6 6" />
+                <path d="M4 4l5 5" />
               </svg>
             </Link>
-          </div>
-
-          <div className="mg-final-metrics-strip">
-            <div className="mg-final-metric">
-              <span className="mg-fm-k">ARCHITECTURE MATRIX</span>
-              <span className="mg-fm-v">VERIFIED LOCAL SAFETENSORS</span>
-            </div>
-            <div className="mg-final-metric">
-              <span className="mg-fm-k">ENVIRONMENT STATUS</span>
-              <span className="mg-fm-v mg-text-success">
-                <span className="mg-status-pulse" />
-                SYSTEM OPERATIONAL
-              </span>
-            </div>
-            <div className="mg-final-metric">
-              <span className="mg-fm-k">RUNTIME TELEMETRY</span>
-              <span className="mg-fm-v">STANDALONE REACT 19 + GO ENGINE</span>
-            </div>
           </div>
         </div>
       </div>

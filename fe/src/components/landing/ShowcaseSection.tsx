@@ -195,6 +195,45 @@ export function ShowcaseSection() {
       className={`mg-showcase ${isVisible ? 'is-visible' : ''}`}
       id="model-showcase"
     >
+      {/* Architectural Corner Reticles matching Design System */}
+      <div className="mg-corner-reticle top-left" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle top-right" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle bottom-left" aria-hidden="true">
+        <span>+</span>
+      </div>
+      <div className="mg-corner-reticle bottom-right" aria-hidden="true">
+        <span>+</span>
+      </div>
+
+      {/* Seamless Transition Bridge from Specification Suite 01 */}
+      <div className="mg-showcase-transition-bridge" aria-hidden="true">
+        <div className="mg-statement-bridge-datum">
+          <div className="mg-statement-bridge-line" />
+          <div className="mg-statement-bridge-badge">
+            <span className="mg-bridge-dot" />
+            <span className="mg-bridge-text">MODEL REPOSITORY 02</span>
+          </div>
+          <div className="mg-statement-bridge-line" />
+        </div>
+      </div>
+
+      {/* Dedicated Ancient Mossy Cedar Forest Background (Distinct from Hero and 01) */}
+      <div className="mg-showcase-forest-bg" aria-hidden="true" />
+
+      {/* Volumetric Sunbeam / God Rays Streaming Through High Canopy */}
+      <div className="mg-showcase-godrays" aria-hidden="true" />
+
+      {/* Subtle Natural Forest Ground Mist Ribbons */}
+      <div className="mg-showcase-mist-ribbon mist-1" aria-hidden="true" />
+      <div className="mg-showcase-mist-ribbon mist-2" aria-hidden="true" />
+
+      {/* Ambient Vignette & Contrast Depth Lighting */}
+      <div className="mg-showcase-atmosphere" aria-hidden="true" />
+
       <div className="mg-container">
         {/* Showcase Section Title & Filter Tabs */}
         <div className="mg-showcase-head">
@@ -259,6 +298,7 @@ export function ShowcaseSection() {
                     alt={item.name}
                     className="mg-card-img"
                     loading="lazy"
+                    decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://placehold.co/400x240?text=Model+Preview';
                     }}
