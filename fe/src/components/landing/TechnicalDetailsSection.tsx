@@ -15,7 +15,7 @@ interface VramPreset {
   status: 'entry' | 'recommended' | 'powerhouse';
   tierLabel: string;
   throughput: string;
-  throughputScore: number; // 0 - 100 for bar
+  throughputScore: number;
   latency1024: string;
   batchCapacity: string;
   quantAdvised: string;
@@ -228,7 +228,7 @@ const PRESET_CARDS: PresetCard[] = [
     vae: 'ae.safetensors (16-channel)',
     stepEfficiency: 'Ultra-fast 4-step distilled convergence',
     positivePrompt: 'An anime aesthetic digital illustration with sharp linework and clean cell shading, cinematic atmosphere',
-    negativePrompt: '(Flux flow-matching operates best with empty negative prompt or guidance distillation)',
+    negativePrompt: '(Flux operates with empty negative prompt or guidance distillation)',
   },
   {
     id: 'sd15',
@@ -248,13 +248,17 @@ const PRESET_CARDS: PresetCard[] = [
 ];
 
 type ArchColumn = 'all' | 'illustrious' | 'sdxl' | 'sd15' | 'flux';
+type TechTab = 'hardware' | 'sampling' | 'matrix';
 
 export function TechnicalDetailsSection() {
+  const [activeTab, setActiveTab] = useState<TechTab>('hardware');
   const [selectedVram, setSelectedVram] = useState<string>('8gb');
+  const [selectedPresetId, setSelectedPresetId] = useState<string>('illustrious');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [focusedArch, setFocusedArch] = useState<ArchColumn>('all');
 
   const activeVram = VRAM_PRESETS[selectedVram] || VRAM_PRESETS['8gb'];
+  const activePreset = PRESET_CARDS.find((p) => p.id === selectedPresetId) || PRESET_CARDS[0];
 
   const copyPrompt = (text: string, id: string) => {
     navigator.clipboard?.writeText(text);
@@ -271,7 +275,7 @@ export function TechnicalDetailsSection() {
 
   return (
     <section className="mg-technical" id="technical-reference">
-      {/* Dedicated Nocturnal Boreal Crags & Monoliths Forest Background (Distinct from 01, 02, 03) */}
+      {/* Dedicated Nocturnal Boreal Crags Forest Background */}
       <div className="mg-tech-forest-bg" aria-hidden="true" />
 
       {/* Subtle Natural Forest Ground Mist Ribbons */}
@@ -293,567 +297,629 @@ export function TechnicalDetailsSection() {
             Hardware &amp; Execution Profiles
           </h2>
           <p className="mg-tech-desc">
-            Direct tensor memory allocations, verified sampling presets, and GPU hardware requirements for local generative workflows.
+            Pilih kategori di bawah untuk memeriksa kapasitas VRAM GPU, parameter sampling optimal, atau tabel perbandingan arsitektur model.
           </p>
 
-          {/* Clean Engineering Telemetry Badges */}
-          <div className="mg-tech-spec-bar">
-            <span className="mg-spec-badge">
-              <span className="mg-spec-dot green" />
-              PYTORCH 2.4+ SDPA VERIFIED
-            </span>
-            <span className="mg-spec-badge">
-              <span className="mg-spec-dot cyan" />
-              FP16 / BF16 / FP8 PROFILES
-            </span>
-            <span className="mg-spec-badge">
-              <span className="mg-spec-dot blue" />
-              NVIDIA RTX &bull; AMD ROCM &bull; APPLE SILICON
-            </span>
-          </div>
-        </div>
-
-        {/* ===================================================================
-            Part 1: GPU VRAM & Hardware Compatibility Matrix
-            =================================================================== */}
-        <div className="mg-vram-card">
-          <div className="mg-vram-topbar">
-            <div>
-              <div className="mg-vram-title-row">
-                <h3 className="mg-vram-title">Hardware Memory Allocation Matrix</h3>
-                <span className="mg-vram-tier-badge">{activeVram.tierLabel}</span>
-              </div>
-              <p className="mg-vram-sub">
-                Select your GPU capacity to inspect memory footprint breakdown, verified throughput, and optimal launch arguments.
-              </p>
-            </div>
-            <Link to="/models" className="mg-btn mg-btn-secondary">
-              <span>Filter Models by VRAM</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
+          {/* Clean Segmented Tab Switcher */}
+          <div className="mg-tech-nav-tabs" role="tablist" aria-label="Section 04 Tabs">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'hardware'}
+              className={`mg-tech-nav-btn ${activeTab === 'hardware' ? 'active' : ''}`}
+              onClick={() => setActiveTab('hardware')}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <rect x="9" y="9" width="6" height="6" />
+                <line x1="9" y1="1" x2="9" y2="4" />
+                <line x1="15" y1="1" x2="15" y2="4" />
+                <line x1="9" y1="20" x2="9" y2="23" />
+                <line x1="15" y1="20" x2="15" y2="23" />
+                <line x1="20" y1="9" x2="23" y2="9" />
+                <line x1="20" y1="14" x2="23" y2="14" />
+                <line x1="1" y1="9" x2="4" y2="9" />
+                <line x1="1" y1="14" x2="4" y2="14" />
               </svg>
-            </Link>
-          </div>
+              <div className="mg-nav-text-col">
+                <span className="mg-nav-title">Hardware GPU &amp; VRAM</span>
+                <span className="mg-nav-sub">Alokasi memori &amp; rekomendasi GPU</span>
+              </div>
+            </button>
 
-          {/* VRAM Selector Tabs */}
-          <div className="mg-vram-tabs" role="tablist">
-            {Object.keys(VRAM_PRESETS).map((key) => {
-              const preset = VRAM_PRESETS[key];
-              const isSelected = selectedVram === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isSelected}
-                  className={`mg-vram-tab-btn ${isSelected ? 'active' : ''}`}
-                  onClick={() => setSelectedVram(key)}
-                >
-                  <span className="mg-tab-vram">{preset.vram}</span>
-                  <span className="mg-tab-type">{preset.tierLabel}</span>
-                </button>
-              );
-            })}
-          </div>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'sampling'}
+              className={`mg-tech-nav-btn ${activeTab === 'sampling' ? 'active' : ''}`}
+              onClick={() => setActiveTab('sampling')}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="4" y1="21" x2="4" y2="14" />
+                <line x1="4" y1="10" x2="4" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="3" />
+                <line x1="20" y1="21" x2="20" y2="16" />
+                <line x1="20" y1="12" x2="20" y2="3" />
+                <line x1="1" y1="14" x2="7" y2="14" />
+                <line x1="9" y1="8" x2="15" y2="8" />
+                <line x1="17" y1="16" x2="23" y2="16" />
+              </svg>
+              <div className="mg-nav-text-col">
+                <span className="mg-nav-title">Parameter Sampling</span>
+                <span className="mg-nav-sub">Preset steps, sampler &amp; prompt tags</span>
+              </div>
+            </button>
 
-          {/* Interactive Memory Allocation Meter */}
-          <div className="mg-vram-alloc-meter-card">
-            <div className="mg-alloc-head">
-              <div className="mg-alloc-title-group">
-                <span className="mg-alloc-label">REAL-TIME MEMORY ALLOCATION BREAKDOWN</span>
-                <span className="mg-alloc-total">{activeVram.vram} TOTAL GDDR CAPACITY</span>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === 'matrix'}
+              className={`mg-tech-nav-btn ${activeTab === 'matrix' ? 'active' : ''}`}
+              onClick={() => setActiveTab('matrix')}
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <line x1="3" y1="9" x2="21" y2="9" />
+                <line x1="3" y1="15" x2="21" y2="15" />
+                <line x1="9" y1="3" x2="9" y2="21" />
+                <line x1="15" y1="3" x2="15" y2="21" />
+              </svg>
+              <div className="mg-nav-text-col">
+                <span className="mg-nav-title">Perbandingan Arsitektur</span>
+                <span className="mg-nav-sub">Tabel spesifikasi komparatif</span>
               </div>
-              <div className="mg-alloc-legend">
-                <span className="mg-legend-item">
-                  <span className="mg-legend-dot dot-weights" />
-                  Model Weights ({activeVram.memory.model} GB &bull; {pWeights}%)
-                </span>
-                <span className="mg-legend-item">
-                  <span className="mg-legend-dot dot-kv" />
-                  Attention KV ({activeVram.memory.kv} GB &bull; {pKv}%)
-                </span>
-                <span className="mg-legend-item">
-                  <span className="mg-legend-dot dot-vae" />
-                  VAE Decode ({activeVram.memory.vae} GB &bull; {pVae}%)
-                </span>
-                <span className="mg-legend-item">
-                  <span className="mg-legend-dot dot-free" />
-                  Headroom ({activeVram.memory.free} GB &bull; {pFree}%)
-                </span>
-              </div>
-            </div>
-
-            {/* Segmented Memory Track with Smooth Animated Fill */}
-            <div className="mg-meter-track" role="progressbar" aria-label="VRAM Allocation Progress">
-              <div
-                className="mg-meter-segment seg-weights"
-                style={{ width: `${pWeights}%` }}
-                title={`Model Weights: ${activeVram.memory.model} GB (${pWeights}%)`}
-              >
-                <span className="mg-meter-seg-text">{pWeights}%</span>
-              </div>
-              <div
-                className="mg-meter-segment seg-kv"
-                style={{ width: `${pKv}%` }}
-                title={`Attention KV: ${activeVram.memory.kv} GB (${pKv}%)`}
-              >
-                <span className="mg-meter-seg-text">{pKv}%</span>
-              </div>
-              <div
-                className="mg-meter-segment seg-vae"
-                style={{ width: `${pVae}%` }}
-                title={`VAE Buffer: ${activeVram.memory.vae} GB (${pVae}%)`}
-              >
-                <span className="mg-meter-seg-text">{pVae}%</span>
-              </div>
-              <div
-                className="mg-meter-segment seg-free"
-                style={{ width: `${pFree}%` }}
-                title={`System & Driver Headroom: ${activeVram.memory.free} GB (${pFree}%)`}
-              >
-                <span className="mg-meter-seg-text">{pFree}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Telemetry Metrics Row */}
-          <div className="mg-vram-telemetry-grid">
-            <div className="mg-telemetry-tile">
-              <div className="mg-tele-head">
-                <span className="mg-tele-label">INFERENCE THROUGHPUT</span>
-                <span className="mg-tele-val">{activeVram.throughput}</span>
-              </div>
-              <div className="mg-tele-bar-track">
-                <div
-                  className="mg-tele-bar-fill"
-                  style={{ width: `${activeVram.throughputScore}%` }}
-                />
-              </div>
-              <span className="mg-tele-sub">SDPA / PyTorch 2.4 benchmark</span>
-            </div>
-
-            <div className="mg-telemetry-tile">
-              <div className="mg-tele-head">
-                <span className="mg-tele-label">1024×1024 LATENCY</span>
-                <span className="mg-tele-val accent">{activeVram.latency1024}</span>
-              </div>
-              <span className="mg-tele-sub">28 steps standard generation</span>
-            </div>
-
-            <div className="mg-telemetry-tile">
-              <div className="mg-tele-head">
-                <span className="mg-tele-label">SAFE BATCH SIZE</span>
-                <span className="mg-tele-val">{activeVram.batchCapacity}</span>
-              </div>
-              <span className="mg-tele-sub">Before driver memory spill</span>
-            </div>
-
-            <div className="mg-telemetry-tile">
-              <div className="mg-tele-head">
-                <span className="mg-tele-label">RECOMMENDED PRECISION</span>
-                <span className="mg-tele-val mono">{activeVram.quantAdvised}</span>
-              </div>
-              <span className="mg-tele-sub">Zero quality degradation</span>
-            </div>
-          </div>
-
-          {/* VRAM Details Panel */}
-          <div className="mg-vram-panel">
-            <div className="mg-vram-summary-bar">
-              <div>
-                <h4 className="mg-vram-gpu-name">{activeVram.name}</h4>
-                <div className="mg-gpu-chips-wrap">
-                  <span className="mg-gpu-tested-label">Tested Hardware:</span>
-                  {activeVram.gpus.map((gpu, idx) => (
-                    <span key={idx} className="mg-gpu-chip">{gpu}</span>
-                  ))}
-                </div>
-              </div>
-              <span className={`mg-vram-badge status-${activeVram.status}`}>
-                {activeVram.status === 'powerhouse'
-                  ? 'Ultra High Performance — Zero Compromises'
-                  : activeVram.status === 'recommended'
-                  ? 'Recommended Sweetspot — Native SDXL / Illustrious'
-                  : 'Notice: Pruned FP16 or Tiled VAE Advised'}
-              </span>
-            </div>
-
-            <div className="mg-vram-specs-grid">
-              <div className="mg-vram-box">
-                <span className="mg-box-title">Supported Architectures</span>
-                <ul className="mg-vram-list">
-                  {activeVram.supportedModels.map((m, idx) => (
-                    <li key={idx}>
-                      <span className="mg-list-chevron">&rsaquo;</span> {m}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="mg-vram-box">
-                <span className="mg-box-title">Target Generation Resolution</span>
-                <div className="mg-box-snippet">{activeVram.maxResolution}</div>
-
-                <div className="mg-launch-flags-head">
-                  <span className="mg-box-title">Recommended Launch Flags</span>
-                  <button
-                    type="button"
-                    className="mg-mini-copy-btn"
-                    onClick={() => copyPrompt(activeVram.recommendedFlags, `flags-${selectedVram}`)}
-                    title="Copy launch arguments"
-                  >
-                    {copiedKey === `flags-${selectedVram}` ? (
-                      <span className="mg-copy-status copied">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                        Copied
-                      </span>
-                    ) : (
-                      <span className="mg-copy-status">
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                        Copy
-                      </span>
-                    )}
-                  </button>
-                </div>
-                <div className="mg-box-snippet mono">{activeVram.recommendedFlags}</div>
-              </div>
-
-              <div className="mg-vram-box">
-                <span className="mg-box-title">Optimization &amp; Inference Guidelines</span>
-                <p className="mg-vram-tip-text">
-                  {activeVram.tips}
-                </p>
-              </div>
-            </div>
+            </button>
           </div>
         </div>
 
         {/* ===================================================================
-            Part 2: Verified Sampling Parameter Cheat Sheet
+            TAB 1: GPU VRAM & Hardware Compatibility Matrix
             =================================================================== */}
-        <div className="mg-presets-section">
-          <div className="mg-presets-header">
-            <div>
-              <h3>Verified Generation Parameter Cheat Sheet</h3>
-              <p>Baseline sampling parameters, latent dimensions, and prompt boilerplate for the 4 primary diffusion families.</p>
+        {activeTab === 'hardware' && (
+          <div className="mg-tech-tab-pane mg-animate-fade-in">
+            <div className="mg-vram-card">
+              <div className="mg-vram-topbar">
+                <div>
+                  <div className="mg-vram-title-row">
+                    <h3 className="mg-vram-title">Hardware Memory Allocation Matrix</h3>
+                    <span className="mg-vram-tier-badge">{activeVram.tierLabel}</span>
+                  </div>
+                  <p className="mg-vram-sub">
+                    Pilih kapasitas VRAM GPU Anda untuk melihat alokasi memori, throughput, dan rekomendasi model yang optimal.
+                  </p>
+                </div>
+                <Link to="/models" className="mg-btn mg-btn-secondary">
+                  <span>Filter Model per VRAM</span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </Link>
+              </div>
+
+              {/* VRAM Selector Tabs */}
+              <div className="mg-vram-tabs" role="tablist">
+                {Object.keys(VRAM_PRESETS).map((key) => {
+                  const preset = VRAM_PRESETS[key];
+                  const isSelected = selectedVram === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      className={`mg-vram-tab-btn ${isSelected ? 'active' : ''}`}
+                      onClick={() => setSelectedVram(key)}
+                    >
+                      <span className="mg-tab-vram">{preset.vram}</span>
+                      <span className="mg-tab-type">{preset.tierLabel}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Interactive Memory Allocation Meter */}
+              <div className="mg-vram-alloc-meter-card">
+                <div className="mg-alloc-head">
+                  <div className="mg-alloc-title-group">
+                    <span className="mg-alloc-label">ALOKASI MEMORI ESTIMASI</span>
+                    <span className="mg-alloc-total">{activeVram.vram} TOTAL KAPASITAS</span>
+                  </div>
+                  <div className="mg-alloc-legend">
+                    <span className="mg-legend-item">
+                      <span className="mg-legend-dot dot-weights" />
+                      Model Weights ({activeVram.memory.model} GB &bull; {pWeights}%)
+                    </span>
+                    <span className="mg-legend-item">
+                      <span className="mg-legend-dot dot-kv" />
+                      Attention KV ({activeVram.memory.kv} GB &bull; {pKv}%)
+                    </span>
+                    <span className="mg-legend-item">
+                      <span className="mg-legend-dot dot-vae" />
+                      VAE Decode ({activeVram.memory.vae} GB &bull; {pVae}%)
+                    </span>
+                    <span className="mg-legend-item">
+                      <span className="mg-legend-dot dot-free" />
+                      Sisa Headroom ({activeVram.memory.free} GB &bull; {pFree}%)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Segmented Memory Track */}
+                <div className="mg-meter-track" role="progressbar" aria-label="VRAM Allocation Progress">
+                  <div
+                    className="mg-meter-segment seg-weights"
+                    style={{ width: `${pWeights}%` }}
+                    title={`Model Weights: ${activeVram.memory.model} GB (${pWeights}%)`}
+                  >
+                    <span className="mg-meter-seg-text">{pWeights}%</span>
+                  </div>
+                  <div
+                    className="mg-meter-segment seg-kv"
+                    style={{ width: `${pKv}%` }}
+                    title={`Attention KV: ${activeVram.memory.kv} GB (${pKv}%)`}
+                  >
+                    <span className="mg-meter-seg-text">{pKv}%</span>
+                  </div>
+                  <div
+                    className="mg-meter-segment seg-vae"
+                    style={{ width: `${pVae}%` }}
+                    title={`VAE Buffer: ${activeVram.memory.vae} GB (${pVae}%)`}
+                  >
+                    <span className="mg-meter-seg-text">{pVae}%</span>
+                  </div>
+                  <div
+                    className="mg-meter-segment seg-free"
+                    style={{ width: `${pFree}%` }}
+                    title={`Headroom: ${activeVram.memory.free} GB (${pFree}%)`}
+                  >
+                    <span className="mg-meter-seg-text">{pFree}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Telemetry Metrics Row */}
+              <div className="mg-vram-telemetry-grid">
+                <div className="mg-telemetry-tile">
+                  <div className="mg-tele-head">
+                    <span className="mg-tele-label">THROUGHPUT ESTIMASI</span>
+                    <span className="mg-tele-val">{activeVram.throughput}</span>
+                  </div>
+                  <div className="mg-tele-bar-track">
+                    <div
+                      className="mg-tele-bar-fill"
+                      style={{ width: `${activeVram.throughputScore}%` }}
+                    />
+                  </div>
+                  <span className="mg-tele-sub">PyTorch 2.4+ SDPA benchmark</span>
+                </div>
+
+                <div className="mg-telemetry-tile">
+                  <div className="mg-tele-head">
+                    <span className="mg-tele-label">1024×1024 LATENCY</span>
+                    <span className="mg-tele-val accent">{activeVram.latency1024}</span>
+                  </div>
+                  <span className="mg-tele-sub">28 steps standard generation</span>
+                </div>
+
+                <div className="mg-telemetry-tile">
+                  <div className="mg-tele-head">
+                    <span className="mg-tele-label">SAFE BATCH SIZE</span>
+                    <span className="mg-tele-val">{activeVram.batchCapacity}</span>
+                  </div>
+                  <span className="mg-tele-sub">Kapasitas batch simultan</span>
+                </div>
+
+                <div className="mg-telemetry-tile">
+                  <div className="mg-tele-head">
+                    <span className="mg-tele-label">PRESISI DISARANKAN</span>
+                    <span className="mg-tele-val mono">{activeVram.quantAdvised}</span>
+                  </div>
+                  <span className="mg-tele-sub">Optimal tanpa penurunan kualitas</span>
+                </div>
+              </div>
+
+              {/* VRAM Details Panel */}
+              <div className="mg-vram-panel">
+                <div className="mg-vram-summary-bar">
+                  <div>
+                    <h4 className="mg-vram-gpu-name">{activeVram.name}</h4>
+                    <div className="mg-gpu-chips-wrap">
+                      <span className="mg-gpu-tested-label">Contoh Hardware:</span>
+                      {activeVram.gpus.map((gpu, idx) => (
+                        <span key={idx} className="mg-gpu-chip">{gpu}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <span className={`mg-vram-badge status-${activeVram.status}`}>
+                    {activeVram.status === 'powerhouse'
+                      ? 'Tingkat Tinggi — Tanpa Kompromi'
+                      : activeVram.status === 'recommended'
+                      ? 'Rekomendasi Utama — Native SDXL / Illustrious'
+                      : 'Catatan: Gunakan Pruned FP16 / Tiled VAE'}
+                  </span>
+                </div>
+
+                <div className="mg-vram-specs-grid">
+                  <div className="mg-vram-box">
+                    <span className="mg-box-title">Model yang Didukung</span>
+                    <ul className="mg-vram-list">
+                      {activeVram.supportedModels.map((m, idx) => (
+                        <li key={idx}>
+                          <span className="mg-list-chevron">&rsaquo;</span> {m}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mg-vram-box">
+                    <span className="mg-box-title">Resolusi Rekomendasi</span>
+                    <div className="mg-box-snippet">{activeVram.maxResolution}</div>
+
+                    <div className="mg-launch-flags-head">
+                      <span className="mg-box-title">Launch Flags</span>
+                      <button
+                        type="button"
+                        className="mg-mini-copy-btn"
+                        onClick={() => copyPrompt(activeVram.recommendedFlags, `flags-${selectedVram}`)}
+                        title="Salin launch arguments"
+                      >
+                        {copiedKey === `flags-${selectedVram}` ? (
+                          <span className="mg-copy-status copied">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            Tersalin
+                          </span>
+                        ) : (
+                          <span className="mg-copy-status">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                            Salin
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    <div className="mg-box-snippet mono">{activeVram.recommendedFlags}</div>
+                  </div>
+
+                  <div className="mg-vram-box">
+                    <span className="mg-box-title">Tips Eksekusi</span>
+                    <p className="mg-vram-tip-text">
+                      {activeVram.tips}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        )}
 
-          <div className="mg-presets-grid">
-            {PRESET_CARDS.map((card) => (
-              <div key={card.id} className="mg-preset-card">
+        {/* ===================================================================
+            TAB 2: Verified Sampling Parameter Cheat Sheet
+            =================================================================== */}
+        {activeTab === 'sampling' && (
+          <div className="mg-tech-tab-pane mg-animate-fade-in">
+            <div className="mg-presets-section">
+              {/* Model Family Filter Tabs */}
+              <div className="mg-presets-family-bar">
+                <span className="mg-family-label">Pilih Model:</span>
+                <div className="mg-family-pills">
+                  {PRESET_CARDS.map((card) => (
+                    <button
+                      key={card.id}
+                      type="button"
+                      className={`mg-family-pill-btn ${selectedPresetId === card.id ? 'active' : ''}`}
+                      onClick={() => setSelectedPresetId(card.id)}
+                    >
+                      {card.pill}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Focused Model Parameter Card */}
+              <div className="mg-preset-focused-card">
                 <div className="mg-preset-head">
                   <div>
-                    <h4>{card.name}</h4>
-                    <span className="mg-preset-arch">{card.subtitle}</span>
+                    <h4 className="mg-preset-headline">{activePreset.name}</h4>
+                    <span className="mg-preset-arch">{activePreset.subtitle}</span>
                   </div>
-                  <span className="mg-pill mg-pill-base">{card.pill}</span>
+                  <span className="mg-pill mg-pill-base">{activePreset.pill}</span>
                 </div>
 
-                <div className="mg-preset-params">
-                  <div className="mg-param-row">
-                    <span>Sampler</span>
-                    <strong>{card.sampler}</strong>
+                <div className="mg-preset-params-grid">
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">Sampler</span>
+                    <strong className="mg-param-val">{activePreset.sampler}</strong>
                   </div>
-                  <div className="mg-param-row">
-                    <span>Steps</span>
-                    <strong>{card.steps}</strong>
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">Steps</span>
+                    <strong className="mg-param-val">{activePreset.steps}</strong>
                   </div>
-                  <div className="mg-param-row">
-                    <span>CFG Scale</span>
-                    <strong>{card.cfg}</strong>
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">CFG Scale</span>
+                    <strong className="mg-param-val">{activePreset.cfg}</strong>
                   </div>
-                  <div className="mg-param-row">
-                    <span>Clip Skip</span>
-                    <strong>{card.clipSkip}</strong>
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">Clip Skip</span>
+                    <strong className="mg-param-val">{activePreset.clipSkip}</strong>
                   </div>
-                  <div className="mg-param-row">
-                    <span>Native Resolution</span>
-                    <strong>{card.nativeRes}</strong>
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">Native Resolution</span>
+                    <strong className="mg-param-val">{activePreset.nativeRes}</strong>
                   </div>
-                  <div className="mg-param-row">
-                    <span>Target VAE</span>
-                    <strong className="mono">{card.vae}</strong>
+                  <div className="mg-param-tile">
+                    <span className="mg-param-label">Target VAE</span>
+                    <strong className="mg-param-val mono">{activePreset.vae}</strong>
                   </div>
                 </div>
 
-                {/* Positive Prompt Boilerplate */}
-                <div className="mg-preset-code-box mg-mb-sm">
-                  <div className="mg-code-head">
-                    <span>Quality Boilerplate Tags:</span>
-                    <button
-                      type="button"
-                      className="mg-mini-copy-btn"
-                      onClick={() => copyPrompt(card.positivePrompt, `pos-${card.id}`)}
-                    >
-                      {copiedKey === `pos-${card.id}` ? (
-                        <span className="mg-copy-status copied">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Copied
-                        </span>
-                      ) : (
-                        <span className="mg-copy-status">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                          Copy
-                        </span>
-                      )}
-                    </button>
+                <div className="mg-prompt-boxes-grid">
+                  {/* Positive Prompt Boilerplate */}
+                  <div className="mg-preset-code-box">
+                    <div className="mg-code-head">
+                      <span>Quality Tag Boilerplate:</span>
+                      <button
+                        type="button"
+                        className="mg-mini-copy-btn"
+                        onClick={() => copyPrompt(activePreset.positivePrompt, `pos-${activePreset.id}`)}
+                      >
+                        {copiedKey === `pos-${activePreset.id}` ? (
+                          <span className="mg-copy-status copied">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            Tersalin
+                          </span>
+                        ) : (
+                          <span className="mg-copy-status">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                            Salin
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    <code>{activePreset.positivePrompt}</code>
                   </div>
-                  <code>{card.positivePrompt}</code>
-                </div>
 
-                {/* Negative Prompt */}
-                <div className="mg-preset-code-box">
-                  <div className="mg-code-head">
-                    <span>Recommended Negative Prompt:</span>
-                    <button
-                      type="button"
-                      className="mg-mini-copy-btn"
-                      onClick={() => copyPrompt(card.negativePrompt, `neg-${card.id}`)}
-                    >
-                      {copiedKey === `neg-${card.id}` ? (
-                        <span className="mg-copy-status copied">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
-                          Copied
-                        </span>
-                      ) : (
-                        <span className="mg-copy-status">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                          Copy
-                        </span>
-                      )}
-                    </button>
+                  {/* Negative Prompt Boilerplate */}
+                  <div className="mg-preset-code-box">
+                    <div className="mg-code-head">
+                      <span>Recommended Negative Prompt:</span>
+                      <button
+                        type="button"
+                        className="mg-mini-copy-btn"
+                        onClick={() => copyPrompt(activePreset.negativePrompt, `neg-${activePreset.id}`)}
+                      >
+                        {copiedKey === `neg-${activePreset.id}` ? (
+                          <span className="mg-copy-status copied">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                            Tersalin
+                          </span>
+                        ) : (
+                          <span className="mg-copy-status">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                            Salin
+                          </span>
+                        )}
+                      </button>
+                    </div>
+                    <code>{activePreset.negativePrompt}</code>
                   </div>
-                  <code>{card.negativePrompt}</code>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ===================================================================
-            Part 3: Base Architecture Comparison Matrix Table
+            TAB 3: Base Architecture Comparison Matrix Table
             =================================================================== */}
-        <div className="mg-table-section">
-          <div className="mg-table-top-bar">
-            <div className="mg-table-title-row">
-              <h3>Base Architecture Comparison Matrix</h3>
-              <p>Direct architectural metrics, latent dimensions, and token adhesion across modern generative baselines.</p>
-            </div>
+        {activeTab === 'matrix' && (
+          <div className="mg-tech-tab-pane mg-animate-fade-in">
+            <div className="mg-table-section">
+              <div className="mg-table-top-bar">
+                <div className="mg-table-title-row">
+                  <h3>Base Architecture Comparison Matrix</h3>
+                  <p>Perbandingan parameter, resolusi dasar, kebutuhan minimum VRAM, dan karakteristik enkoder teks.</p>
+                </div>
 
-            {/* Architecture Focus Filter Selector */}
-            <div className="mg-arch-filter-pills" role="tablist">
-              <span className="mg-arch-filter-label">Focus Column:</span>
-              <button
-                type="button"
-                className={`mg-arch-pill-btn ${focusedArch === 'all' ? 'active' : ''}`}
-                onClick={() => setFocusedArch('all')}
-              >
-                All
-              </button>
-              <button
-                type="button"
-                className={`mg-arch-pill-btn ${focusedArch === 'illustrious' ? 'active' : ''}`}
-                onClick={() => setFocusedArch('illustrious')}
-              >
-                Illustrious-XL
-              </button>
-              <button
-                type="button"
-                className={`mg-arch-pill-btn ${focusedArch === 'sdxl' ? 'active' : ''}`}
-                onClick={() => setFocusedArch('sdxl')}
-              >
-                SDXL 1.0
-              </button>
-              <button
-                type="button"
-                className={`mg-arch-pill-btn ${focusedArch === 'sd15' ? 'active' : ''}`}
-                onClick={() => setFocusedArch('sd15')}
-              >
-                SD 1.5
-              </button>
-              <button
-                type="button"
-                className={`mg-arch-pill-btn ${focusedArch === 'flux' ? 'active' : ''}`}
-                onClick={() => setFocusedArch('flux')}
-              >
-                Flux.1
-              </button>
+                {/* Architecture Focus Filter Selector */}
+                <div className="mg-arch-filter-pills" role="tablist">
+                  <span className="mg-arch-filter-label">Fokus Kolom:</span>
+                  <button
+                    type="button"
+                    className={`mg-arch-pill-btn ${focusedArch === 'all' ? 'active' : ''}`}
+                    onClick={() => setFocusedArch('all')}
+                  >
+                    Semua
+                  </button>
+                  <button
+                    type="button"
+                    className={`mg-arch-pill-btn ${focusedArch === 'illustrious' ? 'active' : ''}`}
+                    onClick={() => setFocusedArch('illustrious')}
+                  >
+                    Illustrious-XL
+                  </button>
+                  <button
+                    type="button"
+                    className={`mg-arch-pill-btn ${focusedArch === 'sdxl' ? 'active' : ''}`}
+                    onClick={() => setFocusedArch('sdxl')}
+                  >
+                    SDXL 1.0
+                  </button>
+                  <button
+                    type="button"
+                    className={`mg-arch-pill-btn ${focusedArch === 'sd15' ? 'active' : ''}`}
+                    onClick={() => setFocusedArch('sd15')}
+                  >
+                    SD 1.5
+                  </button>
+                  <button
+                    type="button"
+                    className={`mg-arch-pill-btn ${focusedArch === 'flux' ? 'active' : ''}`}
+                    onClick={() => setFocusedArch('flux')}
+                  >
+                    Flux.1
+                  </button>
+                </div>
+              </div>
+
+              <div className="mg-table-container">
+                <table className={`mg-arch-table focus-${focusedArch}`}>
+                  <thead>
+                    <tr>
+                      <th className="col-metric">METRIC / PROPERTY</th>
+                      <th
+                        className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}
+                        onClick={() => setFocusedArch(focusedArch === 'illustrious' ? 'all' : 'illustrious')}
+                      >
+                        ILLUSTRIOUS-XL
+                      </th>
+                      <th
+                        className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}
+                        onClick={() => setFocusedArch(focusedArch === 'sdxl' ? 'all' : 'sdxl')}
+                      >
+                        SDXL 1.0 BASE
+                      </th>
+                      <th
+                        className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}
+                        onClick={() => setFocusedArch(focusedArch === 'sd15' ? 'all' : 'sd15')}
+                      >
+                        SD 1.5 LEGACY
+                      </th>
+                      <th
+                        className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}
+                        onClick={() => setFocusedArch(focusedArch === 'flux' ? 'all' : 'flux')}
+                      >
+                        FLUX.1 SCHNELL
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="col-metric">Core Architecture</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        Cross-Attention U-Net
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        Cross-Attention U-Net
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        Classic Latent U-Net
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        Dual-Stream MMDiT (Flow)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Total Parameters</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        6.6B (T5 + CLIP)
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        6.6B (Dual CLIP)
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        1.0B (CLIP-ViT-L)
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        12.0B (Flow Matching)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Native Resolution</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        832 &times; 1216 or 1024&sup2;
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        1024 &times; 1024
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        512 &times; 512
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        1024 &times; 1024
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Min VRAM (Inference)</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        6 GB (FP16 Pruned)
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        8 GB (FP16)
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        4 GB
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        12 GB (FP8 Quantized)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Text Encoders</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        Dual OpenCLIP + ViT
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        CLIP ViT-L + OpenCLIP
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        CLIP ViT-L/14
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        T5-XXL + CLIP-L
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Danbooru Tag Adherence</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''} mg-text-success`}>
+                        Native High (99%)
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        Moderate (Prose)
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        Moderate (80%)
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        Natural Prose Only
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Hi-Res Fix Scale Limit</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        2.0x &ndash; 2.5x
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        1.5x &ndash; 2.0x
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
+                        1.5x (Requires Tiled VAE)
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        2.0x Native
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="col-metric">Typical Speed Index</td>
+                      <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
+                        Fast (10&ndash;14 it/s)
+                      </td>
+                      <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
+                        Balanced (8&ndash;11 it/s)
+                      </td>
+                      <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''} mg-text-success`}>
+                        Ultra-Fast (25&ndash;35 it/s)
+                      </td>
+                      <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
+                        4-step Distilled (~2.5s)
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
-
-          <div className="mg-table-container">
-            <table className={`mg-arch-table focus-${focusedArch}`}>
-              <thead>
-                <tr>
-                  <th className="col-metric">METRIC / PROPERTY</th>
-                  <th
-                    className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}
-                    onClick={() => setFocusedArch(focusedArch === 'illustrious' ? 'all' : 'illustrious')}
-                  >
-                    ILLUSTRIOUS-XL
-                  </th>
-                  <th
-                    className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}
-                    onClick={() => setFocusedArch(focusedArch === 'sdxl' ? 'all' : 'sdxl')}
-                  >
-                    SDXL 1.0 BASE
-                  </th>
-                  <th
-                    className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}
-                    onClick={() => setFocusedArch(focusedArch === 'sd15' ? 'all' : 'sd15')}
-                  >
-                    SD 1.5 LEGACY
-                  </th>
-                  <th
-                    className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}
-                    onClick={() => setFocusedArch(focusedArch === 'flux' ? 'all' : 'flux')}
-                  >
-                    FLUX.1 SCHNELL
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="col-metric">Core Architecture</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    Cross-Attention U-Net
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    Cross-Attention U-Net
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    Classic Latent U-Net
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    Dual-Stream MMDiT (Flow)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Total Parameters</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    6.6B (T5 + CLIP)
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    6.6B (Dual CLIP)
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    1.0B (CLIP-ViT-L)
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    12.0B (Flow Matching)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Native Resolution</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    832 &times; 1216 or 1024&sup2;
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    1024 &times; 1024
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    512 &times; 512
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    1024 &times; 1024
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Min VRAM (Inference)</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    6 GB (FP16 Pruned)
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    8 GB (FP16)
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    4 GB
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    12 GB (FP8 Quantized)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Conditioning Tensors</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    587 Tensors / 77 Tokens
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    587 Tensors / 77 Tokens
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    77 Tokens
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    512 Tokens (T5 Context)
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Text Encoders</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    Dual OpenCLIP + ViT
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    CLIP ViT-L + OpenCLIP
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    CLIP ViT-L/14
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    T5-XXL + CLIP-L
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Danbooru Tag Adherence</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''} mg-text-success`}>
-                    Native High (99%)
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    Weak (Natural Text)
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    Moderate (80%)
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    Natural Prose Only
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Hi-Res Fix Scale Limit</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    2.0x &ndash; 2.5x
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    1.5x &ndash; 2.0x
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''}`}>
-                    1.5x (Requires Tiled VAE)
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    2.0x Native
-                  </td>
-                </tr>
-                <tr>
-                  <td className="col-metric">Typical Speed Index</td>
-                  <td className={`col-illustrious ${focusedArch === 'illustrious' ? 'is-focused' : ''}`}>
-                    Fast (10&ndash;14 it/s)
-                  </td>
-                  <td className={`col-sdxl ${focusedArch === 'sdxl' ? 'is-focused' : ''}`}>
-                    Balanced (8&ndash;11 it/s)
-                  </td>
-                  <td className={`col-sd15 ${focusedArch === 'sd15' ? 'is-focused' : ''} mg-text-success`}>
-                    Ultra-Fast (25&ndash;35 it/s)
-                  </td>
-                  <td className={`col-flux ${focusedArch === 'flux' ? 'is-focused' : ''}`}>
-                    4-step Distilled (~2.5s)
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+        )}
       </div>
     </section>
   );

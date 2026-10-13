@@ -4,24 +4,24 @@
    ========================================================================== */
 
 :root {
-  --mg-bg-primary: #090b0f;
-  --mg-bg-secondary: #10141a;
-  --mg-surface-elevated: #171c24;
-  --mg-surface-hover: #1e2430;
-  --mg-surface-highlight: #232b38;
+  --mg-bg-primary: #07090e;
+  --mg-bg-secondary: #0b0f19;
+  --mg-surface-elevated: #0f1624;
+  --mg-surface-hover: #162033;
+  --mg-surface-highlight: #1e293b;
 
-  --mg-text-primary: #f0f2f5;
-  --mg-text-secondary: #929aa7;
-  --mg-text-muted: #5e6675;
+  --mg-text-primary: #ffffff;
+  --mg-text-secondary: #cbd5e1;
+  --mg-text-muted: #94a3b8;
 
   --mg-accent: #3b82f6;
   --mg-accent-hover: #60a5fa;
-  --mg-accent-subtle: rgba(59, 130, 246, 0.12);
-  --mg-accent-glow: rgba(96, 165, 250, 0.25);
+  --mg-accent-subtle: rgba(59, 130, 246, 0.14);
+  --mg-accent-glow: rgba(96, 165, 250, 0.22);
 
-  --mg-border: rgba(255, 255, 255, 0.08);
-  --mg-border-subtle: rgba(255, 255, 255, 0.04);
-  --mg-border-accent: rgba(96, 165, 250, 0.3);
+  --mg-border: #1e293b;
+  --mg-border-subtle: #172033;
+  --mg-border-accent: #3b82f6;
 
   --mg-font-editorial: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --mg-font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
@@ -578,9 +578,8 @@
   gap: 8px;
   padding: 5px 14px;
   border-radius: 999px;
-  background-color: rgba(23, 28, 36, 0.85);
-  border: 1px solid var(--mg-border);
-  backdrop-filter: blur(8px);
+  background-color: #0f1624;
+  border: 1px solid #1e293b;
   font-family: var(--mg-font-mono);
   font-size: 11.5px;
   color: #cbd5e1;
@@ -602,7 +601,7 @@
 }
 
 .mg-hero-badge-divider {
-  color: rgba(255, 255, 255, 0.2);
+  color: #475569;
 }
 
 .mg-hero-title {
@@ -751,7 +750,8 @@
 .mg-key-badge {
   font-family: var(--mg-font-mono);
   font-size: 11px;
-  opacity: 0.6;
+  color: #cbd5e1;
+  font-weight: 600;
 }
 
 .mg-hero-quick-filters {
@@ -767,13 +767,12 @@
 .mg-quick-label {
   font-family: var(--mg-font-mono);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.1em;
-  color: var(--mg-text-muted);
+  color: #94a3b8;
   text-transform: uppercase;
   flex-shrink: 0;
   user-select: none;
-  opacity: 0.8;
 }
 
 .mg-quick-chips-list {
@@ -786,10 +785,9 @@
 .mg-quick-chip {
   display: inline-flex;
   align-items: center;
-  background: rgba(18, 24, 34, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  background: #0f1624;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
   font-family: var(--mg-font-editorial);
   font-size: 12px;
   font-weight: 500;
@@ -802,9 +800,9 @@
 }
 
 .mg-quick-chip:hover {
-  background: rgba(30, 41, 59, 0.75);
-  border-color: rgba(148, 163, 184, 0.35);
-  color: #f1f5f9;
+  background: #162033;
+  border-color: #3b82f6;
+  color: #ffffff;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
@@ -2378,10 +2376,8 @@
 }
 
 .mg-model-card {
-  background-color: rgba(14, 18, 25, 0.78);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background-color: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 10px;
   overflow: hidden;
   display: flex;
@@ -2480,8 +2476,8 @@
   gap: 8px;
   padding: 10px 12px;
   border-radius: 6px;
-  background-color: rgba(9, 11, 15, 0.6);
-  border: 1px solid var(--mg-border-subtle);
+  background-color: #06080d;
+  border: 1px solid #1e293b;
   margin-bottom: 16px;
 }
 
@@ -2881,10 +2877,8 @@
 
 /* Feature 01: Model Comparison Preview */
 .mg-compare-container {
-  background-color: rgba(14, 18, 25, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background-color: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 24px;
 }
@@ -3102,10 +3096,8 @@
 
 /* Feature 03: Metadata Terminal Inspector */
 .mg-terminal-window {
-  background-color: rgba(12, 14, 18, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background-color: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
@@ -3260,10 +3252,8 @@
 
 /* Feature 04: Prompt Lab Preview */
 .mg-promptlab-preview {
-  background-color: rgba(14, 18, 25, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background-color: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 24px;
 }
@@ -3399,10 +3389,8 @@
 
 /* Feature 05: Resolution Calculator Preview */
 .mg-calc-visualizer {
-  background-color: rgba(14, 18, 25, 0.82);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background-color: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 12px;
   padding: 24px;
 }
@@ -3530,13 +3518,13 @@
    ========================================================================== */
 
 .mg-technical {
-  padding: 125px 0 145px;
+  padding: 95px 0 100px;
   background-color: var(--mg-bg-primary);
   position: relative;
   overflow: hidden;
   border-top: 1px solid var(--mg-border-subtle);
   content-visibility: auto;
-  contain-intrinsic-size: 900px;
+  contain-intrinsic-size: 650px;
 }
 
 /* Dedicated Nocturnal Boreal Crags & Monoliths Forest Background (Distinct from 01, 02, 03) */
@@ -3664,67 +3652,110 @@
   margin: 0 0 18px 0;
 }
 
-.mg-tech-spec-bar {
+/* Clean Segmented Tab Switcher */
+.mg-tech-nav-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.mg-tech-nav-btn {
   display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
   align-items: center;
+  gap: 14px;
+  background: #0b0f19;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 16px 20px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  color: #94a3b8;
 }
 
-.mg-spec-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: rgba(15, 23, 42, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  padding: 5px 12px;
-  border-radius: 999px;
+.mg-tech-nav-btn svg {
+  color: #64748b;
+  flex-shrink: 0;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.mg-nav-text-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mg-nav-title {
   font-family: var(--mg-font-mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--mg-text-secondary);
-  transition: border-color 0.2s ease, color 0.2s ease;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #e2e8f0;
+  transition: color 0.2s ease;
 }
 
-.mg-spec-badge:hover {
-  border-color: rgba(96, 165, 250, 0.3);
-  color: var(--mg-text-primary);
+.mg-nav-sub {
+  font-size: 11.5px;
+  color: #94a3b8;
+  line-height: 1.35;
+  transition: color 0.2s ease;
 }
 
-.mg-spec-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  display: inline-block;
+.mg-tech-nav-btn:hover {
+  background: #111726;
+  border-color: #334155;
+  transform: translateY(-2px);
 }
 
-.mg-spec-dot.green {
-  background: #4ade80;
-  box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+.mg-tech-nav-btn:hover svg {
+  color: #38bdf8;
+  transform: scale(1.08);
 }
 
-.mg-spec-dot.cyan {
-  background: #38bdf8;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.5);
+.mg-tech-nav-btn.active {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.3) 0%, #0d1322 100%);
+  border-color: #3b82f6;
+  box-shadow: 0 4px 20px rgba(59, 130, 246, 0.2);
 }
 
-.mg-spec-dot.blue {
-  background: #60a5fa;
-  box-shadow: 0 0 6px rgba(96, 165, 250, 0.5);
+.mg-tech-nav-btn.active svg {
+  color: #38bdf8;
 }
+
+.mg-tech-nav-btn.active .mg-nav-title {
+  color: #ffffff;
+}
+
+.mg-tech-nav-btn.active .mg-nav-sub {
+  color: #cbd5e1;
+}
+
+/* Tab Pane Fade Animation */
+.mg-tech-tab-pane {
+  animation: techPaneFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes techPaneFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
 /* Part 1: GPU VRAM & Hardware Allocation Matrix Card */
 .mg-vram-card {
-  background: rgba(13, 17, 24, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 14px;
   padding: 32px;
-  margin-bottom: 60px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  margin-bottom: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
   transition: border-color 0.25s ease;
 }
 
@@ -3898,21 +3929,21 @@
 }
 
 .mg-legend-dot.dot-vae {
-  background: #a855f7;
+  background: #10b981;
 }
 
 .mg-legend-dot.dot-free {
-  background: rgba(255, 255, 255, 0.25);
+  background: #475569;
 }
 
 .mg-meter-track {
   width: 100%;
   height: 28px;
-  background: rgba(15, 23, 42, 0.9);
+  background: #090d16;
   border-radius: 6px;
   overflow: hidden;
   display: flex;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid #1e293b;
   padding: 2px;
   gap: 2px;
 }
@@ -3938,11 +3969,11 @@
 }
 
 .mg-meter-segment.seg-vae {
-  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  background: linear-gradient(90deg, #059669, #10b981);
 }
 
 .mg-meter-segment.seg-free {
-  background: rgba(255, 255, 255, 0.12);
+  background: #1e293b;
 }
 
 .mg-meter-seg-text {
@@ -3964,8 +3995,8 @@
 }
 
 .mg-telemetry-tile {
-  background: rgba(10, 13, 19, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #05080f;
+  border: 1px solid #1e293b;
   border-radius: 8px;
   padding: 14px 16px;
   display: flex;
@@ -3975,7 +4006,7 @@
 }
 
 .mg-telemetry-tile:hover {
-  border-color: rgba(255, 255, 255, 0.15);
+  border-color: #334155;
 }
 
 .mg-tele-head {
@@ -3988,10 +4019,10 @@
 
 .mg-tele-label {
   font-family: var(--mg-font-mono);
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--mg-text-muted);
+  color: #94a3b8;
   text-transform: uppercase;
 }
 
@@ -3999,7 +4030,7 @@
   font-family: var(--mg-font-mono);
   font-size: 14px;
   font-weight: 700;
-  color: var(--mg-text-primary);
+  color: #ffffff;
 }
 
 .mg-tele-val.accent {
@@ -4014,7 +4045,7 @@
 .mg-tele-bar-track {
   width: 100%;
   height: 5px;
-  background: rgba(255, 255, 255, 0.08);
+  background: #1e293b;
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 6px;
@@ -4028,14 +4059,14 @@
 }
 
 .mg-tele-sub {
-  font-size: 11px;
-  color: var(--mg-text-muted);
+  font-size: 11.5px;
+  color: #cbd5e1;
 }
 
 /* VRAM Details Panel */
 .mg-vram-panel {
-  background: rgba(10, 13, 19, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #05080f;
+  border: 1px solid #1e293b;
   border-radius: 10px;
   padding: 24px;
 }
@@ -4052,7 +4083,7 @@
 .mg-vram-gpu-name {
   font-size: 17px;
   font-weight: 700;
-  color: var(--mg-text-primary);
+  color: #ffffff;
   margin: 0 0 4px 0;
 }
 
@@ -4066,9 +4097,9 @@
 
 .mg-gpu-tested-label {
   font-family: var(--mg-font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--mg-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   margin-right: 4px;
@@ -4076,12 +4107,12 @@
 
 .mg-gpu-chip {
   font-family: var(--mg-font-mono);
-  font-size: 10px;
-  padding: 2px 7px;
+  font-size: 10.5px;
+  padding: 3px 8px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--mg-text-secondary);
+  background: #0d121d;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
 }
 
 .mg-vram-badge {
@@ -4118,8 +4149,8 @@
 }
 
 .mg-vram-box {
-  background: rgba(15, 20, 29, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: #0d121c;
+  border: 1px solid #1e293b;
   border-radius: 8px;
   padding: 18px;
   display: flex;
@@ -4129,10 +4160,10 @@
 .mg-box-title {
   display: block;
   font-family: var(--mg-font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--mg-text-muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
   text-transform: uppercase;
   margin-bottom: 8px;
 }
@@ -4144,8 +4175,8 @@
   display: flex;
   flex-direction: column;
   gap: 7px;
-  font-size: 12.5px;
-  color: var(--mg-text-secondary);
+  font-size: 13px;
+  color: #e2e8f0;
 }
 
 .mg-list-chevron {
@@ -4154,12 +4185,12 @@
 }
 
 .mg-box-snippet {
-  background: rgba(10, 13, 19, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #05080f;
+  border: 1px solid #1e293b;
   padding: 8px 12px;
   border-radius: 6px;
-  font-size: 12px;
-  color: var(--mg-text-primary);
+  font-size: 12.5px;
+  color: #ffffff;
 }
 
 .mg-box-snippet.mono {
@@ -4196,51 +4227,66 @@
   margin: 0;
 }
 
-/* Part 2: Sampling Parameter Presets */
+/* Part 2: Sampling Parameter Presets (Focused Model View) */
 .mg-presets-section {
-  margin-bottom: 60px;
+  margin-bottom: 0;
 }
 
-.mg-presets-header {
-  margin-bottom: 24px;
-}
-
-.mg-presets-header h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--mg-text-primary);
-  margin: 0 0 6px 0;
-}
-
-.mg-presets-header p {
-  font-size: 13.5px;
-  color: var(--mg-text-secondary);
-  margin: 0;
-}
-
-.mg-presets-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 22px;
-}
-
-.mg-preset-card {
-  background: rgba(13, 17, 24, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 12px;
-  padding: 24px;
+.mg-presets-family-bar {
   display: flex;
-  flex-direction: column;
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
 
-.mg-preset-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+.mg-family-label {
+  font-family: var(--mg-font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mg-family-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mg-family-pill-btn {
+  background: #0b0f19;
+  border: 1px solid #1e293b;
+  color: #cbd5e1;
+  font-family: var(--mg-font-mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mg-family-pill-btn:hover {
+  background: #151d2f;
+  border-color: #334155;
+  color: #ffffff;
+}
+
+.mg-family-pill-btn.active {
+  background: #2563eb;
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+}
+
+.mg-preset-focused-card {
+  background: #0b0f19;
+  border: 1px solid #1e293b;
+  border-radius: 14px;
+  padding: 30px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
 .mg-preset-head {
@@ -4251,103 +4297,117 @@
   gap: 12px;
 }
 
-.mg-preset-head h4 {
-  font-size: 16px;
+.mg-preset-headline {
+  font-size: 20px;
   font-weight: 700;
-  color: var(--mg-text-primary);
-  margin: 0 0 3px 0;
+  color: #ffffff;
+  margin: 0 0 4px 0;
 }
 
 .mg-preset-arch {
-  font-size: 11px;
-  color: var(--mg-text-muted);
+  font-size: 13px;
+  color: #94a3b8;
 }
 
-.mg-preset-params {
+.mg-preset-params-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 20px 0 24px;
+}
+
+.mg-param-tile {
+  background: #070a12;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+}
+
+.mg-param-label {
   font-family: var(--mg-font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mg-param-val {
+  font-family: var(--mg-font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.mg-param-val.mono {
+  color: #38bdf8;
   font-size: 11.5px;
-  margin-bottom: 16px;
-  flex: 1;
 }
 
-.mg-param-row {
-  display: flex;
-  justify-content: space-between;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--mg-text-secondary);
-}
-
-.mg-param-row strong {
-  color: var(--mg-text-primary);
-}
-
-.mg-param-row strong.mono {
-  color: #93c5fd;
-  font-size: 11px;
+.mg-prompt-boxes-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .mg-preset-code-box {
-  background: rgba(10, 13, 19, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  border-radius: 6px;
-  padding: 10px 12px;
-}
-
-.mg-mb-sm {
-  margin-bottom: 10px;
+  background: #070a12;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+  padding: 14px;
 }
 
 .mg-code-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   font-family: var(--mg-font-mono);
-  font-size: 9.5px;
-  color: var(--mg-text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
   text-transform: uppercase;
 }
 
 .mg-mini-copy-btn {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: var(--mg-text-primary);
-  font-size: 10px;
-  padding: 2px 7px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  color: #f8fafc;
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 9px;
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .mg-mini-copy-btn:hover {
-  background: rgba(59, 130, 246, 0.15);
-  border-color: rgba(59, 130, 246, 0.35);
-  color: #93c5fd;
+  background: #1e293b;
+  border-color: #64748b;
+  color: #38bdf8;
 }
 
 .mg-preset-code-box code {
   display: block;
   font-family: var(--mg-font-mono);
-  font-size: 10px;
-  color: var(--mg-text-secondary);
-  line-height: 1.45;
+  font-size: 11px;
+  color: #cbd5e1;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
+
 /* Part 3: Base Architecture Table */
 .mg-table-section {
-  background: rgba(13, 17, 24, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: #090d16;
+  border: 1px solid #1e293b;
   border-radius: 14px;
   padding: 30px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
 }
 
 .mg-table-top-bar {
@@ -4428,12 +4488,12 @@
 .mg-arch-table th {
   font-family: var(--mg-font-mono);
   font-size: 10.5px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
-  color: var(--mg-text-muted);
+  color: #94a3b8;
   padding: 14px 18px;
-  background-color: rgba(10, 13, 19, 0.65);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #070a12;
+  border-bottom: 1px solid #1e293b;
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.2s ease, color 0.2s ease;
@@ -4444,49 +4504,54 @@
 }
 
 .mg-arch-table th:hover:not(.col-metric) {
-  background-color: rgba(59, 130, 246, 0.1);
-  color: #93c5fd;
+  background-color: #0f1624;
+  color: #38bdf8;
 }
 
 .mg-arch-table td {
   padding: 14px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  color: var(--mg-text-secondary);
+  border-bottom: 1px solid #1e293b;
+  color: #cbd5e1;
   font-family: var(--mg-font-mono);
-  font-size: 12px;
+  font-size: 12.5px;
   transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .mg-arch-table tr:hover td {
-  background-color: rgba(255, 255, 255, 0.025);
-  color: var(--mg-text-primary);
+  background-color: #0d121c;
+  color: #ffffff;
 }
 
 /* Column Focus Highlight Effect */
 .mg-arch-table th.is-focused,
 .mg-arch-table td.is-focused {
-  background-color: rgba(59, 130, 246, 0.07);
-  color: var(--mg-text-primary);
+  background-color: #0c1629;
+  color: #ffffff;
   font-weight: 600;
-  border-left: 1px solid rgba(59, 130, 246, 0.25);
-  border-right: 1px solid rgba(59, 130, 246, 0.25);
+  border-left: 1px solid #2563eb;
+  border-right: 1px solid #2563eb;
 }
 
 .mg-arch-table th.is-focused {
-  color: #93c5fd;
-  border-top: 1px solid rgba(59, 130, 246, 0.35);
+  color: #38bdf8;
+  border-top: 1px solid #3b82f6;
 }
 
 @media (max-width: 992px) {
+  .mg-tech-nav-tabs {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .mg-prompt-boxes-grid {
+    grid-template-columns: 1fr;
+  }
+
   .mg-vram-telemetry-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 
   .mg-vram-specs-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .mg-presets-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -4496,7 +4561,15 @@
     grid-template-columns: 1fr;
   }
 
+  .mg-preset-params-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .mg-vram-card {
+    padding: 20px;
+  }
+
+  .mg-preset-focused-card {
     padding: 20px;
   }
 
