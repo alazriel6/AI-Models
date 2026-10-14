@@ -13,6 +13,7 @@ const Gallery = lazy(() => import('./components/pages/Gallery'));
 const MetadataInspector = lazy(() => import('./components/pages/MetadataInspector'));
 const PromptLab = lazy(() => import('./components/pages/PromptLab'));
 const ResolutionCalculator = lazy(() => import('./components/pages/ResolutionCalculator'));
+const LoraStack = lazy(() => import('./components/pages/LoraStack'));
 const About = lazy(() => import('./components/pages/About'));
 const Contact = lazy(() => import('./components/pages/Contact'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
@@ -158,7 +159,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -311,6 +312,24 @@ function AppLayout() {
                     <span className="nav-tool-desc">Aspect ratio & snap-64 math</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/lora-stack"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                      <polyline points="2 17 12 22 22 17" />
+                      <polyline points="2 12 12 17 22 12" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">LoRA Stack Builder</span>
+                    <span className="nav-tool-desc">Multi-layer weight & burnout guard</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -345,6 +364,9 @@ function AppLayout() {
             <Route path="/prompt-lab" element={<PromptLab />} />
             <Route path="/studio" element={<PromptLab />} />
             <Route path="/calculator" element={<ResolutionCalculator />} />
+            <Route path="/lora-stack" element={<LoraStack />} />
+            <Route path="/lora" element={<LoraStack />} />
+            <Route path="/lora-builder" element={<LoraStack />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

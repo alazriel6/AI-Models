@@ -78,6 +78,11 @@ export function LandingFooter() {
                 </Link>
               </li>
               <li>
+                <Link to="/lora-stack" className="mg-footer-link">
+                  LoRA Stack Builder
+                </Link>
+              </li>
+              <li>
                 <Link to="/inspector" className="mg-footer-link">
                   Metadata Inspector
                 </Link>

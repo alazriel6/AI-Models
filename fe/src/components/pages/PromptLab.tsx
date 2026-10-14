@@ -410,12 +410,34 @@ const getPresetVariantTitle = (p: PromptPreset, characterName?: string): string 
 
 export const PromptLab: React.FC = () => {
     // Canvas Prompts (Strictly kept together on unified canvas)
-    const [positivePrompt, setPositivePrompt] = useState<string>(
-        "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office"
-    );
+    const [positivePrompt, setPositivePrompt] = useState<string>(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const promptParam = params.get("prompt");
+            if (promptParam && promptParam.trim()) {
+                return promptParam;
+            }
+        } catch {
+            // fallback
+        }
+        return "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office";
+    });
     const [negativePrompt, setNegativePrompt] = useState<string>(
         "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, deformed halo"
     );
+
+    // Sync prompt if URL query param changes
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const promptParam = params.get("prompt");
+            if (promptParam && promptParam.trim()) {
+                setPositivePrompt(promptParam);
+            }
+        } catch {
+            // fallback
+        }
+    }, []);
 
     // Active Checkpoint Selection for LoRA Compatibility
     const [selectedCheckpointId, setSelectedCheckpointId] = useState<string>("");

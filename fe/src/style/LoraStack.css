@@ -1,0 +1,1281 @@
+/* ==========================================================================
+   LoRA Stack & Weight Aggregator Styles
+   Clean, High-Contrast Developer Aesthetic (No AI Slop / No Neon Gradients)
+   ========================================================================== */
+
+.lora-stack-container {
+    width: 100%;
+    max-width: var(--container-max, 1560px);
+    margin: 0 auto;
+    padding: 32px 24px 80px 24px;
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   Header Section
+   ========================================================================== */
+
+.lora-header {
+    margin-bottom: 24px;
+}
+
+.lora-header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.lora-title-group {
+    flex: 1;
+    min-width: 300px;
+}
+
+/* Category Badge: Clean Monochrome */
+.lora-category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    background: #1a1e24;
+    border: 1px solid #2a303a;
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.lora-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: #f8fafc;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.015em;
+}
+
+/* Title Icon: Unified Neutral Slate Box */
+.lora-title-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #181c22;
+    color: #94a3b8;
+    border: 1px solid #2a303a;
+    flex-shrink: 0;
+}
+
+.lora-subtitle {
+    font-size: 14px;
+    color: #cbd5e1;
+    margin: 0;
+    line-height: 1.55;
+    max-width: 820px;
+}
+
+/* ==========================================================================
+   Quick Presets Bar (Solid, Clean Pills)
+   ========================================================================== */
+
+.lora-presets-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+}
+
+.lora-presets-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 4px;
+}
+
+.lora-preset-btn {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #16191f;
+    border: 1px solid #2b313c;
+    color: #cbd5e1;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-preset-btn:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+    background: #1c212a;
+}
+
+.lora-preset-btn.active {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.lora-reset-btn {
+    margin-left: auto;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: transparent;
+    border: 1px solid #2b313c;
+    color: #94a3b8;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-reset-btn:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+    background: #1e1315;
+}
+
+/* ==========================================================================
+   Base Architecture Selector Row
+   ========================================================================== */
+
+.lora-arch-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #14171c;
+    border: 1px solid #252b35;
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+
+.lora-arch-row-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-arch-select {
+    background: #1a1e25;
+    border: 1px solid #2e3542;
+    color: #ffffff;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+}
+
+.lora-arch-select:focus {
+    border-color: #3b82f6;
+}
+
+.lora-arch-hint {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-left: auto;
+}
+
+/* ==========================================================================
+   Main Studio Grid Layout
+   ========================================================================== */
+
+.lora-main-grid {
+    display: grid;
+    grid-template-columns: 1fr 440px;
+    gap: 24px;
+    align-items: start;
+    margin-top: 20px;
+}
+
+@media (max-width: 1180px) {
+    .lora-main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================================================
+   Left Column: Stack Layers & Form Inputs
+   ========================================================================== */
+
+.lora-stack-col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.lora-section-card {
+    background: #15181e;
+    border: 1px solid #272d38;
+    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.lora-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.lora-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.lora-badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 4px;
+    background: #1e2633;
+    border: 1px solid #2b394e;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Stack Layer Card (100% Readable, No Washed-Out Opacity)
+   ========================================================================== */
+
+.lora-layers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lora-layer-card {
+    background: #12151a;
+    border: 1px solid #262c37;
+    border-radius: 8px;
+    padding: 14px 16px;
+    position: relative;
+    transition: border-color 0.15s;
+}
+
+.lora-layer-card:hover {
+    border-color: #3b82f6;
+}
+
+/* Bypassed layer: Solid dark with full text readability */
+.lora-layer-card.bypassed {
+    background: #0f1216;
+    border-color: #20242c;
+}
+
+.lora-layer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.lora-layer-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+}
+
+.lora-layer-order {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.lora-order-btn {
+    width: 22px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1e25;
+    border: 1px solid #2b323e;
+    border-radius: 4px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+}
+
+.lora-order-btn:hover:not(:disabled) {
+    color: #ffffff;
+    border-color: #3b82f6;
+    background: #222832;
+}
+
+.lora-order-btn:disabled {
+    color: #4b5563;
+    cursor: not-allowed;
+}
+
+.lora-thumb-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: #1a1e24;
+    border: 1px solid #2b323e;
+    flex-shrink: 0;
+}
+
+.lora-thumb-fallback {
+    width: 42px;
+    height: 42px;
+    border-radius: 6px;
+    background: #181c22;
+    border: 1px solid #282f3a;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.lora-layer-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.lora-layer-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.lora-layer-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+}
+
+/* Tag Badges: Unified Clean Monochrome */
+.lora-tag-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #1b1f27;
+    border: 1px solid #2d3442;
+    color: #cbd5e1;
+}
+
+.lora-layer-filename {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
+
+.lora-layer-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lora-toggle-btn {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #2c3442;
+    background: #181c23;
+    color: #94a3b8;
+    transition: all 0.12s;
+}
+
+.lora-toggle-btn.active {
+    background: #142a1f;
+    border-color: #10b981;
+    color: #34d399;
+}
+
+.lora-delete-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+}
+
+.lora-delete-btn:hover {
+    color: #ef4444;
+    background: #201215;
+    border-color: #ef4444;
+}
+
+/* ==========================================================================
+   Weight Controls Row
+   ========================================================================== */
+
+.lora-weight-row {
+    background: #161920;
+    border: 1px solid #262c37;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.lora-weight-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.lora-weight-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-weight-val-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-weight-input {
+    width: 58px;
+    background: #101216;
+    border: 1px solid #2b323e;
+    border-radius: 4px;
+    color: #f1f5f9;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    padding: 3px 0;
+    outline: none;
+}
+
+.lora-weight-input:focus {
+    border-color: #3b82f6;
+}
+
+.lora-slider-track {
+    width: 100%;
+    accent-color: #3b82f6;
+    cursor: pointer;
+    height: 5px;
+}
+
+.lora-quick-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.lora-quick-chip {
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: #111317;
+    border: 1px solid #252b36;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    cursor: pointer;
+}
+
+.lora-quick-chip:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.lora-quick-chip.active {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Dual Weight Switch */
+.lora-dual-switch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #cbd5e1;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid #242a34;
+}
+
+.lora-dual-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.lora-dual-toggle-label input {
+    accent-color: #3b82f6;
+    cursor: pointer;
+}
+
+/* ==========================================================================
+   Trigger Words Section
+   ========================================================================== */
+
+.lora-triggers-box {
+    margin-top: 8px;
+}
+
+.lora-triggers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.lora-triggers-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+
+.lora-triggers-bulk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lora-triggers-bulk-btn {
+    background: transparent;
+    border: none;
+    font-size: 11px;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+}
+
+.lora-triggers-bulk-btn:hover {
+    color: #ffffff;
+}
+
+.lora-trigger-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.lora-trigger-chip {
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: #161920;
+    border: 1px solid #262c37;
+    color: #cbd5e1;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    user-select: none;
+}
+
+.lora-trigger-chip:hover {
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.lora-trigger-chip.active {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.lora-trigger-chip.active::before {
+    content: "✓";
+    font-size: 10px;
+    color: #38bdf8;
+    font-weight: 700;
+}
+
+/* Incompatibility Warning inside Card */
+.lora-layer-warning {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #1e1911;
+    border: 1px solid #b45309;
+    border-radius: 6px;
+    color: #fde68a;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Empty State */
+.lora-empty-state {
+    padding: 40px 20px;
+    text-align: center;
+    border: 1px dashed #2c3340;
+    border-radius: 8px;
+    background: #111419;
+}
+
+.lora-empty-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #181c23;
+    border: 1px solid #2a313d;
+    color: #94a3b8;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.lora-empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #f8fafc;
+    margin: 0 0 6px 0;
+}
+
+.lora-empty-desc {
+    font-size: 13px;
+    color: #94a3b8;
+    max-width: 420px;
+    margin: 0 auto 16px auto;
+}
+
+/* ==========================================================================
+   Add LoRA Module & Tabs
+   ========================================================================== */
+
+.lora-add-container {
+    background: #15181e;
+    border: 1px solid #272d38;
+    border-radius: 10px;
+    padding: 18px;
+}
+
+.lora-add-tabs {
+    display: flex;
+    gap: 4px;
+    background: #111317;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #252b36;
+    margin-bottom: 14px;
+}
+
+.lora-add-tab-btn {
+    flex: 1;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lora-add-tab-btn.active {
+    background: #1c212a;
+    color: #ffffff;
+}
+
+.lora-catalog-search {
+    width: 100%;
+    background: #111317;
+    border: 1px solid #272d38;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f1f5f9;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+.lora-catalog-search:focus {
+    border-color: #3b82f6;
+}
+
+.lora-catalog-scroll {
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 4px;
+}
+
+.lora-catalog-scroll::-webkit-scrollbar {
+    width: 5px;
+}
+
+.lora-catalog-scroll::-webkit-scrollbar-thumb {
+    background: #2b323e;
+    border-radius: 4px;
+}
+
+.lora-catalog-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    background: #111419;
+    border: 1px solid #232832;
+    border-radius: 6px;
+}
+
+.lora-catalog-item:hover {
+    border-color: #3b82f6;
+    background: #161920;
+}
+
+.lora-catalog-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1;
+}
+
+.lora-catalog-add-btn {
+    padding: 5px 12px;
+    border-radius: 4px;
+    background: #1c212a;
+    border: 1px solid #2f3847;
+    color: #f1f5f9;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lora-catalog-add-btn:hover:not(:disabled) {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.lora-catalog-add-btn:disabled {
+    color: #64748b;
+    border-color: #232832;
+    cursor: default;
+}
+
+/* Custom LoRA Form */
+.lora-custom-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.lora-form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.lora-form-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+}
+
+.lora-form-input,
+.lora-form-select {
+    width: 100%;
+    background: #111317;
+    border: 1px solid #272d38;
+    border-radius: 4px;
+    padding: 7px 10px;
+    color: #f1f5f9;
+    font-size: 13px;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.lora-form-input:focus,
+.lora-form-select:focus {
+    border-color: #3b82f6;
+}
+
+.lora-custom-submit-btn {
+    margin-top: 4px;
+    padding: 9px 16px;
+    background: #2563eb;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.lora-custom-submit-btn:hover {
+    background: #1d4ed8;
+}
+
+/* Base Prompt Box */
+.lora-base-prompt-box {
+    margin-top: 4px;
+}
+
+.lora-textarea {
+    width: 100%;
+    min-height: 80px;
+    background: #111317;
+    border: 1px solid #272d38;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #f1f5f9;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    outline: none;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+.lora-textarea:focus {
+    border-color: #3b82f6;
+}
+
+/* ==========================================================================
+   Right Column: LoRA Interference Guard & Output Hub
+   ========================================================================== */
+
+.lora-sidebar-col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: sticky;
+    top: 90px;
+}
+
+/* Health Gauge Card: Solid, Technical Precision */
+.lora-gauge-card {
+    background: #15181e;
+    border: 1px solid #272d38;
+    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.lora-gauge-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.lora-gauge-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.lora-gauge-meter-wrapper {
+    margin-bottom: 12px;
+}
+
+.lora-gauge-track {
+    height: 8px;
+    background: #101216;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #232832;
+}
+
+/* Solid Flat Colors (NO GRADIENT, NO GLOW) */
+.lora-gauge-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.25s ease;
+}
+
+.lora-gauge-bar.green {
+    background: #10b981;
+}
+
+.lora-gauge-bar.yellow {
+    background: #f59e0b;
+}
+
+.lora-gauge-bar.red {
+    background: #ef4444;
+}
+
+.lora-gauge-stats {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-top: 8px;
+}
+
+.lora-gauge-num {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, monospace;
+    letter-spacing: -0.02em;
+}
+
+.lora-gauge-num.green { color: #10b981; }
+.lora-gauge-num.yellow { color: #f59e0b; }
+.lora-gauge-num.red { color: #ef4444; }
+
+.lora-gauge-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.lora-gauge-status-badge.green {
+    background: #12281e;
+    color: #34d399;
+    border: 1px solid #10b981;
+}
+
+.lora-gauge-status-badge.yellow {
+    background: #271f11;
+    color: #fcd34d;
+    border: 1px solid #d97706;
+}
+
+.lora-gauge-status-badge.red {
+    background: #2a1215;
+    color: #f87171;
+    border: 1px solid #dc2626;
+}
+
+.lora-advice-box {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.lora-advice-box.green {
+    background: #111d17;
+    border: 1px solid #1e3a2b;
+    color: #a7f3d0;
+}
+
+.lora-advice-box.yellow {
+    background: #1d1912;
+    border: 1px solid #3b301c;
+    color: #fde68a;
+}
+
+.lora-advice-box.red {
+    background: #201316;
+    border: 1px solid #421b22;
+    color: #fecaca;
+}
+
+.lora-gauge-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.lora-gauge-action-btn {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 4px;
+    background: #1b1f27;
+    border: 1px solid #2b3341;
+    color: #f1f5f9;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.lora-gauge-action-btn:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+    background: #222834;
+}
+
+/* ==========================================================================
+   Compiler Output Card
+   ========================================================================== */
+
+.lora-output-card {
+    background: #15181e;
+    border: 1px solid #272d38;
+    border-radius: 10px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.lora-output-tabs {
+    display: flex;
+    gap: 4px;
+    background: #101216;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #252b36;
+    margin-bottom: 10px;
+    overflow-x: auto;
+}
+
+.lora-output-tab-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #94a3b8;
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.lora-output-tab-btn.active {
+    background: #1d222b;
+    color: #ffffff;
+}
+
+.lora-code-box {
+    position: relative;
+    background: #0d0f12;
+    border: 1px solid #242a34;
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #f1f5f9;
+    max-height: 220px;
+    overflow-y: auto;
+    word-break: break-all;
+    white-space: pre-wrap;
+}
+
+.lora-copy-code-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #1a1e25;
+    border: 1px solid #2e3542;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.lora-copy-code-btn:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+/* ==========================================================================
+   Action Hub: Solid Buttons (No Gradients)
+   ========================================================================== */
+
+.lora-hub-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.lora-main-cta-btn {
+    width: 100%;
+    padding: 10px 16px;
+    background: #2563eb;
+    border: 1px solid #3b82f6;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: none;
+}
+
+.lora-main-cta-btn:hover {
+    background: #1d4ed8;
+}
+
+.lora-sec-cta-btn {
+    width: 100%;
+    padding: 9px 16px;
+    background: #161920;
+    border: 1px solid #272d38;
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    text-decoration: none;
+}
+
+.lora-sec-cta-btn:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+    background: #1d222b;
+}
+
+/* ==========================================================================
+   Saved Presets Section
+   ========================================================================== */
+
+.lora-saved-stacks-box {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid #242a34;
+}
+
+.lora-saved-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    margin-bottom: 8px;
+}
+
+.lora-saved-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    background: #111317;
+    border: 1px solid #242a34;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.lora-saved-item-name {
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+.lora-saved-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.lora-saved-load-btn {
+    background: transparent;
+    border: none;
+    color: #93c5fd;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 6px;
+}
+
+.lora-saved-load-btn:hover {
+    text-decoration: underline;
+    color: #ffffff;
+}
+
+.lora-saved-del-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 11px;
+    padding: 2px 4px;
+}
+
+.lora-saved-del-btn:hover {
+    color: #ef4444;
+}
