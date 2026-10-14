@@ -2341,6 +2341,9 @@
 }
 
 .mg-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: rgba(18, 22, 30, 0.72);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -2349,16 +2352,17 @@
   font-family: var(--mg-font-editorial);
   font-size: 13px;
   font-weight: 500;
-  padding: 7px 16px;
+  padding: 8px 16px;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .mg-filter-chip:hover {
   background: rgba(28, 33, 44, 0.85);
   color: var(--mg-text-primary);
-  border-color: rgba(96, 165, 250, 0.35);
+  border-color: rgba(96, 165, 250, 0.45);
+  transform: translateY(-1px);
 }
 
 .mg-filter-chip.active {
@@ -2366,7 +2370,25 @@
   border-color: var(--mg-border-accent);
   color: #60a5fa;
   font-weight: 600;
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.18);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.25);
+}
+
+.mg-cat-svg {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  color: currentColor;
+  opacity: 0.75;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.mg-filter-chip:hover .mg-cat-svg {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.mg-filter-chip.active .mg-cat-svg {
+  opacity: 1;
 }
 
 .mg-showcase-grid {
@@ -2530,6 +2552,161 @@
   font-family: var(--mg-font-mono);
   font-size: 11px;
   color: var(--mg-text-muted);
+}
+
+/* Card Holographic Corner HUD Overlay */
+.mg-card-svg-hud {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.55;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), filter 0.3s ease;
+}
+
+.mg-model-card:hover .mg-card-svg-hud {
+  opacity: 1;
+  transform: scale(1.12);
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.7));
+}
+
+.mg-metric-icon-svg {
+  display: inline-block;
+  vertical-align: -1px;
+  margin-right: 3px;
+  color: var(--mg-text-muted);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.mg-model-card:hover .mg-metric-icon-svg {
+  color: var(--mg-accent-hover);
+  transform: translateY(-0.5px);
+}
+
+.mg-metric-star {
+  color: #facc15 !important;
+  animation: mgSvgPulseStar 2.6s ease-in-out infinite alternate;
+}
+
+.mg-card-inspect-svg {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mg-card-inspect-link:hover .mg-card-inspect-svg {
+  transform: translateX(4px);
+}
+
+/* ==========================================================================
+   ANIMATED SVG BLUEPRINT & CARD TELEMETRY (SECTION 02)
+   ========================================================================== */
+
+/* Ambient SVG Blueprint Layer in Section 02 Background */
+.mg-showcase-svg-blueprint-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+  opacity: 0.65;
+}
+
+.mg-showcase-svg-blueprint {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Core SVG Keyframe Animations */
+@keyframes mgSvgSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes mgSvgSpinReverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.mg-svg-spin-slow {
+  animation: mgSvgSpin 24s linear infinite;
+  transform-origin: center;
+}
+
+.mg-svg-spin-counter {
+  animation: mgSvgSpinReverse 18s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes mgSvgPulseCore {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.15);
+    opacity: 0.95;
+  }
+}
+
+.mg-svg-pulse-core {
+  animation: mgSvgPulseCore 2.4s ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+@keyframes mgSvgPulseStar {
+  0% {
+    filter: drop-shadow(0 0 1px rgba(250, 204, 21, 0.3));
+  }
+  100% {
+    filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.7));
+  }
+}
+
+@keyframes mgSvgCircuitPacketOne {
+  0% {
+    stroke-dashoffset: 900;
+  }
+  100% {
+    stroke-dashoffset: -460;
+  }
+}
+
+@keyframes mgSvgCircuitPacketTwo {
+  0% {
+    stroke-dashoffset: 1100;
+  }
+  100% {
+    stroke-dashoffset: -580;
+  }
+}
+
+.mg-svg-circuit-packet.packet-1 {
+  animation: mgSvgCircuitPacketOne 12s linear infinite;
+}
+
+.mg-svg-circuit-packet.packet-2 {
+  animation: mgSvgCircuitPacketTwo 16s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mg-svg-spin-slow,
+  .mg-svg-spin-counter,
+  .mg-svg-pulse-core,
+  .mg-svg-circuit-packet,
+  .mg-metric-star {
+    animation: none !important;
+  }
 }
 
 /* ==========================================================================
@@ -4535,6 +4712,30 @@
 .mg-arch-table th.is-focused {
   color: #38bdf8;
   border-top: 1px solid #3b82f6;
+}
+
+.mg-table-footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-left: 3px solid #38bdf8;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: #94a3b8;
+  line-height: 1.6;
+}
+
+.mg-table-footnote svg {
+  color: #38bdf8;
+}
+
+.mg-table-footnote strong {
+  color: #f1f5f9;
+  font-weight: 600;
 }
 
 @media (max-width: 992px) {

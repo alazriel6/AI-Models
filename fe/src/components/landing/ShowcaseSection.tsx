@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getModels, type Model } from '../../api/models';
+import { ShowcaseSvgBlueprint } from './showcase/ShowcaseSvgBlueprint';
+import {
+  AllArchitecturesSvg,
+  CheckpointsSvg,
+  LoraSvg,
+  IllustriousSvg,
+  NoobAiSvg,
+} from './showcase/ShowcaseCategoryIcons';
 
 // Curated verified fallback models matching the exact database schema
 const VERIFIED_FALLBACK_MODELS: Model[] = [
@@ -122,6 +130,20 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
 
 type CategoryFilter = 'all' | 'checkpoint' | 'lora' | 'illustrious' | 'noobai';
 
+interface FilterTabConfig {
+  id: CategoryFilter;
+  label: string;
+  icon: React.ComponentType<{ className?: string; active?: boolean }>;
+}
+
+const CATEGORY_TABS: FilterTabConfig[] = [
+  { id: 'all', label: 'All Architectures', icon: AllArchitecturesSvg },
+  { id: 'checkpoint', label: 'Checkpoints', icon: CheckpointsSvg },
+  { id: 'lora', label: 'LoRA Adapters', icon: LoraSvg },
+  { id: 'illustrious', label: 'Illustrious Base', icon: IllustriousSvg },
+  { id: 'noobai', label: 'NoobAI Base', icon: NoobAiSvg },
+];
+
 export function ShowcaseSection() {
   const [models, setModels] = useState<Model[]>(VERIFIED_FALLBACK_MODELS);
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
@@ -221,7 +243,7 @@ export function ShowcaseSection() {
         </div>
       </div>
 
-      {/* Dedicated Ancient Mossy Cedar Forest Background (Distinct from Hero and 01) */}
+      {/* Dedicated Ancient Mossy Cedar Forest Background */}
       <div className="mg-showcase-forest-bg" aria-hidden="true" />
 
       {/* Volumetric Sunbeam / God Rays Streaming Through High Canopy */}
@@ -230,6 +252,9 @@ export function ShowcaseSection() {
       {/* Subtle Natural Forest Ground Mist Ribbons */}
       <div className="mg-showcase-mist-ribbon mist-1" aria-hidden="true" />
       <div className="mg-showcase-mist-ribbon mist-2" aria-hidden="true" />
+
+      {/* Ambient Animated SVG Technical Blueprint Background Layer */}
+      <ShowcaseSvgBlueprint />
 
       {/* Ambient Vignette & Contrast Depth Lighting */}
       <div className="mg-showcase-atmosphere" aria-hidden="true" />
@@ -260,26 +285,26 @@ export function ShowcaseSection() {
           </Link>
         </div>
 
-        {/* Filter Category Buttons */}
+
+        {/* Filter Category Buttons with Custom Animated SVG Icons */}
         <div className="mg-showcase-filters" role="tablist" aria-label="Model categories">
-          {[
-            { id: 'all', label: 'All Architectures' },
-            { id: 'checkpoint', label: 'Checkpoints' },
-            { id: 'lora', label: 'LoRA Adapters' },
-            { id: 'illustrious', label: 'Illustrious Base' },
-            { id: 'noobai', label: 'NoobAI Base' },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              role="tab"
-              aria-selected={activeFilter === cat.id}
-              className={`mg-filter-chip ${activeFilter === cat.id ? 'active' : ''}`}
-              onClick={() => setActiveFilter(cat.id as CategoryFilter)}
-            >
-              <span>{cat.label}</span>
-            </button>
-          ))}
+          {CATEGORY_TABS.map((cat) => {
+            const IconComponent = cat.icon;
+            const isTabActive = activeFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                role="tab"
+                aria-selected={isTabActive}
+                className={`mg-filter-chip ${isTabActive ? 'active' : ''}`}
+                onClick={() => setActiveFilter(cat.id)}
+              >
+                <IconComponent active={isTabActive} />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Asymmetric Staggered Model Cards Grid */}
@@ -314,6 +339,19 @@ export function ShowcaseSection() {
                   </div>
                 )}
 
+                {/* Animated SVG Holographic Corner HUD Overlay */}
+                <div className="mg-card-svg-hud" aria-hidden="true">
+                  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                    <circle cx="17" cy="17" r="13" stroke="rgba(96, 165, 250, 0.45)" strokeWidth="1" strokeDasharray="3 5" className="mg-svg-spin-slow" />
+                    <circle cx="17" cy="17" r="7.5" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="1" strokeDasharray="5 3" className="mg-svg-spin-counter" />
+                    <circle cx="17" cy="17" r="2" fill="#38bdf8" className="mg-svg-pulse-core" />
+                    <line x1="5" y1="17" x2="9" y2="17" stroke="#60a5fa" strokeWidth="1" />
+                    <line x1="25" y1="17" x2="29" y2="17" stroke="#60a5fa" strokeWidth="1" />
+                    <line x1="17" y1="5" x2="17" y2="9" stroke="#60a5fa" strokeWidth="1" />
+                    <line x1="17" y1="25" x2="17" y2="29" stroke="#60a5fa" strokeWidth="1" />
+                  </svg>
+                </div>
+
                 <div className="mg-card-media-tags">
                   <span className={`mg-pill ${item.type === 'lora' ? 'mg-pill-lora' : 'mg-pill-checkpoint'}`}>
                     {item.type.toUpperCase()}
@@ -337,18 +375,40 @@ export function ShowcaseSection() {
                   {item.description.replace(/<[^>]+>/g, '').slice(0, 115)}...
                 </p>
 
-                {/* Technical Metadata Row */}
+                {/* Technical Metadata Row with Micro-SVGs */}
                 <div className="mg-card-metrics">
                   <div className="mg-metric-item">
-                    <span className="mg-metric-k">VRAM MIN</span>
+                    <span className="mg-metric-k">
+                      <svg className="mg-metric-icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <rect x="4" y="4" width="16" height="16" rx="2" />
+                        <rect x="9" y="9" width="6" height="6" fill="currentColor" opacity="0.35" />
+                        <line x1="9" y1="1" x2="9" y2="4" />
+                        <line x1="15" y1="1" x2="15" y2="4" />
+                        <line x1="9" y1="20" x2="9" y2="23" />
+                        <line x1="15" y1="20" x2="15" y2="23" />
+                      </svg>
+                      VRAM MIN
+                    </span>
                     <span className="mg-metric-v">{item.vram_min || (item.type === 'checkpoint' ? '6 GB' : '1 GB')}</span>
                   </div>
+
                   <div className="mg-metric-item">
-                    <span className="mg-metric-k">TENSORS</span>
+                    <span className="mg-metric-k">
+                      <svg className="mg-metric-icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                      </svg>
+                      TENSORS
+                    </span>
                     <span className="mg-metric-v">{item.tensor_size ? `${item.tensor_size} Layers` : '587 Layers'}</span>
                   </div>
+
                   <div className="mg-metric-item">
-                    <span className="mg-metric-k">RATING</span>
+                    <span className="mg-metric-k">
+                      <svg className="mg-metric-icon-svg mg-metric-star" width="10" height="10" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15" strokeWidth="1.5" aria-hidden="true">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                      </svg>
+                      RATING
+                    </span>
                     <span className="mg-metric-v">★ {item.rating?.toFixed(1) || '4.9'}</span>
                   </div>
                 </div>
@@ -360,9 +420,9 @@ export function ShowcaseSection() {
                     className="mg-card-inspect-link"
                   >
                     <span>Inspect Model</span>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
+                    <svg className="mg-card-inspect-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12" className="mg-svg-inspect-line" />
+                      <polyline points="12 5 19 12 12 19" className="mg-svg-inspect-arrow" />
                     </svg>
                   </Link>
 
