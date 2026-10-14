@@ -1643,8 +1643,8 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                         </div>
                     </div>
 
-                    <div className="prompt-lab-header-actions">
-                        {studioTab === "canvas" && (
+                    {studioTab === "canvas" && (
+                        <div className="prompt-lab-header-actions">
                             <button
                                 type="button"
                                 className="prompt-btn-sm"
@@ -1654,57 +1654,57 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                 <Icons.Layout />
                                 <span>{isSidebarCollapsed ? "Show Library" : "Focus Mode"}</span>
                             </button>
-                        )}
 
-                        <button
-                            type="button"
-                            className="prompt-btn-sm"
-                            onClick={() => setIsHistoryDrawerOpen(true)}
-                            title="Buka riwayat iterasi & snapshot canvas"
-                        >
-                            <Icons.History />
-                            <span>Snapshots ({promptSnapshots.length})</span>
-                        </button>
+                            <button
+                                type="button"
+                                className="prompt-btn-sm"
+                                onClick={() => setIsHistoryDrawerOpen(true)}
+                                title="Buka riwayat iterasi & snapshot canvas"
+                            >
+                                <Icons.History />
+                                <span>Snapshots ({promptSnapshots.length})</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className="prompt-btn-sm"
-                            onClick={handleCopyFullPrompt}
-                            title="Copy Positive & Negative prompt formatted for WebUI / ComfyUI"
-                        >
-                            {copiedKey === "copy-full" ? <Icons.Check /> : <Icons.Clipboard />}
-                            <span>{copiedKey === "copy-full" ? "Copied All!" : "Copy Full"}</span>
-                        </button>
+                            <button
+                                type="button"
+                                className="prompt-btn-sm"
+                                onClick={handleCopyFullPrompt}
+                                title="Copy Positive & Negative prompt formatted for WebUI / ComfyUI"
+                            >
+                                {copiedKey === "copy-full" ? <Icons.Check /> : <Icons.Clipboard />}
+                                <span>{copiedKey === "copy-full" ? "Copied All!" : "Copy Full"}</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className="prompt-btn-primary"
-                            onClick={handleOpenCreatePreset}
-                            title="Simpan racikan prompt saat ini sebagai preset baru"
-                        >
-                            <Icons.Bookmark />
-                            <span>Save Preset</span>
-                        </button>
+                            <button
+                                type="button"
+                                className="prompt-btn-primary"
+                                onClick={handleOpenCreatePreset}
+                                title="Simpan racikan prompt saat ini sebagai preset baru"
+                            >
+                                <Icons.Bookmark />
+                                <span>Save Preset</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className="prompt-btn-sm text-muted-hover"
-                            onClick={handleResetCanvas}
-                            title="Clear both positive and negative prompt"
-                        >
-                            <Icons.Undo />
-                            <span>Reset</span>
-                        </button>
+                            <button
+                                type="button"
+                                className="prompt-btn-sm text-muted-hover"
+                                onClick={handleResetCanvas}
+                                title="Clear both positive and negative prompt"
+                            >
+                                <Icons.Undo />
+                                <span>Reset</span>
+                            </button>
 
-                        <Link
-                            to={`/gallery?q=${encodeURIComponent(positivePrompt.split(",")[0]?.trim() || "")}`}
-                            className="prompt-btn-sm"
-                            title="Find matching artworks in local gallery"
-                        >
-                            <Icons.Search />
-                            <span>Gallery</span>
-                        </Link>
-                    </div>
+                            <Link
+                                to={`/gallery?q=${encodeURIComponent(positivePrompt.split(",")[0]?.trim() || "")}`}
+                                className="prompt-btn-sm"
+                                title="Find matching artworks in local gallery"
+                            >
+                                <Icons.Search />
+                                <span>Gallery</span>
+                            </Link>
+                        </div>
+                    )}
                 </div>
 
                 {/* Subtitle & Telemetry Metrics Strip */}

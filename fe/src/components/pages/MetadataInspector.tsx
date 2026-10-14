@@ -78,19 +78,93 @@ const Icons = {
             <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
     ),
+    Folder: () => (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+    ),
+    Sparkles: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        </svg>
+    ),
+    Search: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+    ),
+    ExternalLink: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+        </svg>
+    ),
 };
+
+export interface BatchInspectorItem {
+    id: string;
+    file: File;
+    name: string;
+    size: number;
+    previewUrl: string;
+    status: "pending" | "scanning" | "done";
+    hasMetadata: boolean;
+    source?: string;
+    metadata?: ParsedImageMetadata;
+}
+
+// Recursively read all files from dropped directory entries
+async function readAllEntries(entries: any[], fileList: File[]) {
+    for (const entry of entries) {
+        if (!entry) continue;
+        if (entry.isFile) {
+            await new Promise<void>((resolve) => {
+                entry.file(
+                    (file: File) => {
+                        fileList.push(file);
+                        resolve();
+                    },
+                    () => resolve()
+                );
+            });
+        } else if (entry.isDirectory) {
+            const reader = entry.createReader();
+            const childEntries: any[] = await new Promise((resolve) => {
+                reader.readEntries(
+                    (results: any[]) => resolve(results),
+                    () => resolve([])
+                );
+            });
+            await readAllEntries(childEntries, fileList);
+        }
+    }
+}
 
 export default function MetadataInspector() {
     const [searchParams] = useSearchParams();
     const imageIdParam = searchParams.get("image_id") || searchParams.get("image");
     const urlParam = searchParams.get("url");
 
-    const [mode, setMode] = useState<"upload" | "paste">("upload");
+    const [mode, setMode] = useState<"upload" | "batch" | "paste">("upload");
     const [pastedText, setPastedText] = useState("");
     const [isDragging, setIsDragging] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [inspectedGalleryItem, setInspectedGalleryItem] = useState<ModelImage | null>(null);
+
+    // Batch Inspector state
+    const [batchItems, setBatchItems] = useState<BatchInspectorItem[]>([]);
+    const [isBatchScanning, setIsBatchScanning] = useState<boolean>(false);
+    const [batchFilter, setBatchFilter] = useState<"all" | "has_meta" | "no_meta">("all");
+    const [batchSearch, setBatchSearch] = useState<string>("");
+    const [selectedBatchIdx, setSelectedBatchIdx] = useState<number | null>(null);
+    const [folderName, setFolderName] = useState<string>("");
+
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const folderInputRef = useRef<HTMLInputElement>(null);
+    const multiFileInputRef = useRef<HTMLInputElement>(null);
 
     // Selected file & preview
     const [currentFile, setCurrentFile] = useState<{
@@ -104,8 +178,6 @@ export default function MetadataInspector() {
     const [metaResult, setMetaResult] = useState<ParsedImageMetadata | null>(null);
     const [activeTab, setActiveTab] = useState<"params" | "workflow" | "raw" | "chunks">("params");
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
-
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleCopy = (text: string, key: string) => {
         if (!text) return;
@@ -261,14 +333,265 @@ export default function MetadataInspector() {
         return () => window.removeEventListener("paste", handlePaste);
     }, [handleProcessFile]);
 
-    // Handle Drop
-    const handleDrop = (e: React.DragEvent) => {
+    // Start Batch Scanning Worker Pool
+    const startBatchScanning = useCallback(async (items: BatchInspectorItem[]) => {
+        setIsBatchScanning(true);
+        let queueIdx = 0;
+
+        const worker = async () => {
+            while (queueIdx < items.length) {
+                const cur = queueIdx++;
+                const item = items[cur];
+
+                setBatchItems((prev) =>
+                    prev.map((it, idx) => (idx === cur ? { ...it, status: "scanning" } : it))
+                );
+
+                try {
+                    const res = await parseImageMetadataApi(item.file);
+                    const meta = res?.metadata;
+                    const hasMeta = !!(
+                        meta &&
+                        (meta.positive_prompt ||
+                            meta.model_name ||
+                            meta.workflow_json ||
+                            (meta.source && meta.source !== "unknown"))
+                    );
+
+                    setBatchItems((prev) =>
+                        prev.map((it, idx) =>
+                            idx === cur
+                                ? {
+                                      ...it,
+                                      status: "done",
+                                      hasMetadata: hasMeta,
+                                      source: res.source || meta?.source || "comfyui",
+                                      metadata: meta,
+                                  }
+                                : it
+                        )
+                    );
+                } catch {
+                    setBatchItems((prev) =>
+                        prev.map((it, idx) =>
+                            idx === cur
+                                ? {
+                                      ...it,
+                                      status: "done",
+                                      hasMetadata: false,
+                                      source: "none",
+                                  }
+                                : it
+                        )
+                    );
+                }
+            }
+        };
+
+        const concurrency = Math.min(4, items.length);
+        const workers = Array.from({ length: concurrency }, () => worker());
+        await Promise.all(workers);
+        setIsBatchScanning(false);
+    }, []);
+
+    // Initialize Batch scanning from file list
+    const handleStartBatchFiles = useCallback(
+        (files: File[], detectedFolderName?: string) => {
+            const imageFiles = files.filter((f) => {
+                const lower = f.name.toLowerCase();
+                return (
+                    lower.endsWith(".png") ||
+                    lower.endsWith(".webp") ||
+                    lower.endsWith(".jpg") ||
+                    lower.endsWith(".jpeg")
+                );
+            });
+
+            if (imageFiles.length === 0) {
+                setErrorMsg(
+                    "Tidak ada file gambar (.png, .webp, .jpg, .jpeg) yang ditemukan di folder / pilihan file ini."
+                );
+                return;
+            }
+
+            let title = detectedFolderName || "";
+            if (!title) {
+                const rel = (imageFiles[0] as any).webkitRelativePath;
+                if (rel) {
+                    const parts = rel.split("/");
+                    if (parts.length > 1) {
+                        title = parts[0];
+                    }
+                }
+            }
+            if (!title) {
+                title = `Batch (${imageFiles.length} Gambar)`;
+            }
+
+            setFolderName(title);
+            setErrorMsg(null);
+
+            const newItems: BatchInspectorItem[] = imageFiles.map((f, i) => ({
+                id: `batch-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+                file: f,
+                name: f.name,
+                size: f.size,
+                previewUrl: URL.createObjectURL(f),
+                status: "pending",
+                hasMetadata: false,
+            }));
+
+            setBatchItems(newItems);
+            setSelectedBatchIdx(null);
+            setMode("batch");
+            startBatchScanning(newItems);
+        },
+        [startBatchScanning]
+    );
+
+    // Handle Drop (Supports single file, multiple files, and recursive folder drop)
+    const handleDrop = async (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
-        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-            handleProcessFile(e.dataTransfer.files[0]);
+
+        if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+            const collectedFiles: File[] = [];
+            const entries: any[] = [];
+            let droppedFolder = "";
+
+            for (let i = 0; i < e.dataTransfer.items.length; i++) {
+                const item = e.dataTransfer.items[i];
+                if ((item as any).webkitGetAsEntry) {
+                    const entry = (item as any).webkitGetAsEntry();
+                    if (entry) {
+                        entries.push(entry);
+                        if (entry.isDirectory && !droppedFolder) {
+                            droppedFolder = entry.name;
+                        }
+                    }
+                }
+            }
+
+            if (entries.length > 0) {
+                await readAllEntries(entries, collectedFiles);
+            } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                collectedFiles.push(...Array.from(e.dataTransfer.files));
+            }
+
+            if (mode === "batch" || collectedFiles.length > 1 || droppedFolder) {
+                handleStartBatchFiles(collectedFiles, droppedFolder);
+            } else if (collectedFiles.length === 1) {
+                handleProcessFile(collectedFiles[0]);
+            }
+        } else if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const files = Array.from(e.dataTransfer.files);
+            if (mode === "batch" || files.length > 1) {
+                handleStartBatchFiles(files);
+            } else {
+                handleProcessFile(files[0]);
+            }
         }
     };
+
+    // Inspect individual item from batch in deep detail
+    const handleInspectBatchItem = (index: number) => {
+        if (index < 0 || index >= batchItems.length) return;
+        setSelectedBatchIdx(index);
+        const item = batchItems[index];
+        setCurrentFile({
+            name: item.name,
+            size: item.size,
+            url: item.previewUrl,
+            format: item.name.split(".").pop()?.toUpperCase() || "PNG",
+        });
+        if (item.metadata) {
+            setMetaResult(item.metadata);
+            setErrorMsg(null);
+        } else {
+            handleProcessFile(item.file);
+        }
+        setActiveTab("params");
+    };
+
+    // Bulk actions
+    const handleCopyAllPrompts = () => {
+        const prompts = batchItems
+            .filter((it) => it.hasMetadata && it.metadata?.positive_prompt)
+            .map(
+                (it) =>
+                    `### File: ${it.name} [Model: ${it.metadata?.model_name || "Unknown"}]\n${it.metadata!.positive_prompt}`
+            )
+            .join("\n\n");
+        if (!prompts) return;
+        handleCopy(prompts, "batch-all-prompts");
+    };
+
+    const handleExportBatchJSON = () => {
+        const report = {
+            folder_name: folderName || "local_batch",
+            scanned_at: new Date().toISOString(),
+            total_images: batchItems.length,
+            with_ai_metadata: batchItems.filter((it) => it.hasMetadata).length,
+            without_ai_metadata: batchItems.filter((it) => it.status === "done" && !it.hasMetadata).length,
+            items: batchItems.map((it) => ({
+                filename: it.name,
+                file_size_bytes: it.size,
+                has_metadata: it.hasMetadata,
+                source: it.source || (it.hasMetadata ? "ai_generated" : "none"),
+                checkpoint_model: it.metadata?.model_name || null,
+                loras: it.metadata?.loras || [],
+                positive_prompt: it.metadata?.positive_prompt || null,
+                negative_prompt: it.metadata?.negative_prompt || null,
+                sampler: it.metadata?.sampler || null,
+                steps: it.metadata?.steps || null,
+                cfg_scale: it.metadata?.cfg_scale || null,
+                seed: it.metadata?.seed !== undefined ? it.metadata.seed : null,
+                dimensions:
+                    it.metadata?.width && it.metadata?.height
+                        ? `${it.metadata.width}x${it.metadata.height}`
+                        : null,
+            })),
+        };
+        downloadTextAsFile(
+            JSON.stringify(report, null, 2),
+            `${folderName ? folderName.replace(/[\s/\\:]+/g, "_") : "batch"}_metadata_report.json`,
+            "application/json"
+        );
+    };
+
+    const handleClearBatch = () => {
+        batchItems.forEach((it) => {
+            if (it.previewUrl && it.previewUrl.startsWith("blob:")) {
+                URL.revokeObjectURL(it.previewUrl);
+            }
+        });
+        setBatchItems([]);
+        setSelectedBatchIdx(null);
+        setFolderName("");
+        setBatchSearch("");
+        setBatchFilter("all");
+    };
+
+    // Filtered items and statistics
+    const filteredBatchItems = batchItems.filter((it) => {
+        if (batchFilter === "has_meta" && !it.hasMetadata) return false;
+        if (batchFilter === "no_meta" && it.hasMetadata) return false;
+        if (batchSearch.trim()) {
+            const q = batchSearch.toLowerCase();
+            const matchName = it.name.toLowerCase().includes(q);
+            const matchPrompt = it.metadata?.positive_prompt?.toLowerCase().includes(q);
+            const matchModel = it.metadata?.model_name?.toLowerCase().includes(q);
+            const matchLora = it.metadata?.loras?.some((l) => l.name.toLowerCase().includes(q));
+            return matchName || matchPrompt || matchModel || matchLora;
+        }
+        return true;
+    });
+
+    const withMetaCount = batchItems.filter((it) => it.hasMetadata).length;
+    const noMetaCount = batchItems.filter((it) => it.status === "done" && !it.hasMetadata).length;
+    const scanningCount = batchItems.filter((it) => it.status === "scanning").length;
+    const completedCount = batchItems.filter((it) => it.status === "done").length;
+    const progressPercent = batchItems.length > 0 ? Math.round((completedCount / batchItems.length) * 100) : 0;
 
     // Handle Text Paste Parsing
     const handleParseText = async () => {
@@ -413,26 +736,70 @@ export default function MetadataInspector() {
                 </div>
             )}
 
+            {/* Hidden File / Folder Inputs */}
+            <input
+                ref={folderInputRef}
+                type="file"
+                {...({ webkitdirectory: "", directory: "" } as any)}
+                multiple
+                style={{ display: "none" }}
+                onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleStartBatchFiles(Array.from(e.target.files));
+                        e.target.value = "";
+                    }
+                }}
+            />
+
+            <input
+                ref={multiFileInputRef}
+                type="file"
+                multiple
+                accept="image/png,image/webp,image/jpeg,image/jpg"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                    if (e.target.files && e.target.files.length > 0) {
+                        handleStartBatchFiles(Array.from(e.target.files));
+                        e.target.value = "";
+                    }
+                }}
+            />
+
             {/* Input Selection Bar */}
             <div className="inspector-mode-bar">
                 <div className="inspector-tabs-toggle">
                     <button
                         type="button"
                         className={`mode-tab-btn ${mode === "upload" ? "active" : ""}`}
-                        onClick={() => setMode("upload")}
+                        onClick={() => {
+                            setMode("upload");
+                            setSelectedBatchIdx(null);
+                        }}
                     >
-                        <span>File Upload / Drag & Drop</span>
+                        <span>Single File</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`mode-tab-btn ${mode === "batch" ? "active" : ""}`}
+                        onClick={() => setMode("batch")}
+                    >
+                        <span>
+                            📁 Batch Folder / Multi-File {batchItems.length > 0 ? `(${batchItems.length})` : ""}
+                        </span>
                     </button>
                     <button
                         type="button"
                         className={`mode-tab-btn ${mode === "paste" ? "active" : ""}`}
-                        onClick={() => setMode("paste")}
+                        onClick={() => {
+                            setMode("paste");
+                            setSelectedBatchIdx(null);
+                        }}
                     >
                         <span>Paste Raw Text / JSON</span>
                     </button>
                 </div>
 
-                {currentFile && (
+                {(currentFile || batchItems.length > 0) && (
                     <button
                         type="button"
                         className="demo-sample-btn"
@@ -441,6 +808,7 @@ export default function MetadataInspector() {
                             setMetaResult(null);
                             setErrorMsg(null);
                             setPastedText("");
+                            handleClearBatch();
                         }}
                     >
                         <Icons.Trash />
@@ -449,7 +817,7 @@ export default function MetadataInspector() {
                 )}
             </div>
 
-            {/* Dropzone Mode */}
+            {/* Mode 1: Single File Dropzone */}
             {mode === "upload" && (
                 <div
                     className={`inspector-dropzone ${isDragging ? "dragging" : ""}`}
@@ -489,7 +857,7 @@ export default function MetadataInspector() {
                         )}
                     </div>
                     <div className="dropzone-sub-text">
-                        Mendukung PNG (ComfyUI / WebUI), WebP, JPEG dengan embedded EXIF/XMP, serta file ComfyUI Workflow JSON.
+                        Mendukung PNG (ComfyUI / WebUI), WebP, JPEG dengan embedded EXIF/XMP, serta file ComfyUI Workflow JSON. Tarik 1 folder ke sini untuk otomatis beralih ke Batch Mode.
                     </div>
 
                     <div className="dropzone-paste-hint">
@@ -498,7 +866,369 @@ export default function MetadataInspector() {
                 </div>
             )}
 
-            {/* Text Paste Mode */}
+            {/* Mode 2: Batch Folder / Multi-File Mode */}
+            {mode === "batch" && selectedBatchIdx === null && (
+                <>
+                    {batchItems.length === 0 ? (
+                        <div
+                            className={`inspector-dropzone ${isDragging ? "dragging" : ""}`}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                setIsDragging(true);
+                            }}
+                            onDragLeave={() => setIsDragging(false)}
+                            onDrop={handleDrop}
+                        >
+                            <div className="dropzone-icon-box">
+                                <Icons.Folder />
+                            </div>
+
+                            <div className="dropzone-main-text">
+                                {isBatchScanning ? (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                                        <span className="inspector-spinner"></span>
+                                        Memindai folder gambar...
+                                    </span>
+                                ) : (
+                                    "Tarik & Lepas 1 Folder Lokal atau Puluhan Foto di sini"
+                                )}
+                            </div>
+                            <div className="dropzone-sub-text">
+                                Sistem akan otomatis memindai seluruh isi folder dan mendeteksi foto mana yang berisi metadata generasi AI (ComfyUI, WebUI, NovelAI, Fooocus) beserta prompt, LoRA, dan model checkpoint-nya.
+                            </div>
+
+                            <div className="batch-dropzone-actions" onClick={(e) => e.stopPropagation()}>
+                                <button
+                                    type="button"
+                                    className="batch-action-trigger-btn"
+                                    onClick={() => folderInputRef.current?.click()}
+                                >
+                                    <Icons.Folder />
+                                    <span>Pilih Folder Lokal (Batch Scan)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="batch-action-trigger-btn secondary"
+                                    onClick={() => multiFileInputRef.current?.click()}
+                                >
+                                    <Icons.UploadCloud />
+                                    <span>Pilih Banyak File Gambar</span>
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="batch-container-view">
+                            {/* Batch Summary & Progress Header */}
+                            <div className="batch-summary-panel">
+                                <div className="batch-summary-header">
+                                    <div className="batch-folder-info">
+                                        <span className="batch-folder-icon">
+                                            <Icons.Folder />
+                                        </span>
+                                        <div>
+                                            <h3 className="batch-folder-title">{folderName || "Folder Lokal"}</h3>
+                                            <p className="batch-folder-subtitle">
+                                                {batchItems.length} file gambar terdeteksi • {completedCount} selesai dianalisis
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="batch-metrics-row">
+                                        <div className="batch-metric-pill">
+                                            <span>Total: <strong>{batchItems.length}</strong></span>
+                                        </div>
+                                        <div className="batch-metric-pill success">
+                                            <Icons.Sparkles />
+                                            <span>Metadata AI: <strong>{withMetaCount}</strong></span>
+                                        </div>
+                                        <div className="batch-metric-pill muted">
+                                            <span>Tanpa Metadata: <strong>{noMetaCount}</strong></span>
+                                        </div>
+                                        {isBatchScanning && (
+                                            <div className="batch-metric-pill scanning">
+                                                <span className="inspector-spinner" style={{ width: 12, height: 12 }} />
+                                                <span>Memindai ({scanningCount} aktif)...</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="batch-progress-box">
+                                    <div className="batch-progress-label-row">
+                                        <span>Status Pemindaian: {isBatchScanning ? "Sedang Menganalisis Gambar..." : "Selesai"}</span>
+                                        <span>{completedCount} / {batchItems.length} ({progressPercent}%)</span>
+                                    </div>
+                                    <div className="batch-progress-track">
+                                        <div className="batch-progress-bar" style={{ width: `${progressPercent}%` }} />
+                                    </div>
+                                </div>
+
+                                {/* Filter and Action Controls */}
+                                <div className="batch-controls-row">
+                                    <div className="batch-filter-tabs">
+                                        <button
+                                            type="button"
+                                            className={`batch-filter-btn ${batchFilter === "all" ? "active" : ""}`}
+                                            onClick={() => setBatchFilter("all")}
+                                        >
+                                            Semua ({batchItems.length})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`batch-filter-btn ${batchFilter === "has_meta" ? "active" : ""}`}
+                                            onClick={() => setBatchFilter("has_meta")}
+                                        >
+                                            ✨ Berisi Metadata AI ({withMetaCount})
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`batch-filter-btn ${batchFilter === "no_meta" ? "active" : ""}`}
+                                            onClick={() => setBatchFilter("no_meta")}
+                                        >
+                                            ⚪ Tanpa Metadata ({noMetaCount})
+                                        </button>
+                                    </div>
+
+                                    <input
+                                        type="text"
+                                        className="batch-search-input"
+                                        placeholder="Cari nama file, prompt, checkpoint, LoRA..."
+                                        value={batchSearch}
+                                        onChange={(e) => setBatchSearch(e.target.value)}
+                                    />
+
+                                    <div className="batch-actions-group">
+                                        {withMetaCount > 0 && (
+                                            <>
+                                                <button
+                                                    type="button"
+                                                    className="batch-bulk-btn primary"
+                                                    onClick={handleCopyAllPrompts}
+                                                    title="Salin seluruh prompt dari foto-foto yang memiliki metadata"
+                                                >
+                                                    {copiedKey === "batch-all-prompts" ? <Icons.Check /> : <Icons.Copy />}
+                                                    <span>{copiedKey === "batch-all-prompts" ? "Semua Disalin!" : `Salin Semua Prompt (${withMetaCount})`}</span>
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    className="batch-bulk-btn"
+                                                    onClick={handleExportBatchJSON}
+                                                    title="Unduh laporan ringkasan JSON seluruh file dan metadata"
+                                                >
+                                                    <Icons.Download />
+                                                    <span>Export JSON</span>
+                                                </button>
+                                            </>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            className="batch-bulk-btn"
+                                            onClick={() => folderInputRef.current?.click()}
+                                            title="Buka folder lokal lain"
+                                        >
+                                            <Icons.Folder />
+                                            <span>Ganti Folder</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="batch-bulk-btn"
+                                            onClick={handleClearBatch}
+                                            title="Kosongkan batch"
+                                        >
+                                            <Icons.Trash />
+                                            <span>Reset</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Visual Cards Grid */}
+                            {filteredBatchItems.length === 0 ? (
+                                <div
+                                    style={{
+                                        textAlign: "center",
+                                        padding: "60px 20px",
+                                        color: "#64748b",
+                                        background: "#111419",
+                                        borderRadius: 10,
+                                        border: "1px dashed #232934",
+                                    }}
+                                >
+                                    <Icons.Search />
+                                    <p style={{ marginTop: 8, fontSize: 14 }}>
+                                        Tidak ada file yang cocok dengan filter atau kata kunci "{batchSearch}".
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="batch-grid">
+                                    {filteredBatchItems.map((item) => {
+                                        const actualIdx = batchItems.findIndex((b) => b.id === item.id);
+                                        const isScanning = item.status === "scanning";
+                                        const isPending = item.status === "pending";
+
+                                        return (
+                                            <div
+                                                key={item.id}
+                                                className={`batch-card ${item.hasMetadata ? "has-meta" : "no-meta"}`}
+                                                onClick={() => handleInspectBatchItem(actualIdx)}
+                                            >
+                                                <div className="batch-card-img-wrap">
+                                                    <img
+                                                        src={item.previewUrl}
+                                                        alt={item.name}
+                                                        className="batch-card-img"
+                                                        loading="lazy"
+                                                    />
+                                                    <span
+                                                        className={`batch-card-status-badge ${
+                                                            isScanning || isPending
+                                                                ? "badge-scanning"
+                                                                : item.hasMetadata
+                                                                ? item.source === "comfyui"
+                                                                    ? "badge-comfyui"
+                                                                    : item.source === "a1111"
+                                                                    ? "badge-a1111"
+                                                                    : item.source === "novelai"
+                                                                    ? "badge-novelai"
+                                                                    : "badge-fooocus"
+                                                                : "badge-none"
+                                                        }`}
+                                                    >
+                                                        {isScanning
+                                                            ? "Memindai..."
+                                                            : isPending
+                                                            ? "Antrean"
+                                                            : item.hasMetadata
+                                                            ? item.source === "comfyui"
+                                                                ? "ComfyUI"
+                                                                : item.source === "a1111"
+                                                                ? "Auto1111"
+                                                                : item.source === "novelai"
+                                                                ? "NovelAI"
+                                                                : "AI Gen"
+                                                            : "Tanpa Metadata"}
+                                                    </span>
+                                                </div>
+
+                                                <div className="batch-card-body">
+                                                    <div className="batch-card-title-row">
+                                                        <h4 className="batch-card-filename" title={item.name}>
+                                                            {item.name}
+                                                        </h4>
+                                                        <span className="batch-card-filesize">{formatBytes(item.size)}</span>
+                                                    </div>
+
+                                                    {item.hasMetadata && item.metadata ? (
+                                                        <>
+                                                            <div className="batch-card-tags-row">
+                                                                {item.metadata.model_name && (
+                                                                    <span
+                                                                        className="batch-model-pill"
+                                                                        title={`Checkpoint Model: ${item.metadata.model_name}`}
+                                                                    >
+                                                                        📦 {item.metadata.model_name}
+                                                                    </span>
+                                                                )}
+
+                                                                {item.metadata.loras &&
+                                                                    item.metadata.loras.map((lora, lIdx) => (
+                                                                        <span
+                                                                            key={lIdx}
+                                                                            className="batch-lora-pill"
+                                                                            title={`LoRA: <lora:${lora.name}:${lora.weight}>`}
+                                                                        >
+                                                                            ⚡ {lora.name} ({lora.weight})
+                                                                        </span>
+                                                                    ))}
+
+                                                                {item.metadata.sampler && (
+                                                                    <span
+                                                                        style={{
+                                                                            fontSize: "10px",
+                                                                            fontFamily: "monospace",
+                                                                            color: "#94a3b8",
+                                                                            background: "#0d0f13",
+                                                                            padding: "2px 5px",
+                                                                            borderRadius: "4px",
+                                                                        }}
+                                                                    >
+                                                                        {item.metadata.sampler} • {item.metadata.steps || 20}st
+                                                                    </span>
+                                                                )}
+                                                            </div>
+
+                                                            {item.metadata.positive_prompt ? (
+                                                                <p className="batch-card-prompt" title={item.metadata.positive_prompt}>
+                                                                    {item.metadata.positive_prompt}
+                                                                </p>
+                                                            ) : (
+                                                                <span className="batch-card-no-meta-msg">
+                                                                    Workflow terdeteksi tanpa positive prompt eksplisit.
+                                                                </span>
+                                                            )}
+                                                        </>
+                                                    ) : (
+                                                        <p className="batch-card-no-meta-msg">
+                                                            {isScanning
+                                                                ? "Sedang membaca chunk metadata gambar..."
+                                                                : "Tidak ditemukan metadata generasi AI tertanam."}
+                                                        </p>
+                                                    )}
+
+                                                    <div className="batch-card-actions">
+                                                        <button
+                                                            type="button"
+                                                            className="batch-card-btn-inspect"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleInspectBatchItem(actualIdx);
+                                                            }}
+                                                        >
+                                                            <span>Inspeksi Lengkap 🔍</span>
+                                                        </button>
+
+                                                        {item.hasMetadata && item.metadata?.positive_prompt && (
+                                                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                                                <button
+                                                                    type="button"
+                                                                    className="batch-card-btn-copy"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        handleCopy(item.metadata!.positive_prompt || "", `copy-batch-${item.id}`);
+                                                                    }}
+                                                                    title="Salin Positive Prompt"
+                                                                >
+                                                                    {copiedKey === `copy-batch-${item.id}` ? "Tersalin!" : "Copy"}
+                                                                </button>
+
+                                                                <Link
+                                                                    to={`/prompt-lab?positive=${encodeURIComponent(item.metadata.positive_prompt || "")}&negative=${encodeURIComponent(item.metadata.negative_prompt || "")}`}
+                                                                    className="batch-card-btn-copy"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    title="Buka prompt ini di Prompt Lab Canvas"
+                                                                    style={{ textDecoration: "none", color: "#60a5fa" }}
+                                                                >
+                                                                    Uji di Lab →
+                                                                </Link>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
+            )}
+
+            {/* Mode 3: Text Paste Mode */}
             {mode === "paste" && (
                 <div className="inspector-paste-box">
                     <textarea
@@ -538,8 +1268,45 @@ export default function MetadataInspector() {
                 </div>
             )}
 
-            {/* Results Grid */}
-            {metaResult && currentFile && (
+            {/* Batch Item Deep Inspection Navigation Banner */}
+            {mode === "batch" && selectedBatchIdx !== null && (
+                <div className="batch-detail-banner">
+                    <div className="batch-detail-banner-left">
+                        <button
+                            type="button"
+                            className="batch-back-btn"
+                            onClick={() => setSelectedBatchIdx(null)}
+                        >
+                            ← Kembali ke Daftar Batch ({batchItems.length} Foto)
+                        </button>
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                            Foto {selectedBatchIdx + 1} dari {batchItems.length}:{" "}
+                            <strong style={{ color: "#fff" }}>{batchItems[selectedBatchIdx]?.name}</strong>
+                        </span>
+                    </div>
+                    <div className="batch-nav-arrows">
+                        <button
+                            type="button"
+                            className="batch-nav-btn"
+                            onClick={() => handleInspectBatchItem(selectedBatchIdx - 1)}
+                            disabled={selectedBatchIdx === 0}
+                        >
+                            ‹ Sebelumnya
+                        </button>
+                        <button
+                            type="button"
+                            className="batch-nav-btn"
+                            onClick={() => handleInspectBatchItem(selectedBatchIdx + 1)}
+                            disabled={selectedBatchIdx === batchItems.length - 1}
+                        >
+                            Selanjutnya ›
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Results Grid (Shown in Single Mode, Paste Mode, or when drilling down into a Batch Item) */}
+            {((mode !== "batch" && metaResult && currentFile) || (mode === "batch" && selectedBatchIdx !== null && metaResult && currentFile)) && (
                 <div className="inspector-results-grid">
                     {/* Left Column: Image Preview & Details */}
                     <div className="inspector-left-panel">
