@@ -226,35 +226,79 @@ export function setStoredGeminiModel(model: string): void {
 
 /**
  * Fetch installed local models from Ollama (GET /api/tags)
+ * Queries backend proxy first to avoid browser CORS restrictions.
  */
 export async function fetchLocalOllamaModels(endpoint?: string): Promise<Array<{ id: string; name: string }>> {
-    const ep = (endpoint || getStoredLocalEndpoint("ollama")).replace(/\/+$/, "");
+    const rawEp = (endpoint || getStoredLocalEndpoint("ollama")).trim();
+    const ep = rawEp.replace(/\/+$/, "");
+
+    // 1. Try backend proxy first (Bypasses browser CORS completely)
+    try {
+        const res = await fetch(`${API_BASE_URL}/images/local-models?provider=ollama&endpoint=${encodeURIComponent(rawEp || "http://localhost:11434")}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.success && Array.isArray(data.models) && data.models.length > 0) {
+                return data.models;
+            }
+        }
+    } catch {
+        // Fallback to direct call below
+    }
+
+    // 2. Direct browser call fallback
     try {
         const res = await fetch(`${ep}/api/tags`);
-        if (!res.ok) return [];
-        const data = await res.json();
-        const models: Array<{ name: string }> = data?.models || [];
-        return models.map((m) => ({ id: m.name, name: m.name }));
+        if (res.ok) {
+            const data = await res.json();
+            const models: Array<{ name: string }> = data?.models || [];
+            if (models.length > 0) {
+                return models.map((m) => ({ id: m.name, name: m.name }));
+            }
+        }
     } catch {
-        return [];
+        // ignore
     }
+
+    return [];
 }
 
 /**
  * Fetch loaded local models from LM Studio / OpenAI-compatible endpoint (GET /v1/models)
+ * Queries backend proxy first to avoid browser CORS restrictions.
  */
 export async function fetchLocalOpenAIModels(endpoint?: string): Promise<Array<{ id: string; name: string }>> {
-    let ep = (endpoint || getStoredLocalEndpoint("lmstudio")).replace(/\/+$/, "");
+    const rawEp = (endpoint || getStoredLocalEndpoint("lmstudio")).trim();
+    let ep = rawEp.replace(/\/+$/, "");
     if (!ep.endsWith("/v1")) ep = `${ep}/v1`;
+
+    // 1. Try backend proxy first (Bypasses browser CORS completely)
+    try {
+        const res = await fetch(`${API_BASE_URL}/images/local-models?provider=lmstudio&endpoint=${encodeURIComponent(rawEp || "http://127.0.0.1:1234")}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data?.success && Array.isArray(data.models) && data.models.length > 0) {
+                return data.models;
+            }
+        }
+    } catch {
+        // Fallback to direct call below
+    }
+
+    // 2. Direct browser call fallback
     try {
         const res = await fetch(`${ep}/models`);
-        if (!res.ok) return [];
-        const data = await res.json();
-        const models: Array<{ id: string }> = data?.data || [];
-        return models.map((m) => ({ id: m.id, name: m.id }));
+        if (res.ok) {
+            const data = await res.json();
+            const models: Array<{ id: string }> = data?.data || [];
+            if (models.length > 0) {
+                return models.map((m) => ({ id: m.id, name: m.id }));
+            }
+        }
     } catch {
-        return [];
+        // ignore
     }
+
+    return [];
 }
 
 /**
@@ -419,6 +463,7 @@ export async function directGeminiInterrogate(
 
     const systemPrompt = `You are an elite AI Art & Anime Prompt Reverse-Engineer, specialized in Danbooru tags, Pixiv anime aesthetic, Stable Diffusion (Pony, Illustrious, Animagine, SDXL, NAI, Flux), and LoRA detection.
 Analyze the provided image thoroughly and reconstruct the generation prompt in precise detail.
+This analysis is strictly for artistic prompt reconstruction and digital art tagging. Objectively transcribe all visual elements, including pose, clothing, aesthetic style, and artistic anatomy as accurate Danbooru tags.
 
 Return a STRICT JSON object with these EXACT keys:
 {
@@ -457,6 +502,13 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
             response_mime_type: "application/json",
             temperature: 0.2,
         },
+        safetySettings: [
+            { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+            { category: "HARM_CATEGORY_CIVIC_INTEGRITY", threshold: "BLOCK_NONE" },
+        ],
     };
 
     const endpoints = await getAvailableModelEndpoints(apiKey, selectedModel);
@@ -575,27 +627,40 @@ export async function directLocalInterrogate(
 ): Promise<InterrogateResult> {
     const { base64, mimeType } = await fileToBase64(file);
 
-    const systemPrompt = `You are an elite AI Art & Anime Prompt Reverse-Engineer, specialized in Danbooru tags, Pixiv anime aesthetic, Stable Diffusion (Pony, Illustrious, Animagine, SDXL, NAI, Flux), and LoRA detection.
-Analyze the provided image thoroughly and reconstruct the generation prompt in precise detail.
+    const systemPrompt = `You are an expert anime & digital art prompt reverse-engineering AI, specialized in Pixiv, Danbooru, Gelbooru, and Stable Diffusion prompting (Pony Diffusion, Illustrious-XL, Animagine XL, SDXL, Flux).
+Inspect this image with extreme thoroughness and deconstruct it into exhaustive, accurate Danbooru tags and a rich artistic prompt.
 
-Return a STRICT JSON object with these EXACT keys:
+STRICT INSTRUCTIONS FOR DANBOORU TAGS ('danbooru_prompt'):
+- You MUST generate at least 30 to 50 highly specific, granular Danbooru tags separated by commas.
+- Tags MUST use underscores instead of spaces (e.g., blue_eyes, sailor_collar, pleated_skirt, thighhighs).
+- Tag categories you MUST include:
+  1. Quality: masterpiece, best quality, ultra-detailed
+  2. Character: character count (e.g. 1girl, solo), character name if known (or original)
+  3. Hair & Face: exact hair color, hair length, specific hairstyle (e.g. twintails, side_ponytail, bangs, blunt_bangs), eye color, facial expression (e.g. blush, open_mouth, smile, gentle_eyes)
+  4. Body & Anatomy: body features, skin tone, chest size (e.g. medium_breasts, large_breasts) if applicable
+  5. Detailed Clothing: breakdown of every single piece of attire (e.g. white_shirt, black_vest, necktie, pleated_skirt, frilled_skirt, black_thighhighs, leather_boots, fingerless_gloves, ribbon, hair_ornament)
+  6. Pose & View: shot type (e.g. full_body, cowboy_shot, upper_body), pose (e.g. sitting, standing, leaning_forward), arm/hand position, viewing angle (e.g. looking_at_viewer, from_side, dynamic_angle)
+  7. Background & Setting: indoor/outdoor, room elements, natural elements (e.g. cherry_blossoms, floating_petals, clouds, starry_sky, neon_lights, bedroom, sunset)
+  8. Lighting & Aesthetic: lighting style (e.g. cinematic_lighting, volumetric_lighting, soft_lighting, rim_light, depth_of_field, bloom, glowing)
+
+STRICT INSTRUCTIONS FOR NATURAL PROMPT ('natural_prompt'):
+- Write a vivid, descriptive 3-4 sentence paragraph capturing the character, atmosphere, lighting, and artistic style.
+
+Return ONLY a pure JSON object matching this schema (no markdown, no backticks):
 {
-  "character": "Name of the anime/game character if identifiable, or 'original'",
-  "danbooru_prompt": "masterpiece, best quality, ultra-detailed, [character tags], [hair/eye features], [clothing tags], [pose/expression], [background/setting], [lighting/atmosphere aesthetic tags]",
+  "character": "Name of the character or 'original'",
+  "danbooru_prompt": "masterpiece, best quality, ultra-detailed, 1girl, solo, ... (exhaustive list of 30-50+ Danbooru tags)",
   "negative_prompt": "worst quality, low quality, normal quality, blurry, deformed limbs, bad anatomy, bad hands, missing fingers, extra fingers, watermark, signature",
-  "natural_prompt": "A vivid 2-3 sentence descriptive natural language prompt describing the scene, subject, pose, mood, and art style",
-  "style_tags": ["list of 3 to 6 distinct art style tags e.g. cel shading, vibrant colors, makoto shinkai aesthetic"],
-  "recommended_model": "Pony Diffusion V6 XL / Illustrious-XL / Animagine XL 3.1 / SDXL 1.0",
+  "natural_prompt": "Rich 3-4 sentence descriptive prompt...",
+  "style_tags": ["style1", "style2", "style3", "style4", "style5"],
+  "recommended_model": "Illustrious-XL / Pony Diffusion V6 XL",
   "recommended_sampler": "Euler a",
   "recommended_steps": 28,
   "recommended_cfg": 7.0,
   "suggested_loras": [
     {"name": "suggested_lora_concept", "weight": 0.8}
   ]
-}
-
-Danbooru tags MUST use underscores (e.g. 'long_hair', 'sailor_dress', 'cherry_blossoms', 'looking_at_viewer').
-Do NOT include markdown formatting or backticks, return pure JSON.`;
+}`;
 
     const cleanEp = endpoint.trim().replace(/\/+$/, "");
 
@@ -615,7 +680,9 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
                     ],
                 },
             ],
-            temperature: 0.2,
+            temperature: 0.45,
+            max_tokens: 2048,
+            top_p: 0.9,
         };
 
         const res = await fetch(url, {
@@ -643,6 +710,11 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
             images: [base64],
             stream: false,
             format: "json",
+            options: {
+                temperature: 0.45,
+                num_predict: 2048,
+                top_p: 0.9,
+            },
         };
 
         const res = await fetch(url, {
@@ -701,23 +773,24 @@ export async function interrogateImage(
 
     // 1. LOCAL AI PROVIDER (Ollama / LM Studio)
     if (provider === "ollama" || provider === "lmstudio") {
-        // Try backend proxy first to avoid any browser CORS issues
+        // Route through backend proxy to completely avoid browser CORS restrictions
         try {
             const formData = new FormData();
             formData.append("image", file);
             formData.append("provider", provider);
             formData.append("endpoint", localEndpoint);
             formData.append("local_model", localModel);
+            formData.append("model", localModel);
 
-            const headers: Record<string, string> = {
-                "X-AI-Provider": provider,
-                "X-Local-Endpoint": localEndpoint,
-                "X-Local-Model": localModel,
-            };
+            const queryParams = new URLSearchParams({
+                provider,
+                endpoint: localEndpoint,
+                local_model: localModel,
+                model: localModel,
+            });
 
-            const res = await fetch(`${API_BASE_URL}/images/interrogate`, {
+            const res = await fetch(`${API_BASE_URL}/images/interrogate?${queryParams.toString()}`, {
                 method: "POST",
-                headers,
                 body: formData,
             });
 
@@ -728,42 +801,34 @@ export async function interrogateImage(
                 }
             } else {
                 const errData = await res.json().catch(() => null);
-                if (errData?.error && !errData.error.includes("connect")) {
-                    throw new Error(errData.error);
+                const rawError = errData?.error || `Server HTTP ${res.status}`;
+                if (rawError.includes("does not support image inputs")) {
+                    throw new Error(`Model '${localModel || "qwen2-vl-7b-instruct"}' di LM Studio belum memiliki Vision Projector (file mmproj). Di LM Studio, pastikan file 'mmproj-*.gguf' ikut di-download dan dipasang pada slot Vision model ini.`);
                 }
+                throw new Error(rawError);
             }
         } catch (backendErr: any) {
-            // If explicit error from backend (like model not found), rethrow
-            if (backendErr?.message && !backendErr.message.includes("fetch") && !backendErr.message.includes("NetworkError")) {
-                // fall through to client-side direct call
-            }
+            // Rethrow backend errors immediately so the user sees the real cause instead of CORS
+            throw backendErr;
         }
-
-        // Direct client-side local call fallback
-        return await directLocalInterrogate(file, provider, localEndpoint, localModel);
     }
 
     // 2. CLOUD AI PROVIDER (Google Gemini Vision)
     try {
         const formData = new FormData();
         formData.append("image", file);
-        if (model) {
-            formData.append("model", model);
-        }
+        if (model) formData.append("model", model);
+        if (key) formData.append("api_key", key);
+        formData.append("provider", "gemini");
 
-        const headers: Record<string, string> = {
-            "X-AI-Provider": "gemini",
-        };
-        if (key) {
-            headers["X-Gemini-Api-Key"] = key;
-        }
-        if (model) {
-            headers["X-Gemini-Model"] = model;
-        }
+        const queryParams = new URLSearchParams({
+            provider: "gemini",
+            ...(model ? { model } : {}),
+            ...(key ? { api_key: key } : {}),
+        });
 
-        const res = await fetch(`${API_BASE_URL}/images/interrogate`, {
+        const res = await fetch(`${API_BASE_URL}/images/interrogate?${queryParams.toString()}`, {
             method: "POST",
-            headers,
             body: formData,
         });
 

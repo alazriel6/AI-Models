@@ -610,15 +610,22 @@ export default function MetadataInspector() {
             }
             setLocalDetectedModels(models);
             if (models.length > 0) {
-                setLocalConnectionStatus(`Terhubung! Terdeteksi ${models.length} model.`);
-                if (!localModelInput || localModelInput === "llama3.2-vision") {
+                setLocalConnectionStatus(`Terhubung! Terdeteksi ${models.length} model aktif.`);
+                // Prioritize vision-capable models (e.g. qwen2-vl, llava, minicpm, vision)
+                const visionModel = models.find((m) => {
+                    const low = m.id.toLowerCase();
+                    return low.includes("vision") || low.includes("-vl") || low.includes("llava") || low.includes("minicpm") || low.includes("moondream");
+                });
+                if (visionModel) {
+                    setLocalModelInput(visionModel.id);
+                } else if (!localModelInput || localModelInput === "llama3.2-vision" || localModelInput === "local-model") {
                     setLocalModelInput(models[0].id);
                 }
             } else {
-                setLocalConnectionStatus("Tidak ada model terdeteksi di endpoint ini.");
+                setLocalConnectionStatus("Gagal terhubung ke " + (localEndpointInput || "http://127.0.0.1:1234") + ". Pastikan Start Server aktif.");
             }
         } catch {
-            setLocalConnectionStatus("Gagal terhubung. Pastikan Ollama / LM Studio sudah berjalan di port ini.");
+            setLocalConnectionStatus("Gagal terhubung. Pastikan LM Studio / Ollama sudah berjalan di port ini.");
         } finally {
             setIsFetchingLocalModels(false);
         }

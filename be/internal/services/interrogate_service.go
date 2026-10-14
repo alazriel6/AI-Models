@@ -102,6 +102,13 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 			"response_mime_type": "application/json",
 			"temperature":        0.2,
 		},
+		"safetySettings": []map[string]interface{}{
+			{"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+			{"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+			{"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+			{"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+			{"category": "HARM_CATEGORY_CIVIC_INTEGRITY", "threshold": "BLOCK_NONE"},
+		},
 	}
 
 	jsonBytes, err := json.Marshal(payload)
@@ -238,27 +245,40 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 
 	b64Data := base64.StdEncoding.EncodeToString(imageBytes)
 
-	systemInstruction := `You are an elite AI Art & Anime Prompt Reverse-Engineer, specialized in Danbooru tags, Pixiv anime aesthetic, Stable Diffusion (Pony, Illustrious, Animagine, SDXL, NAI, Flux), and LoRA detection.
-Analyze the provided image thoroughly and reconstruct the generation prompt in precise detail.
+	systemInstruction := `You are an expert anime & digital art prompt reverse-engineering AI, specialized in Pixiv, Danbooru, Gelbooru, and Stable Diffusion prompting (Pony Diffusion, Illustrious-XL, Animagine XL, SDXL, Flux).
+Inspect this image with extreme thoroughness and deconstruct it into exhaustive, accurate Danbooru tags and a rich artistic prompt.
 
-Return a STRICT JSON object with these EXACT keys:
+STRICT INSTRUCTIONS FOR DANBOORU TAGS ('danbooru_prompt'):
+- You MUST generate at least 30 to 50 highly specific, granular Danbooru tags separated by commas.
+- Tags MUST use underscores instead of spaces (e.g., blue_eyes, sailor_collar, pleated_skirt, thighhighs).
+- Tag categories you MUST include:
+  1. Quality: masterpiece, best quality, ultra-detailed
+  2. Character: character count (e.g. 1girl, solo), character name if known (or original)
+  3. Hair & Face: exact hair color, hair length, specific hairstyle (e.g. twintails, side_ponytail, bangs, blunt_bangs), eye color, facial expression (e.g. blush, open_mouth, smile, gentle_eyes)
+  4. Body & Anatomy: body features, skin tone, chest size (e.g. medium_breasts, large_breasts) if applicable
+  5. Detailed Clothing: breakdown of every single piece of attire (e.g. white_shirt, black_vest, necktie, pleated_skirt, frilled_skirt, black_thighhighs, leather_boots, fingerless_gloves, ribbon, hair_ornament)
+  6. Pose & View: shot type (e.g. full_body, cowboy_shot, upper_body), pose (e.g. sitting, standing, leaning_forward), arm/hand position, viewing angle (e.g. looking_at_viewer, from_side, dynamic_angle)
+  7. Background & Setting: indoor/outdoor, room elements, natural elements (e.g. cherry_blossoms, floating_petals, clouds, starry_sky, neon_lights, bedroom, sunset)
+  8. Lighting & Aesthetic: lighting style (e.g. cinematic_lighting, volumetric_lighting, soft_lighting, rim_light, depth_of_field, bloom, glowing)
+
+STRICT INSTRUCTIONS FOR NATURAL PROMPT ('natural_prompt'):
+- Write a vivid, descriptive 3-4 sentence paragraph capturing the character, atmosphere, lighting, and artistic style.
+
+Return ONLY a pure JSON object matching this schema (no markdown, no backticks):
 {
-  "character": "Name of the anime/game character if identifiable, or 'original'",
-  "danbooru_prompt": "masterpiece, best quality, ultra-detailed, [character tags], [hair/eye features], [clothing tags], [pose/expression], [background/setting], [lighting/atmosphere aesthetic tags]",
+  "character": "Name of the character or 'original'",
+  "danbooru_prompt": "masterpiece, best quality, ultra-detailed, 1girl, solo, ... (exhaustive list of 30-50+ Danbooru tags)",
   "negative_prompt": "worst quality, low quality, normal quality, blurry, deformed limbs, bad anatomy, bad hands, missing fingers, extra fingers, watermark, signature",
-  "natural_prompt": "A vivid 2-3 sentence descriptive natural language prompt describing the scene, subject, pose, mood, and art style",
-  "style_tags": ["list of 3 to 6 distinct art style tags e.g. cel shading, vibrant colors, makoto shinkai aesthetic"],
-  "recommended_model": "Pony Diffusion V6 XL / Illustrious-XL / Animagine XL 3.1 / SDXL 1.0",
+  "natural_prompt": "Rich 3-4 sentence descriptive prompt...",
+  "style_tags": ["style1", "style2", "style3", "style4", "style5"],
+  "recommended_model": "Illustrious-XL / Pony Diffusion V6 XL",
   "recommended_sampler": "Euler a",
   "recommended_steps": 28,
   "recommended_cfg": 7.0,
   "suggested_loras": [
     {"name": "suggested_lora_concept", "weight": 0.8}
   ]
-}
-
-Danbooru tags MUST use underscores (e.g. 'long_hair', 'sailor_dress', 'cherry_blossoms', 'looking_at_viewer').
-Do NOT include markdown formatting or backticks, return pure JSON.`
+}`
 
 	cleanProvider := strings.ToLower(strings.TrimSpace(provider))
 	cleanEndpoint := strings.TrimRight(strings.TrimSpace(endpoint), "/")
@@ -299,7 +319,9 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 					},
 				},
 			},
-			"temperature": 0.2,
+			"temperature": 0.45,
+			"max_tokens":  2048,
+			"top_p":       0.9,
 		}
 		var err error
 		payloadBytes, err = json.Marshal(payload)
@@ -323,6 +345,11 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 			"images": []string{b64Data},
 			"stream": false,
 			"format": "json",
+			"options": map[string]interface{}{
+				"temperature": 0.45,
+				"num_predict": 2048,
+				"top_p":       0.9,
+			},
 		}
 		var err error
 		payloadBytes, err = json.Marshal(payload)
@@ -351,6 +378,19 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		var errObj struct {
+			Error interface{} `json:"error"`
+		}
+		if err := json.Unmarshal(respBody, &errObj); err == nil && errObj.Error != nil {
+			if errMap, ok := errObj.Error.(map[string]interface{}); ok {
+				if msg, exists := errMap["message"]; exists && msg != nil {
+					return nil, fmt.Errorf("Local AI (%s) Error: %v", cleanProvider, msg)
+				}
+			}
+			if errStr, ok := errObj.Error.(string); ok && errStr != "" {
+				return nil, fmt.Errorf("Local AI (%s) Error: %s", cleanProvider, errStr)
+			}
+		}
 		return nil, fmt.Errorf("Local AI (%s) HTTP %d: %s", cleanProvider, resp.StatusCode, string(respBody))
 	}
 
@@ -418,4 +458,80 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 	result.UsedModel = fmt.Sprintf("Local (%s: %s)", strings.ToUpper(cleanProvider), cleanModel)
 
 	return &result, nil
+}
+
+// FetchLocalModels queries an Ollama or LM Studio/OpenAI local endpoint for available models
+func (s *InterrogateService) FetchLocalModels(provider, endpoint string) ([]map[string]string, error) {
+	cleanProvider := strings.ToLower(strings.TrimSpace(provider))
+	isOllama := cleanProvider == "ollama"
+
+	cleanEndpoint := strings.TrimRight(strings.TrimSpace(endpoint), "/")
+	if cleanEndpoint == "" {
+		if isOllama {
+			cleanEndpoint = "http://localhost:11434"
+		} else {
+			cleanEndpoint = "http://127.0.0.1:1234/v1"
+		}
+	}
+
+	var reqUrl string
+	if isOllama {
+		reqUrl = cleanEndpoint + "/api/tags"
+	} else {
+		if !strings.HasSuffix(cleanEndpoint, "/v1") {
+			cleanEndpoint += "/v1"
+		}
+		reqUrl = cleanEndpoint + "/models"
+	}
+
+	req, err := http.NewRequest("GET", reqUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("gagal terhubung ke %s: %w", reqUrl, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("endpoint HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	var models []map[string]string
+	if isOllama {
+		var data struct {
+			Models []struct {
+				Name string `json:"name"`
+			} `json:"models"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			return nil, err
+		}
+		for _, m := range data.Models {
+			models = append(models, map[string]string{
+				"id":   m.Name,
+				"name": m.Name,
+			})
+		}
+	} else {
+		var data struct {
+			Data []struct {
+				ID string `json:"id"`
+			} `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			return nil, err
+		}
+		for _, m := range data.Data {
+			models = append(models, map[string]string{
+				"id":   m.ID,
+				"name": m.ID,
+			})
+		}
+	}
+
+	return models, nil
 }

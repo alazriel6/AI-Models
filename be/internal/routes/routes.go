@@ -90,6 +90,7 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			images.POST("", adminAuth, h.ImageHandler.UploadGalleryImage)
 			images.POST("/parse-metadata", h.ImageHandler.ParseMetadata)
 			images.POST("/interrogate", h.ImageHandler.InterrogateImage)
+			images.GET("/local-models", h.ImageHandler.GetLocalModels)
 			images.GET("/:id", h.ImageHandler.GetImage)
 			images.PUT("/:id", adminAuth, h.ImageHandler.UpdateImage)
 			images.DELETE("/:id", adminAuth, h.ImageHandler.DeleteImage)

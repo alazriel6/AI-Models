@@ -592,6 +592,28 @@ func (h *ImageHandler) InterrogateImage(c *gin.Context) {
 	})
 }
 
+// GetLocalModels fetches installed/loaded models from a local Ollama or LM Studio instance.
+func (h *ImageHandler) GetLocalModels(c *gin.Context) {
+	provider := c.Query("provider")
+	endpoint := c.Query("endpoint")
+
+	interrogateService := services.NewInterrogateService()
+	models, err := interrogateService.FetchLocalModels(provider, endpoint)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   err.Error(),
+			"models":  []interface{}{},
+			"success": false,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"models":  models,
+	})
+}
+
 func parseTagsFromForm(c *gin.Context) []string {
 	var tags []string
 	if tagsStr := c.PostForm("tags"); tagsStr != "" {
