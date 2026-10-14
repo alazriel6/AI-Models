@@ -9,6 +9,26 @@ import {
     buildComfyUIWorkflowJSON,
     downloadTextAsFile,
 } from "../../utils/exportFormats";
+import {
+    interrogateImage,
+    getStoredGeminiApiKey,
+    setStoredGeminiApiKey,
+    getStoredGeminiModel,
+    setStoredGeminiModel,
+    getStoredAIProvider,
+    setStoredAIProvider,
+    getStoredLocalEndpoint,
+    setStoredLocalEndpoint,
+    getStoredLocalModel,
+    setStoredLocalModel,
+    fetchLocalOllamaModels,
+    fetchLocalOpenAIModels,
+    POPULAR_LOCAL_VISION_MODELS,
+    PRESET_GEMINI_MODELS,
+    fetchLiveAccountModels,
+    type InterrogateResult,
+    type AIProviderType,
+} from "../../services/interrogationService";
 import "../../style/MetadataInspector.css";
 
 // Clean technical SVG icons
@@ -173,6 +193,26 @@ export default function MetadataInspector() {
         url?: string;
         format?: string;
     } | null>(null);
+    const [rawFile, setRawFile] = useState<File | null>(null);
+
+    // AI Vision Interrogator State
+    const [isInterrogating, setIsInterrogating] = useState<boolean>(false);
+    const [interrogateResult, setInterrogateResult] = useState<InterrogateResult | null>(null);
+    const [interrogateError, setInterrogateError] = useState<string | null>(null);
+    const [showApiKeyModal, setShowApiKeyModal] = useState<boolean>(false);
+    const [aiProvider, setAiProvider] = useState<AIProviderType>(() => getStoredAIProvider());
+    const [geminiApiKeyInput, setGeminiApiKeyInput] = useState<string>(() => getStoredGeminiApiKey());
+    const [selectedGeminiModel, setSelectedGeminiModel] = useState<string>(() => getStoredGeminiModel());
+    const [customModelInput, setCustomModelInput] = useState<string>("");
+    const [liveAccountModels, setLiveAccountModels] = useState<Array<{ id: string; name: string }>>([]);
+    const [isFetchingModels, setIsFetchingModels] = useState<boolean>(false);
+
+    // Local AI States (Ollama, LM Studio, etc.)
+    const [localEndpointInput, setLocalEndpointInput] = useState<string>(() => getStoredLocalEndpoint());
+    const [localModelInput, setLocalModelInput] = useState<string>(() => getStoredLocalModel());
+    const [localDetectedModels, setLocalDetectedModels] = useState<Array<{ id: string; name: string }>>([]);
+    const [isFetchingLocalModels, setIsFetchingLocalModels] = useState<boolean>(false);
+    const [localConnectionStatus, setLocalConnectionStatus] = useState<string | null>(null);
 
     // Parsed results
     const [metaResult, setMetaResult] = useState<ParsedImageMetadata | null>(null);
@@ -189,6 +229,9 @@ export default function MetadataInspector() {
     const handleProcessFile = useCallback(async (file: File, galleryItemFallback?: ModelImage | null) => {
         setIsLoading(true);
         setErrorMsg(null);
+        setRawFile(file);
+        setInterrogateResult(null);
+        setInterrogateError(null);
         // CRITICAL: Immediately wipe previous file's metadata to prevent state leak
         setMetaResult(null);
 
@@ -498,6 +541,9 @@ export default function MetadataInspector() {
         if (index < 0 || index >= batchItems.length) return;
         setSelectedBatchIdx(index);
         const item = batchItems[index];
+        setRawFile(item.file);
+        setInterrogateResult(null);
+        setInterrogateError(null);
         setCurrentFile({
             name: item.name,
             size: item.size,
@@ -510,6 +556,116 @@ export default function MetadataInspector() {
         } else {
             handleProcessFile(item.file);
         }
+        setActiveTab("params");
+    };
+
+    // Run AI Reverse-Prompt Interrogation
+    const handleRunInterrogate = async (targetFile?: File) => {
+        const fileToUse = targetFile || rawFile;
+        if (!fileToUse) {
+            setErrorMsg("Tidak ada file gambar yang dipilih untuk di-interrogate.");
+            return;
+        }
+
+        const key = geminiApiKeyInput || getStoredGeminiApiKey();
+        const model = selectedGeminiModel || getStoredGeminiModel();
+        setIsInterrogating(true);
+        setInterrogateError(null);
+
+        try {
+            const result = await interrogateImage(fileToUse, {
+                provider: aiProvider,
+                apiKey: key,
+                model,
+                localEndpoint: localEndpointInput || getStoredLocalEndpoint(aiProvider),
+                localModel: localModelInput || getStoredLocalModel(),
+            });
+            setInterrogateResult(result);
+        } catch (err: any) {
+            const msg = err?.message || "Gagal melakukan AI interrogation";
+            setInterrogateError(msg);
+            if (
+                msg.includes("Gemini API Key belum disetel") ||
+                msg.includes("API key is required") ||
+                msg.includes("403") ||
+                msg.includes("API_KEY_INVALID")
+            ) {
+                setShowApiKeyModal(true);
+            }
+        } finally {
+            setIsInterrogating(false);
+        }
+    };
+
+    // Fetch live local models from Ollama or LM Studio
+    const handleFetchLocalModels = async () => {
+        setIsFetchingLocalModels(true);
+        setLocalConnectionStatus(null);
+        try {
+            let models: Array<{ id: string; name: string }> = [];
+            if (aiProvider === "lmstudio") {
+                models = await fetchLocalOpenAIModels(localEndpointInput);
+            } else {
+                models = await fetchLocalOllamaModels(localEndpointInput);
+            }
+            setLocalDetectedModels(models);
+            if (models.length > 0) {
+                setLocalConnectionStatus(`Terhubung! Terdeteksi ${models.length} model.`);
+                if (!localModelInput || localModelInput === "llama3.2-vision") {
+                    setLocalModelInput(models[0].id);
+                }
+            } else {
+                setLocalConnectionStatus("Tidak ada model terdeteksi di endpoint ini.");
+            }
+        } catch {
+            setLocalConnectionStatus("Gagal terhubung. Pastikan Ollama / LM Studio sudah berjalan di port ini.");
+        } finally {
+            setIsFetchingLocalModels(false);
+        }
+    };
+
+    // Fetch live account models for selection
+    const handleFetchLiveModels = async () => {
+        const key = geminiApiKeyInput || getStoredGeminiApiKey();
+        if (!key) {
+            setInterrogateError("Masukkan API Key terlebih dahulu untuk melihat model aktif akun Anda.");
+            return;
+        }
+        setIsFetchingModels(true);
+        try {
+            const models = await fetchLiveAccountModels(key);
+            setLiveAccountModels(models);
+        } catch {
+            // ignore
+        } finally {
+            setIsFetchingModels(false);
+        }
+    };
+
+    // Apply AI-generated results to current metadata view
+    const handleApplyInterrogateToMetadata = () => {
+        if (!interrogateResult) return;
+        setMetaResult({
+            source: "ai_interrogated",
+            format: currentFile?.format?.toLowerCase() || "png",
+            positive_prompt: interrogateResult.danbooru_prompt,
+            negative_prompt: interrogateResult.negative_prompt,
+            model_name: interrogateResult.recommended_model,
+            sampler: interrogateResult.recommended_sampler,
+            steps: interrogateResult.recommended_steps,
+            cfg_scale: interrogateResult.recommended_cfg,
+            loras: interrogateResult.suggested_loras,
+            raw_prompt: `${interrogateResult.danbooru_prompt}\nNegative prompt: ${interrogateResult.negative_prompt}\nSteps: ${interrogateResult.recommended_steps}, Sampler: ${interrogateResult.recommended_sampler}, CFG scale: ${interrogateResult.recommended_cfg}, Model: ${interrogateResult.recommended_model}`,
+            raw_chunks: {
+                AI_Natural_Prompt: interrogateResult.natural_prompt,
+                AI_Style_Tags: interrogateResult.style_tags.join(", "),
+                AI_Interrogator: "Google Gemini Vision AI",
+            },
+            extra_params: {
+                character: interrogateResult.character || "original",
+                natural_prompt: interrogateResult.natural_prompt,
+            },
+        });
         setActiveTab("params");
     };
 
@@ -570,6 +726,9 @@ export default function MetadataInspector() {
         setFolderName("");
         setBatchSearch("");
         setBatchFilter("all");
+        setRawFile(null);
+        setInterrogateResult(null);
+        setInterrogateError(null);
     };
 
     // Filtered items and statistics
@@ -805,7 +964,10 @@ export default function MetadataInspector() {
                         className="demo-sample-btn"
                         onClick={() => {
                             setCurrentFile(null);
+                            setRawFile(null);
                             setMetaResult(null);
+                            setInterrogateResult(null);
+                            setInterrogateError(null);
                             setErrorMsg(null);
                             setPastedText("");
                             handleClearBatch();
@@ -1191,6 +1353,22 @@ export default function MetadataInspector() {
                                                             <span>Inspeksi Lengkap 🔍</span>
                                                         </button>
 
+                                                        {!item.hasMetadata && item.status === "done" && (
+                                                            <button
+                                                                type="button"
+                                                                className="batch-card-btn-copy"
+                                                                style={{ borderColor: "rgba(168, 85, 247, 0.4)", color: "#c084fc", background: "rgba(147, 51, 234, 0.1)" }}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleInspectBatchItem(actualIdx);
+                                                                    handleRunInterrogate(item.file);
+                                                                }}
+                                                                title="Bedah prompt gambar ini menggunakan AI Vision"
+                                                            >
+                                                                <span>🔮 AI Prompt</span>
+                                                            </button>
+                                                        )}
+
                                                         {item.hasMetadata && item.metadata?.positive_prompt && (
                                                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                                                                 <button
@@ -1482,6 +1660,278 @@ export default function MetadataInspector() {
 
                     {/* Right Column: Inspector Tabs */}
                     <div className="inspector-right-panel">
+                        {/* AI Image-to-Prompt Interrogator Banner */}
+                        {(!metaResult.positive_prompt || metaResult.source === "unknown" || metaResult.source === "ai_interrogated") && (
+                            <div className="ai-interrogator-hero">
+                                <div className="ai-interrogator-hero-left">
+                                    <div className="ai-interrogator-icon-box">
+                                        <Icons.Sparkles />
+                                    </div>
+                                    <div>
+                                        <h4 className="ai-interrogator-title">
+                                            <span>🔮 AI Reverse-Prompt Interrogator</span>
+                                            <span
+                                                className="ai-model-active-pill"
+                                                title={`Engine aktif: ${aiProvider === "gemini" ? selectedGeminiModel : (localModelInput || "Default Model")}`}
+                                            >
+                                                {aiProvider === "gemini" ? (
+                                                    <>☁️ {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel}</>
+                                                ) : aiProvider === "ollama" ? (
+                                                    <>🖥️ Ollama: {localModelInput || "llama3.2-vision"}</>
+                                                ) : (
+                                                    <>⚡ LM Studio: {localModelInput || "local-model"}</>
+                                                )}
+                                            </span>
+                                        </h4>
+                                        <p className="ai-interrogator-desc">
+                                            {aiProvider === "gemini"
+                                                ? "Gambar tidak memiliki metadata generasi tertanam? Bedah prompt, karakter, style, dan tags Danbooru menggunakan Google Gemini Vision."
+                                                : `Bedah prompt gambar secara offline tanpa kuota menggunakan LLM Vision lokal (${aiProvider === "ollama" ? "Ollama" : "LM Studio"}).`}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="ai-interrogator-hero-right">
+                                    <button
+                                        type="button"
+                                        className="ai-settings-btn"
+                                        onClick={() => setShowApiKeyModal(true)}
+                                        title="Pengaturan AI Provider (Cloud Gemini vs Local Ollama / LM Studio)"
+                                    >
+                                        <span>⚙️ Provider & Model</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="ai-interrogate-trigger-btn"
+                                        onClick={() => handleRunInterrogate()}
+                                        disabled={isInterrogating || !rawFile}
+                                    >
+                                        {isInterrogating ? (
+                                            <>
+                                                <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
+                                                <span>Menganalisis Gambar...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icons.Sparkles />
+                                                <span>Generate Prompt dengan AI ✨</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Interrogation Error Alert */}
+                        {interrogateError && (
+                            <div
+                                style={{
+                                    marginBottom: "16px",
+                                    padding: "12px 16px",
+                                    background: "rgba(239, 68, 68, 0.1)",
+                                    border: "1px solid rgba(239, 68, 68, 0.3)",
+                                    borderRadius: "8px",
+                                    color: "#f87171",
+                                    fontSize: "13px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "10px",
+                                }}
+                            >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
+                                    <span>⚠️ {interrogateError}</span>
+                                    <button
+                                        type="button"
+                                        className="ai-settings-btn"
+                                        style={{ padding: "4px 10px", fontSize: "11px", whiteSpace: "nowrap" }}
+                                        onClick={() => setShowApiKeyModal(true)}
+                                    >
+                                        ⚙️ Provider & Model
+                                    </button>
+                                </div>
+                                {(interrogateError.includes("503") ||
+                                    interrogateError.includes("high demand") ||
+                                    interrogateError.includes("UNAVAILABLE") ||
+                                    interrogateError.includes("sibuk")) && (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            background: "rgba(0, 0, 0, 0.25)",
+                                            padding: "8px 12px",
+                                            borderRadius: "6px",
+                                            gap: "10px",
+                                        }}
+                                    >
+                                        <span style={{ fontSize: "12px", color: "#e2e8f0" }}>
+                                            💡 <strong>Solusi Cepat:</strong> Server Google untuk model tersebut sedang antrean tinggi. Klik untuk beralih ke <strong>Gemini 1.5 Flash (Bebas 503)</strong> atau gunakan <strong>AI Lokal</strong>:
+                                        </span>
+                                        <div style={{ display: "flex", gap: "6px" }}>
+                                            <button
+                                                type="button"
+                                                className="mode-tab-btn active"
+                                                style={{ padding: "5px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
+                                                onClick={() => {
+                                                    setStoredGeminiModel("gemini-1.5-flash-latest");
+                                                    setSelectedGeminiModel("gemini-1.5-flash-latest");
+                                                    handleRunInterrogate();
+                                                }}
+                                            >
+                                                🛡️ Beralih ke 1.5 Flash
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="ai-settings-btn"
+                                                style={{ padding: "5px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
+                                                onClick={() => {
+                                                    setAiProvider("ollama");
+                                                    setShowApiKeyModal(true);
+                                                }}
+                                            >
+                                                🖥️ Pakai AI Lokal
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Interrogation Result Panel */}
+                        {interrogateResult && (
+                            <div className="ai-interrogate-result-panel">
+                                <div className="ai-result-header">
+                                    <div className="ai-result-badge-group">
+                                        <span className="ai-model-rec-badge">✨ Hasil AI Reverse-Prompt</span>
+                                        {interrogateResult.used_model && (
+                                            <span className="ai-character-badge" title="Model AI Gemini yang berhasil memproses gambar ini">
+                                                Model: <strong>{interrogateResult.used_model}</strong>
+                                                {interrogateResult.fallback_occurred && " ⚡ (Failover Auto)"}
+                                            </span>
+                                        )}
+                                        {interrogateResult.character && (
+                                            <span className="ai-character-badge">
+                                                Karakter: <strong>{interrogateResult.character}</strong>
+                                            </span>
+                                        )}
+                                        <span className="ai-model-rec-badge">
+                                            Rekomendasi Model: <strong>{interrogateResult.recommended_model}</strong>
+                                        </span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="batch-bulk-btn"
+                                        onClick={() => setInterrogateResult(null)}
+                                        style={{ fontSize: 11 }}
+                                    >
+                                        ✕ Tutup Panel AI
+                                    </button>
+                                </div>
+
+                                {/* Danbooru Tags Prompt */}
+                                <div className="ai-result-box">
+                                    <div className="ai-result-label-row">
+                                        <span className="ai-result-label">🎨 Danbooru Tag Prompt (Pony / Illustrious / Anime):</span>
+                                        <button
+                                            type="button"
+                                            className="copy-chip-btn"
+                                            onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
+                                        >
+                                            <Icons.Copy />
+                                            <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
+                                        </button>
+                                    </div>
+                                    <div className="ai-result-prompt-box danbooru">
+                                        {interrogateResult.danbooru_prompt}
+                                    </div>
+                                </div>
+
+                                {/* Negative Prompt */}
+                                {interrogateResult.negative_prompt && (
+                                    <div className="ai-result-box">
+                                        <div className="ai-result-label-row">
+                                            <span className="ai-result-label">🚫 Negative Prompt:</span>
+                                            <button
+                                                type="button"
+                                                className="copy-chip-btn"
+                                                onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
+                                            >
+                                                <Icons.Copy />
+                                                <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin Negative"}</span>
+                                            </button>
+                                        </div>
+                                        <div className="ai-result-prompt-box">
+                                            {interrogateResult.negative_prompt}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Natural Language Prompt */}
+                                {interrogateResult.natural_prompt && (
+                                    <div className="ai-result-box">
+                                        <div className="ai-result-label-row">
+                                            <span className="ai-result-label">📖 Natural Language Prompt (SDXL / Flux / Midjourney):</span>
+                                            <button
+                                                type="button"
+                                                className="copy-chip-btn"
+                                                onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
+                                            >
+                                                <Icons.Copy />
+                                                <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
+                                            </button>
+                                        </div>
+                                        <div className="ai-result-prompt-box">
+                                            {interrogateResult.natural_prompt}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Style Tags & Suggested LoRAs */}
+                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginTop: 12 }}>
+                                    {interrogateResult.style_tags?.length > 0 && (
+                                        <div>
+                                            <span className="ai-result-label">🎭 Art Style Tags:</span>
+                                            <div className="ai-style-chips-row">
+                                                {interrogateResult.style_tags.map((st, i) => (
+                                                    <span key={i} className="ai-style-chip">#{st}</span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {interrogateResult.suggested_loras?.length > 0 && (
+                                        <div>
+                                            <span className="ai-result-label">⚡ Saran LoRA:</span>
+                                            <div className="lora-chips-row" style={{ marginTop: 6 }}>
+                                                {interrogateResult.suggested_loras.map((lora, i) => (
+                                                    <div key={i} className="lora-chip-item">
+                                                        <span>{lora.name}</span>
+                                                        <span className="lora-weight-badge">{lora.weight}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Bottom Actions */}
+                                <div className="ai-interrogate-bottom-actions">
+                                    <button
+                                        type="button"
+                                        className="ai-apply-meta-btn"
+                                        onClick={handleApplyInterrogateToMetadata}
+                                    >
+                                        📋 Terapkan ke Tab Parameter & Quick Copy
+                                    </button>
+                                    <Link
+                                        to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
+                                        className="ai-lab-transfer-btn"
+                                    >
+                                        🚀 Buka di Prompt Lab Canvas →
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="inspector-tabs-header">
                             <button
                                 type="button"
@@ -1825,6 +2275,357 @@ export default function MetadataInspector() {
                                     ))}
                                 </div>
                             )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* AI Vision & Reverse-Prompt Settings Modal */}
+            {showApiKeyModal && (
+                <div className="ai-modal-backdrop" onClick={() => setShowApiKeyModal(false)}>
+                    <div className="ai-modal-card" onClick={(e) => e.stopPropagation()}>
+                        <div className="ai-modal-header">
+                            <h3 className="ai-modal-title">
+                                <Icons.Sparkles />
+                                <span>Pengaturan AI Vision & Model Reverse-Prompt</span>
+                            </h3>
+                            <button
+                                type="button"
+                                className="ai-modal-close-btn"
+                                onClick={() => setShowApiKeyModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="ai-modal-body">
+                            {/* Provider Toggle Tabs */}
+                            <div className="ai-provider-toggle-group">
+                                <button
+                                    type="button"
+                                    className={`ai-provider-toggle-btn ${aiProvider === "gemini" ? "active" : ""}`}
+                                    onClick={() => setAiProvider("gemini")}
+                                >
+                                    <span>☁️ Google Gemini</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`ai-provider-toggle-btn ${aiProvider === "ollama" ? "active" : ""}`}
+                                    onClick={() => {
+                                        setAiProvider("ollama");
+                                        if (!localEndpointInput) setLocalEndpointInput("http://localhost:11434");
+                                        if (!localModelInput) setLocalModelInput("llama3.2-vision");
+                                    }}
+                                >
+                                    <span>🖥️ Ollama (Lokal)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`ai-provider-toggle-btn ${aiProvider === "lmstudio" ? "active" : ""}`}
+                                    onClick={() => {
+                                        setAiProvider("lmstudio");
+                                        if (!localEndpointInput || localEndpointInput === "http://localhost:11434") {
+                                            setLocalEndpointInput("http://localhost:1234/v1");
+                                        }
+                                    }}
+                                >
+                                    <span>⚡ LM Studio (Lokal)</span>
+                                </button>
+                            </div>
+
+                            {aiProvider === "gemini" ? (
+                                <>
+                                    <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5, margin: 0 }}>
+                                        Gunakan <strong>Google Gemini Vision API</strong> dengan failover otomatis bebas 503 overload. Mendukung reverse-prompt Danbooru tags, style, dan karakter.
+                                    </p>
+
+                                    {/* API Key Input */}
+                                    <div className="ai-modal-input-group">
+                                        <label className="ai-modal-label">Google Gemini API Key:</label>
+                                        <input
+                                            type="password"
+                                            className="ai-modal-input"
+                                            placeholder="AIzaSy..."
+                                            value={geminiApiKeyInput}
+                                            onChange={(e) => setGeminiApiKeyInput(e.target.value)}
+                                        />
+                                        <div className="ai-modal-help-text">
+                                            Dapatkan API Key gratis di{" "}
+                                            <a
+                                                href="https://aistudio.google.com/app/apikey"
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                Google AI Studio (aistudio.google.com) ↗
+                                            </a>
+                                            . (Kuota 15 request/menit 100% gratis selamanya).
+                                        </div>
+                                    </div>
+
+                                    {/* Model Selector */}
+                                    <div className="ai-modal-input-group">
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <label className="ai-modal-label">Pilih Versi Model Gemini:</label>
+                                            <button
+                                                type="button"
+                                                className="ai-fetch-models-btn"
+                                                onClick={handleFetchLiveModels}
+                                                disabled={isFetchingModels || (!geminiApiKeyInput && !getStoredGeminiApiKey())}
+                                                title="Ambil daftar model yang aktif langsung dari akun Google Anda"
+                                            >
+                                                {isFetchingModels ? "Memeriksa Akun..." : "🔄 Cek Model Akun Saya"}
+                                            </button>
+                                        </div>
+
+                                        <select
+                                            className="ai-modal-select"
+                                            value={selectedGeminiModel}
+                                            onChange={(e) => setSelectedGeminiModel(e.target.value)}
+                                        >
+                                            <optgroup label="⚡ Rekomendasi Utama">
+                                                <option value="auto">⚡ Otomatis (Auto-Failover Cerdas Anti-503)</option>
+                                                <option value="gemini-1.5-flash-latest">🛡️ Gemini 1.5 Flash (Paling Stabil / Bebas 503 Overload)</option>
+                                            </optgroup>
+
+                                            <optgroup label="🚀 Gemini 2.0 (Generasi Terbaru)">
+                                                <option value="gemini-2.0-flash">🚀 Gemini 2.0 Flash (Paling Cepat / Rawan 503 di Jam Sibuk)</option>
+                                                <option value="gemini-2.0-flash-lite">⚡ Gemini 2.0 Flash-Lite (Super Ringan & Longgar)</option>
+                                                <option value="gemini-2.0-pro-exp-02-05">🧠 Gemini 2.0 Pro Experimental (Penalaran Paling Dalam)</option>
+                                            </optgroup>
+
+                                            <optgroup label="📦 Gemini 1.5 (Generasi Stabil)">
+                                                <option value="gemini-1.5-flash-002">📦 Gemini 1.5 Flash 002 (Stabil)</option>
+                                                <option value="gemini-1.5-flash-8b">🪶 Gemini 1.5 Flash 8B (Hemat Kuota)</option>
+                                                <option value="gemini-1.5-pro-latest">💎 Gemini 1.5 Pro (Latest / Detail Tinggi)</option>
+                                                <option value="gemini-1.5-flash">🏛️ Gemini 1.5 Flash (GA Endpoint)</option>
+                                            </optgroup>
+
+                                            <optgroup label="🔮 Next-Gen Preview & Reasoning">
+                                                <option value="gemini-2.0-flash-thinking-exp">💡 Gemini 2.0 Flash Thinking Exp</option>
+                                                <option value="gemini-2.5-flash">🔮 Gemini 2.5 Flash (Preview)</option>
+                                                <option value="gemini-2.5-pro">🔮 Gemini 2.5 Pro (Preview)</option>
+                                            </optgroup>
+
+                                            {liveAccountModels.length > 0 && (
+                                                <optgroup label="🌐 Model Terdeteksi dari Akun Anda">
+                                                    {liveAccountModels.map((m) => (
+                                                        <option key={m.id} value={m.id}>
+                                                            📡 {m.name}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            )}
+
+                                            <optgroup label="✏️ Model Lain / Masa Depan">
+                                                <option value="custom">✏️ Masukkan Model ID Kustom Manual (e.g. Gemini 3.0 / 3.7)...</option>
+                                            </optgroup>
+                                        </select>
+
+                                        {selectedGeminiModel === "custom" && (
+                                            <div style={{ marginTop: 8 }}>
+                                                <label className="ai-modal-label" style={{ marginBottom: 4, display: "block" }}>
+                                                    Ketik Model ID Kustom:
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    className="ai-modal-input"
+                                                    placeholder="Contoh: gemini-3.0-flash, gemini-2.5-flash..."
+                                                    value={customModelInput}
+                                                    onChange={(e) => setCustomModelInput(e.target.value)}
+                                                />
+                                                <div className="ai-modal-help-text" style={{ marginTop: 4 }}>
+                                                    Ketik nama model persis seperti yang dirilis Google AI Studio di akun Anda.
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Model Description Card */}
+                                    <div className="ai-modal-model-desc-card">
+                                        <strong>
+                                            {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.label ||
+                                                (selectedGeminiModel === "custom"
+                                                    ? `Model Kustom: ${customModelInput || "(Belum diketik)"}`
+                                                    : selectedGeminiModel)}
+                                            {" • "}
+                                            {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || "Custom"}
+                                        </strong>
+                                        <p style={{ margin: "4px 0 0 0" }}>
+                                            {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.description ||
+                                                "Model kustom / next-gen yang dikonfigurasi langsung dari Google AI Studio."}
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5, margin: 0 }}>
+                                        Jalankan AI vision secara <strong>100% lokal & offline</strong> di PC Anda menggunakan{" "}
+                                        <strong>{aiProvider === "ollama" ? "Ollama" : "LM Studio / Local OpenAI Server"}</strong>.
+                                        Bebas limit kuota cloud dan privasi terjaga penuh.
+                                    </p>
+
+                                    {/* Local Endpoint Input */}
+                                    <div className="ai-modal-input-group">
+                                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                            <label className="ai-modal-label">Endpoint URL Lokal:</label>
+                                            <button
+                                                type="button"
+                                                className="ai-fetch-models-btn"
+                                                onClick={handleFetchLocalModels}
+                                                disabled={isFetchingLocalModels}
+                                                title="Tes koneksi dan ambil daftar model yang terpasang di komputer Anda"
+                                            >
+                                                {isFetchingLocalModels ? "Memeriksa..." : "🔄 Cek Model Lokal"}
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="text"
+                                            className="ai-modal-input"
+                                            placeholder={aiProvider === "ollama" ? "http://localhost:11434" : "http://localhost:1234/v1"}
+                                            value={localEndpointInput}
+                                            onChange={(e) => setLocalEndpointInput(e.target.value)}
+                                        />
+                                        <div className="ai-modal-help-text">
+                                            {aiProvider === "ollama"
+                                                ? "Default Ollama: http://localhost:11434. Pastikan aplikasi/daemon Ollama sedang berjalan."
+                                                : "Default LM Studio: http://localhost:1234/v1. Pastikan tab Local Server dalam status Start Server."}
+                                        </div>
+                                    </div>
+
+                                    {/* Local Model Name */}
+                                    <div className="ai-modal-input-group">
+                                        <label className="ai-modal-label">Nama / Tag Model Vision:</label>
+                                        <input
+                                            type="text"
+                                            className="ai-modal-input"
+                                            placeholder={aiProvider === "ollama" ? "llama3.2-vision" : "local-model"}
+                                            value={localModelInput}
+                                            onChange={(e) => setLocalModelInput(e.target.value)}
+                                        />
+
+                                        {/* Quick Pick Chips */}
+                                        <div style={{ marginTop: 4 }}>
+                                            <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>
+                                                Pilihan Cepat Model Vision Populer:
+                                            </div>
+                                            <div className="ai-local-quick-chips">
+                                                {POPULAR_LOCAL_VISION_MODELS.map((item) => (
+                                                    <button
+                                                        key={item.id}
+                                                        type="button"
+                                                        className={`ai-local-chip-btn ${localModelInput === item.id ? "active" : ""}`}
+                                                        onClick={() => setLocalModelInput(item.id)}
+                                                        title={item.description}
+                                                    >
+                                                        {item.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Detected Models dropdown if available */}
+                                        {localDetectedModels.length > 0 && (
+                                            <div style={{ marginTop: 8 }}>
+                                                <label className="ai-modal-label" style={{ marginBottom: 4, display: "block" }}>
+                                                    Atau Pilih dari Model yang Terdeteksi di PC:
+                                                </label>
+                                                <select
+                                                    className="ai-modal-select"
+                                                    value={localModelInput}
+                                                    onChange={(e) => setLocalModelInput(e.target.value)}
+                                                >
+                                                    {localDetectedModels.map((m) => (
+                                                        <option key={m.id} value={m.id}>
+                                                            🖥️ {m.name} ({m.id})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Connection Status Card */}
+                                    {localConnectionStatus && (
+                                        <div className="ai-modal-model-desc-card">
+                                            <div className="ai-connection-indicator">
+                                                <span
+                                                    className={`ai-connection-dot ${localConnectionStatus.includes("Terhubung") ? "online" : "offline"}`}
+                                                />
+                                                <span>{localConnectionStatus}</span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Helpful Guide Card */}
+                                    <div className="ai-modal-model-desc-card">
+                                        <strong>💡 Panduan Menjalankan Vision Lokal:</strong>
+                                        <p style={{ margin: "4px 0 0 0", fontSize: 11.5, color: "#94a3b8" }}>
+                                            {aiProvider === "ollama" ? (
+                                                <>
+                                                    Di terminal / command prompt, unduh model vision dengan mengetik:{" "}
+                                                    <code style={{ color: "#93c5fd" }}>ollama run llama3.2-vision</code> atau{" "}
+                                                    <code style={{ color: "#93c5fd" }}>ollama run llava</code>.
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Buka aplikasi LM Studio, unduh model multimodal / vision (misal: Qwen2-VL atau Llama 3.2 Vision), lalu klik <strong>Start Server</strong> pada tab Local Server.
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        <div className="ai-modal-footer">
+                            {aiProvider === "gemini" && getStoredGeminiApiKey() && (
+                                <button
+                                    type="button"
+                                    className="batch-bulk-btn"
+                                    onClick={() => {
+                                        setStoredGeminiApiKey("");
+                                        setGeminiApiKeyInput("");
+                                    }}
+                                >
+                                    Hapus Key
+                                </button>
+                            )}
+                            <button
+                                type="button"
+                                className="ai-apply-meta-btn"
+                                onClick={() => setShowApiKeyModal(false)}
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                className="mode-tab-btn active"
+                                onClick={() => {
+                                    setStoredAIProvider(aiProvider);
+                                    if (aiProvider === "gemini") {
+                                        const modelToSave =
+                                            selectedGeminiModel === "custom"
+                                                ? customModelInput.trim() || "gemini-2.0-flash"
+                                                : selectedGeminiModel;
+                                        setStoredGeminiApiKey(geminiApiKeyInput);
+                                        setStoredGeminiModel(modelToSave);
+                                        setSelectedGeminiModel(modelToSave);
+                                    } else {
+                                        setStoredLocalEndpoint(
+                                            localEndpointInput || (aiProvider === "ollama" ? "http://localhost:11434" : "http://localhost:1234/v1")
+                                        );
+                                        setStoredLocalModel(
+                                            localModelInput || (aiProvider === "ollama" ? "llama3.2-vision" : "local-model")
+                                        );
+                                    }
+                                    setShowApiKeyModal(false);
+                                    if (rawFile && !interrogateResult) {
+                                        handleRunInterrogate();
+                                    }
+                                }}
+                            >
+                                Simpan & Gunakan
+                            </button>
                         </div>
                     </div>
                 </div>

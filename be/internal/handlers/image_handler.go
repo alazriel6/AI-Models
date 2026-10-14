@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -463,6 +466,129 @@ func (h *ImageHandler) ParseMetadata(c *gin.Context) {
 		"source":   meta.Source,
 		"format":   meta.Format,
 		"metadata": meta,
+	})
+}
+
+// InterrogateImage analyzes an uploaded image using AI Vision and reconstructs Danbooru tags, prompts, and model recommendations.
+func (h *ImageHandler) InterrogateImage(c *gin.Context) {
+	var imgBytes []byte
+	var mimeType string
+
+	file, err := c.FormFile("image")
+	if file == nil {
+		file, err = c.FormFile("file")
+	}
+
+	if file != nil && err == nil {
+		f, err := file.Open()
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read file: " + err.Error()})
+			return
+		}
+		defer f.Close()
+		b, err := io.ReadAll(f)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to read image bytes: " + err.Error()})
+			return
+		}
+		imgBytes = b
+		mimeType = file.Header.Get("Content-Type")
+		if mimeType == "" {
+			ext := strings.ToLower(filepath.Ext(file.Filename))
+			if ext == ".png" {
+				mimeType = "image/png"
+			} else if ext == ".jpg" || ext == ".jpeg" {
+				mimeType = "image/jpeg"
+			} else if ext == ".webp" {
+				mimeType = "image/webp"
+			}
+		}
+	} else {
+		// Check JSON body for base64
+		var body struct {
+			Base64Data string `json:"base64_data"`
+			MimeType   string `json:"mime_type"`
+		}
+		if err := c.ShouldBindJSON(&body); err == nil && body.Base64Data != "" {
+			rawB64 := body.Base64Data
+			if idx := strings.Index(rawB64, ","); idx != -1 {
+				rawB64 = rawB64[idx+1:]
+			}
+			decoded, err := base64.StdEncoding.DecodeString(rawB64)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid base64 image data"})
+				return
+			}
+			imgBytes = decoded
+			mimeType = body.MimeType
+		}
+	}
+
+	if len(imgBytes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Image file or base64_data is required"})
+		return
+	}
+
+	aiProvider := c.GetHeader("X-AI-Provider")
+	if aiProvider == "" {
+		aiProvider = c.Query("provider")
+	}
+	if aiProvider == "" {
+		aiProvider = c.PostForm("provider")
+	}
+
+	interrogateService := services.NewInterrogateService()
+	var res *services.InterrogateResult
+
+	if aiProvider == "ollama" || aiProvider == "lmstudio" || aiProvider == "local" || aiProvider == "openai_compatible" {
+		endpoint := c.GetHeader("X-Local-Endpoint")
+		if endpoint == "" {
+			endpoint = c.Query("endpoint")
+		}
+		if endpoint == "" {
+			endpoint = c.PostForm("endpoint")
+		}
+
+		localModel := c.GetHeader("X-Local-Model")
+		if localModel == "" {
+			localModel = c.Query("local_model")
+		}
+		if localModel == "" {
+			localModel = c.PostForm("local_model")
+		}
+		if localModel == "" {
+			localModel = c.Query("model")
+		}
+		if localModel == "" {
+			localModel = c.PostForm("model")
+		}
+
+		res, err = interrogateService.InterrogateLocal(imgBytes, mimeType, aiProvider, endpoint, localModel)
+	} else {
+		clientApiKey := c.GetHeader("X-Gemini-Api-Key")
+		if clientApiKey == "" {
+			clientApiKey = c.Query("api_key")
+		}
+
+		clientModel := c.GetHeader("X-Gemini-Model")
+		if clientModel == "" {
+			clientModel = c.Query("model")
+		}
+		if clientModel == "" {
+			clientModel = c.PostForm("model")
+		}
+
+		res, err = interrogateService.InterrogateImage(imgBytes, mimeType, clientApiKey, clientModel)
+	}
+
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"data":    res,
 	})
 }
 

@@ -106,14 +106,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         showToast(`Tag "${cleanTag}" dimasukkan ke layer ${layerId}!`);
     };
 
-    // Pool of database tags for autocomplete suggestions
-    const customDbTagsPool = React.useMemo(() => {
-        return (modularPresets || []).map((p) => ({
-            name: p.positive_prompt || p.title,
-            category: p.category || "general",
-            layer: p.subcategory || "",
-        }));
-    }, [modularPresets]);
+
 
     // Fetch saved studio presets from PostgreSQL DB
     const loadSavedStudioPresets = async () => {
