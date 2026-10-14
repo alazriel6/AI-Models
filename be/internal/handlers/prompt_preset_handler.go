@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/alazriel6/models-guide/backend/internal/models"
 	"github.com/alazriel6/models-guide/backend/internal/services"
@@ -120,6 +121,25 @@ func (h *PromptPresetHandler) CreatePreset(c *gin.Context) {
 
 	if preset.Character == "" {
 		preset.Character = preset.Title
+	}
+
+	if preset.Category == "" {
+		preset.Category = "modular"
+	}
+
+	if preset.PresetType == "" {
+		preset.PresetType = "modular"
+	}
+
+	if preset.Slug == "" {
+		clean := strings.ToLower(strings.ReplaceAll(preset.Title, " ", "-"))
+		clean = strings.Map(func(r rune) rune {
+			if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+				return r
+			}
+			return -1
+		}, clean)
+		preset.Slug = fmt.Sprintf("%s-%d", clean, time.Now().UnixNano()%100000)
 	}
 
 	if err := h.service.Create(&preset); err != nil {

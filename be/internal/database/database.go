@@ -59,6 +59,7 @@ func Connect(cfg config.Config) *gorm.DB {
 		&models.ModelTriggerWord{},
 		&models.Review{},
 		&models.PromptPreset{},
+		&models.BooruTag{},
 	}
 	for _, t := range tables {
 		if err := db.AutoMigrate(t); err != nil {

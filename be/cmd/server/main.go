@@ -47,6 +47,7 @@ func main() {
 	backupService := services.NewBackupService(db)
 	promptPresetService := services.NewPromptPresetService(db)
 	thumbnailService := services.NewThumbnailService(cfg.StoragePath)
+	booruTagService := services.NewBooruTagService(db)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -59,6 +60,7 @@ func main() {
 		BackupHandler:       handlers.NewBackupHandler(backupService),
 		PromptPresetHandler: handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
 		ThumbnailHandler:    handlers.NewThumbnailHandler(thumbnailService),
+		BooruTagHandler:     handlers.NewBooruTagHandler(booruTagService),
 	}
 
 	router := gin.Default()

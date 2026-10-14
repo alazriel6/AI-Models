@@ -15,6 +15,21 @@ import {
 import { resolveImageUrl } from "../../api/client";
 import { OptimizedImage } from "../common/OptimizedImage";
 import "../../style/PromptLab.css";
+import "../../style/AnimePromptStudio.css";
+import "../../style/PromptStudioTabs.css";
+import {
+    PromptStudioTabs,
+    type StudioTabKey,
+} from "../prompt-studio/PromptStudioTabs";
+import {
+    INITIAL_CATEGORY_INPUTS,
+    compileCategoriesPrompt,
+    deconstructPromptText,
+    parseTagList,
+} from "../prompt-studio/PromptCategoriesData";
+import { ModularStudioView } from "../prompt-studio/ModularStudioView";
+import { DeconstructorView } from "../prompt-studio/DeconstructorView";
+import { BooruAutocompleteInput } from "../common/BooruAutocompleteInput";
 
 // SVG Technical Icons (No AI Slop)
 const Icons = {
@@ -408,7 +423,50 @@ const getPresetVariantTitle = (p: PromptPreset, characterName?: string): string 
     return title;
 };
 
-export const PromptLab: React.FC = () => {
+export interface PromptLabProps {
+    defaultTab?: StudioTabKey;
+}
+
+export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) => {
+    // Studio Workstation Mode Tab ("studio" | "canvas" | "deconstructor" | "library")
+    const [studioTab, setStudioTab] = useState<StudioTabKey>(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const tabParam = params.get("tab") as StudioTabKey;
+            if (tabParam && ["studio", "canvas", "deconstructor", "library"].includes(tabParam)) {
+                return tabParam;
+            }
+        } catch {
+            // fallback
+        }
+        return defaultTab || "studio";
+    });
+
+    const handleSelectTab = (tab: StudioTabKey) => {
+        setStudioTab(tab);
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.set("tab", tab);
+            window.history.replaceState({}, "", url.toString());
+        } catch {
+            // ignore
+        }
+    };
+
+    // 10-Layer Modular Studio State
+    const [categoryInputs, setCategoryInputs] = useState<Record<string, string>>(() => {
+        const initialText = "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office";
+        return deconstructPromptText(initialText).buckets;
+    });
+    const [loraName, setLoraName] = useState<string>("tsukatsuki_rio_illustrious");
+    const [loraWeight, setLoraWeight] = useState<number>(0.85);
+    const [loraEnabled, setLoraEnabled] = useState<boolean>(true);
+    const [modularFormatMode, setModularFormatMode] = useState<"single" | "multiline">("single");
+
+    const activeCategoryCount = useMemo(() => {
+        return Object.values(categoryInputs).filter((v) => (v || "").trim().length > 0).length;
+    }, [categoryInputs]);
+
     // Canvas Prompts (Strictly kept together on unified canvas)
     const [positivePrompt, setPositivePrompt] = useState<string>(() => {
         try {
@@ -433,6 +491,13 @@ export const PromptLab: React.FC = () => {
             const promptParam = params.get("prompt");
             if (promptParam && promptParam.trim()) {
                 setPositivePrompt(promptParam);
+                const { buckets, lora } = deconstructPromptText(promptParam);
+                setCategoryInputs(buckets);
+                if (lora) {
+                    setLoraName(lora.name);
+                    setLoraWeight(lora.weight);
+                    setLoraEnabled(true);
+                }
             }
         } catch {
             // fallback
@@ -560,6 +625,14 @@ export const PromptLab: React.FC = () => {
 
     // Modular Presets from Database
     const [modularPresets, setModularPresets] = useState<PromptPreset[]>([]);
+
+    // Booru custom database tags for autocomplete
+    const booruCustomDbTags = useMemo(() => {
+        return modularPresets.map((p) => ({
+            name: p.positive_prompt || p.title,
+            category: p.category || "general",
+        }));
+    }, [modularPresets]);
 
     // Lightbox modal for sample previews
     const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string } | null>(null);
@@ -991,7 +1064,144 @@ export const PromptLab: React.FC = () => {
         if (p.negative_prompt) {
             setNegativePrompt(p.negative_prompt);
         }
-        showToast(`Preset "${p.title}" diterapkan!`);
+        const { buckets, lora } = deconstructPromptText(p.positive_prompt);
+        setCategoryInputs(buckets);
+        if (lora) {
+            setLoraName(lora.name);
+            setLoraWeight(lora.weight);
+            setLoraEnabled(true);
+        }
+        showToast(`Preset "${p.title}" diterapkan ke Studio & Canvas!`);
+    };
+
+    // Category input change with live compilation to positivePrompt
+    const handleCategoryInputChange = (id: string, val: string) => {
+        setCategoryInputs((prev) => {
+            const next = { ...prev, [id]: val };
+            const compiled = compileCategoriesPrompt(next, { enabled: loraEnabled, name: loraName, weight: loraWeight }, "single");
+            setPositivePrompt(compiled);
+            return next;
+        });
+    };
+
+    const handleToggleCategoryChip = (categoryId: string, chipText: string) => {
+        const currentText = categoryInputs[categoryId] || "";
+        const tags = parseTagList(currentText);
+        const normalize = (s: string) => s.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+        const chipNorm = normalize(chipText);
+        const existingIdx = tags.findIndex((t) => normalize(t) === chipNorm);
+
+        let newTags: string[];
+        if (existingIdx >= 0) {
+            newTags = tags.filter((_, i) => i !== existingIdx);
+        } else {
+            newTags = [...tags, chipText];
+        }
+
+        handleCategoryInputChange(categoryId, newTags.join(", "));
+    };
+
+    const handleCycleCategoryChipWeight = (e: React.MouseEvent, categoryId: string, chipText: string) => {
+        e.stopPropagation();
+        const currentText = categoryInputs[categoryId] || "";
+        const tags = parseTagList(currentText);
+
+        const normalize = (s: string) => s.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
+        const baseName = normalize(chipText);
+
+        const idx = tags.findIndex((t) => normalize(t).toLowerCase() === baseName.toLowerCase());
+        if (idx < 0) {
+            handleCategoryInputChange(categoryId, [...tags, `(${baseName}:1.2)`].join(", "));
+            return;
+        }
+
+        const currentTag = tags[idx];
+        let nextTag = baseName;
+        if (!currentTag.includes(":")) {
+            nextTag = `(${baseName}:1.15)`;
+        } else if (currentTag.includes(":1.15")) {
+            nextTag = `(${baseName}:1.25)`;
+        } else if (currentTag.includes(":1.25")) {
+            nextTag = `(${baseName}:1.35)`;
+        } else {
+            nextTag = baseName;
+        }
+
+        tags[idx] = nextTag;
+        handleCategoryInputChange(categoryId, tags.join(", "));
+    };
+
+    const isCategoryChipActive = (categoryId: string, chipText: string): boolean => {
+        const currentText = categoryInputs[categoryId] || "";
+        const tags = parseTagList(currentText);
+        const normalize = (s: string) => s.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+        const chipNorm = normalize(chipText);
+        return tags.some((t) => normalize(t) === chipNorm);
+    };
+
+    const getCategoryChipWeightLabel = (categoryId: string, chipText: string): string | null => {
+        const currentText = categoryInputs[categoryId] || "";
+        const tags = parseTagList(currentText);
+        const normalize = (s: string) => s.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+        const chipNorm = normalize(chipText);
+        const match = tags.find((t) => normalize(t) === chipNorm);
+        if (!match) return null;
+        const weightMatch = match.match(/:([0-9.]+)\)?$/);
+        return weightMatch ? weightMatch[1] : null;
+    };
+
+    const handleClearCategory = (id: string) => {
+        handleCategoryInputChange(id, "");
+    };
+
+    const handleClearAllCategories = () => {
+        setCategoryInputs({ ...INITIAL_CATEGORY_INPUTS });
+        setPositivePrompt("");
+        showToast("Semua kategori berhasil dikosongkan");
+    };
+
+    const syncPromptToCategories = (promptText?: string) => {
+        const textToSync = promptText !== undefined ? promptText : positivePrompt;
+        const { buckets, lora } = deconstructPromptText(textToSync);
+        setCategoryInputs(buckets);
+        if (lora) {
+            setLoraName(lora.name);
+            setLoraWeight(lora.weight);
+            setLoraEnabled(true);
+        }
+        showToast("Prompt disinkronkan ke 10 kategori visual!");
+    };
+
+    const handleApplyDeconstructedToStudio = (parsedBuckets: Record<string, string>, lora?: { name: string; weight: number }) => {
+        setCategoryInputs(parsedBuckets);
+        if (lora) {
+            setLoraName(lora.name);
+            setLoraWeight(lora.weight);
+            setLoraEnabled(true);
+        }
+        const compiled = compileCategoriesPrompt(parsedBuckets, lora ? { enabled: true, ...lora } : undefined, "single");
+        setPositivePrompt(compiled);
+        handleSelectTab("studio");
+    };
+
+    const handleApplyDeconstructedToCanvas = (positiveText: string) => {
+        setPositivePrompt(positiveText);
+        const { buckets, lora } = deconstructPromptText(positiveText);
+        setCategoryInputs(buckets);
+        if (lora) {
+            setLoraName(lora.name);
+            setLoraWeight(lora.weight);
+            setLoraEnabled(true);
+        }
+        handleSelectTab("canvas");
+    };
+
+    const handleCopyPositive = () => {
+        if (!positivePrompt.trim()) return;
+        navigator.clipboard.writeText(positivePrompt);
+        setCopiedKey("copy-positive");
+        showToast("Prompt berhasil disalin ke clipboard!");
+        setTimeout(() => setCopiedKey(null), 2000);
     };
 
     // Append preset positive
@@ -1218,6 +1428,45 @@ export const PromptLab: React.FC = () => {
         }
     };
 
+    // Add modular tag directly to database for 10-layer studio
+    const handleAddModularTag = async (categoryId: string, tagText: string, subgroup?: string) => {
+        const text = tagText.trim();
+        if (!text) return;
+
+        try {
+            const created = await createPromptPresetApi({
+                title: text,
+                positive_prompt: text,
+                category: "modular",
+                subcategory: categoryId,
+                trigger_words: subgroup || "",
+                preset_type: "modular",
+                base_model_target: "All",
+                is_system: false,
+            });
+
+            setModularPresets((prev) => [created, ...prev]);
+            showToast(`Tag "${text}" berhasil disimpan ke database!`);
+        } catch (err) {
+            console.error("Failed to add modular tag to DB:", err);
+            showToast("Gagal menyimpan tag ke database");
+            throw err;
+        }
+    };
+
+    // Delete modular tag directly from database
+    const handleDeleteModularTag = async (id: number, tagTitle?: string) => {
+        try {
+            await deletePromptPresetApi(id);
+            setModularPresets((prev) => prev.filter((p) => p.id !== id));
+            showToast(`Tag "${tagTitle || ""}" dihapus dari database`);
+        } catch (err) {
+            console.error("Failed to delete modular tag from DB:", err);
+            showToast("Gagal menghapus tag dari database");
+            throw err;
+        }
+    };
+
     // Delete preset
     const handleDeletePreset = async (id: number, title?: string, e?: React.MouseEvent) => {
         if (e) e.stopPropagation();
@@ -1395,15 +1644,17 @@ export const PromptLab: React.FC = () => {
                     </div>
 
                     <div className="prompt-lab-header-actions">
-                        <button
-                            type="button"
-                            className="prompt-btn-sm"
-                            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-                            title={isSidebarCollapsed ? "Tampilkan Library & Explorer" : "Sembunyikan Sidebar untuk Focus Mode"}
-                        >
-                            <Icons.Layout />
-                            <span>{isSidebarCollapsed ? "Show Library" : "Focus Mode"}</span>
-                        </button>
+                        {studioTab === "canvas" && (
+                            <button
+                                type="button"
+                                className="prompt-btn-sm"
+                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                                title={isSidebarCollapsed ? "Tampilkan Library & Explorer" : "Sembunyikan Sidebar untuk Focus Mode"}
+                            >
+                                <Icons.Layout />
+                                <span>{isSidebarCollapsed ? "Show Library" : "Focus Mode"}</span>
+                            </button>
+                        )}
 
                         <button
                             type="button"
@@ -1484,8 +1735,88 @@ export const PromptLab: React.FC = () => {
                 </div>
             </header>
 
-            {/* Studio Workspace Layout */}
-            <div className={`prompt-lab-workspace ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
+            {/* Master Studio Mode Tabs Switcher */}
+            <PromptStudioTabs
+                activeTab={studioTab}
+                onSelectTab={handleSelectTab}
+                tokenCount={posTokenCount}
+                activeCategoryCount={activeCategoryCount}
+                presetCount={presets.length}
+            />
+
+            {/* TAB 1: 10-LAYER MODULAR STUDIO */}
+            {studioTab === "studio" && (
+                <ModularStudioView
+                    inputs={categoryInputs}
+                    onInputChange={handleCategoryInputChange}
+                    onToggleChip={handleToggleCategoryChip}
+                    onCycleChipWeight={handleCycleCategoryChipWeight}
+                    isChipActive={isCategoryChipActive}
+                    getChipWeightLabel={getCategoryChipWeightLabel}
+                    onClearCategory={handleClearCategory}
+                    onClearAll={handleClearAllCategories}
+                    loraName={loraName}
+                    setLoraName={setLoraName}
+                    loraWeight={loraWeight}
+                    setLoraWeight={setLoraWeight}
+                    loraEnabled={loraEnabled}
+                    setLoraEnabled={setLoraEnabled}
+                    compiledOutput={positivePrompt}
+                    onCopyOutput={handleCopyPositive}
+                    copied={copiedKey === "copy-positive"}
+                    formatMode={modularFormatMode}
+                    setFormatMode={setModularFormatMode}
+                    onSwitchToCanvas={() => handleSelectTab("canvas")}
+                    onSaveToPresetLibrary={handleOpenCreatePreset}
+                    showToast={showToast}
+                    onLoadPresetData={(newInputs, lora) => {
+                        setCategoryInputs(newInputs);
+                        if (lora) {
+                            setLoraName(lora.name);
+                            setLoraWeight(lora.weight);
+                            setLoraEnabled(true);
+                        }
+                        const compiled = compileCategoriesPrompt(newInputs, lora ? { enabled: true, ...lora } : undefined, "single");
+                        setPositivePrompt(compiled);
+                    }}
+                    modularPresets={modularPresets}
+                    onAddModularTag={handleAddModularTag}
+                    onDeleteModularTag={handleDeleteModularTag}
+                />
+            )}
+
+            {/* TAB 2: PROMPT LAB CANVAS & TOKENIZER */}
+            {studioTab === "canvas" && (
+                <>
+                    {/* Live Sync Bridge Bar */}
+                    <div className="studio-sync-bridge-bar">
+                        <div className="studio-sync-info">
+                            <span className="studio-sync-dot" />
+                            <span>Terhubung ke 10-Layer Modular Studio ({activeCategoryCount}/10 layer aktif)</span>
+                        </div>
+                        <div className="studio-sync-actions">
+                            <button
+                                type="button"
+                                className="studio-sync-btn"
+                                onClick={() => syncPromptToCategories()}
+                                title="Uraikan text prompt saat ini ke 10 layer kategori"
+                            >
+                                <Icons.Clean />
+                                <span>Sync ke 10 Kategori</span>
+                            </button>
+                            <button
+                                type="button"
+                                className="studio-sync-btn"
+                                onClick={() => handleSelectTab("studio")}
+                            >
+                                <Icons.Layers />
+                                <span>Buka Modular Studio →</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Studio Workspace Layout */}
+                    <div className={`prompt-lab-workspace ${isSidebarCollapsed ? "sidebar-collapsed" : ""}`}>
                 {/* Left Column: Canvas Editors */}
                 <div className="prompt-canvas-col">
                     {/* Active Checkpoint Architecture Bar */}
@@ -1657,14 +1988,15 @@ export const PromptLab: React.FC = () => {
                             {/* VIEW 1: TEXT EDITOR */}
                             {viewMode === "editor" && (
                                 <>
-                                    <textarea
-                                        ref={textareaRef}
+                                    <BooruAutocompleteInput
+                                        as="textarea"
                                         className="prompt-textarea"
                                         rows={6}
                                         value={positivePrompt}
-                                        onChange={(e) => setPositivePrompt(e.target.value)}
+                                        onChange={(val) => setPositivePrompt(val)}
                                         onKeyDown={handleTextareaKeyDown}
                                         placeholder="e.g. masterpiece, best quality, 1girl, {cyberpunk | gothic} outfit, neon street..."
+                                        customDbTags={booruCustomDbTags}
                                     />
 
                                     {/* Keyboard Hint & Wildcard Quick Banner */}
@@ -2044,12 +2376,14 @@ export const PromptLab: React.FC = () => {
                         </div>
 
                         <div className="prompt-canvas-body">
-                            <textarea
+                            <BooruAutocompleteInput
+                                as="textarea"
                                 className="prompt-textarea"
                                 rows={4}
                                 value={negativePrompt}
-                                onChange={(e) => setNegativePrompt(e.target.value)}
+                                onChange={(val) => setNegativePrompt(val)}
                                 placeholder="e.g. worst quality, low quality, bad anatomy, bad hands, blurry..."
+                                customDbTags={booruCustomDbTags}
                             />
 
                             {/* Categorized Quick Negative Exclusion Pills Cloud */}
@@ -2584,6 +2918,170 @@ export const PromptLab: React.FC = () => {
                     </div>
                 )}
             </div>
+            </>
+            )}
+
+            {/* TAB 3: SMART DECONSTRUCTOR */}
+            {studioTab === "deconstructor" && (
+                <DeconstructorView
+                    onApplyToStudio={handleApplyDeconstructedToStudio}
+                    onApplyToCanvas={handleApplyDeconstructedToCanvas}
+                    showToast={showToast}
+                />
+            )}
+
+            {/* TAB 4: PRESET & CHARACTER LIBRARY (FULL-WIDTH EXPLORER) */}
+            {studioTab === "library" && (
+                <div className="studio-library-view-container">
+                    <div className="studio-library-view-header">
+                        <div className="studio-library-title-group">
+                            <h2>Preset &amp; Character Library Explorer</h2>
+                            <p>Database koleksi racikan prompt karakter anime &amp; gaya realistis lengkap dengan sample preview.</p>
+                        </div>
+                        <button
+                            type="button"
+                            className="prompt-btn-primary"
+                            onClick={handleOpenCreatePreset}
+                        >
+                            <Icons.Plus />
+                            <span>Buat Preset Baru</span>
+                        </button>
+                    </div>
+
+                    {/* Category Filter Pills (Anime vs Realistic) */}
+                    <div className="prompt-category-nav" style={{ marginBottom: "16px" }}>
+                        {PRESET_CATEGORIES.map((cat) => (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                className={`prompt-cat-chip ${presetCategoryFilter === cat.id ? "active" : ""}`}
+                                onClick={() => setPresetCategoryFilter(cat.id)}
+                            >
+                                <span>{cat.id === "anime" ? "🌸" : "📷"}</span>
+                                <span>{cat.label}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Architecture Filter, Sort & Search Bar */}
+                    <div className="preset-search-filter-bar" style={{ marginBottom: "20px" }}>
+                        <div className="preset-search-input-wrap">
+                            <Icons.Search />
+                            <input
+                                type="text"
+                                className="preset-search-input"
+                                placeholder="Cari karakter, trigger words, atau judul preset..."
+                                value={presetSearch}
+                                onChange={(e) => setPresetSearch(e.target.value)}
+                            />
+                            {presetSearch && (
+                                <button
+                                    type="button"
+                                    className="preset-search-clear"
+                                    onClick={() => setPresetSearch("")}
+                                >
+                                    ✕
+                                </button>
+                            )}
+                        </div>
+
+                        <select
+                            className="preset-arch-select"
+                            value={presetBaseModelFilter}
+                            onChange={(e) => setPresetBaseModelFilter(e.target.value)}
+                        >
+                            <option value="all">All Architectures</option>
+                            <option value="Illustrious">Illustrious</option>
+                            <option value="SDXL">SDXL</option>
+                            <option value="Pony">Pony</option>
+                            <option value="Flux">Flux</option>
+                        </select>
+
+                        <select
+                            className="preset-arch-select"
+                            value={presetSort}
+                            onChange={(e) => setPresetSort(e.target.value as "favorites" | "newest" | "alpha")}
+                        >
+                            <option value="favorites">⭐ Favorites First</option>
+                            <option value="newest">Newest</option>
+                            <option value="alpha">A-Z Title</option>
+                        </select>
+                    </div>
+
+                    {/* Character Groups Grid */}
+                    {presetsLoading ? (
+                        <div className="preset-empty-state">
+                            <div className="preset-empty-icon"><Icons.Bookmark /></div>
+                            <div className="preset-empty-title">Memuat Karakter Preset...</div>
+                        </div>
+                    ) : characterGroups.length === 0 ? (
+                        <div className="preset-empty-state">
+                            <div className="preset-empty-icon"><Icons.Bookmark /></div>
+                            <div className="preset-empty-title">Tidak ada karakter ditemukan</div>
+                            <div className="preset-empty-desc">Coba sesuaikan kata kunci atau filter kategori.</div>
+                        </div>
+                    ) : (
+                        <div className="studio-library-char-grid">
+                            {characterGroups.map((group) => (
+                                <div
+                                    key={group.character}
+                                    className="studio-library-char-card"
+                                    onClick={() => setSelectedCharacterForModal(group.character)}
+                                >
+                                    <div className="studio-library-char-thumb">
+                                        {group.sampleImages[0] ? (
+                                            <OptimizedImage
+                                                src={group.sampleImages[0]}
+                                                alt={group.character}
+                                                thumbnail={true}
+                                                className="studio-char-cover-img"
+                                            />
+                                        ) : (
+                                            <div className="studio-char-placeholder-icon">
+                                                <Icons.Bookmark />
+                                            </div>
+                                        )}
+                                        {group.hasFavorite && (
+                                            <span className="studio-char-fav-star">⭐</span>
+                                        )}
+                                    </div>
+
+                                    <div className="studio-library-char-content">
+                                        <h4 className="studio-library-char-name">{group.character}</h4>
+                                        <div className="studio-library-char-meta">
+                                            <span className="meta-tag">{group.count} preset</span>
+                                            {group.baseModels.slice(0, 2).map((b) => (
+                                                <span key={b} className="meta-arch">{b}</span>
+                                            ))}
+                                        </div>
+                                        <div className="studio-library-char-actions">
+                                            <button
+                                                type="button"
+                                                className="studio-char-load-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (group.presets[0]) {
+                                                        handleApplyPreset(group.presets[0]);
+                                                    }
+                                                }}
+                                            >
+                                                Muat Preset Utama
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="studio-char-detail-btn"
+                                                onClick={() => setSelectedCharacterForModal(group.character)}
+                                            >
+                                                Lihat Variasi ({group.count}) →
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* SNAPSHOTS & HISTORY DRAWER */}
             {isHistoryDrawerOpen && (

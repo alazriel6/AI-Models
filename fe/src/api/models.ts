@@ -269,3 +269,28 @@ export async function uploadPresetSampleImageApi(file: File): Promise<{ url: str
     }
     return res.json();
 }
+
+export interface BooruTag {
+    id: number;
+    name: string;
+    category: "general" | "character" | "artist" | "quality" | "meta" | string;
+    layer?: string;
+    post_count: string;
+    count_num: number;
+    description: string;
+}
+
+export async function getBooruTagsApi(
+    q?: string,
+    category?: string,
+    limit: number = 10,
+    layer?: string
+): Promise<BooruTag[]> {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (category && category !== "all") params.set("category", category);
+    if (layer && layer !== "all") params.set("layer", layer);
+    params.set("limit", String(limit));
+
+    return apiFetch<BooruTag[]>(`/booru-tags?${params.toString()}`);
+}

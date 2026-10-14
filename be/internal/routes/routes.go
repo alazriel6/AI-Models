@@ -18,6 +18,7 @@ type RouteHandlers struct {
 	BackupHandler       *handlers.BackupHandler
 	PromptPresetHandler *handlers.PromptPresetHandler
 	ThumbnailHandler    *handlers.ThumbnailHandler
+	BooruTagHandler     *handlers.BooruTagHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -123,6 +124,11 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			promptPresets.POST("/upload-sample", h.PromptPresetHandler.UploadSampleImage)
 			promptPresets.PUT("/:id", h.PromptPresetHandler.UpdatePreset)
 			promptPresets.DELETE("/:id", h.PromptPresetHandler.DeletePreset)
+		}
+
+		// Danbooru & Booru Tags Autocomplete
+		if h.BooruTagHandler != nil {
+			api.GET("/booru-tags", h.BooruTagHandler.GetTags)
 		}
 	}
 }

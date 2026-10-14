@@ -83,6 +83,11 @@ export function LandingFooter() {
                 </Link>
               </li>
               <li>
+                <Link to="/anime-prompt-studio" className="mg-footer-link">
+                  Anime Prompt Studio
+                </Link>
+              </li>
+              <li>
                 <Link to="/inspector" className="mg-footer-link">
                   Metadata Inspector
                 </Link>

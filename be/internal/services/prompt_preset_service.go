@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/alazriel6/models-guide/backend/internal/models"
@@ -75,13 +76,16 @@ func (s *PromptPresetService) Delete(id uint) error {
 
 // SeedInitialPresets pre-populates the database with rich anime, realistic, modular, and character presets
 func (s *PromptPresetService) SeedInitialPresets() {
-	var count int64
-	s.db.Model(&models.PromptPreset{}).Count(&count)
-	if count > 0 {
-		return
+	var modularCount int64
+	s.db.Model(&models.PromptPreset{}).Where("preset_type = ?", "modular").Count(&modularCount)
+	if modularCount == 0 {
+		s.seedModularTags()
 	}
 
-	seeds := []models.PromptPreset{
+	var fullCount int64
+	s.db.Model(&models.PromptPreset{}).Where("preset_type = ? AND is_system = ?", "full", true).Count(&fullCount)
+	if fullCount < 4 {
+		seeds := []models.PromptPreset{
 		// Anime Character: Rio Tsukatsuki
 		{
 			Title:            "Rio Tsukatsuki (Millennium President)",
@@ -291,6 +295,167 @@ func (s *PromptPresetService) SeedInitialPresets() {
 	}
 
 	for _, p := range seeds {
+		s.db.Create(&p)
+	}
+	}
+}
+
+func (s *PromptPresetService) seedModularTags() {
+	type tagItem struct {
+		Subcat   string
+		Subgroup string
+		Tag      string
+	}
+
+	tags := []tagItem{
+		// 1. Quality & Style
+		{"quality", "", "(anime_coloring:1.15)"},
+		{"quality", "", "masterpiece"},
+		{"quality", "", "newest"},
+		{"quality", "", "best quality"},
+		{"quality", "", "highres"},
+		{"quality", "", "absurdres"},
+		{"quality", "", "amazing quality"},
+		{"quality", "", "illustration"},
+		{"quality", "", "cel shading"},
+
+		// 2. LoRA & Character Identity
+		{"identity", "", "1girl"},
+		{"identity", "", "solo"},
+		{"identity", "", "red eyes"},
+		{"identity", "", "emerald eyes"},
+		{"identity", "", "glowing eyes"},
+		{"identity", "", "halo"},
+		{"identity", "", "elf ears"},
+		{"identity", "", "silver hair"},
+		{"identity", "", "black hair"},
+		{"identity", "", "intricate braided crown updo"},
+		{"identity", "", "long braided ponytail"},
+		{"identity", "", "loose framing side tendrils"},
+		{"identity", "", "bangs"},
+		{"identity", "", "elegant hairstyle"},
+
+		// 3. Proportions
+		{"proportions", "Tubuh", "tall female"},
+		{"proportions", "Tubuh", "mature"},
+		{"proportions", "Tubuh", "petite"},
+		{"proportions", "Tubuh", "slender"},
+		{"proportions", "Tubuh", "athletic build"},
+		{"proportions", "Tubuh", "hourglass figure"},
+		{"proportions", "Tubuh", "large breasts"},
+		{"proportions", "Tubuh", "slender waist"},
+		{"proportions", "Tubuh", "toned stomach"},
+		{"proportions", "Tubuh", "wide hips"},
+		{"proportions", "Tangan & Kaki", "thick thighs"},
+		{"proportions", "Tangan & Kaki", "long legs"},
+		{"proportions", "Tangan & Kaki", "thigh gap"},
+		{"proportions", "Tangan & Kaki", "slender fingers"},
+		{"proportions", "Tangan & Kaki", "delicate hands"},
+		{"proportions", "Tangan & Kaki", "manicured nails"},
+		{"proportions", "Tangan & Kaki", "sharp fingernails"},
+
+		// 4. Details
+		{"details", "", "sweat"},
+		{"details", "", "glistening skin"},
+		{"details", "", "sweatdrops on neck and collarbone"},
+		{"details", "", "wet skin"},
+		{"details", "", "shiny skin texture"},
+		{"details", "", "pale skin"},
+		{"details", "", "sun-kissed tan"},
+		{"details", "", "slight blush"},
+		{"details", "", "heavy breathing"},
+		{"details", "", "tears"},
+		{"details", "", "battle damage"},
+
+		// 5. Expression
+		{"expression", "", "melancholic intense expression"},
+		{"expression", "", "focused fierce expression"},
+		{"expression", "", "slightly parted lips"},
+		{"expression", "", "intense gaze"},
+		{"expression", "", "smirk"},
+		{"expression", "", "gentle smile"},
+		{"expression", "", "crying"},
+		{"expression", "", "emotionless"},
+
+		// 6. Outfit
+		{"outfit", "", "ornate Victorian gothic black dress"},
+		{"outfit", "", "sheer lace sleeves"},
+		{"outfit", "", "tight corset bodice"},
+		{"outfit", "", "high-slit velvet skirt showing legs"},
+		{"outfit", "", "sheer black thigh-high stockings"},
+		{"outfit", "", "stiletto heels"},
+		{"outfit", "", "white fantasy ranger tunic"},
+		{"outfit", "", "leather corset"},
+		{"outfit", "", "detached sleeves"},
+		{"outfit", "", "fingerless gloves"},
+		{"outfit", "", "thigh-high boots"},
+		{"outfit", "", "capelet"},
+
+		// 7. Pose
+		{"pose", "", "theatrical standing pose"},
+		{"pose", "", "dynamic combat stance"},
+		{"pose", "", "standing dramatically in front of a massive pipe organ"},
+		{"pose", "", "standing on a giant mossy tree root"},
+		{"pose", "", "one arm raised conducting invisible music"},
+		{"pose", "", "holding a glowing crimson violin"},
+		{"pose", "", "drawing a glowing magic bow"},
+		{"pose", "", "holding crystal arrows"},
+		{"pose", "", "sitting on throne"},
+
+		// 8. Camera
+		{"camera", "", "full body"},
+		{"camera", "", "wide shot"},
+		{"camera", "", "distant shot"},
+		{"camera", "", "environmental portrait"},
+		{"camera", "", "full length view"},
+		{"camera", "", "low angle view"},
+		{"camera", "", "high angle"},
+		{"camera", "", "dynamic dutch angle"},
+		{"camera", "", "tilted camera frame"},
+		{"camera", "", "leading lines composition"},
+		{"camera", "", "cowboy shot"},
+		{"camera", "", "close-up"},
+
+		// 9. Background
+		{"background", "Indoor / Gothic", "indoor"},
+		{"background", "Indoor / Gothic", "abandoned gothic cathedral"},
+		{"background", "Indoor / Gothic", "giant shattered stained-glass window behind her"},
+		{"background", "Indoor / Gothic", "overgrown ruins"},
+		{"background", "Outdoor / Hutan", "outdoor"},
+		{"background", "Outdoor / Hutan", "ancient mystical forest"},
+		{"background", "Outdoor / Hutan", "dense jungle"},
+		{"background", "Outdoor / Hutan", "giant bioluminescent trees"},
+		{"background", "Outdoor / Hutan", "mossy rocks"},
+		{"background", "Outdoor / Hutan", "glowing mushrooms"},
+		{"background", "Outdoor / Hutan", "waterfall"},
+
+		// 10. Effects
+		{"effects", "", "floating dust motes"},
+		{"effects", "", "scattered sheet music flying in the air"},
+		{"effects", "", "floating glowing spores"},
+		{"effects", "", "fireflies"},
+		{"effects", "", "volumetric moonlight beams"},
+		{"effects", "", "shafts of sunlight breaking through canopy"},
+		{"effects", "", "volumetric fog"},
+		{"effects", "", "dramatic chiaroscuro lighting"},
+		{"effects", "", "cinematic lighting"},
+		{"effects", "", "tyndall effect"},
+		{"effects", "", "depth of field"},
+	}
+
+	for i, t := range tags {
+		p := models.PromptPreset{
+			Title:           t.Tag,
+			Character:       t.Tag,
+			Slug:            fmt.Sprintf("mod-%s-%d", t.Subcat, i+1),
+			Category:        "modular",
+			Subcategory:     t.Subcat,
+			PresetType:      "modular",
+			PositivePrompt:  t.Tag,
+			TriggerWords:    t.Subgroup,
+			BaseModelTarget: "All",
+			IsSystem:        true,
+		}
 		s.db.Create(&p)
 	}
 }

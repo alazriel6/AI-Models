@@ -14,6 +14,7 @@ const MetadataInspector = lazy(() => import('./components/pages/MetadataInspecto
 const PromptLab = lazy(() => import('./components/pages/PromptLab'));
 const ResolutionCalculator = lazy(() => import('./components/pages/ResolutionCalculator'));
 const LoraStack = lazy(() => import('./components/pages/LoraStack'));
+const AnimePromptStudio = lazy(() => import('./components/pages/AnimePromptStudio'));
 const About = lazy(() => import('./components/pages/About'));
 const Contact = lazy(() => import('./components/pages/Contact'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
@@ -159,7 +160,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -283,8 +284,8 @@ function AppLayout() {
                     </svg>
                   </span>
                   <span className="nav-tool-info">
-                    <span className="nav-tool-name">Prompt Lab</span>
-                    <span className="nav-tool-desc">Trigger tokens & weight studio</span>
+                    <span className="nav-tool-name">Prompt Studio &amp; Lab</span>
+                    <span className="nav-tool-desc">10-layer builder, deconstructor &amp; matrix</span>
                   </span>
                 </NavLink>
 
@@ -367,6 +368,9 @@ function AppLayout() {
             <Route path="/lora-stack" element={<LoraStack />} />
             <Route path="/lora" element={<LoraStack />} />
             <Route path="/lora-builder" element={<LoraStack />} />
+            <Route path="/anime-prompt-studio" element={<AnimePromptStudio />} />
+            <Route path="/prompt-deconstructor" element={<AnimePromptStudio />} />
+            <Route path="/deconstructor" element={<AnimePromptStudio />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />
