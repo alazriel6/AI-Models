@@ -415,5 +415,149 @@ func getExtendedBooruTagSeeds() []models.BooruTag {
 		t("hot_spring_sex", "general", "pose", "380k", 380000, "Bercinta di kolam air panas onsen"),
 		t("shower_sex", "general", "pose", "490k", 490000, "Bercinta di bawah guyuran air pancuran kamar mandi"),
 		t("bath_intimacy", "general", "pose", "520k", 520000, "Kemesraan intim bersama pasangan di dalam bak mandi busa"),
+
+		// ==========================================
+		// POPULAR & LATEST ANIME / GAME CHARACTERS (Danbooru Category: character, Layer: identity)
+		// ==========================================
+		// Zenless Zone Zero (ZZZ)
+		t("ellen_joe", "character", "identity", "380k", 380000, "Zenless Zone Zero - Victoria Housekeeping shark maid"),
+		t("miyabi_(zenless_zone_zero)", "character", "identity", "290k", 290000, "Zenless Zone Zero - Section 6 fox katana swordmaster"),
+		t("jane_doe_(zenless_zone_zero)", "character", "identity", "320k", 320000, "Zenless Zone Zero - Criminal Investigation rat Thiren femme fatale"),
+		t("zhu_yuan", "character", "identity", "260k", 260000, "Zenless Zone Zero - New Eridu Public Security Captain"),
+		t("qingyi_(zenless_zone_zero)", "character", "identity", "210k", 210000, "Zenless Zone Zero - NEPS veteran android officer with baton"),
+		t("burnice_white", "character", "identity", "190k", 190000, "Zenless Zone Zero - Sons of Calydon flamethrower bartender"),
+		t("caesar_king", "character", "identity", "220k", 220000, "Zenless Zone Zero - Sons of Calydon boss with shield"),
+		t("nicole_demara", "character", "identity", "280k", 280000, "Zenless Zone Zero - Gentle House Cunning Hares leader"),
+		t("anby_demara", "character", "identity", "240k", 240000, "Zenless Zone Zero - Electric blade Cunning Hares fighter"),
+		t("corin_wickes", "character", "identity", "160k", 160000, "Zenless Zone Zero - Anxious chainsaw maid"),
+		t("grace_howard", "character", "identity", "210k", 210000, "Zenless Zone Zero - Belobog Heavy Industries mechanic"),
+		t("rina_(zenless_zone_zero)", "character", "identity", "180k", 180000, "Zenless Zone Zero - Floating head maid with bangboo puppets"),
+
+		// Wuthering Waves (WuWa)
+		t("changli_(wuthering_waves)", "character", "identity", "340k", 340000, "Wuthering Waves - Counselor to Jinzhou magistrate with phoenix feathers"),
+		t("jinshi_(wuthering_waves)", "character", "identity", "290k", 290000, "Wuthering Waves - Magistrate of Jinzhou dragon maiden"),
+		t("yinlin_(wuthering_waves)", "character", "identity", "380k", 380000, "Wuthering Waves - Zapstring puppet master red hair investigator"),
+		t("rover_(wuthering_waves)", "character", "identity", "260k", 260000, "Wuthering Waves - Female Traveler protagonist"),
+		t("shorekeeper_(wuthering_waves)", "character", "identity", "220k", 220000, "Wuthering Waves - Black Shores guardian butterfly goddess"),
+		t("camellya_(wuthering_waves)", "character", "identity", "240k", 240000, "Wuthering Waves - Bloom Bearer vine assassin with dual personalities"),
+		t("sanhua_(wuthering_waves)", "character", "identity", "180k", 180000, "Wuthering Waves - Blindfolded ice sword bodyguard"),
+		t("danjin_(wuthering_waves)", "character", "identity", "160k", 160000, "Wuthering Waves - Havoc dual blade red ribbon fighter"),
+
+		// Genshin Impact (Latest & Top Roster)
+		t("mavuika", "character", "identity", "260k", 260000, "Genshin Impact - Pyro Archon of Natlan Habiti biker"),
+		t("xilonen", "character", "identity", "240k", 240000, "Genshin Impact - Children of Echoes ocelot forge master"),
+		t("chiori_(genshin_impact)", "character", "identity", "190k", 190000, "Genshin Impact - Inazuman fashion designer in Fontaine"),
+		t("chevreuse", "character", "identity", "170k", 170000, "Genshin Impact - Special Security Patrol musket captain"),
+		t("alhaitham", "character", "identity", "280k", 280000, "Genshin Impact - Sumeru Akademiya Scribe with dual swords"),
+		t("kazuha", "character", "identity", "340k", 340000, "Genshin Impact - Kaedehara Kazuha wandering samurai"),
+		t("kaedehara_kazuha", "character", "identity", "320k", 320000, "Genshin Impact - Anemo samurai with maple leaves"),
+		t("wanderer_(genshin_impact)", "character", "identity", "310k", 310000, "Genshin Impact - Former Scaramouche Anemo flying puppet"),
+		t("kuki_shinobu", "character", "identity", "240k", 240000, "Genshin Impact - Arataki Gang deputy ninja with mask"),
+		t("layla_(genshin_impact)", "character", "identity", "190k", 190000, "Genshin Impact - Sleepy Rtawahist astrologer"),
+		t("faruzan", "character", "identity", "160k", 160000, "Genshin Impact - 100-year senior Haravatat mechanics master"),
+
+		// Honkai: Star Rail (Latest & Penacony Stars)
+		t("feixiao", "character", "identity", "310k", 310000, "Honkai: Star Rail - Xianzhou Yaoqing General Merlin's Claw"),
+		t("yunli", "character", "identity", "190k", 190000, "Honkai: Star Rail - Zhuming sword prodigy with broadsword"),
+		t("lingha_(honkai:_star_rail)", "character", "identity", "210k", 210000, "Honkai: Star Rail - Alchemy Commission Cauldrons master incense"),
+		t("sunday_(honkai:_star_rail)", "character", "identity", "280k", 280000, "Honkai: Star Rail - The Family Oak representative with halo"),
+		t("aventurine_(honkai:_star_rail)", "character", "identity", "360k", 360000, "Honkai: Star Rail - IPC Strategic Investment gambler with dice"),
+		t("boothill_(honkai:_star_rail)", "character", "identity", "220k", 220000, "Honkai: Star Rail - Galaxy Ranger cyborg space cowboy"),
+		t("dr._ratio", "character", "identity", "290k", 290000, "Honkai: Star Rail - Intelligentsia Guild scholar with marble bust"),
+		t("huohuo", "character", "identity", "190k", 190000, "Honkai: Star Rail - Ten-Lords Commission judge with Tail spirit"),
+		t("guinaifen", "character", "identity", "180k", 180000, "Honkai: Star Rail - Xianzhou street acrobat streamer"),
+		t("tingyun", "character", "identity", "280k", 280000, "Honkai: Star Rail - Whistling Amicambassador fox beauty"),
+		t("qingque", "character", "identity", "210k", 210000, "Honkai: Star Rail - Divination Commission tile slacker"),
+
+		// Blue Archive (Top Students & Fan Favorites)
+		t("misono_mika", "character", "identity", "420k", 420000, "Blue Archive - Trinity Tea Party princess with angel wings and galaxy skirt"),
+		t("shirako_sunookami", "character", "identity", "340k", 340000, "Blue Archive - Abydos Foreclosure Task Force wolf girl"),
+		t("kuroko_(blue_archive)", "character", "identity", "260k", 260000, "Blue Archive - Shiroko Terror alternate dimension sniper"),
+		t("kisaki_(blue_archive)", "character", "identity", "380k", 380000, "Blue Archive - Shanhaijing Genryumon president in high-slit qipao"),
+		t("rio_tsukatsuki", "character", "identity", "310k", 310000, "Blue Archive - Millennium Seminar president with black ponytail and coat"),
+		t("toki_asuka", "character", "identity", "290k", 290000, "Blue Archive - C&C maid agent peace sign with power armor"),
+		t("yuuka_hayase", "character", "identity", "320k", 320000, "Blue Archive - Millennium Seminar treasurer 100kg calculator girl"),
+		t("noa_ushio", "character", "identity", "280k", 280000, "Blue Archive - Millennium Seminar secretary with notebook"),
+		t("koyuki_kurosaki", "character", "identity", "190k", 190000, "Blue Archive - Millennium Seminar mischievous hacker nihaha"),
+		t("arona_(blue_archive)", "character", "identity", "260k", 260000, "Blue Archive - Shittim Chest AI girl with blue umbrella"),
+		t("plana_(blue_archive)", "character", "identity", "240k", 240000, "Blue Archive - Alternate Shittim Chest AI girl in dark ribbons"),
+		t("alice_tendou", "character", "identity", "290k", 290000, "Blue Archive - Game Development Dept ancient weapon hero"),
+		t("midori_saiba", "character", "identity", "220k", 220000, "Blue Archive - Game Dev twin artist catgirl"),
+		t("momoi_saiba", "character", "identity", "220k", 220000, "Blue Archive - Game Dev twin writer catgirl"),
+		t("haruna_kurodate", "character", "identity", "210k", 210000, "Blue Archive - Gourmet Research Society president"),
+
+		// Nikke: Goddess of Victory
+		t("dorothy_(nikke)", "character", "identity", "340k", 340000, "Goddess of Victory: Nikke - Pioneer squad leader in paradise gown"),
+		t("anis_(nikke)", "character", "identity", "320k", 320000, "Goddess of Victory: Nikke - Counters squad energetic girl"),
+		t("rapi_(nikke)", "character", "identity", "280k", 280000, "Goddess of Victory: Nikke - Counters squad stoic leader"),
+		t("modernia_(nikke)", "character", "identity", "310k", 310000, "Goddess of Victory: Nikke - Marian reborn Heretic turned savior"),
+		t("scarlet_(nikke)", "character", "identity", "290k", 290000, "Goddess of Victory: Nikke - Wandering drunken swordswoman"),
+		t("cinderella_(nikke)", "character", "identity", "240k", 240000, "Goddess of Victory: Nikke - Anachiro glass shoes pioneer"),
+		t("red_hood_(nikke)", "character", "identity", "320k", 320000, "Goddess of Victory: Nikke - Goddess squad legendary sniper"),
+		t("elegg_(nikke)", "character", "identity", "280k", 280000, "Goddess of Victory: Nikke - BOOM electric hacker girl"),
+		t("blanc_(nikke)", "character", "identity", "260k", 260000, "Goddess of Victory: Nikke - 777 lucky white bunny showgirl"),
+		t("noir_(nikke)", "character", "identity", "290k", 290000, "Goddess of Victory: Nikke - 777 shy black bunny showgirl"),
+		t("viper_(nikke)", "character", "identity", "240k", 240000, "Goddess of Victory: Nikke - Exotic squad seductive blonde"),
+
+		// Oshi no Ko
+		t("ruby_hoshino", "character", "identity", "290k", 290000, "Oshi no Ko - B-Komachi idol daughter with single star eye"),
+		t("aqua_hoshino", "character", "identity", "280k", 280000, "Oshi no Ko - Vengeful actor son with sharp star eye"),
+		t("kana_arima", "character", "identity", "310k", 310000, "Oshi no Ko - Former child actress B-Komachi center beret"),
+		t("akane_kurokawa", "character", "identity", "290k", 290000, "Oshi no Ko - Genius method actress with analytical eye"),
+		t("mem-cho", "character", "identity", "190k", 190000, "Oshi no Ko - Horn wearing YouTuber B-Komachi member"),
+
+		// Bocchi the Rock!
+		t("nijika_ijichi", "character", "identity", "240k", 240000, "Bocchi the Rock! - Kessoku Band drummer with side ponytail and dorito"),
+		t("ryo_yamada", "character", "identity", "220k", 220000, "Bocchi the Rock! - Eccentric bassist eating grass"),
+		t("ikuyo_kita", "character", "identity", "260k", 260000, "Bocchi the Rock! - Kitaura radiant red hair vocalist"),
+		t("kikuri_hiroi", "character", "identity", "210k", 210000, "Bocchi the Rock! - SICK HACK drunken bassist with braided hair"),
+
+		// Hololive Vtubers
+		t("shirakami_fubuki", "character", "identity", "420k", 420000, "Hololive JP - White fox otaku vtuber"),
+		t("minato_aqua", "character", "identity", "380k", 380000, "Hololive JP - Onion hair gaming maid vtuber"),
+		t("inugami_korone", "character", "identity", "340k", 340000, "Hololive JP - Energetic boxer dog girl yubi yubi"),
+		t("nekomata_okayu", "character", "identity", "290k", 290000, "Hololive JP - Relaxed purple catgirl onigiri lover"),
+		t("sakura_miko", "character", "identity", "360k", 360000, "Hololive JP - Elite shrine maiden miko"),
+		t("mori_calliope", "character", "identity", "320k", 320000, "Hololive EN - Grim reaper rapper with pink hair"),
+		t("takanashi_kiara", "character", "identity", "260k", 260000, "Hololive EN - Phoenix restaurant manager"),
+		t("ninomae_ina'nis", "character", "identity", "310k", 310000, "Hololive EN - Ancient Ones priestess tako girl"),
+		t("kobo_kanaeru", "character", "identity", "380k", 380000, "Hololive ID - Rain shaman energetic blue haired girl"),
+		t("fuwawa_abyssgard", "character", "identity", "280k", 280000, "Hololive EN - Advent twin fluffian dog guard"),
+		t("mococo_abyssgard", "character", "identity", "280k", 280000, "Hololive EN - Advent twin mococe dog guard"),
+
+		// Touhou Project (Danbooru Classics)
+		t("reimu_hakurei", "character", "identity", "890k", 890000, "Touhou Project - Shrine Maiden of Paradise red ribbon gohei"),
+		t("marisa_kirisame", "character", "identity", "820k", 820000, "Touhou Project - Ordinary Magician with mini-hakkero and broom"),
+		t("sakuya_izayoi", "character", "identity", "740k", 740000, "Touhou Project - Chief Maid of Scarlet Devil Mansion with knives and pocket watch"),
+		t("remilia_scarlet", "character", "identity", "680k", 680000, "Touhou Project - Scarlet Devil vampire mistress with bat wings"),
+		t("flandre_scarlet", "character", "identity", "790k", 790000, "Touhou Project - Four of a Kind crystal rainbow wings vampire"),
+		t("youmu_konpaku", "character", "identity", "620k", 620000, "Touhou Project - Half-human half-phantom gardener with dual katanas"),
+		t("yuyuko_saigyouji", "character", "identity", "490k", 490000, "Touhou Project - Ghost princess of Hakugyokurou with butterfly fan"),
+		t("cirno", "character", "identity", "580k", 580000, "Touhou Project - Strongest ice fairy with icicle wings"),
+		t("koishi_komeiji", "character", "identity", "650k", 650000, "Touhou Project - Subconscious closed third eye satori girl with phone cord"),
+		t("satori_komeiji", "character", "identity", "480k", 480000, "Touhou Project - Mind reader third eye Palace of Earth Spirits mistress"),
+
+		// Fate Series Top Servants
+		t("morgan_le_fay_(fate)", "character", "identity", "340k", 340000, "Fate/Grand Order - Lostbelt Faerie Queen in crown and veil"),
+		t("baobhan_sith_(fate)", "character", "identity", "290k", 290000, "Fate/Grand Order - Fairy Knight Tristan red high heels archer"),
+		t("barghest_(fate)", "character", "identity", "260k", 260000, "Fate/Grand Order - Fairy Knight Gawain tall muscular knight"),
+		t("kama_(fate)", "character", "identity", "340k", 340000, "Fate/Grand Order - Assassin god of love Mara"),
+		t("ereshkigal_(fate)", "character", "identity", "380k", 380000, "Fate/Grand Order - Underworld goddess blonde twin tails"),
+		t("ishtar_(fate)", "character", "identity", "360k", 360000, "Fate/Grand Order - Goddess of Venus with Maanna boat"),
+		t("tamamo_no_mae_(fate)", "character", "identity", "410k", 410000, "Fate/EXTRA - Fox shrine maiden caster mikon"),
+		t("okita_souji_(fate)", "character", "identity", "390k", 390000, "Fate/Grand Order - Shinsengumi first unit captain haori"),
+		t("gilgamesh_(fate)", "character", "identity", "420k", 420000, "Fate/stay night - King of Heroes Gate of Babylon"),
+
+		// Anime & Game Staples
+		t("emilia_(re:zero)", "character", "identity", "420k", 420000, "Re:Zero - Silver half-elf heroine with Puck spirit"),
+		t("rem_(re:zero)", "character", "identity", "780k", 780000, "Re:Zero - Blue haired demon maid with morningstar"),
+		t("ram_(re:zero)", "character", "identity", "380k", 380000, "Re:Zero - Pink haired twin maid"),
+		t("echidna_(re:zero)", "character", "identity", "260k", 260000, "Re:Zero - Witch of Greed with white lashes and butterflies"),
+		t("megumin", "character", "identity", "580k", 580000, "KonoSuba - Crimson Demon explosion archmage with eyepatch"),
+		t("aqua_(konosuba)", "character", "identity", "490k", 490000, "KonoSuba - Useless water goddess with hagoromo sash"),
+		t("holo", "character", "identity", "380k", 380000, "Spice and Wolf - Wise Wolf of Yoitsu with wheat pouch"),
+		t("senjougahara_hitagi", "character", "identity", "340k", 340000, "Monogatari - Tsundere crab stationery weapon girl"),
+		t("shinobu_oshino", "character", "identity", "460k", 460000, "Monogatari - Former Iron-blooded vampire donut lover in helmet"),
+		t("c.c._(code_geass)", "character", "identity", "480k", 480000, "Code Geass - Immortal green haired witch pizza lover"),
 	}
 }

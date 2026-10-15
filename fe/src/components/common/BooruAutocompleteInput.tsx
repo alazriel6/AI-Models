@@ -16,6 +16,7 @@ export interface BooruAutocompleteInputProps {
     as?: "input" | "textarea";
     rows?: number;
     layer?: string;
+    category?: string;
     customDbTags?: { name: string; category?: string; layer?: string }[];
     onKeyDown?: (e: React.KeyboardEvent<any>) => void;
     autoFocus?: boolean;
@@ -34,6 +35,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
     as = "input",
     rows = 3,
     layer,
+    category,
     customDbTags = [],
     onKeyDown,
     autoFocus = false,
@@ -76,12 +78,12 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
         };
     }, []);
 
-    // Immediately purge cache and close autocomplete popover when 18+ mode changes
+    // Immediately purge cache and close autocomplete popover when 18+ mode or category filter changes
     useEffect(() => {
         cacheRef.current.clear();
         setSuggestions([]);
         setIsOpen(false);
-    }, [effectiveNsfw]);
+    }, [effectiveNsfw, category]);
 
     // Get current HTML element based on type
     const getInputElement = (): HTMLInputElement | HTMLTextAreaElement | null => {
@@ -114,7 +116,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                 return;
             }
 
-            const cacheKey = `${layer || "all"}:${query}:${effectiveNsfw ? "nsfw" : "sfw"}`;
+            const cacheKey = `${layer || "all"}:${category || "all"}:${query}:${effectiveNsfw ? "nsfw" : "sfw"}`;
 
             // Fast path: check query cache
             if (cacheRef.current.has(cacheKey)) {
@@ -142,8 +144,8 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                     }
                     abortControllerRef.current = new AbortController();
 
-                    // Query PostgreSQL DB across all tags so all matching Danbooru tags appear
-                    const dbResults = await getBooruTagsApi(query, undefined, 14);
+                    // Query PostgreSQL DB with optional category filter (e.g. "character" for character-only mode)
+                    const dbResults = await getBooruTagsApi(query, category, 14);
 
                     let mapped: BooruTagItem[] = dbResults.map((t) => ({
                         name: t.name,
@@ -224,7 +226,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                 }
             }, 100);
         },
-        [customDbTags, layer, effectiveNsfw]
+        [customDbTags, layer, category, effectiveNsfw]
     );
 
     // Apply selected tag into the text

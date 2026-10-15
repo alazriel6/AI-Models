@@ -87,6 +87,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     // Danbooru Catalog Drawer & Layer Tag Modal States
     const [showDanbooruCatalog, setShowDanbooruCatalog] = useState<boolean>(false);
     const [catalogTargetLayer, setCatalogTargetLayer] = useState<string>("all");
+    const [catalogTargetCategory, setCatalogTargetCategory] = useState<string>("all");
+    const [identityMode, setIdentityMode] = useState<"general" | "character">("general");
     const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
     const [modalLayerDetail, setModalLayerDetail] = useState<{ id: string; title: string; chips: any[] } | null>(null);
     const [layerModalSearch, setLayerModalSearch] = useState<string>("");
@@ -555,14 +557,41 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     )}
                                 </div>
 
+                                {/* Identity Mode Switcher for Modular 2 (Keeps 1 Modular, switches between General & Character-Only) */}
+                                {cat.id === "identity" && (
+                                    <div className="aps-identity-mode-switcher">
+                                        <button
+                                            type="button"
+                                            className={`aps-id-mode-btn ${identityMode === "general" ? "active" : ""}`}
+                                            onClick={() => setIdentityMode("general")}
+                                            title="Tampilkan ciri fisik umum (rambut, mata, bentuk wajah)"
+                                        >
+                                            🌐 Ciri & Rambut (Umum)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`aps-id-mode-btn ${identityMode === "character" ? "active" : ""}`}
+                                            onClick={() => setIdentityMode("character")}
+                                            title="Hanya cari & tampilkan karakter Danbooru"
+                                        >
+                                            👤 Karakter Danbooru Saja
+                                        </button>
+                                    </div>
+                                )}
+
                                 <BooruAutocompleteInput
                                     as="input"
                                     className="aps-cat-input"
-                                    placeholder={cat.placeholder}
+                                    placeholder={
+                                        cat.id === "identity" && identityMode === "character"
+                                            ? "Ketik nama karakter Danbooru (misal: frieren, raiden_shogun, mika, 2b)..."
+                                            : cat.placeholder
+                                    }
                                     value={currentVal}
                                     onChange={(val) => onInputChange(cat.id, val)}
                                     customDbTags={categoryCustomDbTags}
                                     layer={cat.id}
+                                    category={cat.id === "identity" && identityMode === "character" ? "character" : undefined}
                                     isNsfwEnabled={isNsfwEnabled}
                                 />
 
@@ -607,72 +636,102 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     </div>
                                 )}
 
-                                {/* Quick-Tag Chips Section */}
-                                <div className="aps-chips-section">
-                                    <div className="aps-chips-label-row">
-                                        <div className="aps-chips-label-left">
-                                            <span style={{ color: "#94a3b8" }}>
-                                                Quick-Tag Chips ({totalChipsCount}):
-                                            </span>
+                                {/* Character Mode Danbooru Panel or Normal Quick-Tag Chips Section */}
+                                {cat.id === "identity" && identityMode === "character" ? (
+                                    <div className="aps-char-mode-danbooru-panel">
+                                        <div className="aps-char-danbooru-info">
+                                            <span className="aps-char-danbooru-icon">👤</span>
+                                            <div className="aps-char-danbooru-text-col">
+                                                <span className="aps-char-danbooru-title">
+                                                    Mode Karakter Danbooru Database ({booruStats?.categories?.character ? `${booruStats.categories.character}+ Karakter` : "218+ Karakter"})
+                                                </span>
+                                                <span className="aps-char-danbooru-desc">
+                                                    Semua karakter diambil langsung dari database Danbooru tanpa quick-tags bertumpuk. Ketik nama karakter di kolom input atas untuk autokomplit instan, atau buka katalog untuk menjelajah.
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="aps-char-danbooru-actions">
                                             <button
                                                 type="button"
-                                                className="aps-add-chip-trigger"
+                                                className="aps-char-danbooru-btn-primary"
                                                 onClick={() => {
-                                                    if (addingTagCatId === cat.id) {
-                                                        setAddingTagCatId(null);
-                                                    } else {
-                                                        setAddingTagCatId(cat.id);
-                                                        setNewTagInput("");
-                                                        setNewTagSubgroup("");
-                                                    }
-                                                }}
-                                                title="Tambah quick tag baru ke database pada layer ini"
-                                            >
-                                                <span className="aps-add-chip-icon">+</span>
-                                                <span>Tambah Tag</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="aps-add-chip-trigger"
-                                                style={{ borderColor: "#2563eb", color: "#60a5fa" }}
-                                                onClick={() => {
-                                                    setCatalogTargetLayer(cat.id);
+                                                    setCatalogTargetLayer("identity");
+                                                    setCatalogTargetCategory("character");
                                                     setShowDanbooruCatalog(true);
                                                 }}
-                                                title={`Buka katalog Danbooru khusus untuk ${cat.title}`}
+                                                title="Buka katalog database Danbooru khusus karakter"
                                             >
-                                                <span>🔍 Katalog Tag{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
+                                                <span>🔍 Buka Katalog Karakter ({booruStats?.categories?.character ? `${booruStats.categories.character}+ Tag` : "218+ Tag"})</span>
                                             </button>
-                                            {totalChipsCount > 20 && (
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="aps-chips-section">
+                                        <div className="aps-chips-label-row">
+                                            <div className="aps-chips-label-left">
+                                                <span style={{ color: "#94a3b8" }}>
+                                                    Quick-Tag Chips ({totalChipsCount}):
+                                                </span>
                                                 <button
                                                     type="button"
                                                     className="aps-add-chip-trigger"
-                                                    style={{ borderColor: "#475569", color: "#94a3b8" }}
                                                     onClick={() => {
-                                                        const allChips = [...flatChips];
-                                                        subgroupChips.forEach((sg) => allChips.push(...sg.chips));
-                                                        if (isNsfwEnabled) {
-                                                            if (cat.nsfwChips) {
-                                                                allChips.push(...cat.nsfwChips.map((c) => ({ text: c, isCustom: false })));
-                                                            }
-                                                            if (cat.nsfwSubgroups) {
-                                                                cat.nsfwSubgroups.forEach((sg) =>
-                                                                    allChips.push(...sg.chips.map((c) => ({ text: c, isCustom: false })))
-                                                                );
-                                                            }
+                                                        if (addingTagCatId === cat.id) {
+                                                            setAddingTagCatId(null);
+                                                        } else {
+                                                            setAddingTagCatId(cat.id);
+                                                            setNewTagInput("");
+                                                            setNewTagSubgroup("");
                                                         }
-                                                        setModalLayerDetail({ id: cat.id, title: cat.title, chips: allChips });
                                                     }}
-                                                    title={`Buka pop-up modal semua ${totalChipsCount} tag untuk layer ${cat.title}`}
+                                                    title="Tambah quick tag baru ke database pada layer ini"
                                                 >
-                                                    <span>📋 Semua Tag ({totalChipsCount})</span>
+                                                    <span className="aps-add-chip-icon">+</span>
+                                                    <span>Tambah Tag</span>
                                                 </button>
-                                            )}
+                                                <button
+                                                    type="button"
+                                                    className="aps-add-chip-trigger"
+                                                    style={{ borderColor: "#2563eb", color: "#60a5fa" }}
+                                                    onClick={() => {
+                                                        setCatalogTargetLayer(cat.id);
+                                                        setCatalogTargetCategory("all");
+                                                        setShowDanbooruCatalog(true);
+                                                    }}
+                                                    title={`Buka katalog Danbooru khusus untuk ${cat.title}`}
+                                                >
+                                                    <span>🔍 Katalog Tag{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
+                                                </button>
+                                                {totalChipsCount > 20 && (
+                                                    <button
+                                                        type="button"
+                                                        className="aps-add-chip-trigger"
+                                                        style={{ borderColor: "#475569", color: "#94a3b8" }}
+                                                        onClick={() => {
+                                                            const allChips = [...flatChips];
+                                                            subgroupChips.forEach((sg) => allChips.push(...sg.chips));
+                                                            if (isNsfwEnabled) {
+                                                                if (cat.nsfwChips) {
+                                                                    allChips.push(...cat.nsfwChips.map((c) => ({ text: c, isCustom: false })));
+                                                                }
+                                                                if (cat.nsfwSubgroups) {
+                                                                    cat.nsfwSubgroups.forEach((sg) =>
+                                                                        allChips.push(...sg.chips.map((c) => ({ text: c, isCustom: false })))
+                                                                    );
+                                                                }
+                                                            }
+                                                            setModalLayerDetail({ id: cat.id, title: cat.title, chips: allChips });
+                                                        }}
+                                                        title={`Buka pop-up modal semua ${totalChipsCount} tag untuk layer ${cat.title}`}
+                                                    >
+                                                        <span>📋 Semua Tag ({totalChipsCount})</span>
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <span className="aps-chips-tip">
+                                                Klik kanan / (+) untuk bobot
+                                            </span>
                                         </div>
-                                        <span className="aps-chips-tip">
-                                            Klik kanan / (+) untuk bobot
-                                        </span>
-                                    </div>
 
                                     {/* Inline Add Tag Form for this Layer */}
                                     {addingTagCatId === cat.id && (
@@ -738,7 +797,6 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                             </span>
                                         </div>
                                     )}
-
                                     {/* Flat list of chips (Max 20 visible by default, expandable or modal popup) */}
                                     {flatChips.length > 0 && (() => {
                                         const isExpanded = !!expandedLayers[cat.id];
@@ -1025,7 +1083,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                         </>
                                     )}
                                 </div>
-                            </div>
+                            )}
+                        </div>
                         );
                     })}
                 </div>
@@ -1106,6 +1165,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 }}
                                 onClick={() => {
                                     setCatalogTargetLayer("all");
+                                    setCatalogTargetCategory("all");
                                     setShowDanbooruCatalog(true);
                                 }}
                                 title={`Buka kamus & katalog Danbooru database lengkap dengan tab 10 layer dan pencarian (${booruStats ? booruStats.total_tags.toLocaleString("id-ID") : "1.353+"} tag PostgreSQL)`}
@@ -1126,6 +1186,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                 }}
                 onInsertTag={handleInsertTagFromCatalog}
                 activeLayerId={catalogTargetLayer}
+                initialCategory={catalogTargetCategory}
                 showToast={showToast}
                 isNsfwEnabled={isNsfwEnabled}
                 onToggleNsfw={(checked) => setIsNsfwEnabled(checked)}

@@ -374,6 +374,44 @@
     border-color: #3b82f6;
 }
 
+/* Identity Category Mode Switcher (General Traits vs Character Only) */
+.aps-identity-mode-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 3px;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.aps-id-mode-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.aps-id-mode-btn:hover {
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.aps-id-mode-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.3);
+}
+
 /* Special LoRA Injector Module (Inside Category 2) */
 .aps-lora-module {
     background: #0d0f13;
@@ -1947,12 +1985,131 @@
     font-size: 11px;
     color: #64748b;
 }
-
 .aps-add-tag-modal-footer {
     display: flex;
     align-items: center;
     gap: 10px;
     margin-top: 6px;
 }
+
+/* Category 2 Character vs General Identity Mode Switcher */
+.aps-identity-mode-switcher {
+    display: inline-flex;
+    align-items: center;
+    background: #11151d;
+    border: 1px solid #1e2638;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 4px;
+    margin-bottom: 8px;
+    width: fit-content;
+}
+
+.aps-id-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 11px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aps-id-mode-btn:hover {
+    color: #f1f5f9;
+    background: #1e293b;
+}
+
+.aps-id-mode-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.35);
+}
+
+/* Character Mode Danbooru Panel in Modular 2 (Replaces 80 quick-tags) */
+.aps-char-mode-danbooru-panel {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    background: #0d1117;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.aps-char-danbooru-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 240px;
+}
+
+.aps-char-danbooru-icon {
+    font-size: 18px;
+    background: #172033;
+    border: 1px solid #2563eb;
+    color: #60a5fa;
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.aps-char-danbooru-text-col {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.aps-char-danbooru-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f1f5f9;
+}
+
+.aps-char-danbooru-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.aps-char-danbooru-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aps-char-danbooru-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    background: #2563eb;
+    border: 1px solid #3b82f6;
+    border-radius: 7px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aps-char-danbooru-btn-primary:hover {
+    background: #1d4ed8;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
+}
+
 
 

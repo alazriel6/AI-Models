@@ -18,6 +18,7 @@ interface DanbooruCatalogDrawerProps {
     showToast?: (msg: string) => void;
     isNsfwEnabled?: boolean;
     onToggleNsfw?: (enabled: boolean) => void;
+    initialCategory?: string;
 }
 
 export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
@@ -28,11 +29,12 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
     showToast,
     isNsfwEnabled: propIsNsfw,
     onToggleNsfw,
+    initialCategory,
 }) => {
     // Search, Filters & Sorting
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [selectedLayer, setSelectedLayer] = useState<string>(activeLayerId || "all");
-    const [selectedCategory, setSelectedCategory] = useState<string>("all");
+    const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || "all");
     const [sortBy, setSortBy] = useState<string>("popularity");
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [pageSize, setPageSize] = useState<number>(30);
@@ -68,13 +70,14 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
     const drawerRef = useRef<HTMLDivElement | null>(null);
     const debounceTimerRef = useRef<number | null>(null);
 
-    // Sync selectedLayer if activeLayerId changes when drawer opens
+    // Sync selectedLayer & selectedCategory when drawer opens
     useEffect(() => {
-        if (isOpen && activeLayerId) {
-            setSelectedLayer(activeLayerId);
+        if (isOpen) {
+            if (activeLayerId) setSelectedLayer(activeLayerId);
+            if (initialCategory) setSelectedCategory(initialCategory);
             setCurrentPage(1);
         }
-    }, [isOpen, activeLayerId]);
+    }, [isOpen, activeLayerId, initialCategory]);
 
     // Fetch Stats
     const fetchStats = async () => {
