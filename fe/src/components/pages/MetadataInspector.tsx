@@ -2572,7 +2572,7 @@ export default function MetadataInspector() {
 
                                     {/* Helpful Guide Card */}
                                     <div className="ai-modal-model-desc-card">
-                                        <strong>💡 Panduan Menjalankan Vision Lokal:</strong>
+                                        <strong>💡 Panduan Menjalankan Vision Lokal (Dukungan s/d 12B):</strong>
                                         <p style={{ margin: "4px 0 0 0", fontSize: 11.5, color: "#94a3b8" }}>
                                             {aiProvider === "ollama" ? (
                                                 <>
@@ -2582,10 +2582,13 @@ export default function MetadataInspector() {
                                                 </>
                                             ) : (
                                                 <>
-                                                    Buka aplikasi LM Studio, unduh model multimodal / vision (misal: Qwen2-VL atau Llama 3.2 Vision), lalu klik <strong>Start Server</strong> pada tab Local Server.
+                                                    Di LM Studio, unduh model vision <strong>4B, 7B/8B, hingga 12B</strong> (misal: <em>Qwen3-VL 8B Uncensored</em> atau <em>Qwen2.5-VL 7B/12B</em>), lalu klik <strong>Start Server</strong>.
                                                 </>
                                             )}
                                         </p>
+                                        <div style={{ marginTop: 6, fontSize: 11, color: "#93c5fd", display: "flex", alignItems: "center", gap: 5 }}>
+                                            <span>⚙️ <strong>Batas 12B & VRAM 6GB:</strong> Gambar otomatis dikompres ke 1024px, timeout diperpanjang 10 menit, dan batas 2048 token agar model 11B/12B berjalan mulus tanpa VRAM crash.</span>
+                                        </div>
                                         <div style={{ marginTop: 6, fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 5 }}>
                                             <span>🔞 <strong>Mode Full Uncensored:</strong> AI lokal diinstruksikan membedah seluruh elemen NSFW, nude, topless, pose seksual, & tag Danbooru eksplisit tanpa sensor.</span>
                                         </div>

@@ -1762,11 +1762,23 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                     loraEnabled={loraEnabled}
                     setLoraEnabled={setLoraEnabled}
                     compiledOutput={positivePrompt}
-                    onCopyOutput={handleCopyPositive}
+                    onCopyOutput={(text?: string) => {
+                        const textToCopy = text || positivePrompt;
+                        if (!textToCopy.trim()) return;
+                        navigator.clipboard.writeText(textToCopy);
+                        setCopiedKey("copy-positive");
+                        showToast("Prompt berhasil disalin ke clipboard!");
+                        setTimeout(() => setCopiedKey(null), 2000);
+                    }}
                     copied={copiedKey === "copy-positive"}
                     formatMode={modularFormatMode}
                     setFormatMode={setModularFormatMode}
-                    onSwitchToCanvas={() => handleSelectTab("canvas")}
+                    onSwitchToCanvas={(parsedText?: string) => {
+                        if (parsedText && parsedText.trim()) {
+                            setPositivePrompt(parsedText.trim());
+                        }
+                        handleSelectTab("canvas");
+                    }}
                     onSaveToPresetLibrary={handleOpenCreatePreset}
                     showToast={showToast}
                     onLoadPresetData={(newInputs, lora) => {

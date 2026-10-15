@@ -896,6 +896,299 @@
 }
 
 /* ==========================================================================
+   Model Parser Bar in Modular Studio
+   ========================================================================== */
+.aps-model-parser-bar {
+    background: #0d0f13;
+    border: 1px solid #232934;
+    border-radius: 6px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aps-model-parser-label-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.aps-model-parser-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.aps-compare-all-btn {
+    font-size: 10px;
+    font-weight: 600;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    border-radius: 4px;
+    padding: 2px 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aps-compare-all-btn:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+.aps-model-chips-scroll {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.aps-model-btn {
+    padding: 4px 8px;
+    background: #161a22;
+    border: 1px solid #272f3d;
+    border-radius: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+
+.aps-model-btn:hover {
+    border-color: #475569;
+    color: #f1f5f9;
+}
+
+.aps-model-btn.active.pony {
+    background: rgba(168, 85, 247, 0.15);
+    border-color: #a855f7;
+    color: #d8b4fe;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.illustrious {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    color: #93c5fd;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.animagine {
+    background: rgba(236, 72, 153, 0.15);
+    border-color: #ec4899;
+    color: #f472b6;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.flux {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: #10b981;
+    color: #6ee7b7;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.midjourney {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+    color: #fcd34d;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.novelai {
+    background: rgba(236, 72, 153, 0.15);
+    border-color: #ec4899;
+    color: #fbcfe8;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.sdxl {
+    background: rgba(6, 182, 212, 0.15);
+    border-color: #06b6d4;
+    color: #67e8f9;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.sd15 {
+    background: rgba(100, 116, 139, 0.2);
+    border-color: #94a3b8;
+    color: #f1f5f9;
+    font-weight: 700;
+}
+
+.aps-model-btn.active.raw {
+    background: #1e293b;
+    border-color: #64748b;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.aps-model-rule-hint {
+    font-size: 10.5px;
+    color: #64748b;
+    line-height: 1.4;
+    border-top: 1px dashed #1e2430;
+    padding-top: 4px;
+}
+
+/* Multi-Model Comparison Modal */
+.aps-multi-model-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.aps-multi-model-modal {
+    background: #111419;
+    border: 1px solid #2a3344;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 1200px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.aps-multi-model-header {
+    padding: 16px 20px;
+    background: #0d0f13;
+    border-bottom: 1px solid #232934;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aps-multi-model-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.aps-multi-model-sub {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.aps-multi-model-body {
+    padding: 18px 20px;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    background: #0a0c0f;
+}
+
+.aps-multi-model-card {
+    background: #13171e;
+    border: 1px solid #232934;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s ease;
+}
+
+.aps-multi-model-card:hover {
+    border-color: #3b82f6;
+}
+
+.aps-multi-model-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.aps-multi-model-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+}
+
+.aps-multi-model-card-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.aps-multi-model-textarea {
+    width: 100%;
+    min-height: 110px;
+    background: #090b0e;
+    border: 1px solid #1e2430;
+    border-radius: 6px;
+    padding: 10px;
+    color: #e2e8f0;
+    font-family: monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.aps-multi-model-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.aps-multi-model-btn-sm {
+    flex: 1;
+    padding: 6px 10px;
+    background: #1e2533;
+    border: 1px solid #2b3548;
+    border-radius: 5px;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.12s ease;
+}
+
+.aps-multi-model-btn-sm:hover {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.aps-normalize-tools-btn {
+    padding: 6px 10px;
+    background: #141820;
+    border: 1px solid #272f3d;
+    border-radius: 5px;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    text-align: center;
+}
+
+.aps-normalize-tools-btn:hover {
+    background: #1c222e;
+    color: #f1f5f9;
+    border-color: #3b82f6;
+}
+
+/* ==========================================================================
    2. Smart Deconstructor View
    ========================================================================== */
 
@@ -2111,5 +2404,207 @@
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.45);
 }
 
+/* ==========================================================================
+   Universal Multi-Model Prompt Transformer Styles
+   ========================================================================== */
 
+.aps-subtab-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #0d1015;
+    padding: 6px;
+    border-radius: 8px;
+    border: 1px solid #1e2430;
+    margin-bottom: 4px;
+}
 
+.aps-subtab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.aps-subtab-btn:hover {
+    color: #f1f5f9;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.aps-subtab-btn.active {
+    background: #1e293b;
+    border-color: #3b82f6;
+    color: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.aps-subtab-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.aps-detected-source-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid #1e293b;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 12px;
+}
+
+.aps-detected-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #94a3b8;
+}
+
+.aps-detected-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    background: rgba(168, 85, 247, 0.15);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 5px;
+    color: #c084fc;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+/* Transformer Output Grid */
+.aps-transformer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 14px;
+    margin-top: 6px;
+}
+
+.aps-transformer-card {
+    background: #111419;
+    border: 1px solid #232934;
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: all 0.15s ease;
+    position: relative;
+}
+
+.aps-transformer-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.aps-transformer-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.aps-transformer-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aps-transformer-format-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.aps-transformer-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f8fafc;
+}
+
+.aps-transformer-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+}
+
+.aps-transformer-card-desc {
+    font-size: 11px;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+.aps-transformer-output-box {
+    background: #090b0e;
+    border: 1px solid #1a202c;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #e2e8f0;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    max-height: 130px;
+    overflow-y: auto;
+    word-break: break-word;
+    user-select: all;
+}
+
+.aps-transformer-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+.aps-transformer-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    border: 1px solid transparent;
+}
+
+.aps-transformer-btn.primary {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.aps-transformer-btn.primary:hover {
+    background: #1d4ed8;
+}
+
+.aps-transformer-btn.secondary {
+    background: #1e2430;
+    border-color: #2e3848;
+    color: #cbd5e1;
+}
+
+.aps-transformer-btn.secondary:hover {
+    background: #283344;
+    color: #ffffff;
+}

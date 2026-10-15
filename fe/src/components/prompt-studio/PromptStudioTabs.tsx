@@ -92,11 +92,11 @@ export const PromptStudioTabs: React.FC<PromptStudioTabsProps> = ({
                     </svg>
                 </span>
                 <span className="studio-mode-label-group">
-                    <span className="studio-mode-title">Smart Deconstructor</span>
-                    <span className="studio-mode-sub">Raw prompt parser</span>
+                    <span className="studio-mode-title">Transformer &amp; Deconstructor</span>
+                    <span className="studio-mode-sub">Cross-model format converter</span>
                 </span>
                 <span className="studio-tab-badge parser">
-                    Reverse-Eng
+                    Converter
                 </span>
             </button>
 

@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     CATEGORIES,
     parseTagList,
+    compileCategoriesPrompt,
 } from "./PromptCategoriesData";
+import {
+    PROMPT_FORMATS,
+    type PromptFormatId,
+    convertPromptOffline,
+    normalizeTagForModel,
+} from "../../services/promptTransformerService";
 import {
     type PromptPreset,
     type BooruTagStats,
@@ -30,11 +37,11 @@ interface ModularStudioViewProps {
     loraEnabled: boolean;
     setLoraEnabled: (val: boolean) => void;
     compiledOutput: string;
-    onCopyOutput: () => void;
+    onCopyOutput?: (text?: string) => void;
     copied: boolean;
     formatMode: "single" | "multiline";
     setFormatMode: (mode: "single" | "multiline") => void;
-    onSwitchToCanvas: () => void;
+    onSwitchToCanvas?: (promptText?: string) => void;
     onSaveToPresetLibrary: () => void;
     showToast: (msg: string) => void;
     onLoadPresetData: (newInputs: Record<string, string>, lora?: { name: string; weight: number }) => void;
@@ -97,6 +104,16 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     );
     const [booruStats, setBooruStats] = useState<BooruTagStats | null>(null);
 
+    // Target Model Parser State (persisted to localStorage)
+    const [selectedTargetModel, setSelectedTargetModel] = useState<PromptFormatId | "raw">(() => {
+        const saved = localStorage.getItem("modular_studio_target_model");
+        if (saved) return saved as any;
+        return "pony";
+    });
+    const [showMultiModelModal, setShowMultiModelModal] = useState<boolean>(false);
+    const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
+    const [showNormalizeMenu, setShowNormalizeMenu] = useState<boolean>(false);
+
     useEffect(() => {
         getBooruTagStatsApi()
             .then((data) => setBooruStats(data))
@@ -106,7 +123,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     const handleInsertTagFromCatalog = (tag: string, targetLayer?: string) => {
         const layerId = targetLayer && targetLayer !== "all" ? targetLayer : (catalogTargetLayer !== "all" ? catalogTargetLayer : "identity");
         const currentVal = inputs[layerId] || "";
-        const cleanTag = tag.trim();
+        const cleanTag = normalizeTagForModel(tag.trim(), selectedTargetModel);
         if (!cleanTag) return;
 
         if (!currentVal.trim()) {
@@ -285,11 +302,93 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         }
     };
 
-    // Calculate approximate tokens
-    const textWithoutHeaders = compiledOutput.replace(/###.*:/g, "");
+    // Realtime Model Parsed Output for the 10 Modular Layers
+    const activeParsedOutput = useMemo(() => {
+        return compileCategoriesPrompt(
+            inputs,
+            loraEnabled ? { enabled: true, name: loraName, weight: loraWeight } : undefined,
+            formatMode,
+            selectedTargetModel,
+            { isNsfw: isNsfwEnabled }
+        );
+    }, [inputs, loraEnabled, loraName, loraWeight, formatMode, selectedTargetModel, isNsfwEnabled]);
+
+    // Multi-Model 8 Formats Comparison Matrix
+    const allModelOutputs = useMemo<Record<PromptFormatId, string>>(() => {
+        const rawJoined = compileCategoriesPrompt(
+            inputs,
+            loraEnabled ? { enabled: true, name: loraName, weight: loraWeight } : undefined,
+            "single",
+            "raw"
+        );
+        const res: Record<PromptFormatId, string> = {
+            pony: "",
+            illustrious: "",
+            animagine: "",
+            flux: "",
+            midjourney: "",
+            novelai: "",
+            sdxl_realistic: "",
+            sd15: "",
+        };
+        if (!rawJoined.trim()) return res;
+        for (const fmt of PROMPT_FORMATS) {
+            res[fmt.id] = convertPromptOffline(rawJoined, fmt.id, { isNsfw: isNsfwEnabled });
+        }
+        return res;
+    }, [inputs, loraEnabled, loraName, loraWeight, isNsfwEnabled]);
+
+    const displayOutput = activeParsedOutput;
+    const textWithoutHeaders = displayOutput.replace(/###.*:/g, "");
     const wordCount = textWithoutHeaders.split(/\s+/).filter(Boolean).length;
     const tagCount = textWithoutHeaders.split(",").filter((s) => s.trim().length > 0).length;
     const approxTokens = Math.round(wordCount * 1.35);
+
+    const handleCopyActive = () => {
+        const text = displayOutput.trim();
+        if (!text) return;
+        if (onCopyOutput) {
+            onCopyOutput(text);
+        } else {
+            navigator.clipboard.writeText(text);
+        }
+        const modelLabel = selectedTargetModel === "raw" ? "Raw Booru" : (PROMPT_FORMATS.find((f) => f.id === selectedTargetModel)?.name || selectedTargetModel);
+        showToast(`Prompt (${modelLabel}) berhasil disalin!`);
+    };
+
+    const handleSwitchCanvasActive = () => {
+        if (onSwitchToCanvas) {
+            onSwitchToCanvas(displayOutput.trim());
+        }
+    };
+
+    const handleNormalizeAllLayers = (mode: "spaces" | "underscores" | "strip_weights") => {
+        let updatedCount = 0;
+        CATEGORIES.forEach((cat) => {
+            const val = inputs[cat.id];
+            if (!val || !val.trim()) return;
+            let nextVal = val;
+            if (mode === "spaces") {
+                nextVal = val.replace(/_/g, " ");
+            } else if (mode === "underscores") {
+                nextVal = val
+                    .split(",")
+                    .map((p) => p.trim().replace(/[\s-]+/g, "_"))
+                    .join(", ");
+            } else if (mode === "strip_weights") {
+                nextVal = val
+                    .split(",")
+                    .map((p) => p.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").replace(/[{}[\]]/g, "").trim())
+                    .join(", ");
+            }
+            if (nextVal !== val) {
+                onInputChange(cat.id, nextVal);
+                updatedCount++;
+            }
+        });
+        setShowNormalizeMenu(false);
+        showToast(`Berhasil menormalisasi ${updatedCount} layer input!`);
+    };
 
     return (
         <div className="aps-modular-view-wrapper">
@@ -345,6 +444,66 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         />
                         <span>🔞 Mode NSFW (18+)</span>
                     </label>
+
+                    {/* Normalize layer inputs dropdown */}
+                    <div style={{ position: "relative" }}>
+                        <button
+                            type="button"
+                            className="aps-normalize-tools-btn"
+                            onClick={() => setShowNormalizeMenu(!showNormalizeMenu)}
+                            title="Normalisasi ejaan seluruh kolom 10 layer (spasi vs underscore)"
+                        >
+                            <span>🔄 Normalisasi Tag ▾</span>
+                        </button>
+                        {showNormalizeMenu && (
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: "100%",
+                                    right: 0,
+                                    marginTop: "4px",
+                                    background: "#111419",
+                                    border: "1px solid #283142",
+                                    borderRadius: "6px",
+                                    padding: "6px",
+                                    zIndex: 100,
+                                    width: "260px",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    gap: "4px",
+                                    boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
+                                }}
+                            >
+                                <button
+                                    type="button"
+                                    className="aps-mode-btn"
+                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    onClick={() => handleNormalizeAllLayers("spaces")}
+                                    title="Ganti semua tanda _ menjadi spasi (Standar Illustrious-XL & NovelAI)"
+                                >
+                                    🔤 Ganti _ ke Spasi (Illustrious/NAI)
+                                </button>
+                                <button
+                                    type="button"
+                                    className="aps-mode-btn"
+                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    onClick={() => handleNormalizeAllLayers("underscores")}
+                                    title="Ganti semua spasi menjadi _ (Standar Pony & Animagine)"
+                                >
+                                    _ Ganti Spasi ke _ (Pony/Animagine)
+                                </button>
+                                <button
+                                    type="button"
+                                    className="aps-mode-btn"
+                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    onClick={() => handleNormalizeAllLayers("strip_weights")}
+                                    title="Hapus tanda kurung bobot () atau {} dan jadikan tag bersih"
+                                >
+                                    🧹 Bersihkan Bobot Kurung () &amp; &#123;&#125;
+                                </button>
+                            </div>
+                        )}
+                    </div>
 
                     <button
                         type="button"
@@ -1094,7 +1253,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                     <div className="aps-output-card">
                         <div className="aps-output-header">
                             <div className="aps-output-title-group">
-                                <h3 className="aps-output-title">Live Compiled Output</h3>
+                                <h3 className="aps-output-title">Live Model Output</h3>
                                 <div className="aps-output-metrics">
                                     <span className="aps-metric-pill">~{approxTokens} tok</span>
                                     <span className="aps-metric-pill">{tagCount} tags</span>
@@ -1119,40 +1278,156 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             </div>
                         </div>
 
+                        {/* Model Parser Selector Bar */}
+                        <div className="aps-model-parser-bar">
+                            <div className="aps-model-parser-label-row">
+                                <span className="aps-model-parser-label">
+                                    🎯 Target AI Model:
+                                </span>
+                                <button
+                                    type="button"
+                                    className="aps-compare-all-btn"
+                                    onClick={() => setShowMultiModelModal(true)}
+                                    title="Buka panel perbandingan 8 model sekaligus"
+                                >
+                                    ⚡ Bandingkan 8 Model
+                                </button>
+                            </div>
+
+                            <div className="aps-model-chips-scroll">
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "pony" ? "active pony" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("pony"); localStorage.setItem("modular_studio_target_model", "pony"); }}
+                                    title="Pony Diffusion V6 XL - Auto-inject score_9 dan Danbooru _"
+                                >
+                                    🦄 Pony V6
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "illustrious" ? "active illustrious" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("illustrious"); localStorage.setItem("modular_studio_target_model", "illustrious"); }}
+                                    title="Illustrious-XL / NoobAI - Danbooru berspasi & masterpiece"
+                                >
+                                    🎨 Illustrious
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "animagine" ? "active animagine" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("animagine"); localStorage.setItem("modular_studio_target_model", "animagine"); }}
+                                    title="Animagine XL 3.1 - Danbooru _ & newest aesthetic"
+                                >
+                                    🌟 Animagine XL
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "flux" ? "active flux" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("flux"); localStorage.setItem("modular_studio_target_model", "flux"); }}
+                                    title="Flux.1 (Dev/Schnell) - Kalimat naratif bahasa Inggris alami"
+                                >
+                                    ⚡ Flux.1
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "midjourney" ? "active midjourney" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("midjourney"); localStorage.setItem("modular_studio_target_model", "midjourney"); }}
+                                    title="Midjourney V6.1 - Prosa sinematik & parameter render"
+                                >
+                                    🚀 Midjourney
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "novelai" ? "active novelai" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("novelai"); localStorage.setItem("modular_studio_target_model", "novelai"); }}
+                                    title="NovelAI V3 - Kurung kurawal {tag} & spasi"
+                                >
+                                    📖 NovelAI
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "sdxl_realistic" ? "active sdxl" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("sdxl_realistic"); localStorage.setItem("modular_studio_target_model", "sdxl_realistic"); }}
+                                    title="SDXL Photorealistic - Token DSLR & fotografi tajam"
+                                >
+                                    📷 SDXL Real
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "sd15" ? "active sd15" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("sd15"); localStorage.setItem("modular_studio_target_model", "sd15"); }}
+                                    title="Classic SD 1.5 - Koma standar & bobot WebUI"
+                                >
+                                    🏛️ SD 1.5
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "raw" ? "active raw" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("raw"); localStorage.setItem("modular_studio_target_model", "raw"); }}
+                                    title="Raw 10-Layer - Format asli tanpa transformasi"
+                                >
+                                    📝 Raw Booru
+                                </button>
+                            </div>
+
+                            <div className="aps-model-rule-hint">
+                                {selectedTargetModel === "pony" && "🦄 Auto-Inject: score_9, score_8_up... + tag Danbooru (_) + bobot (tag:1.1)"}
+                                {selectedTargetModel === "illustrious" && "🎨 Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (tanpa score_9)"}
+                                {selectedTargetModel === "animagine" && "🌟 Auto-Inject: masterpiece, newest, aesthetic + Danbooru (_) + rating:general"}
+                                {selectedTargetModel === "flux" && "⚡ Auto-Transform: Kalimat naratif deskriptif bahasa Inggris kontinu untuk Flux.1"}
+                                {selectedTargetModel === "midjourney" && "🚀 Auto-Transform: Prosa sinematik + parameter --ar 16:9 --v 6.1 --stylize 250"}
+                                {selectedTargetModel === "novelai" && "📖 Auto-Convert: Syntax kurung kurawal {tag} (1.05x), spasi kata tanpa _"}
+                                {selectedTargetModel === "sdxl_realistic" && "📷 Auto-Inject: Token fotografi tajam DSLR, 8k uhd, soft rim lighting"}
+                                {selectedTargetModel === "sd15" && "🏛️ Format Klasik WebUI: Koma standar dengan pembobotan (keyword:1.2)"}
+                                {selectedTargetModel === "raw" && "📝 Format Asli 10-Layer: Tag murni apa adanya sesuai yang dipilih"}
+                            </div>
+                        </div>
+
                         <textarea
                             className="aps-output-textarea"
                             rows={11}
-                            value={compiledOutput}
+                            value={displayOutput}
                             readOnly
-                            placeholder="Prompt yang Anda rancang dari 10 kategori akan tampil di sini secara real-time..."
+                            placeholder="Prompt yang Anda rancang dari 10 kategori akan otomatis diparse ke model yang dipilih secara real-time..."
                         />
 
                         <div className="aps-output-actions">
                             <button
                                 type="button"
                                 className="aps-copy-btn"
-                                onClick={onCopyOutput}
+                                onClick={handleCopyActive}
                             >
-                                <span>{copied ? "Berhasil Disalin!" : "Salin Prompt"}</span>
+                                <span>{copied ? "Berhasil Disalin!" : `Salin Prompt (${selectedTargetModel === "raw" ? "Raw" : selectedTargetModel})`}</span>
                             </button>
 
                             <button
                                 type="button"
                                 className="aps-canvas-switch-btn"
-                                onClick={onSwitchToCanvas}
-                                title="Buka prompt ini di Lab Canvas untuk tes token, bobot kurung, dan matrix"
+                                onClick={handleSwitchCanvasActive}
+                                title="Buka prompt terformat ini di Lab Canvas untuk tes token, bobot kurung, dan matrix"
                             >
-                                <span>Uji di Lab Canvas →</span>
+                                <span>Uji di Lab Canvas ({selectedTargetModel === "raw" ? "Raw" : selectedTargetModel}) →</span>
                             </button>
 
-                            <button
-                                type="button"
-                                className="aps-action-btn-sm"
-                                onClick={onSaveToPresetLibrary}
-                                title="Simpan sebagai Preset ke Database"
-                            >
-                                <span>Save Preset</span>
-                            </button>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <button
+                                    type="button"
+                                    className="aps-action-btn-sm"
+                                    style={{ flex: 1 }}
+                                    onClick={onSaveToPresetLibrary}
+                                    title="Simpan sebagai Preset ke Database"
+                                >
+                                    <span>Save Preset</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="aps-action-btn-sm"
+                                    style={{ flex: 1, color: "#38bdf8", borderColor: "#0284c7" }}
+                                    onClick={() => setShowMultiModelModal(true)}
+                                    title="Buka perbandingan 8 model sekaligus"
+                                >
+                                    <span>⚡ 8 Model Grid</span>
+                                </button>
+                            </div>
                         </div>
 
                         {/* Bottom Right Floating / Catalog Banner */}
@@ -1280,6 +1555,118 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                         );
                                     })}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Multi-Model Comparison Modal */}
+            {showMultiModelModal && (
+                <div
+                    className="aps-multi-model-modal-backdrop"
+                    onClick={() => setShowMultiModelModal(false)}
+                >
+                    <div
+                        className="aps-multi-model-modal"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="aps-multi-model-header">
+                            <div>
+                                <h3 className="aps-multi-model-title">
+                                    ⚡ Real-time Multi-Model Comparison (8 Target Engine)
+                                </h3>
+                                <div className="aps-multi-model-sub">
+                                    Prompt dari 10 modular layer langsung diparse sesuai sintaks database Danbooru ke masing-masing model.
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                className="booru-catalog-close-btn"
+                                onClick={() => setShowMultiModelModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="aps-multi-model-body">
+                            {PROMPT_FORMATS.map((fmt) => {
+                                const promptText = allModelOutputs[fmt.id] || "";
+                                const isCopied = copiedModelId === fmt.id;
+                                const isCurrent = selectedTargetModel === fmt.id;
+                                return (
+                                    <div
+                                        key={fmt.id}
+                                        className="aps-multi-model-card"
+                                        style={{
+                                            borderColor: isCurrent ? fmt.badgeColor : undefined,
+                                        }}
+                                    >
+                                        <div className="aps-multi-model-card-top">
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <span style={{ fontSize: "16px" }}>{fmt.icon}</span>
+                                                <span className="aps-multi-model-card-name">{fmt.name}</span>
+                                            </div>
+                                            <span
+                                                className="aps-multi-model-card-badge"
+                                                style={{
+                                                    background: `${fmt.badgeColor}22`,
+                                                    color: fmt.badgeColor,
+                                                    border: `1px solid ${fmt.badgeColor}44`,
+                                                }}
+                                            >
+                                                {isCurrent ? "✓ Model Aktif" : fmt.id}
+                                            </span>
+                                        </div>
+
+                                        <textarea
+                                            className="aps-multi-model-textarea"
+                                            value={promptText}
+                                            readOnly
+                                            rows={5}
+                                        />
+
+                                        <div className="aps-multi-model-card-actions">
+                                            <button
+                                                type="button"
+                                                className="aps-multi-model-btn-sm"
+                                                onClick={() => {
+                                                    setSelectedTargetModel(fmt.id);
+                                                    localStorage.setItem("modular_studio_target_model", fmt.id);
+                                                    showToast(`Target model aktif diubah ke ${fmt.name}`);
+                                                }}
+                                                style={isCurrent ? { background: fmt.badgeColor, color: "#fff" } : undefined}
+                                            >
+                                                {isCurrent ? "✓ Aktif" : "Pilih Model"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="aps-multi-model-btn-sm"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(promptText);
+                                                    setCopiedModelId(fmt.id);
+                                                    showToast(`Prompt untuk ${fmt.name} berhasil disalin!`);
+                                                    setTimeout(() => setCopiedModelId(null), 2000);
+                                                }}
+                                            >
+                                                {isCopied ? "✓ Disalin!" : "📋 Salin"}
+                                            </button>
+                                            {onSwitchToCanvas && (
+                                                <button
+                                                    type="button"
+                                                    className="aps-multi-model-btn-sm"
+                                                    style={{ background: "#2563eb", color: "#fff", borderColor: "#3b82f6" }}
+                                                    onClick={() => {
+                                                        setShowMultiModelModal(false);
+                                                        onSwitchToCanvas(promptText);
+                                                    }}
+                                                >
+                                                    Ke Canvas →
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

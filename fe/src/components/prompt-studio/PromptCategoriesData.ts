@@ -1,3 +1,9 @@
+import {
+    type PromptFormatId,
+    convertPromptOffline,
+    normalizeTagForModel,
+} from "../../services/promptTransformerService";
+
 export interface CategoryDefinition {
     id: string;
     num: number;
@@ -407,14 +413,16 @@ export const parseTagList = (text: string): string[] => {
         .filter(Boolean);
 };
 
-// Compile categories to single string prompt
+// Compile categories to single string prompt or model-specific format
 export const compileCategoriesPrompt = (
     inputs: Record<string, string>,
     lora?: { enabled: boolean; name: string; weight: number },
-    formatMode: "single" | "multiline" = "single"
+    formatMode: "single" | "multiline" = "single",
+    targetModel: PromptFormatId | "raw" = "raw",
+    options?: { isNsfw?: boolean }
 ): string => {
     const loraTag = lora?.enabled && lora.name.trim() ? `<lora:${lora.name.trim()}:${lora.weight.toFixed(2)}>` : "";
-    const orderedBlocks: { title: string; content: string }[] = [];
+    const orderedBlocks: { id: string; title: string; content: string }[] = [];
 
     CATEGORIES.forEach((cat) => {
         let content = (inputs[cat.id] || "").trim();
@@ -422,18 +430,80 @@ export const compileCategoriesPrompt = (
             content = content ? `${loraTag}, ${content}` : loraTag;
         }
         if (content) {
-            orderedBlocks.push({ title: cat.title, content });
+            orderedBlocks.push({ id: cat.id, title: cat.title, content });
         }
     });
 
-    if (formatMode === "multiline") {
-        return orderedBlocks.map((b) => `### ${b.title}:\n${b.content}`).join("\n\n");
-    }
-
-    return orderedBlocks
+    const rawJoined = orderedBlocks
         .map((b) => b.content)
         .filter(Boolean)
         .join(", ");
+
+    if (targetModel === "raw") {
+        if (formatMode === "multiline") {
+            return orderedBlocks.map((b) => `### ${b.title}:\n${b.content}`).join("\n\n");
+        }
+        return rawJoined;
+    }
+
+    // Model-Specific Formatting
+    if (formatMode === "single") {
+        return convertPromptOffline(rawJoined, targetModel, options);
+    }
+
+    // Multiline mode for specific model:
+    // Format each category block's tags according to the model's syntax conventions
+    const modelBlocks = orderedBlocks.map((b) => {
+        let blockContent = b.content;
+        // Don't format raw LoRA tag
+        const loraTokens: string[] = [];
+        const noLora = blockContent.replace(/<lora:[^>]+>/gi, (m) => {
+            loraTokens.push(m);
+            return "";
+        });
+
+        const formattedTags = noLora
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+            .map((t) => normalizeTagForModel(t, targetModel))
+            .filter(Boolean);
+
+        const joinedBlock = [...formattedTags, ...loraTokens].join(", ");
+        return `### ${b.title}:\n${joinedBlock}`;
+    });
+
+    // For models with special quality prefix, prepend a header block if quality wasn't manually set
+    let prefixHeader = "";
+    const isNsfw = options?.isNsfw ?? /nsfw|explicit|sex|penetration|nude/i.test(rawJoined);
+    if (targetModel === "pony") {
+        prefixHeader = `### 🌟 Model Quality Prefix (Pony V6 Score):\n${
+            isNsfw
+                ? "score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, rating:explicit, masterpiece, best quality, ultra-detailed"
+                : "score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, rating:safe, masterpiece, best quality, ultra-detailed"
+        }\n\n`;
+    } else if (targetModel === "illustrious") {
+        prefixHeader = `### 🌟 Model Quality Prefix (Illustrious-XL):\n${
+            isNsfw
+                ? "masterpiece, best quality, very aesthetic, ultra-detailed, nsfw, explicit"
+                : "masterpiece, best quality, very aesthetic, ultra-detailed"
+        }\n\n`;
+    } else if (targetModel === "animagine") {
+        prefixHeader = `### 🌟 Model Quality Prefix (Animagine XL 3.1):\n${
+            isNsfw
+                ? "masterpiece, best quality, very aesthetic, newest, ultra-detailed, nsfw, explicit"
+                : "masterpiece, best quality, very aesthetic, newest, ultra-detailed"
+        }\n\n`;
+    } else if (targetModel === "novelai") {
+        prefixHeader = `### 🌟 Model Quality Prefix (NovelAI V3):\n${
+            isNsfw ? "{masterpiece}, {best quality}, nsfw, explicit" : "{masterpiece}, {best quality}"
+        }\n\n`;
+    } else if (targetModel === "flux" || targetModel === "midjourney") {
+        const fullProse = convertPromptOffline(rawJoined, targetModel, options);
+        return `### 🌟 Full Descriptive Narrative (${targetModel === "flux" ? "Flux.1 Prose" : "Midjourney V6.1"}):\n${fullProse}\n\n` + modelBlocks.join("\n\n");
+    }
+
+    return prefixHeader + modelBlocks.join("\n\n");
 };
 
 // Deconstruct and classify raw prompt text into the 10 visual buckets

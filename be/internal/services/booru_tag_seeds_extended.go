@@ -415,6 +415,17 @@ func getExtendedBooruTagSeeds() []models.BooruTag {
 		t("hot_spring_sex", "general", "pose", "380k", 380000, "Bercinta di kolam air panas onsen"),
 		t("shower_sex", "general", "pose", "490k", 490000, "Bercinta di bawah guyuran air pancuran kamar mandi"),
 		t("bath_intimacy", "general", "pose", "520k", 520000, "Kemesraan intim bersama pasangan di dalam bak mandi busa"),
+		t("interlocked_fingers", "general", "pose", "620k", 620000, "Jari-jemari saling bertaut erat dengan pasangan saat intim"),
+		t("on_desk", "general", "pose", "480k", 480000, "Berbaring telentang di atas meja"),
+		t("desk_sex", "general", "pose", "520k", 520000, "Hubungan intim bercinta di atas meja sekolah atau kerja"),
+		t("open_shirt", "general", "outfit", "890k", 890000, "Kemeja terbuka lebar menampakkan seluruh dada"),
+		t("unbuttoned_shirt", "general", "outfit", "710k", 710000, "Kancing kemeja dibuka memperlihatkan tubuh"),
+		t("exposed_breasts", "general", "proportions", "980k", 980000, "Payudara montok terekspos terbuka keluar dari busana"),
+		t("pink_nipples", "general", "proportions", "650k", 650000, "Puting payudara berwarna merah muda merona"),
+		t("erect_nipples", "general", "proportions", "820k", 820000, "Puting payudara menegang tegak terangsang"),
+		t("sheer_pantyhose", "general", "outfit", "610k", 610000, "Stoking pantyhose hitam tipis menerawang"),
+		t("floating_hearts", "general", "details", "780k", 780000, "Ikon simbol hati melayang di sekitar karakter"),
+		t("heart_(symbol)", "general", "details", "1.1M", 1100000, "Simbol hati mengekspresikan gairah cinta"),
 
 		// ==========================================
 		// POPULAR & LATEST ANIME / GAME CHARACTERS (Danbooru Category: character, Layer: identity)
