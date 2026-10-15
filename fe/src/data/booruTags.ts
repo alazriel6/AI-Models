@@ -5,7 +5,99 @@ export interface BooruTagItem {
     category: BooruTagCategory;
     count?: string;
     desc?: string;
+    layer?: string;
+    isNsfw?: boolean;
 }
+
+/**
+ * Checks whether a given Danbooru tag name or category is adult / 18+ / NSFW.
+ * Comprehensive regex & keyword detection covering anatomy, positions, fluids, ratings, and intimate states.
+ */
+export function isDanbooruAdultTag(tagName: string, category?: string): boolean {
+    const t = (tagName || "").toLowerCase();
+    const c = (category || "").toLowerCase();
+
+    return (
+        c === "nsfw" ||
+        t === "nsfw" ||
+        t.includes("nsfw") ||
+        t.includes("explicit") ||
+        t.includes("r-18") ||
+        t.includes("r18") ||
+        t.includes("suggestive") ||
+        t.includes("erotic") ||
+        t.includes("ecchi") ||
+        t.includes("hentai") ||
+        t.includes("nude") ||
+        t.includes("nipple") ||
+        t.includes("breast") ||
+        t.includes("boob") ||
+        t.includes("areola") ||
+        t.includes("cleavage") ||
+        t.includes("pussy") ||
+        t.includes("penis") ||
+        t.includes("sex") ||
+        t.includes("cowgirl") ||
+        t.includes("missionary") ||
+        t.includes("doggy") ||
+        t.includes("doggystyle") ||
+        t.includes("ahegao") ||
+        t.includes("cum") ||
+        t.includes("anal") ||
+        t.includes("anus") ||
+        t.includes("ass") ||
+        t.includes("buttocks") ||
+        t.includes("genital") ||
+        t.includes("fellatio") ||
+        t.includes("cunnilingus") ||
+        t.includes("masturbation") ||
+        t.includes("naked") ||
+        t.includes("erect") ||
+        t.includes("topless") ||
+        t.includes("bottomless") ||
+        t.includes("vagina") ||
+        t.includes("vulva") ||
+        t.includes("clitoris") ||
+        t.includes("labia") ||
+        t.includes("undressing") ||
+        t.includes("uncensored") ||
+        t.includes("censorship") ||
+        t.includes("orgasm") ||
+        t.includes("tentacle") ||
+        t.includes("bondage") ||
+        t.includes("shibari") ||
+        t.includes("strip") ||
+        t.includes("creampie") ||
+        t.includes("ejaculation") ||
+        t.includes("sperm") ||
+        t.includes("paizuri") ||
+        t.includes("titfuck") ||
+        t.includes("deepthroat") ||
+        t.includes("oral") ||
+        t.includes("handjob") ||
+        t.includes("fingering") ||
+        t.includes("precum") ||
+        t.includes("cameltoe") ||
+        t.includes("pubic") ||
+        t.includes("spread_legs") ||
+        t.includes("spread_pussy") ||
+        t.includes("penetrat") ||
+        t.includes("straddl") ||
+        t.includes("riding") ||
+        t.includes("mating_press") ||
+        t.includes("lingerie") ||
+        t.includes("clothes_lift") ||
+        t.includes("shirt_lift") ||
+        t.includes("skirt_lift") ||
+        t.includes("pov_crotch") ||
+        t.includes("female_on_top") ||
+        t.includes("male_on_female") ||
+        t.includes("shaved_pussy") ||
+        t.includes("pussy_juice") ||
+        t.includes("saliva_trail")
+    );
+}
+
 
 export const BOORU_TAGS_DATABASE: BooruTagItem[] = [
     // --- 1. Quality & Format ---
@@ -296,6 +388,123 @@ export const BOORU_TAGS_DATABASE: BooruTagItem[] = [
     { name: "cyberpunk", category: "artist", count: "620k", desc: "Estetika teknologi tinggi futuristik dengan lampu neon" },
     { name: "steampunk", category: "artist", count: "140k", desc: "Mesin uap kuno era Victoria dengan roda gerigi tembaga" },
     { name: "retro anime 90s", category: "artist", count: "210k", desc: "Gaya animasi anime klasik tahun 1990-an dengan grain halus" },
+
+    // --- 14. Full NSFW & Adult / Hentai Danbooru Tags ---
+    // Rating & Meta
+    { name: "nsfw", category: "meta", count: "3.2M", desc: "Konten dewasa tidak aman dilihat di tempat umum" },
+    { name: "explicit", category: "meta", count: "2.8M", desc: "Tingkat rating dewasa eksplisit / uncensored" },
+    { name: "uncensored", category: "meta", count: "1.9M", desc: "Tanpa sensor mosaik pada area intim" },
+    { name: "mosaic censorship", category: "meta", count: "1.2M", desc: "Sensor mosaik piksel khas karya anime Jepang" },
+    { name: "bar censorship", category: "meta", count: "480k", desc: "Sensor balok hitam pada area intim" },
+
+    // Nudity & Breasts Anatomy
+    { name: "nude", category: "general", count: "2.4M", desc: "Tanpa busana secara menyeluruh (full telanjang)" },
+    { name: "completely nude", category: "general", count: "950k", desc: "Telanjang bulat 100% tanpa sehelai benang pun" },
+    { name: "topless", category: "general", count: "1.8M", desc: "Telanjang dada tanpa pakaian atas atau bra" },
+    { name: "bottomless", category: "general", count: "1.1M", desc: "Telanjang bagian bawah tanpa bawahan atau underwear" },
+    { name: "breasts", category: "general", count: "4.1M", desc: "Payudara wanita anime" },
+    { name: "large breasts", category: "general", count: "2.9M", desc: "Payudara ukuran besar montok" },
+    { name: "huge breasts", category: "general", count: "1.4M", desc: "Payudara ukuran sangat besar dan padat" },
+    { name: "medium breasts", category: "general", count: "1.7M", desc: "Payudara ukuran proporsional sedang" },
+    { name: "small breasts", category: "general", count: "1.1M", desc: "Payudara ukuran kecil imut" },
+    { name: "bare breasts", category: "general", count: "1.6M", desc: "Payudara terbuka bebas tanpa busana" },
+    { name: "nipples", category: "general", count: "2.2M", desc: "Puting payudara tampak jelas" },
+    { name: "prominent nipples", category: "general", count: "620k", desc: "Puting payudara menonjol terangsang" },
+    { name: "erect nipples", category: "general", count: "890k", desc: "Puting payudara mengeras tegak" },
+    { name: "pink nipples", category: "general", count: "510k", desc: "Puting payudara merah muda natural" },
+    { name: "areola", category: "general", count: "1.3M", desc: "Area areola melingkar di sekeliling puting" },
+    { name: "large areola", category: "general", count: "380k", desc: "Areola lebar dan tampak jelas" },
+    { name: "cleavage", category: "general", count: "2.1M", desc: "Belahan dada sensual" },
+    { name: "underboob", category: "general", count: "620k", desc: "Lekukan bagian bawah payudara menyembul" },
+    { name: "sideboob", category: "general", count: "490k", desc: "Belahan samping payudara terbuka" },
+    { name: "breast grab", category: "general", count: "890k", desc: "Meremas atau mencengkeram payudara" },
+    { name: "grabbing own breasts", category: "general", count: "420k", desc: "Karakter meremas kedua payudaranya sendiri" },
+    { name: "grabbing breasts", category: "general", count: "680k", desc: "Tangan pasangan meremas payudara" },
+    { name: "groping", category: "general", count: "540k", desc: "Meraba dan memegang area intim karakter" },
+    { name: "breast squeeze", category: "general", count: "490k", desc: "Menekan atau merapatkan payudara" },
+    { name: "hands on breasts", category: "general", count: "380k", desc: "Kedua tangan bertengger di atas payudara" },
+
+    // Genitals & Lower Anatomy
+    { name: "pussy", category: "general", count: "1.7M", desc: "Area kewanitaan / vulva" },
+    { name: "vaginal", category: "general", count: "1.4M", desc: "Anatomi atau penetrasi kewanitaan" },
+    { name: "clitoris", category: "general", count: "340k", desc: "Klitoris sensitif tampak jelas" },
+    { name: "labia", category: "general", count: "290k", desc: "Bibir area kewanitaan" },
+    { name: "cameltoe", category: "general", count: "420k", desc: "Garis celah intim mencetak pada pakaian ketat" },
+    { name: "pubic hair", category: "general", count: "280k", desc: "Rambut halus di area intim" },
+    { name: "shaved pussy", category: "general", count: "410k", desc: "Area kewanitaan dicukur mulus tanpa rambut" },
+    { name: "ass", category: "general", count: "1.9M", desc: "Bokong seksi montok" },
+    { name: "buttocks", category: "general", count: "890k", desc: "Pangkal pinggul dan pantat karakter" },
+    { name: "spread legs", category: "general", count: "1.2M", desc: "Kedua kaki terbuka lebar menampakkan selangkangan" },
+    { name: "thick thighs", category: "general", count: "1.4M", desc: "Paha padat montok dan seksi" },
+    { name: "navel", category: "general", count: "1.6M", desc: "Pusar perut terbuka seksi" },
+    { name: "penis", category: "general", count: "1.5M", desc: "Alat kelamin pria" },
+    { name: "erect penis", category: "general", count: "890k", desc: "Alat vital pria sedang ereksi tegak" },
+    { name: "erection", category: "general", count: "1.1M", desc: "Kondisi ereksi mengeras" },
+    { name: "large penis", category: "general", count: "480k", desc: "Alat vital pria ukuran besar perkasa" },
+    { name: "testicles", category: "general", count: "390k", desc: "Buah zakar pria" },
+
+    // Sex Poses & Positions
+    { name: "sex", category: "general", count: "2.1M", desc: "Adegan hubungan intim / bercinta" },
+    { name: "heterosexual", category: "general", count: "1.8M", desc: "Bercinta antara karakter pria dan wanita" },
+    { name: "vaginal penetration", category: "general", count: "1.3M", desc: "Penetrasi alat vital ke dalam kewanitaan" },
+    { name: "cowgirl position", category: "general", count: "720k", desc: "Posisi wanita di atas menunggangi pria (riding)" },
+    { name: "straddling", category: "general", count: "950k", desc: "Duduk mengangkang di atas tubuh pasangan" },
+    { name: "riding", category: "general", count: "650k", desc: "Wanita bergerak naik-turun menunggangi pasangan" },
+    { name: "on top", category: "general", count: "780k", desc: "Wanita berada di posisi atas pasangan" },
+    { name: "reverse cowgirl", category: "general", count: "310k", desc: "Menunggangi membelakangi wajah pria" },
+    { name: "missionary", category: "general", count: "620k", desc: "Posisi bercinta klasik wanita telentang di bawah pria" },
+    { name: "doggystyle", category: "general", count: "850k", desc: "Posisi bercinta dari arah belakang" },
+    { name: "mating press", category: "general", count: "410k", desc: "Kedua kaki wanita diangkat ke atas dada dipres rapat" },
+    { name: "standing sex", category: "general", count: "280k", desc: "Bercinta dalam posisi berdiri" },
+    { name: "breast rest", category: "general", count: "310k", desc: "Menempelkan payudara ke tubuh pasangan" },
+    { name: "fellatio", category: "general", count: "890k", desc: "Aktivitas oral seks pada pria" },
+    { name: "oral", category: "general", count: "1.1M", desc: "Aktivitas oral seks" },
+    { name: "deepthroat", category: "general", count: "390k", desc: "Oral seks mendalam ke tenggorokan" },
+    { name: "paizuri", category: "general", count: "520k", desc: "Titfuck masturbasi jepitan kedua payudara" },
+    { name: "titfuck", category: "general", count: "480k", desc: "Berhubungan di antara belahan kedua payudara" },
+    { name: "handjob", category: "general", count: "580k", desc: "Masturbasi menggunakan tangan" },
+    { name: "fingering", category: "general", count: "490k", desc: "Memasukkan jari ke area kewanitaan" },
+    { name: "cunnilingus", category: "general", count: "290k", desc: "Oral seks pada area kewanitaan" },
+    { name: "pov", category: "general", count: "1.4M", desc: "Sudut pandang orang pertama (first person perspective)" },
+    { name: "pov hands", category: "general", count: "490k", desc: "Tangan penonton/pasangan tampak di dalam layar" },
+    { name: "pov crotch", category: "general", count: "380k", desc: "Sudut pandang menghadap selangkangan pasangan" },
+    { name: "partner lying down", category: "general", count: "420k", desc: "Pasangan berbaring telentang di bawah" },
+    { name: "female on top", category: "general", count: "610k", desc: "Karakter wanita dominan di atas tubuh pria" },
+    { name: "male on female", category: "general", count: "890k", desc: "Hubungan intim pria dan wanita" },
+
+    // Fluids & Reactions
+    { name: "sweat", category: "general", count: "2.1M", desc: "Keringat membasahi kulit karakter" },
+    { name: "heavy sweat", category: "general", count: "480k", desc: "Keringat bercucuran deras setelah aktivitas panas" },
+    { name: "sweat drops", category: "general", count: "650k", desc: "Tetesan bulir keringat di wajah dan tubuh" },
+    { name: "saliva", category: "general", count: "1.1M", desc: "Air liur di bibir dan mulut karakter" },
+    { name: "drool", category: "general", count: "520k", desc: "Air liur menetes saat terangsang" },
+    { name: "saliva trail", category: "general", count: "420k", desc: "Benang saliva terentang di mulut atau kelamin" },
+    { name: "open mouth", category: "general", count: "2.8M", desc: "Mulut terbuka mendesah kenikmatan" },
+    { name: "heavy breathing", category: "general", count: "490k", desc: "Napas terengah-engah dan memburu" },
+    { name: "panting", category: "general", count: "380k", desc: "Napas tersengal kenikmatan" },
+    { name: "blush", category: "general", count: "3.9M", desc: "Pipi merona merah malu dan terangsang" },
+    { name: "deep blush", category: "general", count: "890k", desc: "Wajah memerah padam penuh gairah" },
+    { name: "flushed face", category: "general", count: "620k", desc: "Rona wajah panas tersipu gairah" },
+    { name: "ahegao", category: "general", count: "580k", desc: "Ekspresi kenikmatan ekstrem mata juling lidah menjulur" },
+    { name: "heart eyes", category: "general", count: "490k", desc: "Mata berbentuk simbol hati penuh birahi" },
+    { name: "pleasure face", category: "general", count: "680k", desc: "Ekspresi wajah menikmati kenikmatan puncak" },
+    { name: "orgasmic expression", category: "general", count: "450k", desc: "Wajah mencapai orgasme kenikmatan puncak" },
+    { name: "eyes half closed", category: "general", count: "780k", desc: "Mata setengah terpejam sayu terbuai sensasi" },
+    { name: "cum", category: "general", count: "1.9M", desc: "Cairan mani sperma" },
+    { name: "cum inside", category: "general", count: "920k", desc: "Klimaks sperma di dalam tubuh" },
+    { name: "cum in pussy", category: "general", count: "780k", desc: "Cairan mani memenuhi area intim wanita" },
+    { name: "cum on breasts", category: "general", count: "650k", desc: "Cairan mani membasahi payudara" },
+    { name: "cum on body", category: "general", count: "890k", desc: "Cairan mani mengotori kulit tubuh" },
+    { name: "cum drip", category: "general", count: "490k", desc: "Tetesan cairan kenikmatan menetes keluar" },
+    { name: "precum", category: "general", count: "310k", desc: "Cairan pelumas awal sebelum klimaks" },
+    { name: "pussy juice", category: "general", count: "420k", desc: "Cairan alami kenikmatan kewanitaan" },
+
+    // Attire State & Fetishes
+    { name: "torn clothes", category: "general", count: "480k", desc: "Pakaian robek terkoyak akibat pergulatan gairah" },
+    { name: "clothes lift", category: "general", count: "420k", desc: "Menyingkap pakaian memperlihatkan tubuh" },
+    { name: "shirt lift", category: "general", count: "620k", desc: "Mengangkat baju ke atas dada menampakkan payudara" },
+    { name: "skirt lift", category: "general", count: "780k", desc: "Mengangkat rok memperlihatkan celana dalam atau area intim" },
+    { name: "lingerie", category: "general", count: "890k", desc: "Pakaian dalam seksi berenda" },
 ];
 
 /**

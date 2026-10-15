@@ -1364,7 +1364,7 @@ export default function MetadataInspector() {
                                                             <button
                                                                 type="button"
                                                                 className="batch-card-btn-copy"
-                                                                style={{ borderColor: "rgba(168, 85, 247, 0.4)", color: "#c084fc", background: "rgba(147, 51, 234, 0.1)" }}
+                                                                style={{ borderColor: "rgba(59, 130, 246, 0.4)", color: "#60a5fa", background: "rgba(37, 99, 235, 0.1)" }}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
                                                                     handleInspectBatchItem(actualIdx);
@@ -1688,6 +1688,13 @@ export default function MetadataInspector() {
                                                 ) : (
                                                     <>⚡ LM Studio: {localModelInput || "local-model"}</>
                                                 )}
+                                            </span>
+                                            <span
+                                                className="ai-model-active-pill"
+                                                style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}
+                                                title="Sistem aktif dekonstruksi tag Danbooru NSFW / Ecchi / Hentai tanpa sensor"
+                                            >
+                                                🔞 Full NSFW & Uncensored Tags
                                             </span>
                                         </h4>
                                         <p className="ai-interrogator-desc">
@@ -2579,6 +2586,9 @@ export default function MetadataInspector() {
                                                 </>
                                             )}
                                         </p>
+                                        <div style={{ marginTop: 6, fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 5 }}>
+                                            <span>🔞 <strong>Mode Full Uncensored:</strong> AI lokal diinstruksikan membedah seluruh elemen NSFW, nude, topless, pose seksual, & tag Danbooru eksplisit tanpa sensor.</span>
+                                        </div>
                                     </div>
                                 </>
                             )}

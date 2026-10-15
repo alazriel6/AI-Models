@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
     searchBooruTags,
     extractActiveToken,
+    isDanbooruAdultTag,
     type BooruTagItem,
 } from "../../data/booruTags";
 import { getBooruTagsApi } from "../../api/models";
@@ -22,6 +23,7 @@ export interface BooruAutocompleteInputProps {
     name?: string;
     disabled?: boolean;
     style?: React.CSSProperties;
+    isNsfwEnabled?: boolean;
 }
 
 export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
@@ -39,7 +41,12 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
     name,
     disabled = false,
     style,
+    isNsfwEnabled,
 }) => {
+    const effectiveNsfw = isNsfwEnabled !== undefined
+        ? isNsfwEnabled
+        : (typeof window !== "undefined" && localStorage.getItem("modular_studio_nsfw_enabled") === "true");
+
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [suggestions, setSuggestions] = useState<BooruTagItem[]>([]);
     const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -69,6 +76,13 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
         };
     }, []);
 
+    // Immediately purge cache and close autocomplete popover when 18+ mode changes
+    useEffect(() => {
+        cacheRef.current.clear();
+        setSuggestions([]);
+        setIsOpen(false);
+    }, [effectiveNsfw]);
+
     // Get current HTML element based on type
     const getInputElement = (): HTMLInputElement | HTMLTextAreaElement | null => {
         return as === "textarea" ? textareaRef.current : inputRef.current;
@@ -93,7 +107,14 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
             const query = rawToken.toLowerCase();
             setActiveTokenInfo(tokenData);
 
-            const cacheKey = `${layer || "all"}:${query}`;
+            // If 18+ mode is disabled and the token itself is clearly NSFW (e.g. nsfw, nude, sex), immediately suppress
+            if (!effectiveNsfw && isDanbooruAdultTag(query)) {
+                setSuggestions([]);
+                setIsOpen(false);
+                return;
+            }
+
+            const cacheKey = `${layer || "all"}:${query}:${effectiveNsfw ? "nsfw" : "sfw"}`;
 
             // Fast path: check query cache
             if (cacheRef.current.has(cacheKey)) {
@@ -121,38 +142,56 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                     }
                     abortControllerRef.current = new AbortController();
 
-                    // Query PostgreSQL DB via backend API scoped to this layer if provided
-                    const dbResults = await getBooruTagsApi(query, undefined, 8, layer);
-                    const mapped: BooruTagItem[] = dbResults.map((t) => ({
+                    // Query PostgreSQL DB across all tags so all matching Danbooru tags appear
+                    const dbResults = await getBooruTagsApi(query, undefined, 14);
+
+                    let mapped: BooruTagItem[] = dbResults.map((t) => ({
                         name: t.name,
                         category: (t.category as any) || "general",
                         count: t.post_count,
                         desc: t.description,
+                        layer: t.layer,
+                        isNsfw: isDanbooruAdultTag(t.name, t.category),
                     }));
 
-                    // Blend with any user custom tags if provided
+                    // When 18+ mode is disabled, completely hide adult/NSFW tags
+                    if (!effectiveNsfw) {
+                        mapped = mapped.filter((t) => !t.isNsfw);
+                    }
+
+                    // Blend with any user custom tags if provided, but prioritize exact/prefix matches and Danbooru tags
                     let finalResults = mapped;
                     if (customDbTags.length > 0) {
-                        const normQ = query.replace(/[\s_]+/g, "");
-                        const customMatches = customDbTags
+                        const qLower = query.toLowerCase();
+                        let customMatches = customDbTags
                             .filter((cd) => {
-                                // Strictly filter by layer: if this input is for a specific layer,
-                                // do NOT allow custom tags belonging to another layer!
-                                if (layer && cd.layer && cd.layer.toLowerCase() !== layer.toLowerCase()) {
-                                    return false;
-                                }
-                                return cd.name.toLowerCase().replace(/[\s_]+/g, "").includes(normQ);
+                                const cdLower = cd.name.toLowerCase();
+                                return (
+                                    cdLower.startsWith(qLower) ||
+                                    cdLower.replace(/[\s_]+/g, " ").startsWith(qLower.replace(/[\s_]+/g, " "))
+                                );
                             })
                             .map((cd) => ({
                                 name: cd.name,
-                                category: (cd.category as any) || "general",
+                                category: (cd.category as any) || "modular",
                                 count: "Custom",
                                 desc: "Custom Studio Layer Tag",
+                                layer: cd.layer || layer,
+                                isNsfw: isDanbooruAdultTag(cd.name, cd.category),
                             }));
+
+                        if (!effectiveNsfw) {
+                            customMatches = customMatches.filter((cm) => !cm.isNsfw);
+                        }
+
+                        const prefixDb = mapped.filter((m) => m.name.toLowerCase().startsWith(qLower));
+                        const otherDb = mapped.filter((m) => !m.name.toLowerCase().startsWith(qLower));
+
                         finalResults = [
-                            ...customMatches,
-                            ...mapped.filter((m) => !customMatches.some((cm) => cm.name === m.name)),
-                        ].slice(0, 8);
+                            ...prefixDb,
+                            ...customMatches.slice(0, 2).filter((cm) => !mapped.some((m) => m.name === cm.name)),
+                            ...otherDb,
+                        ].slice(0, 10);
                     }
 
                     // Save to cache
@@ -171,7 +210,10 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                     const layerFilteredCustom = customDbTags.filter(
                         (cd) => !layer || !cd.layer || cd.layer.toLowerCase() === layer.toLowerCase()
                     );
-                    const fallbackMatches = searchBooruTags(rawToken, layerFilteredCustom, 7);
+                    let fallbackMatches = searchBooruTags(rawToken, layerFilteredCustom, 7);
+                    if (!effectiveNsfw) {
+                        fallbackMatches = fallbackMatches.filter((fm) => !isDanbooruAdultTag(fm.name, fm.category));
+                    }
                     if (fallbackMatches.length > 0) {
                         setSuggestions(fallbackMatches);
                         setActiveIndex(0);
@@ -182,7 +224,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                 }
             }, 100);
         },
-        [customDbTags, layer]
+        [customDbTags, layer, effectiveNsfw]
     );
 
     // Apply selected tag into the text
@@ -352,7 +394,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                                 <circle cx="11" cy="11" r="8" />
                                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
                             </svg>
-                            <span>Danbooru Database (1000+ Tags)</span>
+                            <span>Danbooru Database (1.350+ Tags) • PostgreSQL</span>
                         </div>
                         <span className="booru-autocomplete-shortcuts">
                             ↑↓ Navigasi • Enter/Tab Pilih • Esc Tutup
@@ -366,7 +408,7 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                             return (
                                 <li
                                     key={item.name}
-                                    className={`booru-autocomplete-item ${isSelected ? "active" : ""}`}
+                                    className={`booru-autocomplete-item ${isSelected ? "active" : ""} ${item.isNsfw ? "is-nsfw-item" : ""}`}
                                     onMouseDown={(e) => {
                                         // prevent blur before click
                                         e.preventDefault();
@@ -378,8 +420,16 @@ export const BooruAutocompleteInput: React.FC<BooruAutocompleteInputProps> = ({
                                         <span className={`booru-cat-badge ${item.category}`}>
                                             {item.category}
                                         </span>
+                                        {item.layer && (
+                                            <span className="booru-layer-badge">
+                                                {item.layer}
+                                            </span>
+                                        )}
+                                        {item.isNsfw && (
+                                            <span className="booru-nsfw-pill">🔞 18+</span>
+                                        )}
                                         <div className="booru-tag-name-wrapper">
-                                            <span className="booru-tag-name">
+                                            <span className={`booru-tag-name ${item.isNsfw ? "nsfw-text" : ""}`}>
                                                 {renderHighlightedName(item.name, activeTokenInfo?.token || "")}
                                             </span>
                                             {item.desc && (

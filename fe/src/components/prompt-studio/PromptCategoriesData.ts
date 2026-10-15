@@ -5,6 +5,8 @@ export interface CategoryDefinition {
     placeholder: string;
     subgroups?: { label: string; chips: string[] }[];
     chips?: string[];
+    nsfwChips?: string[];
+    nsfwSubgroups?: { label: string; chips: string[] }[];
 }
 
 export const CATEGORIES: CategoryDefinition[] = [
@@ -23,6 +25,16 @@ export const CATEGORIES: CategoryDefinition[] = [
             "amazing quality",
             "illustration",
             "cel shading",
+        ],
+        nsfwChips: [
+            "nsfw",
+            "explicit",
+            "uncensored",
+            "mosaic censorship",
+            "bar censorship",
+            "censor light",
+            "suggestive",
+            "erotic",
         ],
     },
     {
@@ -51,7 +63,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         id: "proportions",
         num: 3,
         title: "Proporsi Badan (Kepala, Tangan, Kaki, Tubuh)",
-        placeholder: "Bentuk badan, postur, proporsi tangan & kaki...",
+        placeholder: "Bentuk badan, postur, proporsi tangan & kaki, anatomi...",
         subgroups: [
             {
                 label: "Tubuh",
@@ -81,12 +93,61 @@ export const CATEGORIES: CategoryDefinition[] = [
                 ],
             },
         ],
+        nsfwSubgroups: [
+            {
+                label: "🔞 Payudara & Dada",
+                chips: [
+                    "nude",
+                    "completely nude",
+                    "topless",
+                    "bottomless",
+                    "bare breasts",
+                    "large breasts",
+                    "huge breasts",
+                    "gigantic breasts",
+                    "nipples",
+                    "prominent nipples",
+                    "erect nipples",
+                    "pink nipples",
+                    "areola",
+                    "large areola",
+                    "cleavage",
+                    "underboob",
+                    "sideboob",
+                    "perky breasts",
+                ],
+            },
+            {
+                label: "🔞 Area Bawah & Kelamin",
+                chips: [
+                    "pussy",
+                    "vaginal",
+                    "clitoris",
+                    "labia",
+                    "cameltoe",
+                    "pubic hair",
+                    "shaved pussy",
+                    "ass",
+                    "buttocks",
+                    "spread legs",
+                    "spread pussy",
+                    "thick thighs",
+                    "navel",
+                    "penis",
+                    "erect penis",
+                    "erection",
+                    "large penis",
+                    "testicles",
+                    "glans",
+                ],
+            },
+        ],
     },
     {
         id: "details",
         num: 4,
         title: "Detail Tambahan Karakter (Keringat, Kulit, Efek Fisik)",
-        placeholder: "Keringat, tekstur kulit, blush, efek lelah/tempur...",
+        placeholder: "Keringat, tekstur kulit, blush, efek lelah/tempur, cairan...",
         chips: [
             "sweat",
             "glistening skin",
@@ -100,12 +161,28 @@ export const CATEGORIES: CategoryDefinition[] = [
             "tears",
             "battle damage",
         ],
+        nsfwChips: [
+            "sweat",
+            "heavy sweat",
+            "sweat drops",
+            "saliva",
+            "drool",
+            "saliva trail",
+            "cum",
+            "cum inside",
+            "cum in pussy",
+            "cum on breasts",
+            "cum on body",
+            "cum drip",
+            "precum",
+            "pussy juice",
+        ],
     },
     {
         id: "expression",
         num: 5,
         title: "Ekspresi Wajah",
-        placeholder: "Mimik muka, pandangan mata, senyuman...",
+        placeholder: "Mimik muka, pandangan mata, senyuman, gairah...",
         chips: [
             "melancholic intense expression",
             "focused fierce expression",
@@ -116,12 +193,26 @@ export const CATEGORIES: CategoryDefinition[] = [
             "crying",
             "emotionless",
         ],
+        nsfwChips: [
+            "blush",
+            "deep blush",
+            "flushed face",
+            "open mouth",
+            "heavy breathing",
+            "panting",
+            "ahegao",
+            "heart eyes",
+            "pleasure face",
+            "orgasmic expression",
+            "eyes half closed",
+            "tearing up",
+        ],
     },
     {
         id: "outfit",
         num: 6,
         title: "Outfit & Aksesoris",
-        placeholder: "Gaun, korset, stocking, sarung tangan, sepatu...",
+        placeholder: "Gaun, korset, stocking, sarung tangan, lingerie...",
         chips: [
             "ornate Victorian gothic black dress",
             "sheer lace sleeves",
@@ -136,12 +227,23 @@ export const CATEGORIES: CategoryDefinition[] = [
             "thigh-high boots",
             "capelet",
         ],
+        nsfwChips: [
+            "torn clothes",
+            "clothes lift",
+            "shirt lift",
+            "skirt lift",
+            "lingerie",
+            "garter straps",
+            "bondage",
+            "blindfold",
+            "collar",
+        ],
     },
     {
         id: "pose",
         num: 7,
         title: "Pose & Interaksi Objek",
-        placeholder: "Pose berdiri, aksi tempur, memegang senjata/alat musik...",
+        placeholder: "Pose berdiri, aksi tempur, memegang senjata, bercinta...",
         chips: [
             "theatrical standing pose",
             "dynamic combat stance",
@@ -153,12 +255,55 @@ export const CATEGORIES: CategoryDefinition[] = [
             "holding crystal arrows",
             "sitting on throne",
         ],
+        nsfwSubgroups: [
+            {
+                label: "🔞 Hubungan Badan & Penetrasi",
+                chips: [
+                    "sex",
+                    "heterosexual",
+                    "vaginal penetration",
+                    "cowgirl position",
+                    "straddling",
+                    "riding",
+                    "on top",
+                    "reverse cowgirl",
+                    "missionary",
+                    "doggystyle",
+                    "mating press",
+                    "from behind",
+                    "spooning",
+                    "standing sex",
+                    "suspended congress",
+                ],
+            },
+            {
+                label: "🔞 Sentuhan, Remasan & Oral",
+                chips: [
+                    "breast rest",
+                    "breast grab",
+                    "grabbing breasts",
+                    "grabbing own breasts",
+                    "groping",
+                    "breast squeeze",
+                    "hands on breasts",
+                    "cupping breasts",
+                    "paizuri",
+                    "titfuck",
+                    "fellatio",
+                    "oral",
+                    "deepthroat",
+                    "handjob",
+                    "fingering",
+                    "cunnilingus",
+                ],
+            },
+        ],
     },
     {
         id: "camera",
         num: 8,
         title: "Kamera & View (Sudut Pandang)",
-        placeholder: "Sudut bidik, jarak shot, komposisi visual...",
+        placeholder: "Sudut bidik, jarak shot, komposisi visual, POV...",
         chips: [
             "full body",
             "wide shot",
@@ -172,6 +317,14 @@ export const CATEGORIES: CategoryDefinition[] = [
             "leading lines composition",
             "cowboy shot",
             "close-up",
+        ],
+        nsfwChips: [
+            "pov",
+            "pov hands",
+            "pov crotch",
+            "partner lying down",
+            "female on top",
+            "male on female",
         ],
     },
     {
@@ -337,7 +490,7 @@ export const deconstructPromptText = (
             return;
         }
 
-        // 2. Keyword Classification
+        // 2. Keyword Classification into 10 Modular Buckets
         if (
             lower.includes("quality") ||
             lower.includes("masterpiece") ||
@@ -348,7 +501,14 @@ export const deconstructPromptText = (
             lower.includes("anime_coloring") ||
             lower.includes("newest") ||
             lower.includes("aesthetic") ||
-            lower.includes("resolution")
+            lower.includes("resolution") ||
+            lower.includes("score_") ||
+            lower.includes("nsfw") ||
+            lower.includes("explicit") ||
+            lower.includes("uncensored") ||
+            lower.includes("censorship") ||
+            lower.includes("suggestive") ||
+            lower.includes("erotic")
         ) {
             bucketArrays.quality.push(token);
             classifiedCount++;
@@ -362,7 +522,11 @@ export const deconstructPromptText = (
             lower.includes("cowboy shot") ||
             lower.includes("close-up") ||
             lower.includes("composition") ||
-            lower.includes("frame")
+            lower.includes("frame") ||
+            lower.includes("pov") ||
+            lower.includes("female on top") ||
+            lower.includes("male on female") ||
+            lower.includes("partner lying down")
         ) {
             bucketArrays.camera.push(token);
             classifiedCount++;
@@ -375,7 +539,12 @@ export const deconstructPromptText = (
             lower.includes("emotionless") ||
             lower.includes("lips") ||
             lower.includes("mouth") ||
-            lower.includes("frown")
+            lower.includes("frown") ||
+            lower.includes("ahegao") ||
+            lower.includes("pleasure") ||
+            lower.includes("orgasmic") ||
+            lower.includes("heart eyes") ||
+            lower.includes("panting")
         ) {
             bucketArrays.expression.push(token);
             classifiedCount++;
@@ -388,11 +557,37 @@ export const deconstructPromptText = (
             lower.includes("battle damage") ||
             lower.includes("wet") ||
             lower.includes("tan") ||
-            lower.includes("collarbone")
+            lower.includes("collarbone") ||
+            lower.includes("cum") ||
+            lower.includes("precum") ||
+            lower.includes("saliva") ||
+            lower.includes("drool") ||
+            lower.includes("juice")
         ) {
             bucketArrays.details.push(token);
             classifiedCount++;
         } else if (
+            lower.includes("sex") ||
+            lower.includes("cowgirl") ||
+            lower.includes("straddling") ||
+            lower.includes("riding") ||
+            lower.includes("missionary") ||
+            lower.includes("doggystyle") ||
+            lower.includes("mating press") ||
+            lower.includes("penetration") ||
+            lower.includes("breast grab") ||
+            lower.includes("grabbing breast") ||
+            lower.includes("breast squeeze") ||
+            lower.includes("hands on breast") ||
+            lower.includes("cupping breast") ||
+            lower.includes("groping") ||
+            lower.includes("paizuri") ||
+            lower.includes("titfuck") ||
+            lower.includes("fellatio") ||
+            lower.includes("deepthroat") ||
+            lower.includes("handjob") ||
+            lower.includes("fingering") ||
+            lower.includes("cunnilingus") ||
             lower.includes("pose") ||
             lower.includes("standing") ||
             lower.includes("stance") ||
@@ -422,7 +617,15 @@ export const deconstructPromptText = (
             lower.includes("outfit") ||
             lower.includes("costume") ||
             lower.includes("uniform") ||
-            lower.includes("jacket")
+            lower.includes("jacket") ||
+            lower.includes("lingerie") ||
+            lower.includes("torn clothes") ||
+            lower.includes("clothes lift") ||
+            lower.includes("shirt lift") ||
+            lower.includes("skirt lift") ||
+            lower.includes("garter") ||
+            lower.includes("bondage") ||
+            lower.includes("collar")
         ) {
             bucketArrays.outfit.push(token);
             classifiedCount++;
@@ -468,6 +671,8 @@ export const deconstructPromptText = (
             lower.includes("ears") ||
             lower.includes("1girl") ||
             lower.includes("solo") ||
+            lower.includes("1boy") ||
+            lower.includes("2girls") ||
             lower.includes("ponytail") ||
             lower.includes("bangs") ||
             lower.includes("tendrils") ||
@@ -490,7 +695,26 @@ export const deconstructPromptText = (
             lower.includes("legs") ||
             lower.includes("fingers") ||
             lower.includes("hands") ||
-            lower.includes("nails")
+            lower.includes("nails") ||
+            lower.includes("nude") ||
+            lower.includes("topless") ||
+            lower.includes("bottomless") ||
+            lower.includes("nipple") ||
+            lower.includes("areola") ||
+            lower.includes("pussy") ||
+            lower.includes("vaginal") ||
+            lower.includes("clitoris") ||
+            lower.includes("labia") ||
+            lower.includes("cameltoe") ||
+            lower.includes("penis") ||
+            lower.includes("erect") ||
+            lower.includes("testicle") ||
+            lower.includes("spread legs") ||
+            lower.includes("underboob") ||
+            lower.includes("sideboob") ||
+            lower.includes("ass") ||
+            lower.includes("buttock") ||
+            lower.includes("navel")
         ) {
             bucketArrays.proportions.push(token);
             classifiedCount++;

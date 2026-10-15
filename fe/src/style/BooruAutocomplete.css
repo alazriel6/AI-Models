@@ -223,6 +223,49 @@
     display: inline-block;
 }
 
+.booru-layer-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: #172554;
+    border: 1px solid #1e40af;
+    color: #93c5fd;
+    flex-shrink: 0;
+}
+
+.booru-nsfw-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid #f59e0b;
+    color: #fbbf24;
+    flex-shrink: 0;
+}
+
+.booru-autocomplete-item.is-nsfw-item {
+    border-left-color: rgba(245, 158, 11, 0.4);
+}
+
+.booru-autocomplete-item.is-nsfw-item:hover,
+.booru-autocomplete-item.is-nsfw-item.active {
+    background: #191612;
+    border-left-color: #f59e0b;
+}
+
+.booru-tag-name.nsfw-text {
+    color: #fde68a;
+}
+
 /* ==========================================================================
    Danbooru Catalog Drawer (Right Side Drawer / Modal)
    ========================================================================== */
@@ -242,8 +285,8 @@
 }
 
 .booru-catalog-drawer {
-    width: 640px;
-    max-width: 95vw;
+    width: 780px;
+    max-width: 96vw;
     height: 100vh;
     background: #0d0f13;
     border-left: 1px solid #232934;

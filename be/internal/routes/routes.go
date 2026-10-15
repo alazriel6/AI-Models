@@ -128,9 +128,11 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			promptPresets.DELETE("/:id", h.PromptPresetHandler.DeletePreset)
 		}
 
-		// Danbooru & Booru Tags Autocomplete
+		// Danbooru & Booru Tags Catalog and Autocomplete
 		if h.BooruTagHandler != nil {
+			api.GET("/booru-tags/stats", h.BooruTagHandler.GetStats)
 			api.GET("/booru-tags", h.BooruTagHandler.GetTags)
+			api.POST("/booru-tags", h.BooruTagHandler.CreateTag)
 		}
 	}
 }

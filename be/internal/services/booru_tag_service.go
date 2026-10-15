@@ -75,6 +75,122 @@ func (s *BooruTagService) Search(query, category, layer string, limit int) ([]mo
 	return tags, err
 }
 
+// SearchPaginated queries booru tags with pagination, sorting, and total count for database exploration
+func (s *BooruTagService) SearchPaginated(query, category, layer, sort string, page, limit int) ([]models.BooruTag, int64, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 30
+	}
+	if page <= 0 {
+		page = 1
+	}
+	offset := (page - 1) * limit
+
+	dbQuery := s.db.Model(&models.BooruTag{})
+
+	rawQ := strings.TrimSpace(strings.ToLower(query))
+	if rawQ != "" {
+		normQ := strings.ReplaceAll(rawQ, " ", "_")
+		likeQ := "%" + normQ + "%"
+		likeRaw := "%" + rawQ + "%"
+		dbQuery = dbQuery.Where("LOWER(name) LIKE ? OR LOWER(name) LIKE ? OR LOWER(description) LIKE ?", likeQ, likeRaw, likeRaw)
+	}
+
+	if category != "" && category != "all" {
+		dbQuery = dbQuery.Where("category = ?", category)
+	}
+	if layer != "" && layer != "all" {
+		dbQuery = dbQuery.Where("(layer = ? OR layer LIKE ? OR layer LIKE ? OR layer LIKE ?)",
+			layer, layer+",%", "%,"+layer+",%", "%,"+layer)
+	}
+
+	var total int64
+	if err := dbQuery.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Order by
+	orderClause := "count_num DESC"
+	switch sort {
+	case "name_asc":
+		orderClause = "name ASC"
+	case "name_desc":
+		orderClause = "name DESC"
+	case "count_asc":
+		orderClause = "count_num ASC"
+	case "popularity":
+		orderClause = "count_num DESC"
+	default:
+		if rawQ != "" {
+			safeNormQ := strings.ReplaceAll(strings.ReplaceAll(rawQ, " ", "_"), "'", "''")
+			safeRawQ := strings.ReplaceAll(rawQ, "'", "''")
+			orderClause = fmt.Sprintf(`
+				CASE 
+					WHEN LOWER(name) = '%s' OR LOWER(name) = '%s' THEN 1
+					WHEN LOWER(name) LIKE '%s%%' OR LOWER(name) LIKE '%s%%' THEN 2
+					ELSE 3
+				END, count_num DESC
+			`, safeNormQ, safeRawQ, safeNormQ, safeRawQ)
+		} else {
+			orderClause = "count_num DESC"
+		}
+	}
+
+	var tags []models.BooruTag
+	err := dbQuery.Order(orderClause).Limit(limit).Offset(offset).Find(&tags).Error
+	return tags, total, err
+}
+
+// GetStats returns total tags count, and distribution across layers and categories
+func (s *BooruTagService) GetStats() (map[string]interface{}, error) {
+	var total int64
+	s.db.Model(&models.BooruTag{}).Count(&total)
+
+	type GroupCount struct {
+		Key   string `json:"key"`
+		Count int64  `json:"count"`
+	}
+
+	var layerCounts []GroupCount
+	s.db.Model(&models.BooruTag{}).Select("layer as key, count(*) as count").Group("layer").Find(&layerCounts)
+
+	var categoryCounts []GroupCount
+	s.db.Model(&models.BooruTag{}).Select("category as key, count(*) as count").Group("category").Find(&categoryCounts)
+
+	layerMap := make(map[string]int64)
+	for _, lc := range layerCounts {
+		if lc.Key != "" {
+			layerMap[lc.Key] = lc.Count
+		}
+	}
+
+	categoryMap := make(map[string]int64)
+	for _, cc := range categoryCounts {
+		if cc.Key != "" {
+			categoryMap[cc.Key] = cc.Count
+		}
+	}
+
+	return map[string]interface{}{
+		"total_tags": total,
+		"layers":     layerMap,
+		"categories": categoryMap,
+	}, nil
+}
+
+// CreateTag inserts or updates a Danbooru tag in the database
+func (s *BooruTagService) CreateTag(tag *models.BooruTag) error {
+	tag.Name = strings.TrimSpace(strings.ToLower(tag.Name))
+	tag.Name = strings.ReplaceAll(tag.Name, " ", "_")
+	if tag.Name == "" {
+		return fmt.Errorf("tag name cannot be empty")
+	}
+
+	return s.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "name"}},
+		DoUpdates: clause.AssignmentColumns([]string{"layer", "category", "post_count", "count_num", "description"}),
+	}).Create(tag).Error
+}
+
 // SeedInitialTags seeds over 1000 authentic Danbooru tags with layer taxonomy into PostgreSQL
 func (s *BooruTagService) SeedInitialTags() {
 	seeds := getComprehensiveBooruTagSeeds()
@@ -91,3 +207,4 @@ func (s *BooruTagService) SeedInitialTags() {
 		fmt.Printf("Successfully synced %d Booru tags with layer taxonomy into PostgreSQL database!\n", newCount)
 	}
 }
+

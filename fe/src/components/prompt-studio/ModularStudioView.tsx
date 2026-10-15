@@ -5,7 +5,9 @@ import {
 } from "./PromptCategoriesData";
 import {
     type PromptPreset,
+    type BooruTagStats,
     getPromptPresets,
+    getBooruTagStatsApi,
     createPromptPresetApi,
     deletePromptPresetApi,
 } from "../../api/models";
@@ -88,6 +90,16 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
     const [modalLayerDetail, setModalLayerDetail] = useState<{ id: string; title: string; chips: any[] } | null>(null);
     const [layerModalSearch, setLayerModalSearch] = useState<string>("");
+    const [isNsfwEnabled, setIsNsfwEnabled] = useState<boolean>(
+        () => localStorage.getItem("modular_studio_nsfw_enabled") === "true"
+    );
+    const [booruStats, setBooruStats] = useState<BooruTagStats | null>(null);
+
+    useEffect(() => {
+        getBooruTagStatsApi()
+            .then((data) => setBooruStats(data))
+            .catch((err) => console.error("Gagal memuat stats katalog Danbooru:", err));
+    }, []);
 
     const handleInsertTagFromCatalog = (tag: string, targetLayer?: string) => {
         const layerId = targetLayer && targetLayer !== "all" ? targetLayer : (catalogTargetLayer !== "all" ? catalogTargetLayer : "identity");
@@ -310,6 +322,28 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                 </div>
 
                 <div className="aps-templates-right">
+                    <label
+                        className={`aps-nsfw-toggle-pill ${isNsfwEnabled ? "active" : ""}`}
+                        title="Tampilkan pilihan tag Danbooru NSFW / 18+ pada 10 kategori modular"
+                    >
+                        <input
+                            type="checkbox"
+                            checked={isNsfwEnabled}
+                            onChange={(e) => {
+                                const checked = e.target.checked;
+                                setIsNsfwEnabled(checked);
+                                localStorage.setItem("modular_studio_nsfw_enabled", String(checked));
+                                showToast(
+                                    checked
+                                        ? "🔞 Mode NSFW aktif: Tag dewasa Danbooru ditampilkan di 10 modul!"
+                                        : "Mode SFW: Tag dewasa disembunyikan."
+                                );
+                            }}
+                            className="aps-nsfw-toggle-checkbox"
+                        />
+                        <span>🔞 Mode NSFW (18+)</span>
+                    </label>
+
                     <button
                         type="button"
                         className={`aps-action-btn-sm ${showSaveDrawer ? "active" : ""}`}
@@ -483,9 +517,15 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             }
                         }
 
+                        const nsfwChipsCount = isNsfwEnabled
+                            ? (cat.nsfwChips?.length || 0) +
+                              (cat.nsfwSubgroups?.reduce((sum, g) => sum + g.chips.length, 0) || 0)
+                            : 0;
+
                         const totalChipsCount =
                             flatChips.length +
-                            subgroupChips.reduce((sum, g) => sum + g.chips.length, 0);
+                            subgroupChips.reduce((sum, g) => sum + g.chips.length, 0) +
+                            nsfwChipsCount;
 
                         return (
                             <div
@@ -496,6 +536,9 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     <div className="aps-cat-title-group">
                                         <span className="aps-cat-number">{cat.num}</span>
                                         <h3 className="aps-cat-title">{cat.title}</h3>
+                                        {isNsfwEnabled && (cat.nsfwChips || cat.nsfwSubgroups) && (
+                                            <span className="aps-cat-nsfw-badge" title="Tersedia pilihan tag dewasa NSFW">🔞 18+</span>
+                                        )}
                                         {activeCount > 0 && (
                                             <span className="aps-cat-tag-count">{activeCount} tag</span>
                                         )}
@@ -520,6 +563,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onChange={(val) => onInputChange(cat.id, val)}
                                     customDbTags={categoryCustomDbTags}
                                     layer={cat.id}
+                                    isNsfwEnabled={isNsfwEnabled}
                                 />
 
                                 {/* Special LoRA Module for Category 2 (Identity & LoRA) */}
@@ -597,7 +641,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 }}
                                                 title={`Buka katalog Danbooru khusus untuk ${cat.title}`}
                                             >
-                                                <span>🔍 Katalog Tag</span>
+                                                <span>🔍 Katalog Tag{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
                                             </button>
                                             {totalChipsCount > 20 && (
                                                 <button
@@ -607,6 +651,16 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                     onClick={() => {
                                                         const allChips = [...flatChips];
                                                         subgroupChips.forEach((sg) => allChips.push(...sg.chips));
+                                                        if (isNsfwEnabled) {
+                                                            if (cat.nsfwChips) {
+                                                                allChips.push(...cat.nsfwChips.map((c) => ({ text: c, isCustom: false })));
+                                                            }
+                                                            if (cat.nsfwSubgroups) {
+                                                                cat.nsfwSubgroups.forEach((sg) =>
+                                                                    allChips.push(...sg.chips.map((c) => ({ text: c, isCustom: false })))
+                                                                );
+                                                            }
+                                                        }
                                                         setModalLayerDetail({ id: cat.id, title: cat.title, chips: allChips });
                                                     }}
                                                     title={`Buka pop-up modal semua ${totalChipsCount} tag untuk layer ${cat.title}`}
@@ -642,6 +696,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                     disabled={isSavingTag}
                                                     customDbTags={categoryCustomDbTags}
                                                     layer={cat.id}
+                                                    isNsfwEnabled={isNsfwEnabled}
                                                 />
                                                 {availableSubgroups.length > 0 && (
                                                     <select
@@ -874,6 +929,101 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                             })}
                                         </div>
                                     )}
+
+                                    {/* Conditional NSFW Quick-Tag Chips when Mode NSFW is enabled */}
+                                    {isNsfwEnabled && (
+                                        <>
+                                            {cat.nsfwChips && cat.nsfwChips.length > 0 && (
+                                                <div className="aps-subgroup-row aps-nsfw-subgroup-row">
+                                                    <span className="aps-subgroup-label aps-nsfw-label">
+                                                        🔞 Tag Dewasa / NSFW:
+                                                    </span>
+                                                    <div className="aps-chips-wrap">
+                                                        {cat.nsfwChips.map((chipText) => {
+                                                            const active = isChipActive(cat.id, chipText);
+                                                            const weightLabel = getChipWeightLabel(cat.id, chipText);
+                                                            return (
+                                                                <div
+                                                                    key={`nsfw-flat-${chipText}`}
+                                                                    className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
+                                                                    onClick={() => onToggleChip(cat.id, chipText)}
+                                                                    onContextMenu={(e) => {
+                                                                        e.preventDefault();
+                                                                        onCycleChipWeight(e, cat.id, chipText);
+                                                                    }}
+                                                                    title="Tag Danbooru Dewasa (18+) - Klik untuk pasang, klik kanan untuk bobot"
+                                                                >
+                                                                    <span className="aps-chip-text">{chipText}</span>
+                                                                    {weightLabel && (
+                                                                        <span className="aps-chip-weight-pill">
+                                                                            :{weightLabel}
+                                                                        </span>
+                                                                    )}
+                                                                    <button
+                                                                        type="button"
+                                                                        className="aps-chip-weight-cycler"
+                                                                        title="Tingkatkan bobot tag"
+                                                                        onClick={(e) =>
+                                                                            onCycleChipWeight(e, cat.id, chipText)
+                                                                        }
+                                                                    >
+                                                                        +
+                                                                    </button>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {cat.nsfwSubgroups && cat.nsfwSubgroups.length > 0 && (
+                                                <div className="aps-subgroups-wrap aps-nsfw-subgroups-container">
+                                                    {cat.nsfwSubgroups.map((group) => (
+                                                        <div key={group.label} className="aps-subgroup-row aps-nsfw-subgroup-row">
+                                                            <span className="aps-subgroup-label aps-nsfw-label">
+                                                                {group.label}:
+                                                            </span>
+                                                            <div className="aps-chips-wrap">
+                                                                {group.chips.map((chipText) => {
+                                                                    const active = isChipActive(cat.id, chipText);
+                                                                    const weightLabel = getChipWeightLabel(cat.id, chipText);
+                                                                    return (
+                                                                        <div
+                                                                            key={`nsfw-grp-${group.label}-${chipText}`}
+                                                                            className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
+                                                                            onClick={() => onToggleChip(cat.id, chipText)}
+                                                                            onContextMenu={(e) => {
+                                                                                e.preventDefault();
+                                                                                onCycleChipWeight(e, cat.id, chipText);
+                                                                            }}
+                                                                            title="Tag Danbooru Dewasa (18+) - Klik untuk pasang, klik kanan untuk bobot"
+                                                                        >
+                                                                            <span className="aps-chip-text">{chipText}</span>
+                                                                            {weightLabel && (
+                                                                                <span className="aps-chip-weight-pill">
+                                                                                    :{weightLabel}
+                                                                                </span>
+                                                                            )}
+                                                                            <button
+                                                                                type="button"
+                                                                                className="aps-chip-weight-cycler"
+                                                                                title="Tingkatkan bobot tag"
+                                                                                onClick={(e) =>
+                                                                                    onCycleChipWeight(e, cat.id, chipText)
+                                                                                }
+                                                                            >
+                                                                                +
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -951,25 +1101,34 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             <button
                                 type="button"
                                 className="aps-open-catalog-btn"
+                                onMouseEnter={() => {
+                                    getBooruTagStatsApi().then((d) => setBooruStats(d)).catch(() => {});
+                                }}
                                 onClick={() => {
                                     setCatalogTargetLayer("all");
                                     setShowDanbooruCatalog(true);
                                 }}
-                                title="Buka kamus & katalog Danbooru 1.250+ tag resmi lengkap dengan tab 10 layer dan pencarian"
+                                title={`Buka kamus & katalog Danbooru database lengkap dengan tab 10 layer dan pencarian (${booruStats ? booruStats.total_tags.toLocaleString("id-ID") : "1.353+"} tag PostgreSQL)`}
                             >
-                                <span>📖 Buka Katalog Danbooru (1.250+ Tag)</span>
+                                <span>📖 Buka Katalog Danbooru ({booruStats ? `${booruStats.total_tags.toLocaleString("id-ID")}+ Tag` : "1.353+ Tag"})</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Danbooru 1,250+ Tag Catalog Drawer */}
+            {/* Danbooru Database Catalog Drawer */}
             <DanbooruCatalogDrawer
                 isOpen={showDanbooruCatalog}
-                onClose={() => setShowDanbooruCatalog(false)}
+                onClose={() => {
+                    setShowDanbooruCatalog(false);
+                    getBooruTagStatsApi().then((d) => setBooruStats(d)).catch(() => {});
+                }}
                 onInsertTag={handleInsertTagFromCatalog}
                 activeLayerId={catalogTargetLayer}
+                showToast={showToast}
+                isNsfwEnabled={isNsfwEnabled}
+                onToggleNsfw={(checked) => setIsNsfwEnabled(checked)}
             />
 
             {/* Quick-Tag Layer Pop-up Modal */}

@@ -280,6 +280,20 @@ export interface BooruTag {
     description: string;
 }
 
+export interface BooruTagsPaginatedResponse {
+    tags: BooruTag[];
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+}
+
+export interface BooruTagStats {
+    total_tags: number;
+    layers: Record<string, number>;
+    categories: Record<string, number>;
+}
+
 export async function getBooruTagsApi(
     q?: string,
     category?: string,
@@ -293,4 +307,35 @@ export async function getBooruTagsApi(
     params.set("limit", String(limit));
 
     return apiFetch<BooruTag[]>(`/booru-tags?${params.toString()}`);
+}
+
+export async function getBooruTagsPaginatedApi(params: {
+    q?: string;
+    category?: string;
+    layer?: string;
+    sort?: string;
+    page?: number;
+    limit?: number;
+}): Promise<BooruTagsPaginatedResponse> {
+    const qs = new URLSearchParams();
+    if (params.q) qs.set("q", params.q);
+    if (params.category && params.category !== "all") qs.set("category", params.category);
+    if (params.layer && params.layer !== "all") qs.set("layer", params.layer);
+    if (params.sort) qs.set("sort", params.sort);
+    qs.set("page", String(params.page || 1));
+    qs.set("limit", String(params.limit || 30));
+    qs.set("paginate", "true");
+
+    return apiFetch<BooruTagsPaginatedResponse>(`/booru-tags?${qs.toString()}`);
+}
+
+export async function getBooruTagStatsApi(): Promise<BooruTagStats> {
+    return apiFetch<BooruTagStats>("/booru-tags/stats");
+}
+
+export async function createBooruTagApi(tag: Partial<BooruTag>): Promise<BooruTag> {
+    return apiFetch<BooruTag>("/booru-tags", {
+        method: "POST",
+        body: JSON.stringify(tag),
+    });
 }

@@ -1792,17 +1792,17 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                     <div className="studio-sync-bridge-bar">
                         <div className="studio-sync-info">
                             <span className="studio-sync-dot" />
-                            <span>Terhubung ke 10-Layer Modular Studio ({activeCategoryCount}/10 layer aktif)</span>
+                            <span>Terhubung ke 11-Layer Modular Studio ({activeCategoryCount}/11 layer aktif)</span>
                         </div>
                         <div className="studio-sync-actions">
                             <button
                                 type="button"
                                 className="studio-sync-btn"
                                 onClick={() => syncPromptToCategories()}
-                                title="Uraikan text prompt saat ini ke 10 layer kategori"
+                                title="Uraikan text prompt saat ini ke 11 layer kategori (termasuk NSFW)"
                             >
                                 <Icons.Clean />
-                                <span>Sync ke 10 Kategori</span>
+                                <span>Sync ke 11 Kategori</span>
                             </button>
                             <button
                                 type="button"
