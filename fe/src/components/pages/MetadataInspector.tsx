@@ -121,6 +121,31 @@ const Icons = {
             <line x1="10" y1="14" x2="21" y2="3"></line>
         </svg>
     ),
+    Settings: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+    ),
+    Cpu: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="2" />
+            <rect x="9" y="9" width="6" height="6" />
+            <line x1="9" y1="1" x2="9" y2="4" />
+            <line x1="15" y1="1" x2="15" y2="4" />
+            <line x1="9" y1="20" x2="9" y2="23" />
+            <line x1="15" y1="20" x2="15" y2="23" />
+            <line x1="20" y1="9" x2="23" y2="9" />
+            <line x1="20" y1="14" x2="23" y2="14" />
+            <line x1="1" y1="9" x2="4" y2="9" />
+            <line x1="1" y1="14" x2="4" y2="14" />
+        </svg>
+    ),
+    Cloud: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+        </svg>
+    ),
 };
 
 export interface BatchInspectorItem {
@@ -1674,33 +1699,29 @@ export default function MetadataInspector() {
                                     <div className="ai-interrogator-icon-box">
                                         <Icons.Sparkles />
                                     </div>
-                                    <div>
-                                        <h4 className="ai-interrogator-title">
-                                            <span>🔮 AI Reverse-Prompt Interrogator</span>
+                                    <div className="ai-interrogator-content">
+                                        <div className="ai-interrogator-title-row">
+                                            <h4 className="ai-interrogator-title">Reverse Prompt</h4>
                                             <span
                                                 className="ai-model-active-pill"
                                                 title={`Engine aktif: ${aiProvider === "gemini" ? selectedGeminiModel : (localModelInput || "Default Model")}`}
                                             >
-                                                {aiProvider === "gemini" ? (
-                                                    <>☁️ {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel}</>
-                                                ) : aiProvider === "ollama" ? (
-                                                    <>🖥️ Ollama: {localModelInput || "llama3.2-vision"}</>
-                                                ) : (
-                                                    <>⚡ LM Studio: {localModelInput || "local-model"}</>
-                                                )}
+                                                <span className="ai-pill-dot" />
+                                                <span className="ai-pill-provider">
+                                                    {aiProvider === "gemini" ? "Gemini" : aiProvider === "ollama" ? "Ollama" : "LM Studio"}
+                                                </span>
+                                                <span className="ai-pill-divider">:</span>
+                                                <span className="ai-pill-model">
+                                                    {aiProvider === "gemini"
+                                                        ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
+                                                        : (localModelInput || "local-model")}
+                                                </span>
                                             </span>
-                                            <span
-                                                className="ai-model-active-pill"
-                                                style={{ background: "rgba(16, 185, 129, 0.15)", color: "#10b981", border: "1px solid rgba(16, 185, 129, 0.3)" }}
-                                                title="Sistem aktif dekonstruksi tag Danbooru NSFW / Ecchi / Hentai tanpa sensor"
-                                            >
-                                                🔞 Full NSFW & Uncensored Tags
-                                            </span>
-                                        </h4>
+                                        </div>
                                         <p className="ai-interrogator-desc">
                                             {aiProvider === "gemini"
-                                                ? "Gambar tidak memiliki metadata generasi tertanam? Bedah prompt, karakter, style, dan tags Danbooru menggunakan Google Gemini Vision."
-                                                : `Bedah prompt gambar secara offline tanpa kuota menggunakan LLM Vision lokal (${aiProvider === "ollama" ? "Ollama" : "LM Studio"}).`}
+                                                ? "Ekstrak prompt, style, dan tag Danbooru dari gambar menggunakan Gemini Vision."
+                                                : `Ekstrak prompt, style, dan tag Danbooru secara lokal menggunakan Vision LLM (${aiProvider === "ollama" ? "Ollama" : "LM Studio"}).`}
                                         </p>
                                     </div>
                                 </div>
@@ -1709,9 +1730,10 @@ export default function MetadataInspector() {
                                         type="button"
                                         className="ai-settings-btn"
                                         onClick={() => setShowApiKeyModal(true)}
-                                        title="Pengaturan AI Provider (Cloud Gemini vs Local Ollama / LM Studio)"
+                                        title="Pengaturan Provider & Model AI"
                                     >
-                                        <span>⚙️ Provider & Model</span>
+                                        <Icons.Settings />
+                                        <span>Provider & Model</span>
                                     </button>
                                     <button
                                         type="button"
@@ -1722,12 +1744,12 @@ export default function MetadataInspector() {
                                         {isInterrogating ? (
                                             <>
                                                 <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
-                                                <span>Menganalisis Gambar...</span>
+                                                <span>Menganalisis...</span>
                                             </>
                                         ) : (
                                             <>
                                                 <Icons.Sparkles />
-                                                <span>Generate Prompt dengan AI ✨</span>
+                                                <span>Generate Prompt</span>
                                             </>
                                         )}
                                     </button>
@@ -1759,7 +1781,8 @@ export default function MetadataInspector() {
                                         style={{ padding: "4px 10px", fontSize: "11px", whiteSpace: "nowrap" }}
                                         onClick={() => setShowApiKeyModal(true)}
                                     >
-                                        ⚙️ Provider & Model
+                                        <Icons.Settings />
+                                        <span>Provider & Model</span>
                                     </button>
                                 </div>
                                 {(interrogateError.includes("503") ||
@@ -1778,7 +1801,7 @@ export default function MetadataInspector() {
                                         }}
                                     >
                                         <span style={{ fontSize: "12px", color: "#e2e8f0" }}>
-                                            💡 <strong>Solusi Cepat:</strong> Server Google untuk model tersebut sedang antrean tinggi. Klik untuk beralih ke <strong>Gemini 1.5 Flash (Bebas 503)</strong> atau gunakan <strong>AI Lokal</strong>:
+                                            <strong>Solusi Alternatif:</strong> Server Google untuk model tersebut sedang antrean tinggi. Anda dapat beralih ke <strong>Gemini 1.5 Flash</strong> atau gunakan <strong>AI Lokal</strong>:
                                         </span>
                                         <div style={{ display: "flex", gap: "6px" }}>
                                             <button
@@ -1791,7 +1814,8 @@ export default function MetadataInspector() {
                                                     handleRunInterrogate();
                                                 }}
                                             >
-                                                🛡️ Beralih ke 1.5 Flash
+                                                <Icons.Cloud />
+                                                <span>Beralih ke 1.5 Flash</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -1802,7 +1826,8 @@ export default function MetadataInspector() {
                                                     setShowApiKeyModal(true);
                                                 }}
                                             >
-                                                🖥️ Pakai AI Lokal
+                                                <Icons.Cpu />
+                                                <span>Pakai AI Lokal</span>
                                             </button>
                                         </div>
                                     </div>
@@ -1815,11 +1840,11 @@ export default function MetadataInspector() {
                             <div className="ai-interrogate-result-panel">
                                 <div className="ai-result-header">
                                     <div className="ai-result-badge-group">
-                                        <span className="ai-model-rec-badge">✨ Hasil AI Reverse-Prompt</span>
+                                        <span className="ai-model-rec-badge">Hasil Reverse Prompt</span>
                                         {interrogateResult.used_model && (
                                             <span className="ai-character-badge" title="Model AI Gemini yang berhasil memproses gambar ini">
                                                 Model: <strong>{interrogateResult.used_model}</strong>
-                                                {interrogateResult.fallback_occurred && " ⚡ (Failover Auto)"}
+                                                {interrogateResult.fallback_occurred && " (Failover Auto)"}
                                             </span>
                                         )}
                                         {interrogateResult.character && (
@@ -2300,13 +2325,14 @@ export default function MetadataInspector() {
                     <div className="ai-modal-card" onClick={(e) => e.stopPropagation()}>
                         <div className="ai-modal-header">
                             <h3 className="ai-modal-title">
-                                <Icons.Sparkles />
-                                <span>Pengaturan AI Vision & Model Reverse-Prompt</span>
+                                <Icons.Settings />
+                                <span>Pengaturan Vision Model</span>
                             </h3>
                             <button
                                 type="button"
                                 className="ai-modal-close-btn"
                                 onClick={() => setShowApiKeyModal(false)}
+                                title="Tutup"
                             >
                                 ✕
                             </button>
@@ -2320,7 +2346,8 @@ export default function MetadataInspector() {
                                     className={`ai-provider-toggle-btn ${aiProvider === "gemini" ? "active" : ""}`}
                                     onClick={() => setAiProvider("gemini")}
                                 >
-                                    <span>☁️ Google Gemini</span>
+                                    <Icons.Cloud />
+                                    <span>Google Gemini</span>
                                 </button>
                                 <button
                                     type="button"
@@ -2331,7 +2358,8 @@ export default function MetadataInspector() {
                                         if (!localModelInput) setLocalModelInput("llama3.2-vision");
                                     }}
                                 >
-                                    <span>🖥️ Ollama (Lokal)</span>
+                                    <Icons.Cpu />
+                                    <span>Ollama (Lokal)</span>
                                 </button>
                                 <button
                                     type="button"
@@ -2343,14 +2371,15 @@ export default function MetadataInspector() {
                                         }
                                     }}
                                 >
-                                    <span>⚡ LM Studio (Lokal)</span>
+                                    <Icons.Cpu />
+                                    <span>LM Studio (Lokal)</span>
                                 </button>
                             </div>
 
                             {aiProvider === "gemini" ? (
                                 <>
-                                    <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5, margin: 0 }}>
-                                        Gunakan <strong>Google Gemini Vision API</strong> dengan failover otomatis bebas 503 overload. Mendukung reverse-prompt Danbooru tags, style, dan karakter.
+                                    <p className="ai-modal-desc">
+                                        Gunakan <strong>Google Gemini Vision API</strong> untuk ekstraksi prompt, style, dan tag Danbooru dengan latensi rendah.
                                     </p>
 
                                     {/* API Key Input */}
@@ -2364,7 +2393,7 @@ export default function MetadataInspector() {
                                             onChange={(e) => setGeminiApiKeyInput(e.target.value)}
                                         />
                                         <div className="ai-modal-help-text">
-                                            Dapatkan API Key gratis di{" "}
+                                            Dapatkan API Key di{" "}
                                             <a
                                                 href="https://aistudio.google.com/app/apikey"
                                                 target="_blank"
@@ -2372,22 +2401,22 @@ export default function MetadataInspector() {
                                             >
                                                 Google AI Studio (aistudio.google.com) ↗
                                             </a>
-                                            . (Kuota 15 request/menit 100% gratis selamanya).
+                                            .
                                         </div>
                                     </div>
 
                                     {/* Model Selector */}
                                     <div className="ai-modal-input-group">
                                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                            <label className="ai-modal-label">Pilih Versi Model Gemini:</label>
+                                            <label className="ai-modal-label">Versi Model Gemini:</label>
                                             <button
                                                 type="button"
                                                 className="ai-fetch-models-btn"
                                                 onClick={handleFetchLiveModels}
                                                 disabled={isFetchingModels || (!geminiApiKeyInput && !getStoredGeminiApiKey())}
-                                                title="Ambil daftar model yang aktif langsung dari akun Google Anda"
+                                                title="Ambil daftar model aktif langsung dari akun Google AI Studio Anda"
                                             >
-                                                {isFetchingModels ? "Memeriksa Akun..." : "🔄 Cek Model Akun Saya"}
+                                                {isFetchingModels ? "Memeriksa Akun..." : "Cek Model Akun Saya"}
                                             </button>
                                         </div>
 
@@ -2396,42 +2425,42 @@ export default function MetadataInspector() {
                                             value={selectedGeminiModel}
                                             onChange={(e) => setSelectedGeminiModel(e.target.value)}
                                         >
-                                            <optgroup label="⚡ Rekomendasi Utama">
-                                                <option value="auto">⚡ Otomatis (Auto-Failover Cerdas Anti-503)</option>
-                                                <option value="gemini-1.5-flash-latest">🛡️ Gemini 1.5 Flash (Paling Stabil / Bebas 503 Overload)</option>
+                                            <optgroup label="Rekomendasi">
+                                                <option value="auto">Otomatis (Failover Cerdas)</option>
+                                                <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Stabil)</option>
                                             </optgroup>
 
-                                            <optgroup label="🚀 Gemini 2.0 (Generasi Terbaru)">
-                                                <option value="gemini-2.0-flash">🚀 Gemini 2.0 Flash (Paling Cepat / Rawan 503 di Jam Sibuk)</option>
-                                                <option value="gemini-2.0-flash-lite">⚡ Gemini 2.0 Flash-Lite (Super Ringan & Longgar)</option>
-                                                <option value="gemini-2.0-pro-exp-02-05">🧠 Gemini 2.0 Pro Experimental (Penalaran Paling Dalam)</option>
+                                            <optgroup label="Gemini 2.0 (Terbaru)">
+                                                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                                                <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash-Lite</option>
+                                                <option value="gemini-2.0-pro-exp-02-05">Gemini 2.0 Pro Experimental</option>
                                             </optgroup>
 
-                                            <optgroup label="📦 Gemini 1.5 (Generasi Stabil)">
-                                                <option value="gemini-1.5-flash-002">📦 Gemini 1.5 Flash 002 (Stabil)</option>
-                                                <option value="gemini-1.5-flash-8b">🪶 Gemini 1.5 Flash 8B (Hemat Kuota)</option>
-                                                <option value="gemini-1.5-pro-latest">💎 Gemini 1.5 Pro (Latest / Detail Tinggi)</option>
-                                                <option value="gemini-1.5-flash">🏛️ Gemini 1.5 Flash (GA Endpoint)</option>
+                                            <optgroup label="Gemini 1.5 (Stabil)">
+                                                <option value="gemini-1.5-flash-002">Gemini 1.5 Flash 002</option>
+                                                <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B</option>
+                                                <option value="gemini-1.5-pro-latest">Gemini 1.5 Pro</option>
+                                                <option value="gemini-1.5-flash">Gemini 1.5 Flash (GA)</option>
                                             </optgroup>
 
-                                            <optgroup label="🔮 Next-Gen Preview & Reasoning">
-                                                <option value="gemini-2.0-flash-thinking-exp">💡 Gemini 2.0 Flash Thinking Exp</option>
-                                                <option value="gemini-2.5-flash">🔮 Gemini 2.5 Flash (Preview)</option>
-                                                <option value="gemini-2.5-pro">🔮 Gemini 2.5 Pro (Preview)</option>
+                                            <optgroup label="Preview & Reasoning">
+                                                <option value="gemini-2.0-flash-thinking-exp">Gemini 2.0 Flash Thinking Exp</option>
+                                                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Preview)</option>
+                                                <option value="gemini-2.5-pro">Gemini 2.5 Pro (Preview)</option>
                                             </optgroup>
 
                                             {liveAccountModels.length > 0 && (
-                                                <optgroup label="🌐 Model Terdeteksi dari Akun Anda">
+                                                <optgroup label="Model Terdeteksi dari Akun">
                                                     {liveAccountModels.map((m) => (
                                                         <option key={m.id} value={m.id}>
-                                                            📡 {m.name}
+                                                            {m.name}
                                                         </option>
                                                     ))}
                                                 </optgroup>
                                             )}
 
-                                            <optgroup label="✏️ Model Lain / Masa Depan">
-                                                <option value="custom">✏️ Masukkan Model ID Kustom Manual (e.g. Gemini 3.0 / 3.7)...</option>
+                                            <optgroup label="Model Kustom">
+                                                <option value="custom">Masukkan Model ID Kustom Manual...</option>
                                             </optgroup>
                                         </select>
 
@@ -2443,12 +2472,12 @@ export default function MetadataInspector() {
                                                 <input
                                                     type="text"
                                                     className="ai-modal-input"
-                                                    placeholder="Contoh: gemini-3.0-flash, gemini-2.5-flash..."
+                                                    placeholder="Contoh: gemini-2.5-flash, gemini-3.0-flash..."
                                                     value={customModelInput}
                                                     onChange={(e) => setCustomModelInput(e.target.value)}
                                                 />
                                                 <div className="ai-modal-help-text" style={{ marginTop: 4 }}>
-                                                    Ketik nama model persis seperti yang dirilis Google AI Studio di akun Anda.
+                                                    Ketik model ID sesuai yang dirilis di Google AI Studio.
                                                 </div>
                                             </div>
                                         )}
@@ -2459,23 +2488,22 @@ export default function MetadataInspector() {
                                         <strong>
                                             {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.label ||
                                                 (selectedGeminiModel === "custom"
-                                                    ? `Model Kustom: ${customModelInput || "(Belum diketik)"}`
+                                                    ? `Model Kustom: ${customModelInput || "(Belum diisi)"}`
                                                     : selectedGeminiModel)}
                                             {" • "}
                                             {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || "Custom"}
                                         </strong>
                                         <p style={{ margin: "4px 0 0 0" }}>
                                             {PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.description ||
-                                                "Model kustom / next-gen yang dikonfigurasi langsung dari Google AI Studio."}
+                                                "Model kustom yang dikonfigurasi melalui endpoint Google AI Studio."}
                                         </p>
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <p style={{ fontSize: 13, color: "#cbd5e1", lineHeight: 1.5, margin: 0 }}>
-                                        Jalankan AI vision secara <strong>100% lokal & offline</strong> di PC Anda menggunakan{" "}
-                                        <strong>{aiProvider === "ollama" ? "Ollama" : "LM Studio / Local OpenAI Server"}</strong>.
-                                        Bebas limit kuota cloud dan privasi terjaga penuh.
+                                    <p className="ai-modal-desc">
+                                        Jalankan model vision secara lokal menggunakan endpoint{" "}
+                                        <strong>{aiProvider === "ollama" ? "Ollama" : "LM Studio (OpenAI-compatible)"}</strong>.
                                     </p>
 
                                     {/* Local Endpoint Input */}
@@ -2487,9 +2515,9 @@ export default function MetadataInspector() {
                                                 className="ai-fetch-models-btn"
                                                 onClick={handleFetchLocalModels}
                                                 disabled={isFetchingLocalModels}
-                                                title="Tes koneksi dan ambil daftar model yang terpasang di komputer Anda"
+                                                title="Tes koneksi dan periksa model yang sedang aktif di PC"
                                             >
-                                                {isFetchingLocalModels ? "Memeriksa..." : "🔄 Cek Model Lokal"}
+                                                {isFetchingLocalModels ? "Memeriksa..." : "Cek Model Lokal"}
                                             </button>
                                         </div>
                                         <input
@@ -2501,8 +2529,8 @@ export default function MetadataInspector() {
                                         />
                                         <div className="ai-modal-help-text">
                                             {aiProvider === "ollama"
-                                                ? "Default Ollama: http://localhost:11434. Pastikan aplikasi/daemon Ollama sedang berjalan."
-                                                : "Default LM Studio: http://localhost:1234/v1. Pastikan tab Local Server dalam status Start Server."}
+                                                ? "Default Ollama: http://localhost:11434. Pastikan daemon Ollama aktif."
+                                                : "Default LM Studio: http://localhost:1234/v1. Pastikan Local Server berstatus Start Server."}
                                         </div>
                                     </div>
 
@@ -2520,7 +2548,7 @@ export default function MetadataInspector() {
                                         {/* Quick Pick Chips */}
                                         <div style={{ marginTop: 4 }}>
                                             <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>
-                                                Pilihan Cepat Model Vision Populer:
+                                                Pilihan Cepat Model Vision:
                                             </div>
                                             <div className="ai-local-quick-chips">
                                                 {POPULAR_LOCAL_VISION_MODELS.map((item) => (
@@ -2550,7 +2578,7 @@ export default function MetadataInspector() {
                                                 >
                                                     {localDetectedModels.map((m) => (
                                                         <option key={m.id} value={m.id}>
-                                                            🖥️ {m.name} ({m.id})
+                                                            {m.name || m.id}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -2571,26 +2599,18 @@ export default function MetadataInspector() {
                                     )}
 
                                     {/* Helpful Guide Card */}
-                                    <div className="ai-modal-model-desc-card">
-                                        <strong>💡 Panduan Menjalankan Vision Lokal (Dukungan s/d 12B):</strong>
-                                        <p style={{ margin: "4px 0 0 0", fontSize: 11.5, color: "#94a3b8" }}>
+                                    <div className="ai-modal-info-box">
+                                        <div className="ai-modal-info-title">Panduan Model Vision:</div>
+                                        <div className="ai-modal-info-desc">
                                             {aiProvider === "ollama" ? (
                                                 <>
-                                                    Di terminal / command prompt, unduh model vision dengan mengetik:{" "}
-                                                    <code style={{ color: "#93c5fd" }}>ollama run llama3.2-vision</code> atau{" "}
-                                                    <code style={{ color: "#93c5fd" }}>ollama run llava</code>.
+                                                    Unduh model multimodal di Ollama dengan perintah: <code className="ai-code-inline">ollama run llama3.2-vision</code> atau <code className="ai-code-inline">ollama run llava</code>.
                                                 </>
                                             ) : (
                                                 <>
-                                                    Di LM Studio, unduh model vision <strong>4B, 7B/8B, hingga 12B</strong> (misal: <em>Qwen3-VL 8B Uncensored</em> atau <em>Qwen2.5-VL 7B/12B</em>), lalu klik <strong>Start Server</strong>.
+                                                    Muat model vision (seperti <em>Qwen3-VL</em> atau <em>Qwen2.5-VL</em>) di LM Studio, lalu aktifkan <strong>Start Server</strong> pada tab Local Server.
                                                 </>
                                             )}
-                                        </p>
-                                        <div style={{ marginTop: 6, fontSize: 11, color: "#93c5fd", display: "flex", alignItems: "center", gap: 5 }}>
-                                            <span>⚙️ <strong>Batas 12B & VRAM 6GB:</strong> Gambar otomatis dikompres ke 1024px, timeout diperpanjang 10 menit, dan batas 2048 token agar model 11B/12B berjalan mulus tanpa VRAM crash.</span>
-                                        </div>
-                                        <div style={{ marginTop: 6, fontSize: 11, color: "#10b981", display: "flex", alignItems: "center", gap: 5 }}>
-                                            <span>🔞 <strong>Mode Full Uncensored:</strong> AI lokal diinstruksikan membedah seluruh elemen NSFW, nude, topless, pose seksual, & tag Danbooru eksplisit tanpa sensor.</span>
                                         </div>
                                     </div>
                                 </>
@@ -2601,7 +2621,7 @@ export default function MetadataInspector() {
                             {aiProvider === "gemini" && getStoredGeminiApiKey() && (
                                 <button
                                     type="button"
-                                    className="batch-bulk-btn"
+                                    className="ai-modal-danger-btn"
                                     onClick={() => {
                                         setStoredGeminiApiKey("");
                                         setGeminiApiKeyInput("");
@@ -2612,14 +2632,14 @@ export default function MetadataInspector() {
                             )}
                             <button
                                 type="button"
-                                className="ai-apply-meta-btn"
+                                className="ai-modal-cancel-btn"
                                 onClick={() => setShowApiKeyModal(false)}
                             >
                                 Batal
                             </button>
                             <button
                                 type="button"
-                                className="mode-tab-btn active"
+                                className="ai-modal-save-btn"
                                 onClick={() => {
                                     setStoredAIProvider(aiProvider);
                                     if (aiProvider === "gemini") {
