@@ -1,0 +1,1141 @@
+/* ==========================================================================
+   ABOUT PAGE STYLES - MODELS GUIDE TECHNICAL SPECIFICATION REFERENCE
+   Dark Engineering Aesthetic: High contrast, solid surfaces, zero purple/pink
+   gradients, zero washed-out opacity, zero glassmorphism slop.
+   ========================================================================== */
+
+.about-page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: var(--container-max, 1560px);
+  margin: 0 auto;
+  width: 100%;
+  color: #E2E8F0;
+  box-sizing: border-box;
+  padding-bottom: 48px;
+}
+
+/* ==========================================================================
+   HERO / MASTHEAD SECTION
+   ========================================================================== */
+
+.about-hero {
+  background: #14171C;
+  border: 1px solid #262B33;
+  border-radius: 10px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.about-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.about-system-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1A202A;
+  border: 1px solid #2D3748;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #38BDF8;
+  text-transform: uppercase;
+}
+
+.about-badge-dot {
+  width: 7px;
+  height: 7px;
+  background-color: #10B981;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 2px #064E3B;
+}
+
+.about-version-stamp {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+.about-hero-title-group h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.about-hero-lead {
+  font-size: 15px;
+  line-height: 1.65;
+  color: #E2E8F0;
+  margin: 0;
+  max-width: 1080px;
+}
+
+.about-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about-pill-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #191D24;
+  border: 1px solid #2A303C;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #CBD5E1;
+}
+
+.about-pill-tag svg {
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+.about-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid #22262E;
+}
+
+.about-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.about-btn-primary {
+  background: #2563EB;
+  border: 1px solid #3B82F6;
+  color: #FFFFFF;
+}
+
+.about-btn-primary:hover {
+  background: #1D4ED8;
+  border-color: #60A5FA;
+  color: #FFFFFF;
+}
+
+.about-btn-secondary {
+  background: #1A1E24;
+  border: 1px solid #303642;
+  color: #F1F5F9;
+}
+
+.about-btn-secondary:hover {
+  background: #232932;
+  border-color: #475569;
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   METRIC / TELEMETRY STRIP (4 SOLID STAT CARDS)
+   ========================================================================== */
+
+.about-metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.about-metric-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-metric-val {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 24px;
+  font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1.2;
+}
+
+.about-metric-val.metric-blue {
+  color: #38BDF8;
+}
+
+.about-metric-val.metric-green {
+  color: #34D399;
+}
+
+.about-metric-val.metric-amber {
+  color: #FBBF24;
+}
+
+.about-metric-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #F1F5F9;
+  margin-top: 2px;
+}
+
+.about-metric-desc {
+  font-size: 12px;
+  color: #94A3B8;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ==========================================================================
+   NAVIGATION TABS
+   ========================================================================== */
+
+.about-tabs-bar {
+  display: flex;
+  background: #121418;
+  border: 1px solid #23272F;
+  border-radius: 8px;
+  padding: 4px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.about-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #94A3B8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.about-tab-btn:hover {
+  color: #FFFFFF;
+  background: #1A1E24;
+}
+
+.about-tab-btn.active {
+  background: #1C2129;
+  border-color: #333C4A;
+  color: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.about-tab-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  background: #252D39;
+  color: #38BDF8;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.about-tab-btn.active .about-tab-badge {
+  background: #2563EB;
+  color: #FFFFFF;
+}
+
+/* ==========================================================================
+   TAB CONTENT PANELS
+   ========================================================================== */
+
+.about-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* SECTION HEADINGS INSIDE PANELS */
+.about-panel-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.about-panel-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.about-panel-header h2 svg {
+  color: #38BDF8;
+}
+
+.about-panel-header p {
+  font-size: 14px;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   PROBLEM VS SOLUTION COMPARISON GRID
+   ========================================================================== */
+
+.about-problem-solution-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.about-comp-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.about-comp-card.is-problem {
+  border-left: 4px solid #EF4444;
+}
+
+.about-comp-card.is-solution {
+  border-left: 4px solid #10B981;
+}
+
+.about-comp-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.about-comp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-comp-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #CBD5E1;
+}
+
+.about-comp-icon-neg {
+  color: #EF4444;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.about-comp-icon-pos {
+  color: #10B981;
+  font-weight: 800;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   ENGINEERING PILLARS (4 SOLID CARDS)
+   ========================================================================== */
+
+.about-pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.about-pillar-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s ease;
+}
+
+.about-pillar-card:hover {
+  border-color: #38BDF8;
+}
+
+.about-pillar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.about-pillar-icon {
+  width: 36px;
+  height: 36px;
+  background: #1B2129;
+  border: 1px solid #2E3846;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+.about-pillar-header h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.about-pillar-card p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  margin: 0;
+}
+
+.about-pillar-meta {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: #38BDF8;
+  background: #13171D;
+  border: 1px solid #232B36;
+  border-radius: 4px;
+  padding: 4px 8px;
+  width: fit-content;
+}
+
+/* ==========================================================================
+   TOOLING SUITE (TAB 2)
+   ========================================================================== */
+
+.about-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.about-tool-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  transition: border-color 0.15s ease;
+}
+
+.about-tool-card:hover {
+  border-color: #3B82F6;
+}
+
+.about-tool-top {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-tool-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.about-tool-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.about-tool-title svg {
+  color: #38BDF8;
+}
+
+.about-tool-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1A222D;
+  border: 1px solid #2B384A;
+  color: #60A5FA;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.about-tool-card p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  margin: 0;
+}
+
+.about-tool-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-tool-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #E2E8F0;
+}
+
+.about-tool-features li::before {
+  content: "•";
+  color: #10B981;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.about-tool-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #22262E;
+}
+
+.about-tool-route {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.about-tool-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #38BDF8;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.about-tool-link:hover {
+  color: #60A5FA;
+  text-decoration: underline;
+}
+
+/* ==========================================================================
+   HARDWARE & ARCHITECTURE BENCHMARK MATRIX (TAB 3)
+   ========================================================================== */
+
+.about-arch-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.about-filter-btn {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 5px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.about-filter-btn:hover {
+  background: #1C2128;
+  color: #FFFFFF;
+}
+
+.about-filter-btn.active {
+  background: #2563EB;
+  border-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.about-matrix-container {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.about-matrix-table-wrap {
+  overflow-x: auto;
+}
+
+.about-matrix-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.about-matrix-table th {
+  background: #1A1E24;
+  color: #FFFFFF;
+  font-weight: 700;
+  padding: 12px 16px;
+  border-bottom: 2px solid #2A303A;
+  white-space: nowrap;
+}
+
+.about-matrix-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #22262E;
+  color: #CBD5E1;
+  vertical-align: top;
+}
+
+.about-matrix-table tr:last-child td {
+  border-bottom: none;
+}
+
+.about-matrix-table tr.interactive-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.about-matrix-table tr.interactive-row:hover {
+  background-color: #1C212A;
+}
+
+.about-matrix-table tr.interactive-row.selected-row {
+  background-color: #1E2532;
+  border-left: 3px solid #38BDF8;
+}
+
+.arch-badge {
+  display: inline-block;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin-bottom: 2px;
+}
+
+.arch-subtext {
+  font-size: 11px;
+  color: #94A3B8;
+  display: block;
+}
+
+.vram-tag {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.vram-min {
+  background: #222933;
+  color: #E2E8F0;
+  border: 1px solid #313B4A;
+}
+
+.vram-rec {
+  background: #12281E;
+  color: #34D399;
+  border: 1px solid #065F46;
+}
+
+.clip-badge {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: #1F2530;
+  color: #38BDF8;
+  border: 1px solid #2C394E;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* SELECTED ARCHITECTURE DETAIL DRAWER */
+.about-arch-detail-card {
+  background: #14181E;
+  border: 1px solid #2C3542;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-arch-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #222730;
+  padding-bottom: 12px;
+}
+
+.about-arch-detail-header h3 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #FFFFFF;
+  margin: 0;
+}
+
+.about-arch-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.about-arch-detail-item {
+  background: #191E26;
+  border: 1px solid #27303D;
+  border-radius: 6px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-arch-detail-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94A3B8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.about-arch-detail-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.about-arch-detail-note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  background: #191E26;
+  border-left: 3px solid #38BDF8;
+  padding: 12px 16px;
+  border-radius: 0 6px 6px 0;
+  margin: 0;
+}
+
+/* ==========================================================================
+   SAFETENSORS & SECURITY DEEP DIVE (TAB 4)
+   ========================================================================== */
+
+.about-safetensors-breakdown {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 20px;
+}
+
+.about-binary-visual-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-binary-visual-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-binary-stream {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.about-binary-block {
+  background: #121519;
+  border: 1px solid #262D38;
+  border-radius: 6px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.about-block-range {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: #38BDF8;
+  background: #1B2430;
+  border: 1px solid #2A3B50;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.about-block-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.about-block-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.about-block-desc {
+  font-size: 12px;
+  color: #94A3B8;
+  line-height: 1.45;
+}
+
+.about-security-card {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.about-security-card h3 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-security-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.about-security-table th {
+  background: #1A1E24;
+  color: #FFFFFF;
+  font-weight: 700;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #292E36;
+}
+
+.about-security-table td {
+  padding: 10px;
+  border-bottom: 1px solid #22262E;
+  color: #CBD5E1;
+}
+
+.about-sec-safe {
+  color: #10B981;
+  font-weight: 700;
+}
+
+.about-sec-danger {
+  color: #EF4444;
+  font-weight: 700;
+}
+
+.about-hash-engine-box {
+  background: #14171C;
+  border: 1px solid #262C36;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.about-hash-engine-box h4 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.about-hash-engine-box p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #CBD5E1;
+  margin: 0;
+}
+
+.about-code-snippet {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  background: #0E1014;
+  border: 1px solid #222730;
+  border-radius: 6px;
+  padding: 12px 14px;
+  color: #38BDF8;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   TECHNICAL FAQ (TAB 5)
+   ========================================================================== */
+
+.about-faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.about-faq-item {
+  background: #16191E;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.about-faq-item:hover {
+  border-color: #38BDF8;
+}
+
+.about-faq-question {
+  width: 100%;
+  background: #16191E;
+  border: none;
+  padding: 18px 20px;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+  transition: background-color 0.15s ease;
+}
+
+.about-faq-question:hover {
+  background: #1A1F26;
+}
+
+.about-faq-question-text {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.about-faq-q-badge {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  background: #202733;
+  color: #38BDF8;
+  padding: 2px 7px;
+  border-radius: 4px;
+  border: 1px solid #2D394C;
+}
+
+.about-faq-chevron {
+  color: #94A3B8;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.about-faq-item.is-open .about-faq-chevron {
+  transform: rotate(180deg);
+  color: #38BDF8;
+}
+
+.about-faq-answer {
+  background: #13161A;
+  border-top: 1px solid #22262E;
+  padding: 18px 20px;
+  color: #E2E8F0;
+  font-size: 13.5px;
+  line-height: 1.65;
+}
+
+.about-faq-answer p {
+  margin: 0 0 10px 0;
+}
+
+.about-faq-answer p:last-child {
+  margin-bottom: 0;
+}
+
+.about-faq-answer strong {
+  color: #FFFFFF;
+  font-weight: 700;
+}
+
+.about-faq-answer code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  background: #1D232C;
+  border: 1px solid #2B3544;
+  color: #38BDF8;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   SYSTEM ARCHITECTURE & FOOTER BAR
+   ========================================================================== */
+
+.about-system-specs-card {
+  background: #14171C;
+  border: 1px solid #262B33;
+  border-radius: 8px;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.about-system-specs-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.about-system-specs-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+
+.about-system-specs-desc {
+  font-size: 12px;
+  color: #94A3B8;
+  margin: 0;
+}
+
+.about-tech-stack-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.about-tech-pill {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  background: #1B2028;
+  border: 1px solid #2A3340;
+  color: #CBD5E1;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   RESPONSIVE LAYOUT
+   ========================================================================== */
+
+@media (max-width: 1024px) {
+  .about-metric-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-pillars-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-problem-solution-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-safetensors-breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .about-arch-detail-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .about-hero {
+    padding: 20px;
+  }
+
+  .about-hero-title-group h1 {
+    font-size: 22px;
+  }
+
+  .about-metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .about-arch-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-tools-grid {
+    grid-template-columns: 1fr;
+  }
+}

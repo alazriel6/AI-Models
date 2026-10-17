@@ -186,7 +186,7 @@ export default function ResolutionCalculator() {
                     <div className="calc-section-card">
                         <div className="calc-section-title">
                             <span>Standard Aspect Ratio Buckets</span>
-                            <span style={{ fontSize: "11px", color: "#4ade80" }}>100% Native SDXL Trained</span>
+                            <span style={{ fontSize: "11px", color: "#60a5fa" }}>100% Native SDXL Trained</span>
                         </div>
 
                         <div className="bucket-cards-grid">
@@ -203,9 +203,9 @@ export default function ResolutionCalculator() {
                                                 style={{
                                                     width: Math.min(26, Math.max(12, Math.round(24 * (p.width / p.height)))),
                                                     height: Math.min(26, Math.max(12, Math.round(24 * (p.height / p.width)))),
-                                                    border: `1.5px solid ${isCurrent ? "#22c55e" : "#818cf8"}`,
+                                                    border: `1.5px solid ${isCurrent ? "#3b82f6" : "#334155"}`,
                                                     borderRadius: "2px",
-                                                    background: isCurrent ? "rgba(34, 197, 94, 0.2)" : "transparent",
+                                                    background: isCurrent ? "rgba(59, 130, 246, 0.2)" : "transparent",
                                                 }}
                                             />
                                         </div>
@@ -228,7 +228,7 @@ export default function ResolutionCalculator() {
                                     type="checkbox"
                                     checked={snap64}
                                     onChange={(e) => setSnap64(e.target.checked)}
-                                    style={{ accentColor: "#22c55e" }}
+                                    style={{ accentColor: "#3b82f6" }}
                                 />
                                 <span>Snap to 64px Multiples (Recommended)</span>
                             </label>
@@ -293,7 +293,7 @@ export default function ResolutionCalculator() {
                         <div style={{ background: "#131518", border: "1px solid #282C34", borderRadius: "8px", padding: "14px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                             <div>
                                 <span style={{ fontSize: "10px", color: "#666c75", textTransform: "uppercase" }}>Target Hi-Res Output</span>
-                                <div style={{ fontSize: "14px", fontWeight: "700", color: "#4ade80", fontFamily: "ui-monospace, monospace" }}>
+                                <div style={{ fontSize: "14px", fontWeight: "700", color: "#60a5fa", fontFamily: "ui-monospace, monospace" }}>
                                     {hiresW} × {hiresH}
                                 </div>
                                 <span style={{ fontSize: "11px", color: "#909296" }}>({hiresMegapixels} MP)</span>

@@ -1301,7 +1301,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("pony"); localStorage.setItem("modular_studio_target_model", "pony"); }}
                                     title="Pony Diffusion V6 XL - Auto-inject score_9 dan Danbooru _"
                                 >
-                                    🦄 Pony V6
+                                    Pony V6
                                 </button>
                                 <button
                                     type="button"
@@ -1309,7 +1309,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("illustrious"); localStorage.setItem("modular_studio_target_model", "illustrious"); }}
                                     title="Illustrious-XL / NoobAI - Danbooru berspasi & masterpiece"
                                 >
-                                    🎨 Illustrious
+                                    Illustrious
                                 </button>
                                 <button
                                     type="button"
@@ -1317,7 +1317,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("animagine"); localStorage.setItem("modular_studio_target_model", "animagine"); }}
                                     title="Animagine XL 3.1 - Danbooru _ & newest aesthetic"
                                 >
-                                    🌟 Animagine XL
+                                    Animagine XL
                                 </button>
                                 <button
                                     type="button"
@@ -1325,7 +1325,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("flux"); localStorage.setItem("modular_studio_target_model", "flux"); }}
                                     title="Flux.1 (Dev/Schnell) - Kalimat naratif bahasa Inggris alami"
                                 >
-                                    ⚡ Flux.1
+                                    Flux.1
                                 </button>
                                 <button
                                     type="button"
@@ -1333,7 +1333,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("midjourney"); localStorage.setItem("modular_studio_target_model", "midjourney"); }}
                                     title="Midjourney V6.1 - Prosa sinematik & parameter render"
                                 >
-                                    🚀 Midjourney
+                                    Midjourney
                                 </button>
                                 <button
                                     type="button"
@@ -1341,7 +1341,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("novelai"); localStorage.setItem("modular_studio_target_model", "novelai"); }}
                                     title="NovelAI V3 - Kurung kurawal {tag} & spasi"
                                 >
-                                    📖 NovelAI
+                                    NovelAI
                                 </button>
                                 <button
                                     type="button"
@@ -1349,7 +1349,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("sdxl_realistic"); localStorage.setItem("modular_studio_target_model", "sdxl_realistic"); }}
                                     title="SDXL Photorealistic - Token DSLR & fotografi tajam"
                                 >
-                                    📷 SDXL Real
+                                    SDXL Real
                                 </button>
                                 <button
                                     type="button"
@@ -1357,7 +1357,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("sd15"); localStorage.setItem("modular_studio_target_model", "sd15"); }}
                                     title="Classic SD 1.5 - Koma standar & bobot WebUI"
                                 >
-                                    🏛️ SD 1.5
+                                    SD 1.5
                                 </button>
                                 <button
                                     type="button"
@@ -1365,20 +1365,20 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => { setSelectedTargetModel("raw"); localStorage.setItem("modular_studio_target_model", "raw"); }}
                                     title="Raw 10-Layer - Format asli tanpa transformasi"
                                 >
-                                    📝 Raw Booru
+                                    Raw Booru
                                 </button>
                             </div>
 
                             <div className="aps-model-rule-hint">
-                                {selectedTargetModel === "pony" && "🦄 Auto-Inject: score_9, score_8_up... + tag Danbooru (_) + bobot (tag:1.1)"}
-                                {selectedTargetModel === "illustrious" && "🎨 Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (tanpa score_9)"}
-                                {selectedTargetModel === "animagine" && "🌟 Auto-Inject: masterpiece, newest, aesthetic + Danbooru (_) + rating:general"}
-                                {selectedTargetModel === "flux" && "⚡ Auto-Transform: Kalimat naratif deskriptif bahasa Inggris kontinu untuk Flux.1"}
-                                {selectedTargetModel === "midjourney" && "🚀 Auto-Transform: Prosa sinematik + parameter --ar 16:9 --v 6.1 --stylize 250"}
-                                {selectedTargetModel === "novelai" && "📖 Auto-Convert: Syntax kurung kurawal {tag} (1.05x), spasi kata tanpa _"}
-                                {selectedTargetModel === "sdxl_realistic" && "📷 Auto-Inject: Token fotografi tajam DSLR, 8k uhd, soft rim lighting"}
-                                {selectedTargetModel === "sd15" && "🏛️ Format Klasik WebUI: Koma standar dengan pembobotan (keyword:1.2)"}
-                                {selectedTargetModel === "raw" && "📝 Format Asli 10-Layer: Tag murni apa adanya sesuai yang dipilih"}
+                                {selectedTargetModel === "pony" && "Auto-Inject: score_9, score_8_up... + tag Danbooru (_) + bobot (tag:1.1)"}
+                                {selectedTargetModel === "illustrious" && "Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (tanpa score_9)"}
+                                {selectedTargetModel === "animagine" && "Auto-Inject: masterpiece, newest, aesthetic + Danbooru (_) + rating:general"}
+                                {selectedTargetModel === "flux" && "Auto-Transform: Kalimat naratif deskriptif bahasa Inggris kontinu untuk Flux.1"}
+                                {selectedTargetModel === "midjourney" && "Auto-Transform: Prosa sinematik + parameter --ar 16:9 --v 6.1 --stylize 250"}
+                                {selectedTargetModel === "novelai" && "Auto-Convert: Syntax kurung kurawal {tag} (1.05x), spasi kata tanpa _"}
+                                {selectedTargetModel === "sdxl_realistic" && "Auto-Inject: Token fotografi tajam DSLR, 8k uhd, soft rim lighting"}
+                                {selectedTargetModel === "sd15" && "Format Klasik WebUI: Koma standar dengan pembobotan (keyword:1.2)"}
+                                {selectedTargetModel === "raw" && "Format Asli 10-Layer: Tag murni apa adanya sesuai yang dipilih"}
                             </div>
                         </div>
 
@@ -1421,11 +1421,11 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 <button
                                     type="button"
                                     className="aps-action-btn-sm"
-                                    style={{ flex: 1, color: "#38bdf8", borderColor: "#0284c7" }}
+                                    style={{ flex: 1, color: "#60a5fa", borderColor: "#2563eb" }}
                                     onClick={() => setShowMultiModelModal(true)}
                                     title="Buka perbandingan 8 model sekaligus"
                                 >
-                                    <span>⚡ 8 Model Grid</span>
+                                    <span>8 Model Grid</span>
                                 </button>
                             </div>
                         </div>
@@ -1573,7 +1573,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         <div className="aps-multi-model-header">
                             <div>
                                 <h3 className="aps-multi-model-title">
-                                    ⚡ Real-time Multi-Model Comparison (8 Target Engine)
+                                    Real-time Multi-Model Comparison (8 Target Engine)
                                 </h3>
                                 <div className="aps-multi-model-sub">
                                     Prompt dari 10 modular layer langsung diparse sesuai sintaks database Danbooru ke masing-masing model.
@@ -1598,20 +1598,17 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                         key={fmt.id}
                                         className="aps-multi-model-card"
                                         style={{
-                                            borderColor: isCurrent ? fmt.badgeColor : undefined,
+                                            borderColor: isCurrent ? fmt.color : "#282c34",
                                         }}
                                     >
                                         <div className="aps-multi-model-card-top">
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                                <span style={{ fontSize: "16px" }}>{fmt.icon}</span>
-                                                <span className="aps-multi-model-card-name">{fmt.name}</span>
-                                            </div>
+                                            <span className="aps-multi-model-card-name">{fmt.name}</span>
                                             <span
                                                 className="aps-multi-model-card-badge"
                                                 style={{
-                                                    background: `${fmt.badgeColor}22`,
-                                                    color: fmt.badgeColor,
-                                                    border: `1px solid ${fmt.badgeColor}44`,
+                                                    background: isCurrent ? "#172554" : "#181d26",
+                                                    color: isCurrent ? "#93c5fd" : "#94a3b8",
+                                                    border: `1px solid ${isCurrent ? "#2563eb" : "#282c34"}`,
                                                 }}
                                             >
                                                 {isCurrent ? "✓ Model Aktif" : fmt.id}
@@ -1634,7 +1631,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                     localStorage.setItem("modular_studio_target_model", fmt.id);
                                                     showToast(`Target model aktif diubah ke ${fmt.name}`);
                                                 }}
-                                                style={isCurrent ? { background: fmt.badgeColor, color: "#fff" } : undefined}
+                                                style={isCurrent ? { background: "#2563eb", color: "#fff" } : undefined}
                                             >
                                                 {isCurrent ? "✓ Aktif" : "Pilih Model"}
                                             </button>

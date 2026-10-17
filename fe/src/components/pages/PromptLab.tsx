@@ -60,6 +60,12 @@ const Icons = {
             <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
         </svg>
     ),
+    Eye: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+    ),
     Check: () => (
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
@@ -1196,13 +1202,6 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         handleSelectTab("canvas");
     };
 
-    const handleCopyPositive = () => {
-        if (!positivePrompt.trim()) return;
-        navigator.clipboard.writeText(positivePrompt);
-        setCopiedKey("copy-positive");
-        showToast("Prompt berhasil disalin ke clipboard!");
-        setTimeout(() => setCopiedKey(null), 2000);
-    };
 
     // Append preset positive
     const handleAppendPositive = (text: string) => {
@@ -2475,7 +2474,6 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                                 className={`prompt-cat-chip ${presetCategoryFilter === cat.id ? "active" : ""}`}
                                                 onClick={() => setPresetCategoryFilter(cat.id)}
                                             >
-                                                <span>{cat.id === "anime" ? "🌸" : "📷"}</span>
                                                 <span>{cat.label}</span>
                                             </button>
                                         ))}
@@ -2606,7 +2604,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                                             onMouseLeave={() => setCharTooltipState(null)}
                                                         >
                                                             <span className="preset-char-btn-icon">
-                                                                {group.hasFavorite ? "⭐" : "🏷️"}
+                                                                {group.hasFavorite ? <Icons.Star filled /> : <Icons.Tag />}
                                                             </span>
                                                             <span className="preset-char-btn-name">
                                                                 {group.character}
@@ -2871,7 +2869,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                                                         }}
                                                                         title="Lihat foto preview"
                                                                     >
-                                                                        📷
+                                                                        <Icons.Eye />
                                                                     </span>
                                                                 )}
                                                                 <span
@@ -2969,7 +2967,6 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                 className={`prompt-cat-chip ${presetCategoryFilter === cat.id ? "active" : ""}`}
                                 onClick={() => setPresetCategoryFilter(cat.id)}
                             >
-                                <span>{cat.id === "anime" ? "🌸" : "📷"}</span>
                                 <span>{cat.label}</span>
                             </button>
                         ))}
@@ -3910,7 +3907,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                     }}
                 >
                     <div className="preset-char-tooltip-header">
-                        <span className="preset-char-tooltip-icon">🏷️</span>
+                        <span className="preset-char-tooltip-icon"><Icons.Tag /></span>
                         <span className="preset-char-tooltip-title">
                             {charTooltipState.group.character}
                         </span>

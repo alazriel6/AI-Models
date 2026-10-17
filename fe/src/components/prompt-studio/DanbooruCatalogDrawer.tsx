@@ -364,7 +364,7 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                                 <span className="booru-tab-num">{cat.num}</span>
                                 <span>{cat.title.split("(")[0].trim()}</span>
                                 {countInLayer > 0 && (
-                                    <span className="booru-tab-num" style={{ opacity: 0.8 }}>{countInLayer}</span>
+                                    <span className="booru-tab-num">{countInLayer}</span>
                                 )}
                             </button>
                         );
@@ -393,7 +393,7 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                             >
                                 <span>{c.label}</span>
                                 {stats?.categories?.[c.id] && (
-                                    <span style={{ fontSize: "9px", opacity: 0.7, marginLeft: "4px" }}>
+                                    <span style={{ fontSize: "9px", color: "#94a3b8", marginLeft: "4px" }}>
                                         {stats.categories[c.id]}
                                     </span>
                                 )}

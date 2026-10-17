@@ -238,7 +238,7 @@ export const DeconstructorView: React.FC<DeconstructorViewProps> = ({
                             <div className="aps-detected-left">
                                 <span>Deteksi Format Asal:</span>
                                 <span className="aps-detected-badge">
-                                    🔍 {PROMPT_FORMATS.find((f) => f.id === detected.format)?.name || detected.format}
+                                    {PROMPT_FORMATS.find((f) => f.id === detected.format)?.name || detected.format}
                                 </span>
                                 <span style={{ color: "#64748b", fontSize: 11 }}>({detected.confidence})</span>
                             </div>
@@ -342,7 +342,7 @@ export const DeconstructorView: React.FC<DeconstructorViewProps> = ({
                                             className={`aps-transformer-btn ${isCopied ? "primary" : "secondary"}`}
                                             onClick={() => handleCopy(outputText, fmt.id)}
                                         >
-                                            <span>{isCopied ? "✓ Tersalin!" : "📋 Salin Prompt"}</span>
+                                            <span>{isCopied ? "✓ Tersalin!" : "Salin Prompt"}</span>
                                         </button>
                                         <button
                                             type="button"
@@ -350,7 +350,7 @@ export const DeconstructorView: React.FC<DeconstructorViewProps> = ({
                                             onClick={() => handleApplyCanvas(outputText)}
                                             title="Kirim ke Canvas Editor Lab"
                                         >
-                                            <span>🚀 Ke Canvas</span>
+                                            <span>Ke Canvas</span>
                                         </button>
                                         {(fmt.id === "flux" || fmt.id === "midjourney") && (
                                             <button
