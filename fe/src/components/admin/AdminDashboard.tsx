@@ -15,6 +15,7 @@ import { ModelImagesModal } from "./ModelImagesModal";
 import { GalleryManager } from "./GalleryManager";
 import { AutoImportModelModal } from "./AutoImportModelModal";
 import { DatabaseBackupModal } from "./DatabaseBackupModal";
+import { WorkflowManager } from "./WorkflowManager";
 import "./admin.css";
 
 interface ToastNotification {
@@ -27,7 +28,7 @@ export const AdminDashboard: React.FC = () => {
     const { isAdmin, logout, updatePasscode } = useAdminAuth();
 
     // Active Admin Section Tab
-    const [adminTab, setAdminTab] = useState<"models" | "gallery">("models");
+    const [adminTab, setAdminTab] = useState<"models" | "gallery" | "workflows">("models");
 
     // Data state
     const [models, setModels] = useState<Model[]>([]);
@@ -364,6 +365,24 @@ export const AdminDashboard: React.FC = () => {
                     <span>Showcase Gallery</span>
                     <span className="tab-badge">Images CRUD</span>
                 </button>
+
+                <button
+                    type="button"
+                    className={`admin-nav-tab ${adminTab === "workflows" ? "active" : ""}`}
+                    onClick={() => setAdminTab("workflows")}
+                >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="3" width="6" height="6" rx="1.5" />
+                        <rect x="16" y="3" width="6" height="6" rx="1.5" />
+                        <rect x="16" y="15" width="6" height="6" rx="1.5" />
+                        <rect x="2" y="15" width="6" height="6" rx="1.5" />
+                        <path d="M8 6h8" />
+                        <path d="M5 9v6" />
+                        <path d="M19 9v6" />
+                    </svg>
+                    <span>ComfyUI Workflows</span>
+                    <span className="tab-badge">Presets CRUD</span>
+                </button>
             </div>
 
             {adminTab === "models" ? (
@@ -609,8 +628,10 @@ export const AdminDashboard: React.FC = () => {
                 )}
             </div>
             </>
-            ) : (
+            ) : adminTab === "gallery" ? (
                 <GalleryManager availableModels={models} onToast={addToast} />
+            ) : (
+                <WorkflowManager models={models} onToast={addToast} />
             )}
 
             {/* Create / Edit Modal */}

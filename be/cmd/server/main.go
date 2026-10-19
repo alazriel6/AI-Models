@@ -36,6 +36,7 @@ func main() {
 	tagRepo := repositories.NewTagRepository(db)
 	imageRepo := repositories.NewImageRepository(db)
 	resourceRepo := repositories.NewResourceRepository(db)
+	workflowRepo := repositories.NewWorkflowRepository(db)
 
 	// Services
 	modelService := services.NewModelService(modelRepo)
@@ -48,6 +49,7 @@ func main() {
 	promptPresetService := services.NewPromptPresetService(db)
 	thumbnailService := services.NewThumbnailService(cfg.StoragePath)
 	booruTagService := services.NewBooruTagService(db)
+	workflowService := services.NewWorkflowService(workflowRepo)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -61,6 +63,7 @@ func main() {
 		PromptPresetHandler: handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
 		ThumbnailHandler:    handlers.NewThumbnailHandler(thumbnailService),
 		BooruTagHandler:     handlers.NewBooruTagHandler(booruTagService),
+		WorkflowHandler:     handlers.NewWorkflowHandler(workflowService),
 	}
 
 	router := gin.Default()

@@ -39,6 +39,7 @@ type Model struct {
 	Versions     []ModelVersion     `json:"versions,omitempty" gorm:"foreignKey:ModelID;constraint:OnDelete:CASCADE"`
 	Tags         []Tag              `json:"tags,omitempty" gorm:"many2many:model_tags;constraint:OnDelete:CASCADE"`
 	Images       []ModelImage       `json:"images,omitempty" gorm:"foreignKey:ModelID;constraint:OnDelete:CASCADE"`
+	Workflows    []Workflow         `json:"workflows,omitempty" gorm:"foreignKey:ModelID;constraint:OnDelete:SET NULL"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

@@ -18,6 +18,7 @@ const AnimePromptStudio = lazy(() => import('./components/pages/AnimePromptStudi
 const About = lazy(() => import('./components/pages/About'));
 const Contact = lazy(() => import('./components/pages/Contact'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
+const ComfyWorkflows = lazy(() => import('./components/pages/ComfyWorkflows'));
 
 function PageLoadingFallback() {
   return (
@@ -168,7 +169,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -339,6 +340,28 @@ function AppLayout() {
                     <span className="nav-tool-desc">Multi-layer weight & burnout guard</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/workflows"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="3" width="6" height="6" rx="1.5" />
+                      <rect x="16" y="3" width="6" height="6" rx="1.5" />
+                      <rect x="16" y="15" width="6" height="6" rx="1.5" />
+                      <rect x="2" y="15" width="6" height="6" rx="1.5" />
+                      <path d="M8 6h8" />
+                      <path d="M5 9v6" />
+                      <path d="M19 9v6" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">ComfyUI Workflows</span>
+                    <span className="nav-tool-desc">Node graph presets &amp; 1-click export</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -379,6 +402,8 @@ function AppLayout() {
             <Route path="/anime-prompt-studio" element={<AnimePromptStudio />} />
             <Route path="/prompt-deconstructor" element={<AnimePromptStudio />} />
             <Route path="/deconstructor" element={<AnimePromptStudio />} />
+            <Route path="/workflows" element={<ComfyWorkflows />} />
+            <Route path="/comfyui" element={<ComfyWorkflows />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

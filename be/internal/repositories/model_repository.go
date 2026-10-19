@@ -64,6 +64,9 @@ func (r *ModelRepository) FindAll(page, limit int, search, filterType, filterBas
 		Preload("Images.Resources").
 		Preload("Images.Tags").
 		Preload("Reviews").
+		Preload("Workflows", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, slug, base_model, category, total_nodes, model_id")
+		}).
 		Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).
@@ -97,6 +100,9 @@ func (r *ModelRepository) FindByID(id uint) (*models.Model, error) {
 		Preload("Images.Resources").
 		Preload("Images.Tags").
 		Preload("Versions").
+		Preload("Workflows", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, slug, base_model, category, total_nodes, model_id")
+		}).
 		First(&model, id).Error
 
 	if err != nil {
@@ -116,7 +122,10 @@ func (r *ModelRepository) FindByIDOrSlug(identifier string) (*models.Model, erro
 		Preload("Images").
 		Preload("Images.Resources").
 		Preload("Images.Tags").
-		Preload("Versions")
+		Preload("Versions").
+		Preload("Workflows", func(db *gorm.DB) *gorm.DB {
+			return db.Select("id, name, slug, base_model, category, total_nodes, model_id")
+		})
 
 	if id, err := strconv.ParseUint(identifier, 10, 32); err == nil {
 		if err := query.Where("id = ? OR slug = ?", id, identifier).First(&model).Error; err == nil {

@@ -19,6 +19,7 @@ type RouteHandlers struct {
 	PromptPresetHandler *handlers.PromptPresetHandler
 	ThumbnailHandler    *handlers.ThumbnailHandler
 	BooruTagHandler     *handlers.BooruTagHandler
+	WorkflowHandler     *handlers.WorkflowHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -133,6 +134,18 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			api.GET("/booru-tags/stats", h.BooruTagHandler.GetStats)
 			api.GET("/booru-tags", h.BooruTagHandler.GetTags)
 			api.POST("/booru-tags", h.BooruTagHandler.CreateTag)
+		}
+
+		// ComfyUI Workflows & Presets
+		if h.WorkflowHandler != nil {
+			workflows := api.Group("/workflows")
+			{
+				workflows.GET("", h.WorkflowHandler.GetWorkflows)
+				workflows.GET("/:id", h.WorkflowHandler.GetWorkflow)
+				workflows.POST("", adminAuth, h.WorkflowHandler.CreateWorkflow)
+				workflows.PUT("/:id", adminAuth, h.WorkflowHandler.UpdateWorkflow)
+				workflows.DELETE("/:id", adminAuth, h.WorkflowHandler.DeleteWorkflow)
+			}
 		}
 	}
 }

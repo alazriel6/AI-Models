@@ -60,6 +60,7 @@ func Connect(cfg config.Config) *gorm.DB {
 		&models.Review{},
 		&models.PromptPreset{},
 		&models.BooruTag{},
+		&models.Workflow{},
 	}
 	for _, t := range tables {
 		if err := db.AutoMigrate(t); err != nil {

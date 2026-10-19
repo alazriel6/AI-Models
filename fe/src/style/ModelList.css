@@ -2667,3 +2667,81 @@
     background: #228be6;
     box-shadow: 0 0 12px rgba(34, 139, 230, 0.4);
 }
+
+/* ComfyUI Workflows Card in Model Details */
+.comfyui-model-workflows-card {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.model-workflow-names-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.model-workflow-name-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    background: #1C1F23;
+    border: 1px solid #292D32;
+    border-radius: 6px;
+    color: #f1f5f9;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.model-workflow-name-pill:hover {
+    background: #1e2638;
+    border-color: #2563eb;
+    color: #38bdf8;
+    transform: translateX(2px);
+}
+
+.model-workflow-name-pill .pill-dot {
+    font-size: 14px;
+    color: #3b82f6;
+}
+
+.model-workflow-name-pill .pill-name {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.model-workflow-name-pill .pill-arrow {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.model-workflow-name-pill:hover .pill-arrow {
+    color: #38bdf8;
+}
+
+.model-workflow-explore-link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: #121418;
+    border: 1px dashed #333842;
+    border-radius: 6px;
+    color: #38bdf8;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+}
+
+.model-workflow-explore-link:hover {
+    background: #1c2333;
+    border-color: #2563eb;
+}

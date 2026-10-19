@@ -1,0 +1,782 @@
+/* ==========================================================================
+   ComfyUI Interactive Workflow Viewer & Node Graph Styles
+   Theme: High-contrast Dark Slate with Solid Blue Accents (No AI Slop)
+   ========================================================================== */
+
+/* Main Container Wrapper */
+.comfy-viewer-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 720px;
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #f1f5f9;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.comfy-viewer-wrapper.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  border-radius: 0;
+  border: none;
+}
+
+/* ==========================================================================
+   Top Information Toolbar
+   ========================================================================== */
+.comfy-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 52px;
+  padding: 0 16px;
+  background-color: #0e1422;
+  border-bottom: 1px solid #1e293b;
+  flex-shrink: 0;
+  z-index: 40;
+  gap: 12px;
+}
+
+.comfy-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.comfy-brand-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #1e3a8a;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #2563eb;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+
+.comfy-workflow-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8fafc;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 380px;
+}
+
+.comfy-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  flex-shrink: 0;
+}
+
+.comfy-meta-pill.highlight {
+  background-color: rgba(37, 99, 235, 0.15);
+  color: #60a5fa;
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.comfy-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.comfy-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.comfy-tool-btn:hover {
+  background-color: #273549;
+  color: #ffffff;
+  border-color: #475569;
+}
+
+.comfy-tool-btn.icon-only {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+/* ==========================================================================
+   Main Canvas Area
+   ========================================================================== */
+.comfy-canvas-container {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  cursor: grab;
+  background-color: #111622;
+  background-image: radial-gradient(circle, #252e42 1.6px, transparent 1.6px);
+  background-size: 24px 24px;
+  overscroll-behavior: contain;
+}
+
+.comfy-canvas-container.grabbing {
+  cursor: grabbing;
+}
+
+.comfy-viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+/* ==========================================================================
+   ComfyUI Groups (Framed Sections)
+   ========================================================================== */
+.comfy-group-box {
+  position: absolute;
+  border-radius: 8px;
+  border: 2px solid #2563eb;
+  background-color: rgba(37, 99, 235, 0.05);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.comfy-group-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background-color: #1d4ed8;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #ffffff;
+  letter-spacing: 0.05em;
+}
+
+/* ==========================================================================
+   SVG Cable Wires Layer
+   ========================================================================== */
+.comfy-svg-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10000px;
+  height: 10000px;
+  pointer-events: none;
+  overflow: visible;
+  z-index: 2;
+}
+
+.comfy-wire {
+  fill: none;
+  stroke-width: 3px;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.comfy-wire.wire-model { stroke: #38bdf8; }
+.comfy-wire.wire-clip { stroke: #facc15; }
+.comfy-wire.wire-vae { stroke: #f87171; }
+.comfy-wire.wire-conditioning { stroke: #fb923c; }
+.comfy-wire.wire-latent { stroke: #c084fc; }
+.comfy-wire.wire-image { stroke: #4ade80; }
+.comfy-wire.wire-detector { stroke: #a3e635; }
+.comfy-wire.wire-other { stroke: #94a3b8; }
+
+/* ==========================================================================
+   Node Cards (Clear, Crisp & Highly Readable)
+   ========================================================================== */
+.comfy-node-card {
+  position: absolute;
+  border-radius: 8px;
+  background-color: #171f2e;
+  border: 1px solid #2e3b52;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  z-index: 3;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.comfy-node-card:hover {
+  border-color: #4b5e80;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.65);
+}
+
+.comfy-node-card.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px #3b82f6, 0 12px 32px rgba(0, 0, 0, 0.75);
+}
+
+/* Node Header */
+.comfy-node-title-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 34px;
+  padding: 0 12px;
+  border-top-left-radius: 7px;
+  border-top-right-radius: 7px;
+  background-color: #1e293b;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
+}
+
+.node-title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.node-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+  flex-shrink: 0;
+}
+
+.node-id-tag {
+  font-size: 11px;
+  color: #94a3b8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background-color: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+/* Sockets Section (Inputs & Outputs) */
+.comfy-sockets-section {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 0;
+  gap: 4px;
+}
+
+.socket-pair-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+  position: relative;
+}
+
+.socket-input-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 0;
+  position: relative;
+}
+
+.socket-output-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 0;
+  margin-left: auto;
+  position: relative;
+}
+
+.socket-pin {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid #0f172a;
+  flex-shrink: 0;
+  z-index: 4;
+}
+
+.socket-pin.left-pin {
+  margin-left: -5px;
+}
+
+.socket-pin.right-pin {
+  margin-right: -5px;
+}
+
+.socket-label {
+  font-size: 11px;
+  color: #e2e8f0;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Slot socket colors */
+.slot-model { background-color: #38bdf8; }
+.slot-clip { background-color: #facc15; }
+.slot-vae { background-color: #f87171; }
+.slot-conditioning { background-color: #fb923c; }
+.slot-latent { background-color: #c084fc; }
+.slot-image { background-color: #4ade80; }
+.slot-detector { background-color: #a3e635; }
+.slot-other { background-color: #94a3b8; }
+
+/* Widgets Section */
+.comfy-widgets-section {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px 12px 12px;
+  gap: 6px;
+}
+
+.comfy-widget-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #0f172a;
+  border: 1px solid #283548;
+  border-radius: 5px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.widget-name-label {
+  color: #94a3b8;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.widget-value-text {
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+  flex: 1;
+}
+
+.widget-caret {
+  color: #64748b;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.comfy-prompt-box {
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 11px;
+  color: #f1f5f9;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  max-height: 140px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comfy-note-content {
+  background-color: #0b0f19;
+  border: 1px solid #1e293b;
+  border-radius: 5px;
+  padding: 12px;
+  font-size: 12px;
+  color: #cbd5e1;
+  line-height: 1.5;
+  max-height: 260px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   Floating ComfyUI Action Panel (Top Right)
+   ========================================================================== */
+.comfy-floating-menu {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 200px;
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  gap: 8px;
+  z-index: 50;
+}
+
+.floating-menu-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.floating-brand-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.floating-status-pill {
+  font-size: 10px;
+  color: #22c55e;
+  background-color: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.comfy-btn-queue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  background-color: #16a34a;
+  border: 1px solid #22c55e;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.comfy-btn-queue:hover {
+  background-color: #15803d;
+}
+
+.comfy-btn-secondary {
+  width: 100%;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #e2e8f0;
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.comfy-btn-secondary:hover {
+  background-color: #334155;
+  color: #ffffff;
+  border-color: #475569;
+}
+
+.comfy-menu-divider {
+  height: 1px;
+  background-color: #1e293b;
+  margin: 4px 0;
+}
+
+.floating-zoom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.zoom-mini-btn {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  color: #ffffff;
+  width: 28px;
+  height: 26px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.zoom-mini-btn:hover {
+  background-color: #334155;
+}
+
+/* ==========================================================================
+   Left Side Node Inspector Drawer (Solid, High-Contrast & Legible)
+   ========================================================================== */
+.comfy-side-inspector {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  bottom: 14px;
+  width: 380px;
+  max-width: calc(100% - 28px);
+  background-color: #0b1120;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  z-index: 60;
+  overflow: hidden;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #111827;
+  border-bottom: 1px solid #1e293b;
+}
+
+.inspector-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.inspector-node-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inspector-node-badge {
+  font-size: 11px;
+  background-color: #1e293b;
+  color: #60a5fa;
+  border: 1px solid #2563eb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.inspector-close-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.inspector-close-btn:hover {
+  background-color: #1e293b;
+  color: #ffffff;
+}
+
+.inspector-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.inspector-section-title {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background-color: #111827;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #1e293b;
+}
+
+.inspector-table tr {
+  border-bottom: 1px solid #1e293b;
+}
+
+.inspector-table tr:last-child {
+  border-bottom: none;
+}
+
+.inspector-table td {
+  padding: 8px 12px;
+}
+
+.inspector-table .td-label {
+  color: #94a3b8;
+  font-weight: 600;
+  width: 40%;
+  background-color: rgba(255, 255, 255, 0.01);
+}
+
+.inspector-table .td-val {
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.inspector-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.inspector-prompt-block {
+  background-color: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 12px;
+  font-size: 12px;
+  color: #f8fafc;
+  line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* ==========================================================================
+   Bottom Cable Legend Bar (Clean Horizontal Layout)
+   ========================================================================== */
+.comfy-legend-bar {
+  display: flex;
+  align-items: center;
+  height: 42px;
+  padding: 0 16px;
+  background-color: #0e1422;
+  border-top: 1px solid #1e293b;
+  flex-shrink: 0;
+  gap: 14px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.legend-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8fafc;
+  flex-shrink: 0;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+  flex-shrink: 0;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-tip {
+  margin-left: auto;
+  font-size: 11px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Toast Notification
+   ========================================================================== */
+.comfy-toast-notification {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2563eb;
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: comfyToastSlide 0.2s ease-out;
+}
+
+@keyframes comfyToastSlide {
+  from { opacity: 0; transform: translate(-50%, 14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}

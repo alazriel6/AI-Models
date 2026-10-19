@@ -85,6 +85,16 @@ export interface Tag {
     slug: string;
 }
 
+export interface ModelWorkflowSummary {
+    id: number;
+    name: string;
+    slug: string;
+    base_model: string;
+    category: string;
+    total_nodes?: number;
+    model_id?: number;
+}
+
 export interface Model {
     id: number;
     name: string;
@@ -116,6 +126,7 @@ export interface Model {
     versions?: ModelVersion[];
     images?: ModelImage[];
     tags: Tag[];
+    workflows?: ModelWorkflowSummary[];
 
     created_at: string;
     updated_at: string;

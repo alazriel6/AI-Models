@@ -98,6 +98,14 @@ export interface CatalogModel {
     reviews?: ReviewItem[];
     versions?: VersionItem[];
     images: ImageItem[];
+    workflows?: Array<{
+        id: number;
+        name: string;
+        slug: string;
+        base_model?: string;
+        category?: string;
+        total_nodes?: number;
+    }>;
 }
 
 function StarIcon({ filled, size = 14, style }: { filled?: boolean; size?: number; style?: React.CSSProperties }) {
@@ -224,7 +232,8 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
                       }))
                   }
               }))
-            : []
+            : [],
+        workflows: m.workflows
     };
 }
 
@@ -1134,6 +1143,49 @@ export default function ModelList() {
                             >
                                 Mulai Adu Model ➔
                             </Link>
+                        </div>
+
+                        {/* ComfyUI Workflows Card */}
+                        <div className="civitai-card comfyui-model-workflows-card">
+                            <div className="download-card-header">
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                    <span style={{ fontSize: "16px" }}>⚡</span>
+                                    <span className="card-title-strong">ComfyUI Workflows</span>
+                                </div>
+                                <span className="variant-label">
+                                    {selectedModel.workflows && selectedModel.workflows.length > 0
+                                        ? `${selectedModel.workflows.length} Preset`
+                                        : "Siap Pakai"}
+                                </span>
+                            </div>
+                            <p style={{ fontSize: "12px", color: "#909296", margin: "6px 0 10px 0", lineHeight: "1.45" }}>
+                                Preset alur ComfyUI siap pakai. Klik nama workflow di bawah untuk melihat diagram node visual dan menyalin JSON.
+                            </p>
+                            {selectedModel.workflows && selectedModel.workflows.length > 0 ? (
+                                <div className="model-workflow-names-list">
+                                    {selectedModel.workflows.map((wf) => (
+                                        <Link
+                                            key={wf.id}
+                                            to={`/workflows?id=${wf.id}`}
+                                            className="model-workflow-name-pill"
+                                            title={`Buka diagram node "${wf.name}" di ComfyUI Tools`}
+                                        >
+                                            <span className="pill-dot">☍</span>
+                                            <span className="pill-name">{wf.name}</span>
+                                            <span className="pill-arrow">➔</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : (
+                                <Link
+                                    to={`/workflows?base_model=${selectedModel.baseModel}`}
+                                    className="model-workflow-explore-link"
+                                    title={`Jelajahi workflow untuk arsitektur ${selectedModel.baseModel}`}
+                                >
+                                    <span>Jelajahi Workflow {selectedModel.baseModel}</span>
+                                    <span>➔</span>
+                                </Link>
+                            )}
                         </div>
 
                         {/* Details Accordion Panel */}

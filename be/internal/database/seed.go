@@ -14,9 +14,12 @@ func Seed(db *gorm.DB) error {
 }
 
 func SeedData(db *gorm.DB, force bool) error {
-	// Always ensure PromptPresets are seeded if empty
+	// Always ensure PromptPresets and Workflows are seeded if empty
 	if err := SeedPromptPresets(db); err != nil {
 		log.Printf("Warning: failed to seed prompt presets: %v\n", err)
+	}
+	if err := SeedWorkflows(db); err != nil {
+		log.Printf("Warning: failed to seed workflows: %v\n", err)
 	}
 
 	var count int64
