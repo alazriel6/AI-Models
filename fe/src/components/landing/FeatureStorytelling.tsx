@@ -8,26 +8,29 @@ export function FeatureStorytelling() {
   const coreLaserRef = useRef<SVGPathElement | null>(null);
   const streamRef = useRef<SVGPathElement | null>(null);
 
-  // References to the 5 step nodes to calculate exact path coordinates
+  // References to the 6 step nodes to calculate exact path coordinates
   const node1Ref = useRef<HTMLDivElement | null>(null);
   const node2Ref = useRef<HTMLDivElement | null>(null);
   const node3Ref = useRef<HTMLDivElement | null>(null);
   const node4Ref = useRef<HTMLDivElement | null>(null);
   const node5Ref = useRef<HTMLDivElement | null>(null);
+  const node6Ref = useRef<HTMLDivElement | null>(null);
 
   const [pathD, setPathD] = useState<string>('');
-  const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 1200, height: 2600 });
+  const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 1200, height: 3200 });
   const [activeStep, setActiveStep] = useState<number>(() => {
     if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return 5;
+      return 6;
     }
     return 0;
   });
 
   // Cached node points and arc lengths along SVG path for zero-offset scroll synchronization
   const nodePointsRef = useRef<{ x: number; y: number }[]>([]);
-  const nodeLengthsRef = useRef<number[]>([0, 0, 0, 0, 0, 0]);
+  const nodeLengthsRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const pinsRef = useRef<HTMLElement[]>([]);
+  const pinDocTopsRef = useRef<number[]>([]);
+  const activeStepRef = useRef<number>(0);
   const totalLengthRef = useRef<number>(0);
   const isSectionActiveRef = useRef<boolean>(false);
   const lastOffsetRef = useRef<number>(-1);
@@ -37,7 +40,25 @@ export function FeatureStorytelling() {
   const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  // Build the dynamic SVG path passing with pixel-perfection through each feature pin
+  // Interactive LoRA Stack weights state
+  const [loraWeights, setLoraWeights] = useState<{ [key: string]: number }>({
+    lineart: 0.80,
+    lighting: 0.65,
+    cyber: 0.45,
+  });
+
+  const totalLoraWeight = Math.round((loraWeights.lineart + loraWeights.lighting + loraWeights.cyber) * 100) / 100;
+  const isLoraOverbaked = totalLoraWeight > 2.2;
+
+  const adjustLoraWeight = (key: string, delta: number) => {
+    setLoraWeights((prev) => {
+      const current = prev[key] ?? 0.5;
+      const next = Math.max(0.1, Math.min(1.5, Math.round((current + delta) * 10) / 10));
+      return { ...prev, [key]: next };
+    });
+  };
+
+  // Build dynamic SVG path threading through all feature pins
   const updatePathGeometry = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -50,11 +71,13 @@ export function FeatureStorytelling() {
 
     setSvgSize({ width: w, height: h });
 
-    const nodes = [node1Ref, node2Ref, node3Ref, node4Ref, node5Ref];
+    const nodes = [node1Ref, node2Ref, node3Ref, node4Ref, node5Ref, node6Ref];
 
     // Compute exact subpixel center coordinates for each node's circular pin
     const pinCoords: { x: number; y: number }[] = [];
     const pinTargets: HTMLElement[] = [];
+    const docTops: number[] = [];
+    const scrollY = window.scrollY || window.pageYOffset;
 
     nodes.forEach((ref) => {
       if (ref.current) {
@@ -66,16 +89,18 @@ export function FeatureStorytelling() {
           x: Math.round(rect.left - containerRect.left + rect.width / 2),
           y: Math.round(rect.top - containerRect.top + rect.height / 2),
         });
+        docTops.push(Math.round(rect.top + scrollY));
       }
     });
 
     pinsRef.current = pinTargets;
+    pinDocTopsRef.current = docTops;
 
-    if (pinCoords.length < 5) return;
+    if (pinCoords.length < 6) return;
 
     const points: { x: number; y: number }[] = [];
 
-    // 1. Initial point: directly under the section header, perfectly aligned on pin 1's vertical axis
+    // 1. Initial point: directly under the section header, aligned on pin 1's vertical axis
     const header = container.querySelector('.mg-features-header');
     if (header) {
       const hRect = header.getBoundingClientRect();
@@ -98,7 +123,6 @@ export function FeatureStorytelling() {
       const prev = points[i - 1];
       const curr = points[i];
       const midY = Math.round((prev.y + curr.y) / 2);
-      // S-curve entering each pin vertically for maximum visual balance
       d += ` C ${prev.x} ${midY}, ${curr.x} ${midY}, ${curr.x} ${curr.y}`;
     }
 
@@ -113,8 +137,8 @@ export function FeatureStorytelling() {
   useEffect(() => {
     updatePathGeometry();
 
-    const t0 = setTimeout(updatePathGeometry, 50);
-    const t1 = setTimeout(updatePathGeometry, 200);
+    const t0 = setTimeout(updatePathGeometry, 60);
+    const t1 = setTimeout(updatePathGeometry, 220);
     const t2 = setTimeout(updatePathGeometry, 800);
 
     if (document.fonts) {
@@ -200,12 +224,22 @@ export function FeatureStorytelling() {
       }
 
       nodeLengthsRef.current = lengths;
+
+      // Initialize strokeDasharray and initial strokeDashoffset once on geometry update
+      const pathsToInit = [pathRef.current, glowPathRef.current, coreLaserRef.current];
+      pathsToInit.forEach((p) => {
+        if (p) {
+          p.style.strokeDasharray = `${total}`;
+          p.style.strokeDashoffset = `${total}`;
+        }
+      });
+      lastOffsetRef.current = total;
     } catch {
       // SVG geometry calculating
     }
   }, [pathD]);
 
-  // Synchronized scroll progress tracking to advance glowing line smoothly with node activation
+  // Synchronized scroll progress tracking
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return;
@@ -215,79 +249,71 @@ export function FeatureStorytelling() {
 
     const handleScroll = () => {
       if (!isSectionActiveRef.current) return;
-      const container = containerRef.current;
       const path = pathRef.current;
-      if (!container || !path) return;
+      if (!path) return;
 
       const triggerY = window.innerHeight * 0.52; // Eye-level reading activation line
-      const pinEls = pinsRef.current;
-      if (pinEls.length < 5) return;
+      const docTops = pinDocTopsRef.current;
+      if (docTops.length < 6) return;
 
-      const nodeTops = pinEls.map((target) => (target ? target.getBoundingClientRect().top : null));
+      const scrollY = window.scrollY || window.pageYOffset;
+      const nodeTops = docTops.map((dt) => dt - scrollY);
 
       // 1. Determine active step based on eye-level trigger line
       let currentStep = 0;
       nodeTops.forEach((top, idx) => {
-        if (top !== null && top <= triggerY + 30) {
+        if (top <= triggerY + 30) {
           currentStep = idx + 1;
         }
       });
-      setActiveStep((prev) => (prev !== currentStep ? currentStep : prev));
+
+      if (activeStepRef.current !== currentStep) {
+        activeStepRef.current = currentStep;
+        setActiveStep(currentStep);
+      }
 
       // 2. Synchronized path length interpolation between nodes
       const lengths = nodeLengthsRef.current;
       const totalLength = totalLengthRef.current || (path ? path.getTotalLength() : 0);
       if (totalLength <= 0) return;
 
-      const L1 = lengths[1] || (totalLength * 0.2);
-      const L2 = lengths[2] || (totalLength * 0.4);
-      const L3 = lengths[3] || (totalLength * 0.6);
-      const L4 = lengths[4] || (totalLength * 0.8);
-      const L5 = lengths[5] || (totalLength * 0.95);
-
-      const t1 = nodeTops[0];
-      const t2 = nodeTops[1];
-      const t3 = nodeTops[2];
-      const t4 = nodeTops[3];
-      const t5 = nodeTops[4];
-
       let currentLength = 0;
 
-      if (t1 !== null && t1 > triggerY) {
+      if (nodeTops[0] > triggerY) {
         // Approaching Node 1 from header
         const enterY = window.innerHeight * 0.85;
-        const progress = Math.min(Math.max((enterY - t1) / (enterY - triggerY), 0), 1);
+        const progress = Math.min(Math.max((enterY - nodeTops[0]) / (enterY - triggerY), 0), 1);
+        const L1 = lengths[1] || (totalLength / 6);
         currentLength = progress * L1;
-      } else if (t1 !== null && t2 !== null && t2 > triggerY) {
-        // Between Node 1 and Node 2
-        const progress = Math.min(Math.max((triggerY - t1) / (t2 - t1), 0), 1);
-        currentLength = L1 + progress * (L2 - L1);
-      } else if (t2 !== null && t3 !== null && t3 > triggerY) {
-        // Between Node 2 and Node 3
-        const progress = Math.min(Math.max((triggerY - t2) / (t3 - t2), 0), 1);
-        currentLength = L2 + progress * (L3 - L2);
-      } else if (t3 !== null && t4 !== null && t4 > triggerY) {
-        // Between Node 3 and Node 4
-        const progress = Math.min(Math.max((triggerY - t3) / (t4 - t3), 0), 1);
-        currentLength = L3 + progress * (L4 - L3);
-      } else if (t4 !== null && t5 !== null && t5 > triggerY) {
-        // Between Node 4 and Node 5
-        const progress = Math.min(Math.max((triggerY - t4) / (t5 - t4), 0), 1);
-        currentLength = L4 + progress * (L5 - L4);
-      } else if (t5 !== null) {
-        // Past Node 5 towards end of spine
-        const progress = Math.min(Math.max((triggerY - t5) / 250, 0), 1);
-        currentLength = L5 + progress * (totalLength - L5);
+      } else {
+        let found = false;
+        for (let i = 0; i < nodeTops.length - 1; i++) {
+          const tCur = nodeTops[i];
+          const tNext = nodeTops[i + 1];
+          if (tNext > triggerY) {
+            const progress = Math.min(Math.max((triggerY - tCur) / (tNext - tCur), 0), 1);
+            const lCur = lengths[i + 1] || (totalLength * ((i + 1) / (nodeTops.length + 1)));
+            const lNext = lengths[i + 2] || (totalLength * ((i + 2) / (nodeTops.length + 1)));
+            currentLength = lCur + progress * (lNext - lCur);
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const lastTop = nodeTops[nodeTops.length - 1];
+          const lastL = lengths[nodeTops.length] || (totalLength * 0.95);
+          const progress = Math.min(Math.max((triggerY - lastTop) / 250, 0), 1);
+          currentLength = lastL + progress * (totalLength - lastL);
+        }
       }
 
-      // Apply stroke dashoffset across all layered paths only when offset changes
+      // Apply stroke dashoffset across layered laser paths
       const offset = Math.max(0, totalLength - currentLength);
-      if (Math.abs(offset - lastOffsetRef.current) > 0.4) {
+      if (Math.abs(offset - lastOffsetRef.current) > 0.5) {
         lastOffsetRef.current = offset;
-        const pathsToUpdate = [pathRef.current, glowPathRef.current, coreLaserRef.current, streamRef.current];
+        const pathsToUpdate = [pathRef.current, glowPathRef.current, coreLaserRef.current];
         pathsToUpdate.forEach((p) => {
           if (p) {
-            p.style.strokeDasharray = `${totalLength}`;
             p.style.strokeDashoffset = `${offset}`;
           }
         });
@@ -295,6 +321,7 @@ export function FeatureStorytelling() {
     };
 
     const onScrollThrottled = () => {
+      if (!isSectionActiveRef.current) return;
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(handleScroll);
     };
@@ -327,7 +354,7 @@ export function FeatureStorytelling() {
   const copyToken = (text: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedToken(text);
-    setTimeout(() => setCopiedToken(null), 2000);
+    setTimeout(() => setCopiedToken(null), 2200);
   };
 
   return (
@@ -353,23 +380,6 @@ export function FeatureStorytelling() {
               viewBox={`0 0 ${svgSize.width} ${svgSize.height}`}
             >
               <defs>
-                {/* Wide ambient atmospheric aura */}
-                <filter id="beam-wide-glow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur stdDeviation="8" result="wideBlur" />
-                  <feMerge>
-                    <feMergeNode in="wideBlur" />
-                  </feMerge>
-                </filter>
-
-                {/* Intense neon core bloom */}
-                <filter id="beam-core-glow" x="-30%" y="-30%" width="160%" height="160%">
-                  <feGaussianBlur stdDeviation="3.5" result="sharpBlur" />
-                  <feMerge>
-                    <feMergeNode in="sharpBlur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-
                 {/* Cyberpunk Blue-to-Cyan Electric Gradient */}
                 <linearGradient id="beam-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#2563eb" stopOpacity="0.85" />
@@ -389,18 +399,18 @@ export function FeatureStorytelling() {
                 strokeDasharray="4 6"
               />
 
-              {/* 2. Active Ambient Wide Glow Aura */}
+              {/* 2. Active Ambient Wide Glow Aura - GPU hardware composited */}
               <path
                 ref={glowPathRef}
                 d={pathD}
                 fill="none"
-                stroke="rgba(56, 189, 248, 0.32)"
+                stroke="rgba(56, 189, 248, 0.35)"
                 strokeWidth="10"
                 strokeLinecap="round"
-                filter="url(#beam-wide-glow)"
+                className="mg-spine-laser-glow"
               />
 
-              {/* 3. Active Traveling Glowing Main Path */}
+              {/* 3. Active Traveling Glowing Main Path - GPU hardware composited */}
               <path
                 ref={pathRef}
                 d={pathD}
@@ -408,7 +418,7 @@ export function FeatureStorytelling() {
                 stroke="url(#beam-gradient)"
                 strokeWidth="3.5"
                 strokeLinecap="round"
-                filter="url(#beam-core-glow)"
+                className="mg-spine-laser-main"
               />
 
               {/* 4. Active Fiber-Optic Core Laser */}
@@ -419,6 +429,7 @@ export function FeatureStorytelling() {
                 stroke="rgba(255, 255, 255, 0.85)"
                 strokeWidth="1.2"
                 strokeLinecap="round"
+                className="mg-spine-laser-active"
               />
 
               {/* 5. Continuous Flowing Electric Pulse Stream */}
@@ -441,19 +452,19 @@ export function FeatureStorytelling() {
           <div className="mg-editorial-tag">
             <span className="mg-tag-num">03</span>
             <span className="mg-tag-line" />
-            <span className="mg-tag-text">INTEGRATED TOOLSET STORYTELLING</span>
+            <span className="mg-tag-text">INTEGRATED TOOLSET &amp; WORKFLOW</span>
           </div>
           <h2 className="mg-features-title">
-            Purpose-built utilities for the generative artist.
+            Suite Utilitas Generatif untuk Kreator AI &amp; Anime
           </h2>
           <p className="mg-features-subtitle">
-            Every feature in Models Guide was designed to eliminate friction between selecting a model and producing flawless output.
+            Rangkaian perkakas lengkap yang dirancang khusus untuk mengoptimalkan workflow generasi visual: mulai dari komparasi arsitektur model, studio prompt 10 layer Danbooru, penumpukan LoRA anti-burnout, inspeksi metadata SafeTensors, hingga kalkulasi resolusi VAE lattice.
           </p>
         </div>
 
         {/* ===================================================================
             FEATURE 01: Model Comparison (/compare)
-            Distinct composition: Dual-panel sliding confrontation + diff matrix
+            Layout: Info Left | Visual Right
             =================================================================== */}
         <div className={`mg-feature-row mg-feature-compare ${activeStep >= 1 ? 'is-active' : ''}`} id="feat-compare">
           <div className="mg-feature-info">
@@ -470,30 +481,29 @@ export function FeatureStorytelling() {
             </div>
 
             <h3 className="mg-feature-heading">
-              Model Comparison
+              Komparasi Model Multi-Slot
             </h3>
             <p className="mg-feature-copy">
-              Compare model characteristics, conditioning weights, and VRAM footprints side by side.
-              Detect subtle nuances between base checkpoints and experimental fine-tunes before scheduling generation runs.
+              Bandingkan karakteristik teknis model, bobot conditioning, arsitektur Text Encoder, dan footprint VRAM secara berdampingan. Temukan perbedaan presisi antara base checkpoint dan varian fine-tune sebelum memulai sesi generate gambar.
             </p>
 
             <div className="mg-feature-bullets">
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Multi-slot confrontation: 2 or 3 models simultaneously</span>
+                <span>Multi-slot simultan: sandingkan 2 hingga 3 model sekaligus dalam satu layar komparasi</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Real-time difference highlighting across all tensor parameters</span>
+                <span>Highlighter perbedaan parameter: periksa perbedaan resolusi native, clip skip, VRAM requirement, dan recommended sampler secara real-time</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Direct links to verified generation prompts and output galleries</span>
+                <span>Pintasan terintegrasi ke prompt terverifikasi dan galeri visual sampel dari masing-masing checkpoint</span>
               </div>
             </div>
 
             <Link to="/compare" className="mg-btn mg-btn-primary">
-              <span>Launch Model Comparison</span>
+              <span>Buka Model Comparison</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
@@ -510,14 +520,14 @@ export function FeatureStorytelling() {
                   className={`mg-mini-tab ${compareMetric === 'resolution' ? 'active' : ''}`}
                   onClick={() => setCompareMetric('resolution')}
                 >
-                  Resolution &amp; Aspect
+                  Resolusi &amp; Rasio
                 </button>
                 <button
                   type="button"
                   className={`mg-mini-tab ${compareMetric === 'vram' ? 'active' : ''}`}
                   onClick={() => setCompareMetric('vram')}
                 >
-                  VRAM &amp; Attention
+                  VRAM &amp; Memori
                 </button>
                 <button
                   type="button"
@@ -587,13 +597,13 @@ export function FeatureStorytelling() {
                 </div>
               </div>
 
-              {/* Bottom live diff status */}
+              {/* Bottom live diff status in Indonesian */}
               <div className="mg-compare-status-bar">
                 <span className="mg-status-indicator" />
                 <span>
-                  {compareMetric === 'resolution' && 'Difference: Illustrious defaults to 832x1216 portrait; Pony requires 1024x1024 native.'}
-                  {compareMetric === 'vram' && 'Difference: Illustrious runs in 6GB with --medvram; Pony requires 8GB for native batch.'}
-                  {compareMetric === 'architecture' && 'Difference: Both use Dual OpenCLIP ViT-L with Danbooru tag conditioning weights.'}
+                  {compareMetric === 'resolution' && 'Analisis: Illustrious optimal pada rasio portrait 832×1216; Pony membutuhkan 1024×1024 square native.'}
+                  {compareMetric === 'vram' && 'Analisis: Illustrious lancar di VRAM 6GB dengan --medvram; Pony membutuhkan minimal 8GB untuk full batch.'}
+                  {compareMetric === 'architecture' && 'Analisis: Keduanya memakai Dual OpenCLIP ViT-L dengan bobot conditioning tag Danbooru.'}
                 </span>
               </div>
             </div>
@@ -601,10 +611,156 @@ export function FeatureStorytelling() {
         </div>
 
         {/* ===================================================================
-            FEATURE 02: Visual Generation Gallery (/gallery)
-            Distinct composition: Clipping-mask image showcase + generation overlay
+            FEATURE 02: Prompt Studio & Lab (/prompt-lab)
+            Layout: Visual Left | Info Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-reverse mg-feature-gallery ${activeStep >= 2 ? 'is-active' : ''}`} id="feat-gallery">
+        <div className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${activeStep >= 2 ? 'is-active' : ''}`} id="feat-promptlab">
+          <div className="mg-feature-visual mg-visual-promptlab">
+            <div className="mg-promptlab-preview">
+              <div className="mg-promptlab-bar">
+                <span className="mg-bar-label">DANBOORU TOKEN MATRIX</span>
+                <span className="mg-bar-count">8 TAG AKTIF</span>
+              </div>
+
+              {/* Interactive Token Tag Cloud */}
+              <div className="mg-token-cloud">
+                {[
+                  { tag: 'masterpiece', weight: '1.0', type: 'quality' },
+                  { tag: 'best quality', weight: '1.0', type: 'quality' },
+                  { tag: '1girl', weight: '1.0', type: 'subject' },
+                  { tag: 'ho\'olheyak', weight: '1.2', type: 'character' },
+                  { tag: 'sidelighting', weight: '1.1', type: 'lighting' },
+                  { tag: 'dynamic shadows', weight: '1.0', type: 'lighting' },
+                  { tag: 'warm illumination', weight: '1.0', type: 'palette' },
+                  { tag: 'laboratory', weight: '0.9', type: 'environment' },
+                ].map((t) => (
+                  <button
+                    key={t.tag}
+                    type="button"
+                    className={`mg-token-pill mg-token-${t.type}`}
+                    onClick={() => copyToken(t.weight === '1.0' ? t.tag : `(${t.tag}:${t.weight})`)}
+                    title="Klik untuk menyalin tag ke clipboard"
+                  >
+                    <span className="mg-token-name">{t.tag}</span>
+                    <span className="mg-token-w">{t.weight}</span>
+                  </button>
+                ))}
+              </div>
+
+              {copiedToken && (
+                <div className="mg-token-copied-toast">
+                  Tag &ldquo;{copiedToken}&rdquo; berhasil disalin!
+                </div>
+              )}
+
+              {/* Weight Adjustment Simulation */}
+              <div className="mg-promptlab-controls">
+                <div className="mg-control-row">
+                  <span className="mg-control-label">Sintaks Pembobotan:</span>
+                  <code className="mg-syntax-sample">(ho'olheyak:1.20), (sidelighting:1.10)</code>
+                </div>
+                <div className="mg-control-row">
+                  <span className="mg-control-label">Preset Negative:</span>
+                  <span className="mg-preset-chip">Illustrious Standard Clean Anime v2</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mg-feature-info">
+            {/* Step Node 02 */}
+            <div className={`mg-step-node-anchor ${activeStep >= 2 ? 'node-active' : ''}`} ref={node2Ref}>
+              <div className="mg-node-pin">
+                <span className="mg-node-ring" />
+                <span className="mg-node-index">02</span>
+              </div>
+              <div className="mg-node-meta">
+                <span className="mg-node-type">FEATURE 02</span>
+                <span className="mg-node-title">PROMPT STUDIO &amp; LAB</span>
+              </div>
+            </div>
+
+            <h3 className="mg-feature-heading">
+              Prompt Studio &amp; Lab Canvas
+            </h3>
+            <p className="mg-feature-copy">
+              Susun prompt anime modular dengan arsitektur 10 layer visual (Karakter, Kostum, Pose, Rambut, Lighting, Komposisi, dsb.). Dilengkapi autokomplit lebih dari 100.000 tag Danbooru, pembobotan kurung real-time, dan fitur deconstruction prompt instan.
+            </p>
+
+            <div className="mg-feature-bullets">
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Autokomplit 100.000+ tag Danbooru: pencarian cepat karakter, outfit, pose, dan artis langsung dari database lokal</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Prompt Deconstructor &amp; AI Transformer: tempelkan prompt acak dari Civitai atau Twitter untuk otomatis dipetakan ke dalam 10 kategori visual</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Visual Token Weighting: atur penekanan kurung (tag:weight) dengan visual slider, tag cleaner otomatis, dan library preset teruji</span>
+              </div>
+            </div>
+
+            <Link to="/prompt-lab" className="mg-btn mg-btn-primary">
+              <span>Buka Prompt Studio &amp; Lab</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+
+        {/* ===================================================================
+            FEATURE 03: Generation Gallery (/gallery)
+            Layout: Info Left | Visual Right
+            =================================================================== */}
+        <div className={`mg-feature-row mg-feature-gallery ${activeStep >= 3 ? 'is-active' : ''}`} id="feat-gallery">
+          <div className="mg-feature-info">
+            {/* Step Node 03 */}
+            <div className={`mg-step-node-anchor ${activeStep >= 3 ? 'node-active' : ''}`} ref={node3Ref}>
+              <div className="mg-node-pin">
+                <span className="mg-node-ring" />
+                <span className="mg-node-index">03</span>
+              </div>
+              <div className="mg-node-meta">
+                <span className="mg-node-type">FEATURE 03</span>
+                <span className="mg-node-title">GENERATION GALLERY</span>
+              </div>
+            </div>
+
+            <h3 className="mg-feature-heading">
+              Galeri Generasi Terverifikasi
+            </h3>
+            <p className="mg-feature-copy">
+              Jelajahi visual showcase dan gambar kurasi yang dihasilkan langsung oleh tiap checkpoint model di Models Guide. Setiap karya dilengkapi telemetri prompt lengkap yang 100% reproducible: siap disalin dan dijalankan langsung di mesin Anda.
+            </p>
+
+            <div className="mg-feature-bullets">
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>One-Click Prompt Telemetry: salin positive prompt, negative prompt, seed, sampler, dan upscaling setting dengan satu klik</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Tampilan Lightbox Resolusi Penuh: zoom detail tinggi untuk memeriksa kualitas lineart, rendering mata, dan tekstur gambar</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Filter katalog terpadu: telusuri output berdasarkan base model (Illustrious, NoobAI, SDXL, Pony) dan kategori tag visual</span>
+              </div>
+            </div>
+
+            <Link to="/gallery" className="mg-btn mg-btn-primary">
+              <span>Jelajahi Generation Gallery</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
+
           <div className="mg-feature-visual mg-visual-gallery">
             <div className="mg-gallery-composition">
               <div className="mg-gallery-card primary-card">
@@ -613,6 +769,7 @@ export function FeatureStorytelling() {
                   alt="Generation Gallery Output"
                   className="mg-gallery-img"
                   loading="lazy"
+                  decoding="async"
                   onLoad={() => updatePathGeometry()}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/images/preview-1.png';
@@ -638,6 +795,7 @@ export function FeatureStorytelling() {
                   alt="Secondary Generation Output"
                   className="mg-gallery-img"
                   loading="lazy"
+                  decoding="async"
                   onLoad={() => updatePathGeometry()}
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = '/images/preview-2.png';
@@ -649,45 +807,174 @@ export function FeatureStorytelling() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ===================================================================
+            FEATURE 04: LoRA Stack Builder (/lora-stack)
+            Layout: Visual Left | Info Right
+            =================================================================== */}
+        <div className={`mg-feature-row mg-feature-reverse mg-feature-lorastack ${activeStep >= 4 ? 'is-active' : ''}`} id="feat-lorastack">
+          <div className="mg-feature-visual mg-visual-lorastack">
+            <div className="mg-lorastack-preview">
+              <div className="mg-lorastack-topbar">
+                <span className="mg-lorastack-label">MULTI-LAYER LORA COMPOSER</span>
+                <span className={`mg-lorastack-guard-badge ${isLoraOverbaked ? 'warning' : ''}`}>
+                  <span className="mg-guard-pulse" />
+                  {isLoraOverbaked ? 'PERINGATAN: OVER-BAKED' : 'BURNOUT GUARD: AMAN'}
+                </span>
+              </div>
+
+              {/* Layer stack items with live controls */}
+              <div className="mg-lorastack-layers">
+                <div className="mg-lora-layer-item">
+                  <div className="mg-lora-layer-header">
+                    <div className="mg-lora-layer-meta">
+                      <span className="mg-lora-layer-num">01</span>
+                      <span className="mg-lora-layer-title">Detailed Anime Lineart v2</span>
+                      <span className="mg-lora-layer-tag">Illustrious</span>
+                    </div>
+                    <div className="mg-lora-weight-control">
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lineart', -0.1)} title="Kurangi bobot">-</button>
+                      <span className="mg-lora-weight-val">{loraWeights.lineart.toFixed(2)}</span>
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lineart', 0.1)} title="Tambah bobot">+</button>
+                    </div>
+                  </div>
+                  <div className="mg-lora-trigger-row">
+                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
+                    <span className="mg-lora-trigger-tag">clean lineart</span>
+                    <span className="mg-lora-trigger-tag">anime aesthetic</span>
+                  </div>
+                </div>
+
+                <div className="mg-lora-layer-item">
+                  <div className="mg-lora-layer-header">
+                    <div className="mg-lora-layer-meta">
+                      <span className="mg-lora-layer-num">02</span>
+                      <span className="mg-lora-layer-title">Warm Sunset Golden Hour</span>
+                      <span className="mg-lora-layer-tag">SDXL / Pony</span>
+                    </div>
+                    <div className="mg-lora-weight-control">
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lighting', -0.1)} title="Kurangi bobot">-</button>
+                      <span className="mg-lora-weight-val">{loraWeights.lighting.toFixed(2)}</span>
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lighting', 0.1)} title="Tambah bobot">+</button>
+                    </div>
+                  </div>
+                  <div className="mg-lora-trigger-row">
+                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
+                    <span className="mg-lora-trigger-tag">warm lighting</span>
+                    <span className="mg-lora-trigger-tag">golden hour rim light</span>
+                  </div>
+                </div>
+
+                <div className="mg-lora-layer-item">
+                  <div className="mg-lora-layer-header">
+                    <div className="mg-lora-layer-meta">
+                      <span className="mg-lora-layer-num">03</span>
+                      <span className="mg-lora-layer-title">Mecha Cybernetic Accents</span>
+                      <span className="mg-lora-layer-tag">Universal</span>
+                    </div>
+                    <div className="mg-lora-weight-control">
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('cyber', -0.1)} title="Kurangi bobot">-</button>
+                      <span className="mg-lora-weight-val">{loraWeights.cyber.toFixed(2)}</span>
+                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('cyber', 0.1)} title="Tambah bobot">+</button>
+                    </div>
+                  </div>
+                  <div className="mg-lora-trigger-row">
+                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
+                    <span className="mg-lora-trigger-tag">cybernetic parts</span>
+                    <span className="mg-lora-trigger-tag">glowing circuits</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Burnout Guard Meter */}
+              <div className="mg-lora-burnout-meter">
+                <div className="mg-meter-header">
+                  <span>TOTAL STACK WEIGHT: <strong>{totalLoraWeight.toFixed(2)} / 2.50</strong></span>
+                  <span className={isLoraOverbaked ? 'mg-text-warning' : 'mg-text-success'}>
+                    {isLoraOverbaked ? 'Risiko Kontras Tinggi' : 'Batas Saturasi Optimal'}
+                  </span>
+                </div>
+                <div className="mg-meter-track">
+                  <div
+                    className={`mg-meter-fill ${isLoraOverbaked ? 'warning' : ''}`}
+                    style={{ width: `${Math.min(100, (totalLoraWeight / 2.5) * 100)}%` }}
+                  />
+                </div>
+                <div className="mg-meter-sub">
+                  <span>Target Aman: 0.8 &ndash; 2.0</span>
+                  <span>Ambang Batas: 2.20+</span>
+                </div>
+              </div>
+
+              {/* Generated Syntax Output */}
+              <div className="mg-lorastack-output">
+                <div className="mg-lorastack-syntax">
+                  {`<lora:anime_lineart_v2:${loraWeights.lineart.toFixed(2)}>, <lora:warm_sunset:${loraWeights.lighting.toFixed(2)}>, <lora:cyber_accents:${loraWeights.cyber.toFixed(2)}>`}
+                </div>
+                <div className="mg-lorastack-actions">
+                  <button
+                    type="button"
+                    className="mg-action-pill"
+                    onClick={() => copyToken(`<lora:anime_lineart_v2:${loraWeights.lineart.toFixed(2)}>, <lora:warm_sunset:${loraWeights.lighting.toFixed(2)}>, <lora:cyber_accents:${loraWeights.cyber.toFixed(2)}>`)}
+                  >
+                    &rarr; Salin Sintaks WebUI (A1111 / Forge)
+                  </button>
+                  <button
+                    type="button"
+                    className="mg-action-pill"
+                    onClick={() => copyToken(JSON.stringify({
+                      loras: [
+                        { name: "anime_lineart_v2", strength_model: loraWeights.lineart, strength_clip: loraWeights.lineart },
+                        { name: "warm_sunset", strength_model: loraWeights.lighting, strength_clip: loraWeights.lighting },
+                        { name: "cyber_accents", strength_model: loraWeights.cyber, strength_clip: loraWeights.cyber },
+                      ]
+                    }, null, 2))}
+                  >
+                    &rarr; Salin Schema ComfyUI
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <div className="mg-feature-info">
-            {/* Step Node 02 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 2 ? 'node-active' : ''}`} ref={node2Ref}>
+            {/* Step Node 04 */}
+            <div className={`mg-step-node-anchor ${activeStep >= 4 ? 'node-active' : ''}`} ref={node4Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
-                <span className="mg-node-index">02</span>
+                <span className="mg-node-index">04</span>
               </div>
               <div className="mg-node-meta">
-                <span className="mg-node-type">FEATURE 02</span>
-                <span className="mg-node-title">GENERATION GALLERY</span>
+                <span className="mg-node-type">FEATURE 04</span>
+                <span className="mg-node-title">LORA STACK BUILDER</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              Generation Gallery
+              LoRA Stack &amp; Burnout Guard
             </h3>
             <p className="mg-feature-copy">
-              Browse visual references and explore curated sample images generated by each model.
-              Every gallery entry is attached to complete, reproducible generation telemetry: prompts, seeds, samplers, and upscaling configurations.
+              Gabungkan beberapa LoRA karakter, pose, dan style secara bersamaan tanpa merusak dynamic range gambar. Sistem otomatis menghitung batas saturasi (over-baking guard) dan menyusun trigger words yang siap diekspor ke berbagai tool.
             </p>
 
             <div className="mg-feature-bullets">
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>One-click prompt and negative prompt copying</span>
+                <span>Burnout &amp; Over-Baking Guard: pemantauan total akumulasi bobot tensor secara real-time untuk mencegah visual terdistorsi atau warna terbakar</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Full-resolution lightbox view with high-res zoom</span>
+                <span>Auto-Trigger Word Injector: otomatis mengekstrak kata pemicu dari masing-masing LoRA dan menggabungkannya ke prompt utama</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Filter by base model, tags, and creator collections</span>
+                <span>Ekspor multi-format: salin sintaks siap pakai untuk WebUI Automatic1111/Forge (&lt;lora:name:weight&gt;) maupun format node loader ComfyUI</span>
               </div>
             </div>
 
-            <Link to="/gallery" className="mg-btn mg-btn-primary">
-              <span>Explore Generation Gallery</span>
+            <Link to="/lora-stack" className="mg-btn mg-btn-primary">
+              <span>Buka LoRA Stack Builder</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
@@ -697,52 +984,51 @@ export function FeatureStorytelling() {
         </div>
 
         {/* ===================================================================
-            FEATURE 03: Metadata Inspector (/inspector)
-            Distinct composition: Terminal telemetry + parameter extraction stream
+            FEATURE 05: Metadata Inspector (/inspector)
+            Layout: Info Left | Visual Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-inspector ${activeStep >= 3 ? 'is-active' : ''}`} id="feat-inspector">
+        <div className={`mg-feature-row mg-feature-inspector ${activeStep >= 5 ? 'is-active' : ''}`} id="feat-inspector">
           <div className="mg-feature-info">
-            {/* Step Node 03 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 3 ? 'node-active' : ''}`} ref={node3Ref}>
+            {/* Step Node 05 */}
+            <div className={`mg-step-node-anchor ${activeStep >= 5 ? 'node-active' : ''}`} ref={node5Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
-                <span className="mg-node-index">03</span>
+                <span className="mg-node-index">05</span>
               </div>
               <div className="mg-node-meta">
-                <span className="mg-node-type">FEATURE 03</span>
+                <span className="mg-node-type">FEATURE 05</span>
                 <span className="mg-node-title">METADATA INSPECTOR</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              Metadata Inspector
+              Inspektor Metadata &amp; SafeTensors
             </h3>
             <p className="mg-feature-copy">
-              Inspect technical details and inference parameters embedded directly into PNG and JPEG image chunks.
-              Extract prompt trees, LoRA weights, clip skip values, and export directly into A1111, Forge, or ComfyUI workflows.
+              Bedah parameter inferensi yang tertanam langsung di dalam chunk gambar PNG, JPEG, dan WebP, serta header file SafeTensors. Tanpa upload ke server: semua proses ekstraksi berjalan 100% di browser Anda dengan latensi nol dan privasi penuh.
             </p>
 
             <div className="mg-feature-bullets">
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Zero backend upload: in-browser byte-level chunk extraction without cloud latency</span>
+                <span>Zero-Upload Client-Side Parsing: ekstraksi header byte-level di browser tanpa membebani kuota data atau mengunggah gambar ke cloud</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>SafeTensors architecture: zero-copy memory mapping with zero executable code risk</span>
+                <span>Deteksi parameter lengkap: baca prompt positif/negatif, seed, sampler K-Diffusion, steps, CFG scale, LoRA hash, hingga Clip Skip</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Automatic ComfyUI graph and A1111 raw parameter translation</span>
+                <span>Konversi instan workflow ComfyUI: salin struktur node graph JSON atau format teks baku A1111 / WebUI dalam satu klik</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Identify LoRA rank, alpha values, and model checkpoint hashes</span>
+                <span>Didukung AI Vision Interrogator: integrasi opsional Google Gemini Vision dan Local Ollama untuk mengidentifikasi style dan tag gambar</span>
               </div>
             </div>
 
             <Link to="/inspector" className="mg-btn mg-btn-primary">
-              <span>Inspect Image Metadata</span>
+              <span>Inspeksi Metadata Gambar</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
@@ -758,8 +1044,8 @@ export function FeatureStorytelling() {
                   <span className="dot dot-yellow" />
                   <span className="dot dot-green" />
                 </div>
-                <span className="mg-terminal-title">metadata_inspector_v2.4 &bull; png_chunk_parser</span>
-                <span className="mg-terminal-status">READY</span>
+                <span className="mg-terminal-title">metadata_inspector_v2.4 &bull; in-browser_png_chunk_parser</span>
+                <span className="mg-terminal-status">READY (ZERO-UPLOAD)</span>
               </div>
 
               <div className="mg-terminal-body">
@@ -767,7 +1053,7 @@ export function FeatureStorytelling() {
                   <span className="mg-prompt-sym">$</span> mg-inspect analyze --source sample_diffusion.png
                 </div>
                 <div className="mg-term-line mg-term-dim">
-                  [OK] Chunk header: tEXt / parameters detected (1,482 bytes)
+                  [OK] Header chunk tEXt/parameters terdeteksi (1.482 byte) &bull; 0ms latensi server
                 </div>
                 <div className="mg-term-divider" />
 
@@ -824,14 +1110,14 @@ export function FeatureStorytelling() {
                       }
                     }, null, 2))}
                   >
-                    &rarr; Export to ComfyUI JSON
+                    &rarr; Ekspor ke ComfyUI JSON
                   </button>
                   <button
                     type="button"
                     className="mg-action-pill"
                     onClick={() => copyToken('masterpiece, best quality, 1girl, asakura toru, lying on back, white dress, collarbone, parted lips\nNegative prompt: worst quality, low quality, bad anatomy, bad hands, text, watermark\nSteps: 30, Sampler: Euler a, CFG: 5.5, Seed: 2473992611, Size: 1024x1360, Model hash: e621bef5')}
                   >
-                    &rarr; Copy A1111 Prompt Text
+                    &rarr; Salin Format A1111
                   </button>
                 </div>
               </div>
@@ -840,158 +1126,10 @@ export function FeatureStorytelling() {
         </div>
 
         {/* ===================================================================
-            FEATURE 04: Prompt Lab (/prompt-lab)
-            Distinct composition: Token weighting studio + interactive tags
+            FEATURE 06: Resolution Calculator (/calculator)
+            Layout: Visual Left | Info Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${activeStep >= 4 ? 'is-active' : ''}`} id="feat-promptlab">
-          <div className="mg-feature-visual mg-visual-promptlab">
-            <div className="mg-promptlab-preview">
-              <div className="mg-promptlab-bar">
-                <span className="mg-bar-label">PROMPT WEIGHT MATRIX</span>
-                <span className="mg-bar-count">8 TOKENS ACTIVE</span>
-              </div>
-
-              {/* Interactive Token Tag Cloud */}
-              <div className="mg-token-cloud">
-                {[
-                  { tag: 'masterpiece', weight: '1.0', type: 'quality' },
-                  { tag: 'best quality', weight: '1.0', type: 'quality' },
-                  { tag: '1girl', weight: '1.0', type: 'subject' },
-                  { tag: 'ho\'olheyak', weight: '1.2', type: 'character' },
-                  { tag: 'sidelighting', weight: '1.1', type: 'lighting' },
-                  { tag: 'dynamic shadows', weight: '1.0', type: 'lighting' },
-                  { tag: 'warm illumination', weight: '1.0', type: 'palette' },
-                  { tag: 'laboratory', weight: '0.9', type: 'environment' },
-                ].map((t) => (
-                  <button
-                    key={t.tag}
-                    type="button"
-                    className={`mg-token-pill mg-token-${t.type}`}
-                    onClick={() => copyToken(t.weight === '1.0' ? t.tag : `(${t.tag}:${t.weight})`)}
-                    title="Click to copy token syntax"
-                  >
-                    <span className="mg-token-name">{t.tag}</span>
-                    <span className="mg-token-w">{t.weight}</span>
-                  </button>
-                ))}
-              </div>
-
-              {copiedToken && (
-                <div className="mg-token-copied-toast">
-                  Copied &ldquo;{copiedToken}&rdquo; to clipboard
-                </div>
-              )}
-
-              {/* Weight Adjustment Simulation */}
-              <div className="mg-promptlab-controls">
-                <div className="mg-control-row">
-                  <span className="mg-control-label">Emphasis Syntax:</span>
-                  <code className="mg-syntax-sample">(ho'olheyak:1.20), (sidelighting:1.10)</code>
-                </div>
-                <div className="mg-control-row">
-                  <span className="mg-control-label">Negative Preset:</span>
-                  <span className="mg-preset-chip">Illustrious Standard v2 (Clean Anime)</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mg-feature-info">
-            {/* Step Node 04 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 4 ? 'node-active' : ''}`} ref={node4Ref}>
-              <div className="mg-node-pin">
-                <span className="mg-node-ring" />
-                <span className="mg-node-index">04</span>
-              </div>
-              <div className="mg-node-meta">
-                <span className="mg-node-type">FEATURE 04</span>
-                <span className="mg-node-title">PROMPT LAB</span>
-              </div>
-            </div>
-
-            <h3 className="mg-feature-heading">
-              Prompt Lab
-            </h3>
-            <p className="mg-feature-copy">
-              Organize, build, and experiment with prompts in a focused workspace.
-              Clean duplicate tags, balance attention weights, manage character presets, and save reusable parameter templates.
-            </p>
-
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Visual token weighting with real-time bracket syntax formatting</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>One-click tag cleaner: eliminates redundant Danbooru commas and brackets</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Preset library with 50+ tested anime lighting, style, and artist configurations</span>
-              </div>
-            </div>
-
-            <Link to="/prompt-lab" className="mg-btn mg-btn-primary">
-              <span>Open Prompt Lab</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
-          </div>
-        </div>
-
-        {/* ===================================================================
-            FEATURE 05: Resolution Calculator (/calculator)
-            Distinct composition: Aspect ratio dimension bounding box & snap-64 math
-            =================================================================== */}
-        <div className={`mg-feature-row mg-feature-calculator ${activeStep >= 5 ? 'is-active' : ''}`} id="feat-calculator">
-          <div className="mg-feature-info">
-            {/* Step Node 05 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 5 ? 'node-active' : ''}`} ref={node5Ref}>
-              <div className="mg-node-pin">
-                <span className="mg-node-ring" />
-                <span className="mg-node-index">05</span>
-              </div>
-              <div className="mg-node-meta">
-                <span className="mg-node-type">FEATURE 05</span>
-                <span className="mg-node-title">RESOLUTION CALCULATOR</span>
-              </div>
-            </div>
-
-            <h3 className="mg-feature-heading">
-              Resolution Calculator
-            </h3>
-            <p className="mg-feature-copy">
-              Explore image dimensions and resolution bucket calculations for your workflow.
-              Avoid distortion, duplicate heads, and out-of-memory errors by aligning with trained base aspect ratios and 64-pixel VAE boundaries.
-            </p>
-
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Exact 64-pixel VAE lattice snapping for SDXL, Illustrious, and SD 1.5</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Hi-Res Fix upscale multiplier calculations (1.5x, 2.0x) with target megapixel tracking</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Aspect ratio presets: 1:1 Square, 2:3 Portrait, 16:9 Cinema, 21:9 Ultrawide</span>
-              </div>
-            </div>
-
-            <Link to="/calculator" className="mg-btn mg-btn-primary">
-              <span>Calculate Optimal Resolutions</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
-          </div>
-
+        <div className={`mg-feature-row mg-feature-reverse mg-feature-calculator ${activeStep >= 6 ? 'is-active' : ''}`} id="feat-calculator">
           <div className="mg-feature-visual mg-visual-calculator">
             <div className="mg-calc-visualizer">
               {/* Aspect Ratio Switcher */}
@@ -1043,7 +1181,7 @@ export function FeatureStorytelling() {
               <div className="mg-calc-math-strip">
                 <div className="mg-math-item">
                   <span className="mg-math-k">VAE SNAP 64:</span>
-                  <span className="mg-math-v mg-text-success">PERFECT MULTIPLE</span>
+                  <span className="mg-math-v mg-text-success">KELIPATAN SEMPURNA</span>
                 </div>
                 <div className="mg-math-item">
                   <span className="mg-math-k">HI-RES FIX (1.5x):</span>
@@ -1056,6 +1194,50 @@ export function FeatureStorytelling() {
               </div>
             </div>
           </div>
+
+          <div className="mg-feature-info">
+            {/* Step Node 06 */}
+            <div className={`mg-step-node-anchor ${activeStep >= 6 ? 'node-active' : ''}`} ref={node6Ref}>
+              <div className="mg-node-pin">
+                <span className="mg-node-ring" />
+                <span className="mg-node-index">06</span>
+              </div>
+              <div className="mg-node-meta">
+                <span className="mg-node-type">FEATURE 06</span>
+                <span className="mg-node-title">RESOLUTION CALCULATOR</span>
+              </div>
+            </div>
+
+            <h3 className="mg-feature-heading">
+              Kalkulator Resolusi &amp; VAE Lattice
+            </h3>
+            <p className="mg-feature-copy">
+              Tentukan resolusi generasi yang presisi dan kompatibel dengan arsitektur model Anda. Hindari distorsi anatomi, kepala ganda, dan error VRAM Out-of-Memory (OOM) dengan memastikan dimensi gambar selalu selaras pada kelipatan 64-pixel VAE lattice.
+            </p>
+
+            <div className="mg-feature-bullets">
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>VAE Snap-64 Pixel Lattice: perhitungan dimensi matematis berbasis kelipatan 64 pixel untuk SDXL, Illustrious, NoobAI, dan SD 1.5</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Kalkulasi Hi-Res Fix Multiplier: simulasi resolusi upscale 1.5x dan 2.0x dengan estimasi target megapixel (MP) dan beban VRAM</span>
+              </div>
+              <div className="mg-bullet-item">
+                <span className="mg-bullet-dot" />
+                <span>Preset rasio aspek populer: 1:1 Square, 2:3 Portrait anime standar, 16:9 Cinema, hingga 21:9 Ultrawide</span>
+              </div>
+            </div>
+
+            <Link to="/calculator" className="mg-btn mg-btn-primary">
+              <span>Hitung Resolusi Optimal</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -1064,9 +1246,11 @@ export function FeatureStorytelling() {
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          <span>Copied &ldquo;{copiedToken.length > 36 ? copiedToken.slice(0, 36) + '...' : copiedToken}&rdquo; to clipboard</span>
+          <span>Berhasil menyalin &ldquo;{copiedToken.length > 36 ? copiedToken.slice(0, 36) + '...' : copiedToken}&rdquo; ke clipboard</span>
         </div>
       )}
     </section>
   );
 }
+
+export default FeatureStorytelling;

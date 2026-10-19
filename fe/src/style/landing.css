@@ -238,8 +238,7 @@
 .mg-hero-forest-mist {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 45% 65%, rgba(96, 165, 250, 0.07) 0%, transparent 65%);
-  mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 45% 65%, rgba(96, 165, 250, 0.08) 0%, transparent 65%);
   pointer-events: none;
   z-index: 2;
   animation: forestMistBreathe 8s ease-in-out infinite alternate;
@@ -1585,6 +1584,8 @@
   background-color: var(--mg-bg-primary);
   position: relative;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
 }
 
 /* 1. Seamless Transition Bridge from Hero Section */
@@ -1666,10 +1667,8 @@
   filter: saturate(0.85) brightness(0.7) contrast(1.1);
   pointer-events: none;
   z-index: 1;
-  transform: scale(1.02);
+  transform: translateZ(0);
   animation: statementForestBreathe 20s ease-in-out infinite alternate;
-  mask-image: linear-gradient(180deg, transparent 0%, black 75px, black calc(100% - 85px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 75px, black calc(100% - 85px), transparent 100%);
 }
 
 @keyframes statementForestBreathe {
@@ -1687,7 +1686,6 @@
   position: absolute;
   inset: 0;
   background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.025) 0%, transparent 65%);
-  mix-blend-mode: screen;
   pointer-events: none;
   z-index: 2;
   animation: statementMistPulse 14s ease-in-out infinite alternate;
@@ -1711,8 +1709,6 @@
   width: 140%;
   pointer-events: none;
   z-index: 2;
-  mix-blend-mode: screen;
-  filter: blur(40px);
   opacity: 0.14;
   will-change: transform;
   contain: layout paint;
@@ -2130,6 +2126,8 @@
   background-color: var(--mg-bg-secondary);
   position: relative;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 1100px;
 }
 
 /* Seamless Transition Bridge from Specification Suite 01 */
@@ -2165,8 +2163,6 @@
   z-index: 1;
   transform: scale(1.02);
   animation: showcaseForestBreathe 24s ease-in-out infinite alternate;
-  mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
 }
 
 @keyframes showcaseForestBreathe {
@@ -2188,18 +2184,16 @@
   height: 85%;
   pointer-events: none;
   z-index: 2;
-  opacity: 0.15;
-  mix-blend-mode: screen;
+  opacity: 0.16;
   background:
     conic-gradient(from 165deg at 50% 0%,
       transparent 0deg,
-      rgba(96, 165, 250, 0.12) 10deg,
+      rgba(96, 165, 250, 0.14) 10deg,
       transparent 20deg,
-      rgba(147, 197, 253, 0.18) 26deg,
+      rgba(147, 197, 253, 0.20) 26deg,
       transparent 34deg,
-      rgba(96, 165, 250, 0.10) 42deg,
+      rgba(96, 165, 250, 0.12) 42deg,
       transparent 54deg);
-  filter: blur(32px);
   animation: showcaseGodraySway 20s ease-in-out infinite alternate;
 }
 
@@ -2222,8 +2216,6 @@
   width: 140%;
   pointer-events: none;
   z-index: 2;
-  mix-blend-mode: screen;
-  filter: blur(40px);
   opacity: 0.13;
   will-change: transform;
   contain: layout paint;
@@ -2718,6 +2710,8 @@
   background-color: var(--mg-bg-primary);
   position: relative;
   overflow: hidden;
+  content-visibility: auto;
+  contain-intrinsic-size: 3200px;
 }
 
 /* Dedicated Nocturnal Cedar Forest Background for Section 03 */
@@ -2741,8 +2735,6 @@
   z-index: 1;
   transform: scale(1.02);
   animation: featuresForestBreathe 26s ease-in-out infinite alternate;
-  mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
 }
 
 @keyframes featuresForestBreathe {
@@ -2762,8 +2754,6 @@
   width: 140%;
   pointer-events: none;
   z-index: 2;
-  mix-blend-mode: screen;
-  filter: blur(45px);
   opacity: 0.12;
   will-change: transform;
   contain: layout paint;
@@ -2827,6 +2817,8 @@
   pointer-events: none;
   z-index: 2;
   overflow: visible;
+  contain: layout paint;
+  transform: translateZ(0);
 }
 
 .mg-narrative-svg {
@@ -2838,10 +2830,27 @@
   overflow: visible;
   pointer-events: none;
   display: block;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.mg-spine-laser-active {
+  will-change: stroke-dashoffset;
+}
+
+.mg-spine-laser-glow {
+  filter: drop-shadow(0 0 7px rgba(56, 189, 248, 0.65));
+  will-change: stroke-dashoffset;
+}
+
+.mg-spine-laser-main {
+  filter: drop-shadow(0 0 3px rgba(96, 165, 250, 0.85));
+  will-change: stroke-dashoffset;
 }
 
 .mg-spine-energy-stream {
   animation: mgSpineEnergyFlow 1.8s linear infinite;
+  transform: translateZ(0);
 }
 
 @keyframes mgSpineEnergyFlow {
@@ -2990,7 +2999,8 @@
 .mg-feature-row.is-active .mg-gallery-card.primary-card,
 .mg-feature-row.is-active .mg-terminal-window,
 .mg-feature-row.is-active .mg-promptlab-preview,
-.mg-feature-row.is-active .mg-calc-visualizer {
+.mg-feature-row.is-active .mg-calc-visualizer,
+.mg-feature-row.is-active .mg-lorastack-preview {
   border-color: rgba(96, 165, 250, 0.45);
   box-shadow: 0 0 32px rgba(59, 130, 246, 0.22), 0 16px 36px rgba(0, 0, 0, 0.55);
   transition: border-color 0.35s ease, box-shadow 0.35s ease;
@@ -3690,6 +3700,260 @@
   color: #fde047;
 }
 
+/* Feature: LoRA Stack Builder Preview */
+.mg-lorastack-preview {
+  background-color: #090d16;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45);
+}
+
+.mg-lorastack-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mg-font-mono);
+  font-size: 11px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--mg-border-subtle);
+}
+
+.mg-lorastack-label {
+  color: var(--mg-text-muted);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mg-lorastack-guard-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #86efac;
+  padding: 4px 9px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.mg-lorastack-guard-badge.warning {
+  background: rgba(234, 179, 8, 0.12);
+  border-color: rgba(234, 179, 8, 0.35);
+  color: #fde047;
+}
+
+.mg-guard-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: mgRadarPing 2.2s infinite;
+}
+
+.mg-lorastack-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.mg-lora-layer-item {
+  background: var(--mg-surface-elevated);
+  border: 1px solid var(--mg-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mg-lora-layer-item:hover {
+  border-color: rgba(96, 165, 250, 0.4);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.mg-lora-layer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mg-lora-layer-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mg-lora-layer-num {
+  font-family: var(--mg-font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.12);
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(96, 165, 250, 0.25);
+}
+
+.mg-lora-layer-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mg-text-primary);
+}
+
+.mg-lora-layer-tag {
+  font-family: var(--mg-font-mono);
+  font-size: 9.5px;
+  color: var(--mg-text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+.mg-lora-weight-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mg-weight-btn {
+  background: var(--mg-bg-secondary);
+  border: 1px solid var(--mg-border-subtle);
+  color: var(--mg-text-secondary);
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.mg-weight-btn:hover {
+  background: rgba(96, 165, 250, 0.2);
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+
+.mg-lora-weight-val {
+  font-family: var(--mg-font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: #93c5fd;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--mg-border-subtle);
+  min-width: 38px;
+  text-align: center;
+}
+
+.mg-lora-trigger-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+
+.mg-lora-trigger-label {
+  font-family: var(--mg-font-mono);
+  font-size: 9.5px;
+  color: var(--mg-text-muted);
+}
+
+.mg-lora-trigger-tag {
+  font-family: var(--mg-font-mono);
+  font-size: 10px;
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.08);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(59, 130, 246, 0.18);
+}
+
+.mg-lora-burnout-meter {
+  background: var(--mg-bg-secondary);
+  border: 1px solid var(--mg-border-subtle);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.mg-meter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--mg-font-mono);
+  font-size: 10.5px;
+  margin-bottom: 6px;
+  color: var(--mg-text-secondary);
+}
+
+.mg-meter-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.mg-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #3b82f6, #38bdf8);
+  transition: width 0.3s ease;
+}
+
+.mg-meter-fill.warning {
+  background: linear-gradient(90deg, #eab308, #ef4444);
+}
+
+.mg-meter-sub {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  font-family: var(--mg-font-mono);
+  color: var(--mg-text-muted);
+}
+
+.mg-lorastack-output {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--mg-border-subtle);
+}
+
+.mg-lorastack-syntax {
+  font-family: var(--mg-font-mono);
+  font-size: 11px;
+  color: #a5f3fc;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 8px 12px;
+  border-radius: 5px;
+  border: 1px solid var(--mg-border-subtle);
+  white-space: nowrap;
+  overflow-x: auto;
+}
+
+.mg-lorastack-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 /* ==========================================================================
    SECTION G: TECHNICAL DETAILS / BENCHMARKS & MATRIX
    ========================================================================== */
@@ -3725,8 +3989,6 @@
   z-index: 1;
   transform: scale(1.02);
   animation: techForestBreathe 28s ease-in-out infinite alternate;
-  mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 85px, black calc(100% - 95px), transparent 100%);
 }
 
 @keyframes techForestBreathe {
@@ -3746,8 +4008,6 @@
   width: 140%;
   pointer-events: none;
   z-index: 2;
-  mix-blend-mode: screen;
-  filter: blur(48px);
   opacity: 0.11;
   will-change: transform;
   contain: layout paint;
@@ -4815,8 +5075,6 @@
   z-index: 1;
   transform: scale(1.02);
   animation: finalForestBreathe 30s ease-in-out infinite alternate;
-  mask-image: linear-gradient(180deg, transparent 0%, black 65px, black calc(100% - 75px), transparent 100%);
-  -webkit-mask-image: linear-gradient(180deg, transparent 0%, black 65px, black calc(100% - 75px), transparent 100%);
 }
 
 @keyframes finalForestBreathe {
@@ -4836,8 +5094,6 @@
   width: 140%;
   pointer-events: none;
   z-index: 2;
-  mix-blend-mode: screen;
-  filter: blur(48px);
   opacity: 0.11;
   will-change: transform;
   contain: layout paint;
@@ -5207,20 +5463,16 @@
 
 /* Dynamic transparent-to-opaque frosted nav */
 nav.nav-editorial {
-  transition: background-color 0.25s ease, border-color 0.25s ease, backdrop-filter 0.25s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
 }
 
 nav.nav-editorial.nav-scrolled {
-  background-color: rgba(9, 11, 15, 0.88);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background-color: rgba(9, 11, 15, 0.94);
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 nav.nav-editorial.nav-top {
-  background-color: rgba(9, 11, 15, 0.55);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background-color: rgba(9, 11, 15, 0.70);
   border-bottom-color: rgba(255, 255, 255, 0.04);
 }
 
