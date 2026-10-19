@@ -241,22 +241,8 @@
   background: radial-gradient(ellipse at 45% 65%, rgba(96, 165, 250, 0.08) 0%, transparent 65%);
   pointer-events: none;
   z-index: 2;
-  animation: forestMistBreathe 8s ease-in-out infinite alternate;
   transition: background 0.6s ease, opacity 0.6s ease;
-  will-change: transform, opacity;
   contain: layout paint;
-}
-
-@keyframes forestMistBreathe {
-  0% {
-    opacity: 0.3;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-
-  100% {
-    opacity: 0.7;
-    transform: translate3d(0, 0, 0) scale(1.04);
-  }
 }
 
 .mg-rain-canvas {
@@ -1668,17 +1654,6 @@
   pointer-events: none;
   z-index: 1;
   transform: translateZ(0);
-  animation: statementForestBreathe 20s ease-in-out infinite alternate;
-}
-
-@keyframes statementForestBreathe {
-  0% {
-    transform: scale(1.01) translateY(0);
-  }
-
-  100% {
-    transform: scale(1.03) translateY(-4px);
-  }
 }
 
 /* 3. Subtle Natural Forest Fog & Depth (Neutral, No Blue Tint) */
@@ -1688,19 +1663,6 @@
   background: radial-gradient(ellipse at 50% 30%, rgba(255, 255, 255, 0.025) 0%, transparent 65%);
   pointer-events: none;
   z-index: 2;
-  animation: statementMistPulse 14s ease-in-out infinite alternate;
-}
-
-@keyframes statementMistPulse {
-  0% {
-    opacity: 0.4;
-    transform: scale(1);
-  }
-
-  100% {
-    opacity: 0.8;
-    transform: scale(1.04);
-  }
 }
 
 .mg-statement-fog-ribbon {
@@ -1710,7 +1672,6 @@
   pointer-events: none;
   z-index: 2;
   opacity: 0.14;
-  will-change: transform;
   contain: layout paint;
   transform: translateZ(0);
 }
@@ -1719,14 +1680,12 @@
   top: 15%;
   height: 220px;
   background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 50%, transparent 75%);
-  animation: fogDriftOne 36s ease-in-out infinite alternate;
 }
 
 .mg-statement-fog-ribbon.ribbon-2 {
   bottom: 20%;
   height: 240px;
   background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.035) 0%, transparent 75%);
-  animation: fogDriftTwo 44s ease-in-out infinite alternate;
 }
 
 @keyframes fogDriftOne {
@@ -2161,18 +2120,7 @@
   filter: saturate(0.96) brightness(0.74) contrast(1.12);
   pointer-events: none;
   z-index: 1;
-  transform: scale(1.02);
-  animation: showcaseForestBreathe 24s ease-in-out infinite alternate;
-}
-
-@keyframes showcaseForestBreathe {
-  0% {
-    transform: scale(1.01) translateY(0);
-  }
-
-  100% {
-    transform: scale(1.035) translateY(-6px);
-  }
+  transform: translateZ(0);
 }
 
 /* Volumetric God Rays Streaming Down Through the Upper Canopy (Cool Daylight & Subtle Cyan) */
@@ -2194,19 +2142,6 @@
       transparent 34deg,
       rgba(96, 165, 250, 0.12) 42deg,
       transparent 54deg);
-  animation: showcaseGodraySway 20s ease-in-out infinite alternate;
-}
-
-@keyframes showcaseGodraySway {
-  0% {
-    opacity: 0.12;
-    transform: rotate(-1.5deg) scaleX(0.96);
-  }
-
-  100% {
-    opacity: 0.22;
-    transform: rotate(2deg) scaleX(1.04);
-  }
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -2217,7 +2152,6 @@
   pointer-events: none;
   z-index: 2;
   opacity: 0.13;
-  will-change: transform;
   contain: layout paint;
   transform: translateZ(0);
 }
@@ -2226,14 +2160,12 @@
   top: 25%;
   height: 220px;
   background: radial-gradient(ellipse at center, rgba(96, 165, 250, 0.04) 0%, rgba(255, 255, 255, 0.015) 50%, transparent 75%);
-  animation: showcaseMistDriftOne 36s ease-in-out infinite alternate;
 }
 
 .mg-showcase-mist-ribbon.mist-2 {
   bottom: 12%;
   height: 260px;
   background: radial-gradient(ellipse at center, rgba(147, 197, 253, 0.035) 0%, rgba(255, 255, 255, 0.012) 50%, transparent 75%);
-  animation: showcaseMistDriftTwo 44s ease-in-out infinite alternate;
 }
 
 @keyframes showcaseMistDriftOne {
@@ -2580,7 +2512,6 @@
 
 .mg-metric-star {
   color: #facc15 !important;
-  animation: mgSvgPulseStar 2.6s ease-in-out infinite alternate;
 }
 
 .mg-card-inspect-svg {
@@ -2630,13 +2561,13 @@
   }
 }
 
-.mg-svg-spin-slow {
-  animation: mgSvgSpin 24s linear infinite;
+.mg-model-card:hover .mg-svg-spin-slow {
+  animation: mgSvgSpin 16s linear infinite;
   transform-origin: center;
 }
 
-.mg-svg-spin-counter {
-  animation: mgSvgSpinReverse 18s linear infinite;
+.mg-model-card:hover .mg-svg-spin-counter {
+  animation: mgSvgSpinReverse 12s linear infinite;
   transform-origin: center;
 }
 
@@ -2651,7 +2582,7 @@
   }
 }
 
-.mg-svg-pulse-core {
+.mg-model-card:hover .mg-svg-pulse-core {
   animation: mgSvgPulseCore 2.4s ease-in-out infinite alternate;
   transform-origin: center;
 }
@@ -2710,8 +2641,7 @@
   background-color: var(--mg-bg-primary);
   position: relative;
   overflow: hidden;
-  content-visibility: auto;
-  contain-intrinsic-size: 3200px;
+  contain: paint;
 }
 
 /* Dedicated Nocturnal Cedar Forest Background for Section 03 */
@@ -2733,18 +2663,7 @@
   filter: saturate(0.94) brightness(0.72) contrast(1.15);
   pointer-events: none;
   z-index: 1;
-  transform: scale(1.02);
-  animation: featuresForestBreathe 26s ease-in-out infinite alternate;
-}
-
-@keyframes featuresForestBreathe {
-  0% {
-    transform: scale(1.01) translateY(0);
-  }
-
-  100% {
-    transform: scale(1.035) translateY(-6px);
-  }
+  transform: translateZ(0);
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -2755,7 +2674,6 @@
   pointer-events: none;
   z-index: 2;
   opacity: 0.12;
-  will-change: transform;
   contain: layout paint;
   transform: translateZ(0);
 }
@@ -2764,14 +2682,12 @@
   top: 22%;
   height: 260px;
   background: radial-gradient(ellipse at center, rgba(96, 165, 250, 0.05) 0%, rgba(255, 255, 255, 0.015) 50%, transparent 75%);
-  animation: featuresMistDriftOne 38s ease-in-out infinite alternate;
 }
 
 .mg-features-mist-ribbon.mist-2 {
   bottom: 18%;
   height: 300px;
   background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.04) 0%, rgba(255, 255, 255, 0.012) 50%, transparent 75%);
-  animation: featuresMistDriftTwo 46s ease-in-out infinite alternate;
 }
 
 @keyframes featuresMistDriftOne {
@@ -3987,18 +3903,7 @@
   filter: saturate(0.92) brightness(0.72) contrast(1.16);
   pointer-events: none;
   z-index: 1;
-  transform: scale(1.02);
-  animation: techForestBreathe 28s ease-in-out infinite alternate;
-}
-
-@keyframes techForestBreathe {
-  0% {
-    transform: scale(1.01) translateY(0);
-  }
-
-  100% {
-    transform: scale(1.035) translateY(-6px);
-  }
+  transform: translateZ(0);
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -4009,7 +3914,6 @@
   pointer-events: none;
   z-index: 2;
   opacity: 0.11;
-  will-change: transform;
   contain: layout paint;
   transform: translateZ(0);
 }
@@ -4018,14 +3922,12 @@
   top: 15%;
   height: 280px;
   background: radial-gradient(ellipse 60% 40% at 35% 50%, rgba(148, 163, 184, 0.22) 0%, transparent 70%);
-  animation: techMistDrift1 32s ease-in-out infinite alternate;
 }
 
 .mg-tech-mist-ribbon.mist-2 {
   bottom: 20%;
   height: 320px;
   background: radial-gradient(ellipse 65% 45% at 65% 50%, rgba(96, 165, 250, 0.16) 0%, transparent 72%);
-  animation: techMistDrift2 26s ease-in-out infinite alternate;
 }
 
 @keyframes techMistDrift1 {
@@ -5073,18 +4975,7 @@
   filter: saturate(0.92) brightness(0.72) contrast(1.15);
   pointer-events: none;
   z-index: 1;
-  transform: scale(1.02);
-  animation: finalForestBreathe 30s ease-in-out infinite alternate;
-}
-
-@keyframes finalForestBreathe {
-  0% {
-    transform: scale(1.01) translateY(0);
-  }
-
-  100% {
-    transform: scale(1.035) translateY(-6px);
-  }
+  transform: translateZ(0);
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -5095,7 +4986,6 @@
   pointer-events: none;
   z-index: 2;
   opacity: 0.11;
-  will-change: transform;
   contain: layout paint;
   transform: translateZ(0);
 }
@@ -5104,14 +4994,12 @@
   top: 22%;
   height: 240px;
   background: radial-gradient(ellipse 60% 40% at 35% 50%, rgba(148, 163, 184, 0.22) 0%, transparent 70%);
-  animation: finalMistDrift1 30s ease-in-out infinite alternate;
 }
 
 .mg-final-mist-ribbon.mist-2 {
   bottom: 20%;
   height: 260px;
   background: radial-gradient(ellipse 65% 45% at 65% 50%, rgba(96, 165, 250, 0.16) 0%, transparent 72%);
-  animation: finalMistDrift2 25s ease-in-out infinite alternate;
 }
 
 @keyframes finalMistDrift1 {
