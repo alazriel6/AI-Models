@@ -39,6 +39,29 @@ export interface CreateWorkflowPayload {
   thumbnail_url?: string;
 }
 
+export interface WorkflowCategory {
+  id: number;
+  name: string;
+  slug: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  sort_order?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export const FALLBACK_CATEGORIES: WorkflowCategory[] = [
+  { id: 1, name: "Text to Image", slug: "txt2img", description: "Generasi dari prompt", icon: "", color: "#2563eb", sort_order: 1 },
+  { id: 2, name: "Image to Image", slug: "img2img", description: "Transformasi gambar", icon: "", color: "#2563eb", sort_order: 2 },
+  { id: 3, name: "Face & Detailer", slug: "detailer", description: "Impact Pack FaceDetailer", icon: "", color: "#2563eb", sort_order: 3 },
+  { id: 4, name: "Upscaling & Hi-Res", slug: "upscale", description: "Perbesar resolusi", icon: "", color: "#2563eb", sort_order: 4 },
+  { id: 5, name: "LoRA Stacking", slug: "lora_stack", description: "Kombinasi LoRA", icon: "", color: "#2563eb", sort_order: 5 },
+  { id: 6, name: "Inpainting", slug: "inpaint", description: "Edit area mask", icon: "", color: "#2563eb", sort_order: 6 },
+  { id: 7, name: "ControlNet", slug: "controlnet", description: "Kontrol pose & lineart", icon: "", color: "#2563eb", sort_order: 7 },
+  { id: 8, name: "Animation", slug: "animation", description: "AnimateDiff & Video", icon: "", color: "#2563eb", sort_order: 8 }
+];
+
 // Fallback curated workflows in case backend is offline
 export const FALLBACK_WORKFLOWS: ComfyWorkflow[] = [
   {
@@ -540,8 +563,11 @@ export async function getWorkflowsApi(params?: {
 
     const qs = query.toString();
     const res = await apiFetch<{ data: ComfyWorkflow[] }>(`/workflows${qs ? `?${qs}` : ""}`);
-    if (res.data && res.data.length > 0) {
-      return res.data;
+    if (res.data !== undefined && Array.isArray(res.data)) {
+      if (res.data.length > 0) {
+        return res.data;
+      }
+      return [];
     }
     return filterFallback(FALLBACK_WORKFLOWS, params);
   } catch {
@@ -579,6 +605,49 @@ export async function updateWorkflowApi(id: number, payload: Partial<CreateWorkf
 
 export async function deleteWorkflowApi(id: number): Promise<void> {
   await apiFetch(`/workflows/${id}`, { method: "DELETE" });
+}
+
+// Workflow Category CRUD APIs
+export async function getWorkflowCategoriesApi(): Promise<WorkflowCategory[]> {
+  try {
+    const res = await apiFetch<WorkflowCategory[]>("/workflow-categories");
+    return Array.isArray(res) ? res : FALLBACK_CATEGORIES;
+  } catch {
+    return FALLBACK_CATEGORIES;
+  }
+}
+
+export async function createWorkflowCategoryApi(payload: Partial<WorkflowCategory>): Promise<WorkflowCategory> {
+  const res = await apiFetch<WorkflowCategory>("/workflow-categories", {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+  return res;
+}
+
+export async function updateWorkflowCategoryApi(id: number, payload: Partial<WorkflowCategory>): Promise<WorkflowCategory> {
+  const res = await apiFetch<WorkflowCategory>(`/workflow-categories/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+  return res;
+}
+
+export async function deleteWorkflowCategoryApi(id: number): Promise<void> {
+  await apiFetch(`/workflow-categories/${id}`, { method: "DELETE" });
+}
+
+// Fetch distinct Base Models from the models table
+export async function getBaseModelsApi(): Promise<string[]> {
+  try {
+    const res = await apiFetch<string[]>("/models/base-models");
+    if (Array.isArray(res) && res.length > 0) {
+      return res;
+    }
+  } catch {
+    // fallback if endpoint offline
+  }
+  return ["SD 1.5", "SDXL", "Illustrious", "Pony", "Flux.1", "Hunyuan Video", "Wan2.1"];
 }
 
 function filterFallback(

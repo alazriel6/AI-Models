@@ -309,6 +309,10 @@ func (s *ModelService) Delete(id uint) error {
 	return s.repo.Delete(id)
 }
 
+func (s *ModelService) GetDistinctBaseModels() ([]string, error) {
+	return s.repo.FindDistinctBaseModels()
+}
+
 func GenerateSlug(input string) string {
 	s := strings.ToLower(strings.TrimSpace(input))
 	reg := regexp.MustCompile(`[^a-z0-9]+`)

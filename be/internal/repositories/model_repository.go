@@ -152,3 +152,13 @@ func (r *ModelRepository) Update(model *models.Model) error {
 func (r *ModelRepository) Delete(id uint) error {
 	return r.DB.Delete(&models.Model{}, id).Error
 }
+
+func (r *ModelRepository) FindDistinctBaseModels() ([]string, error) {
+	var baseModels []string
+	err := r.DB.Model(&models.Model{}).
+		Where("base_model IS NOT NULL AND base_model != ''").
+		Distinct("base_model").
+		Order("base_model ASC").
+		Pluck("base_model", &baseModels).Error
+	return baseModels, err
+}

@@ -352,19 +352,19 @@ export const ComfyNodeViewer: React.FC<ComfyNodeViewerProps> = ({
     return "wire-other";
   };
 
-  // Header background color helper for clear readability
+  // Header background color helper matching authentic ComfyUI LiteGraph palette
   const getNodeHeaderColor = (node: ParsedComfyNode): string => {
     if (node.color) return node.color;
     const t = node.type.toLowerCase();
-    if (t.includes("checkpoint") || t.includes("loader")) return "#1e3a8a"; // solid blue
     if (t.includes("cliptext") || t.includes("prompt")) {
-      return (node.title || "").toLowerCase().includes("neg") ? "#7f1d1d" : "#14532d"; // dark red or green
+      return (node.title || "").toLowerCase().includes("neg") ? "#382528" : "#253825"; // authentic dark maroon / dark olive
     }
-    if (t.includes("sampler")) return "#3730a3"; // indigo
-    if (t.includes("vae") || t.includes("latent")) return "#581c87"; // purple
-    if (t.includes("detailer") || t.includes("upscale")) return "#9a3412"; // dark orange
-    if (t.includes("note")) return "#1e293b"; // dark slate
-    return "#1e293b";
+    if (t.includes("checkpoint") || t.includes("loader")) return "#353535";
+    if (t.includes("sampler")) return "#222222";
+    if (t.includes("vae") || t.includes("latent")) return "#2c2c2c";
+    if (t.includes("detailer") || t.includes("detector") || t.includes("upscale")) return "#2d2d2d";
+    if (t.includes("note")) return "#111111";
+    return "#333333";
   };
 
   // Helper to map slot index to exact (x, y) coordinates for cables

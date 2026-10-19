@@ -34,6 +34,15 @@ func (h *ModelHandler) GetModels(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+func (h *ModelHandler) GetBaseModels(c *gin.Context) {
+	baseModels, err := h.service.GetDistinctBaseModels()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, baseModels)
+}
+
 func (h *ModelHandler) GetModel(c *gin.Context) {
 	param := c.Param("id")
 	if param == "" {

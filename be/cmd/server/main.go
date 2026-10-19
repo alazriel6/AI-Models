@@ -37,6 +37,7 @@ func main() {
 	imageRepo := repositories.NewImageRepository(db)
 	resourceRepo := repositories.NewResourceRepository(db)
 	workflowRepo := repositories.NewWorkflowRepository(db)
+	workflowCategoryRepo := repositories.NewWorkflowCategoryRepository(db)
 
 	// Services
 	modelService := services.NewModelService(modelRepo)
@@ -50,20 +51,22 @@ func main() {
 	thumbnailService := services.NewThumbnailService(cfg.StoragePath)
 	booruTagService := services.NewBooruTagService(db)
 	workflowService := services.NewWorkflowService(workflowRepo)
+	workflowCategoryService := services.NewWorkflowCategoryService(workflowCategoryRepo)
 
 	// Handlers
 	h := routes.RouteHandlers{
-		ModelHandler:        handlers.NewModelHandler(modelService),
-		VersionHandler:      handlers.NewVersionHandler(versionService),
-		TagHandler:          handlers.NewTagHandler(tagService),
-		ImageHandler:        handlers.NewImageHandler(imageService),
-		ResourceHandler:     handlers.NewResourceHandler(resourceService),
-		ImporterHandler:     handlers.NewImporterHandler(importerService),
-		BackupHandler:       handlers.NewBackupHandler(backupService),
-		PromptPresetHandler: handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
-		ThumbnailHandler:    handlers.NewThumbnailHandler(thumbnailService),
-		BooruTagHandler:     handlers.NewBooruTagHandler(booruTagService),
-		WorkflowHandler:     handlers.NewWorkflowHandler(workflowService),
+		ModelHandler:            handlers.NewModelHandler(modelService),
+		VersionHandler:          handlers.NewVersionHandler(versionService),
+		TagHandler:              handlers.NewTagHandler(tagService),
+		ImageHandler:            handlers.NewImageHandler(imageService),
+		ResourceHandler:         handlers.NewResourceHandler(resourceService),
+		ImporterHandler:         handlers.NewImporterHandler(importerService),
+		BackupHandler:           handlers.NewBackupHandler(backupService),
+		PromptPresetHandler:     handlers.NewPromptPresetHandler(promptPresetService, cfg.StoragePath),
+		ThumbnailHandler:        handlers.NewThumbnailHandler(thumbnailService),
+		BooruTagHandler:         handlers.NewBooruTagHandler(booruTagService),
+		WorkflowHandler:         handlers.NewWorkflowHandler(workflowService),
+		WorkflowCategoryHandler: handlers.NewWorkflowCategoryHandler(workflowCategoryService),
 	}
 
 	router := gin.Default()

@@ -18,8 +18,9 @@ type RouteHandlers struct {
 	BackupHandler       *handlers.BackupHandler
 	PromptPresetHandler *handlers.PromptPresetHandler
 	ThumbnailHandler    *handlers.ThumbnailHandler
-	BooruTagHandler     *handlers.BooruTagHandler
-	WorkflowHandler     *handlers.WorkflowHandler
+	BooruTagHandler         *handlers.BooruTagHandler
+	WorkflowHandler         *handlers.WorkflowHandler
+	WorkflowCategoryHandler *handlers.WorkflowCategoryHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -48,6 +49,7 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 		models := api.Group("/models")
 		{
 			models.GET("", h.ModelHandler.GetModels)
+			models.GET("/base-models", h.ModelHandler.GetBaseModels)
 			models.POST("", adminAuth, h.ModelHandler.CreateModel)
 			models.POST("/import/inspect", adminAuth, h.ImporterHandler.InspectModel)
 			models.POST("/import/save", adminAuth, h.ImporterHandler.SaveImportedModel)
@@ -142,9 +144,21 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 			{
 				workflows.GET("", h.WorkflowHandler.GetWorkflows)
 				workflows.GET("/:id", h.WorkflowHandler.GetWorkflow)
-				workflows.POST("", adminAuth, h.WorkflowHandler.CreateWorkflow)
-				workflows.PUT("/:id", adminAuth, h.WorkflowHandler.UpdateWorkflow)
-				workflows.DELETE("/:id", adminAuth, h.WorkflowHandler.DeleteWorkflow)
+				workflows.POST("", h.WorkflowHandler.CreateWorkflow)
+				workflows.PUT("/:id", h.WorkflowHandler.UpdateWorkflow)
+				workflows.DELETE("/:id", h.WorkflowHandler.DeleteWorkflow)
+			}
+		}
+
+		// ComfyUI Workflow Categories (CRUD)
+		if h.WorkflowCategoryHandler != nil {
+			workflowCats := api.Group("/workflow-categories")
+			{
+				workflowCats.GET("", h.WorkflowCategoryHandler.GetCategories)
+				workflowCats.GET("/:id", h.WorkflowCategoryHandler.GetCategory)
+				workflowCats.POST("", h.WorkflowCategoryHandler.CreateCategory)
+				workflowCats.PUT("/:id", h.WorkflowCategoryHandler.UpdateCategory)
+				workflowCats.DELETE("/:id", h.WorkflowCategoryHandler.DeleteCategory)
 			}
 		}
 	}
