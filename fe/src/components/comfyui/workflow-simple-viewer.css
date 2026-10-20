@@ -1,36 +1,39 @@
 /* ==========================================================================
-   Clean & Simple ComfyUI Workflow Preset Viewer
-   Theme: High-contrast Dark Slate with Solid Blue Accents (No AI slop)
+   ComfyUI Workflow Detail Viewer - Production Grade Developer Tool Style
+   Inspired by: Linear, Raycast, Vercel Dark Mode
+   Principles:
+   - High contrast, dark monochrome palette (zinc-950, zinc-900, zinc-800)
+   - Single elegant accent on primary actions
+   - Anti-AI Slop: No box-inside-a-box, no numbered step badges, no clashing borders
+   - Crisp typography with monospace data alignments
    ========================================================================== */
 
-.wf-simple-container {
+.wf-detail-root {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
   width: 100%;
+  color: #f4f4f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
 }
 
-/* 1. Header Card */
-.wf-header-card {
-  background-color: #161b26;
-  border: 1px solid #283245;
-  border-radius: 8px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.wf-header-top {
+/* ==========================================================================
+   A. Header Detail
+   ========================================================================== */
+.wf-detail-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
+  padding: 20px 22px;
+  background-color: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   flex-wrap: wrap;
 }
 
-.wf-title-group {
+.wf-detail-header-left {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -38,563 +41,887 @@
   min-width: 280px;
 }
 
-.wf-main-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #f8fafc;
-  margin: 0;
-  line-height: 1.3;
-  letter-spacing: -0.01em;
-}
-
-.wf-meta-badges {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.wf-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 11px;
+.wf-detail-title {
+  font-size: 22px;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  color: #fafafa;
+  margin: 0;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
-.wf-badge.primary {
-  background-color: #1e3a8a;
-  color: #93c5fd;
-  border: 1px solid #2563eb;
+.wf-detail-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
 }
 
-.wf-badge.neutral {
-  background-color: #1e293b;
-  color: #cbd5e1;
-  border: 1px solid #334155;
+.wf-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d4d4d8;
+  letter-spacing: 0.01em;
 }
 
-.wf-badge.subtle {
-  background-color: #0f172a;
-  color: #94a3b8;
-  border: 1px solid #1e293b;
+.wf-meta-pill.accent {
+  background-color: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
 }
 
-/* Header Action Buttons */
-.wf-action-buttons {
+.wf-meta-pill.mono {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", monospace;
+  color: #a1a1aa;
+}
+
+.wf-meta-text {
+  color: #71717a;
+  font-size: 12px;
+  margin-left: 2px;
+}
+
+.wf-meta-link-btn {
+  background: none;
+  border: none;
+  color: #38bdf8;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.wf-meta-link-btn:hover {
+  background-color: rgba(56, 189, 248, 0.1);
+  text-decoration: underline;
+}
+
+.wf-detail-desc {
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.55;
+  margin: 4px 0 0 0;
+}
+
+/* Header Action Bar */
+.wf-detail-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.wf-btn {
+.wf-copy-group {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
+  border-radius: 6px;
+}
+
+.wf-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
   border-radius: 6px;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 1px solid #1d4ed8;
+  box-shadow: 0 1px 4px rgba(37, 99, 235, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
 }
 
-.wf-btn.primary {
-  background-color: #2563eb;
-  color: #ffffff;
-  border: 1px solid #3b82f6;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
-}
-
-.wf-btn.primary:hover {
+.wf-btn-primary:hover {
   background-color: #1d4ed8;
-  border-color: #60a5fa;
+  border-color: #1e40af;
 }
 
-.wf-btn.secondary {
-  background-color: #1e293b;
-  color: #e2e8f0;
-  border: 1px solid #334155;
+.wf-btn-primary.copied {
+  background-color: #1e40af;
+  border-color: #1e3a8a;
+  color: #dbeafe;
 }
 
-.wf-btn.secondary:hover {
-  background-color: #334155;
-  color: #ffffff;
-  border-color: #475569;
+.wf-btn-info-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 33px;
+  margin-left: 5px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.wf-btn-edit:hover {
-  border-color: #3b82f6;
-  color: #93c5fd;
-  background-color: #1e293b;
+.wf-btn-info-trigger:hover {
+  color: #fafafa;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-.wf-btn.danger {
-  background-color: #1c1917;
-  color: #f87171;
-  border: 1px solid #7f1d1d;
+/* Tooltip Popup */
+.wf-info-tooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 50;
+  width: 310px;
+  background-color: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+  animation: tooltipFade 0.15s ease-out;
 }
 
-.wf-btn.danger:hover {
-  background-color: #7f1d1d;
-  color: #fecaca;
-  border-color: #dc2626;
+@keyframes tooltipFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.wf-description-text {
-  font-size: 13px;
-  color: #cbd5e1;
-  line-height: 1.6;
-  margin: 0;
-}
-
-.wf-linked-model-bar {
+.wf-tooltip-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background-color: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.wf-tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+}
+
+.wf-tooltip-title {
   font-size: 12px;
-}
-
-.wf-linked-model-bar .linked-label {
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-.wf-linked-model-bar .linked-model-name {
-  color: #38bdf8;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fafafa;
 }
 
-.wf-linked-model-bar .linked-model-type {
-  color: #64748b;
-  font-family: monospace;
+.wf-tooltip-steps {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
+  color: #d4d4d8;
+  line-height: 1.6;
 }
 
-.wf-linked-model-bar .linked-model-link {
-  margin-left: auto;
-  color: #60a5fa;
+.wf-tooltip-steps li {
+  margin-bottom: 6px;
+}
+
+.wf-tooltip-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.wf-tooltip-steps code {
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 11px;
+  background-color: #09090b;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #38bdf8;
+}
+
+/* Secondary Action Buttons */
+.wf-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #e4e4e7;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.wf-btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.wf-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #a1a1aa;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wf-btn-icon:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #fafafa;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+/* Overflow Menu */
+.wf-overflow-wrapper {
+  position: relative;
+}
+
+.wf-overflow-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 50;
+  width: 170px;
+  background-color: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #e4e4e7;
   background: none;
   border: none;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 12px;
+  text-align: left;
+  transition: background-color 0.12s ease;
+}
+
+.wf-overflow-item:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+}
+
+.wf-overflow-item.danger {
+  color: #f87171;
+}
+
+.wf-overflow-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.12);
+  color: #fca5a5;
+}
+
+/* ==========================================================================
+   B. Seksi Atas: Preview Visual + Spesifikasi Teknis (Grid 2 Kolom)
+   ========================================================================= */
+.wf-overview-grid {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 18px;
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .wf-overview-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Kolom Kiri: Visual Output Preview */
+.wf-preview-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.wf-preview-box {
+  width: 100%;
+  height: 100%;
+  min-height: 290px;
+  background-color: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wf-preview-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 290px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #000000;
+}
+
+.wf-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.wf-preview-img-wrap:hover .wf-preview-img {
+  transform: scale(1.02);
+}
+
+.wf-preview-badge {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background-color: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
   font-weight: 600;
-  text-decoration: underline;
+  color: #d4d4d8;
+  letter-spacing: 0.02em;
 }
 
-.wf-linked-model-bar .linked-model-link:hover {
-  color: #93c5fd;
+/* Blueprint Placeholder */
+.wf-preview-placeholder {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 290px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #09090b;
+  overflow: hidden;
 }
 
-/* 2. Structured Pipeline Cards Grid */
-.wf-pipeline-grid {
+.wf-placeholder-grid-pattern {
+  position: absolute;
+  inset: 0;
+  opacity: 0.25;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.wf-placeholder-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+}
+
+.wf-placeholder-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+}
+
+.wf-placeholder-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.wf-placeholder-sub {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: #52525b;
+}
+
+/* Kolom Kanan: Spesifikasi Model & Sampling */
+.wf-specs-pane {
+  background-color: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wf-specs-header {
+  padding: 12px 18px;
+  background-color: #18181b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wf-specs-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #d4d4d8;
+}
+
+.wf-specs-sub {
+  font-size: 11px;
+  color: #71717a;
+}
+
+.wf-specs-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.wf-spec-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  padding: 11px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+
+.wf-spec-row:last-child {
+  border-bottom: none;
+}
+
+.wf-spec-label {
+  color: #71717a;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.wf-spec-val {
+  color: #f4f4f5;
+  display: flex;
+  align-items: center;
+  word-break: break-all;
+}
+
+.wf-spec-val.highlight {
+  color: #fafafa;
+  font-weight: 600;
+}
+
+.wf-spec-val.font-mono {
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 12px;
+}
+
+.wf-lora-pills-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.wf-lora-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  background-color: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+}
+
+.wf-lora-name {
+  color: #e4e4e7;
+  font-weight: 500;
+}
+
+.wf-lora-weight {
+  color: #60a5fa;
+  font-weight: 600;
+}
+
+.wf-muted-text {
+  color: #52525b;
+  font-size: 12px;
+}
+
+.wf-sampling-compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.wf-stat-chip {
+  color: #fafafa;
+  font-weight: 600;
+}
+
+.wf-stat-chip .chip-key {
+  color: #71717a;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+/* ==========================================================================
+   C. Seksi Tengah: Prompt Bawaan (Code-Editor Terminal Style)
+   ========================================================================= */
+.wf-prompts-section {
+  width: 100%;
+}
+
+.wf-prompts-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
 @media (max-width: 900px) {
-  .wf-pipeline-grid {
+  .wf-prompts-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.wf-section-card {
-  background-color: #161b26;
-  border: 1px solid #283245;
+.wf-code-box {
+  background-color: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-.wf-section-card.full-width {
-  grid-column: 1 / -1;
+.wf-code-header {
+  padding: 8px 12px;
+  background-color: #121215;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.wf-card-header {
+.wf-code-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #a1a1aa;
+}
+
+.wf-dot-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.wf-dot-indicator.positive {
+  background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.wf-dot-indicator.negative {
+  background-color: #f43f5e;
+  box-shadow: 0 0 6px rgba(244, 63, 94, 0.5);
+}
+
+.wf-micro-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  background-color: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  color: #a1a1aa;
+  font-size: 10px;
+  font-family: ui-monospace, monospace;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wf-micro-copy-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.wf-code-content {
+  padding: 12px 14px;
+  font-family: ui-monospace, "SFMono-Regular", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #d4d4d8;
+  max-height: 160px;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.wf-code-content pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.wf-muted-placeholder {
+  color: #52525b;
+  font-style: italic;
+}
+
+/* ==========================================================================
+   D. Seksi Bawah: Dependensi & Custom Nodes (Compact Footer Bar)
+   ========================================================================= */
+.wf-footer-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  background-color: #1c2333;
-  border-bottom: 1px solid #283245;
+  background-color: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 12px;
 }
 
-.wf-card-header-left {
+.wf-deps-inline {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
-.wf-card-num {
-  width: 22px;
-  height: 22px;
-  border-radius: 4px;
-  background-color: #2563eb;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.wf-card-title {
-  font-size: 13px;
+.wf-deps-label {
+  font-size: 11px;
   font-weight: 700;
-  color: #f8fafc;
-  margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  color: #71717a;
 }
 
-.wf-card-body {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* Parameter Rows */
-.wf-param-row {
+.wf-deps-tags-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 6px 0;
-  border-bottom: 1px solid #202838;
-  font-size: 13px;
-}
-
-.wf-param-row:last-child {
-  border-bottom: none;
-}
-
-.param-label {
-  color: #94a3b8;
-  font-size: 12px;
-}
-
-.param-label.bold {
-  font-weight: 700;
-  color: #e2e8f0;
-}
-
-.param-val {
-  color: #f1f5f9;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 12px;
-}
-
-.param-val.bold {
-  font-weight: 700;
-  color: #ffffff;
-}
-
-.param-val.highlight {
-  color: #38bdf8;
-  font-weight: 700;
-}
-
-.param-val.muted {
-  color: #64748b;
-  font-style: italic;
-}
-
-/* LoRA List */
-.wf-lora-list {
-  display: flex;
-  flex-direction: column;
   gap: 6px;
-}
-
-.wf-lora-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: #0f172a;
-  border: 1px solid #283245;
-  border-radius: 6px;
-  font-size: 12px;
-}
-
-.wf-lora-item .lora-name {
-  color: #f8fafc;
-  font-weight: 600;
-  font-family: monospace;
-  word-break: break-all;
-}
-
-.wf-lora-item .lora-weight {
-  color: #a5b4fc;
-  font-weight: 700;
-  font-family: monospace;
-  flex-shrink: 0;
-  margin-left: 10px;
-}
-
-/* Params Table */
-.wf-params-table {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 10px;
-}
-
-.wf-table-cell {
-  background-color: #0f172a;
-  border: 1px solid #283245;
-  border-radius: 6px;
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-/* Prompts */
-.wf-prompt-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.prompt-type-tag {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.prompt-type-tag.positive {
-  background-color: #14532d;
-  color: #86efac;
-  border: 1px solid #16a34a;
-}
-
-.prompt-type-tag.negative {
-  background-color: #7f1d1d;
-  color: #fca5a5;
-  border: 1px solid #dc2626;
-}
-
-.wf-copy-small-btn {
-  background-color: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
-  border-radius: 4px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.wf-copy-small-btn:hover {
-  background-color: #334155;
-  color: #ffffff;
-}
-
-.wf-prompt-box {
-  background-color: #0f172a;
-  border: 1px solid #283245;
-  border-radius: 6px;
-  padding: 12px;
-  font-size: 12px;
-  color: #f1f5f9;
-  line-height: 1.5;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.wf-prompt-box.negative {
-  color: #fca5a5;
-}
-
-.muted-text {
-  color: #64748b;
-  font-style: italic;
-}
-
-/* Requirements & How-to */
-.wf-guide-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 768px) {
-  .wf-guide-body {
-    grid-template-columns: 1fr;
-  }
-}
-
-.wf-deps-tags {
-  display: flex;
   flex-wrap: wrap;
-  gap: 8px;
 }
 
 .wf-dep-badge {
-  background-color: #0f172a;
-  border: 1px solid #334155;
-  color: #e2e8f0;
-  padding: 4px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  font-family: monospace;
-}
-
-.wf-feature-list {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 12px;
-  color: #cbd5e1;
-  line-height: 1.6;
-}
-
-.wf-steps-list {
-  margin: 0;
-  padding-left: 20px;
-  font-size: 12px;
-  color: #cbd5e1;
-  line-height: 1.6;
-}
-
-.wf-steps-list li {
-  margin-bottom: 6px;
-}
-
-.wf-steps-list code {
-  background-color: #0f172a;
-  border: 1px solid #283245;
-  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background-color: #09090b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 4px;
-  color: #38bdf8;
-  font-family: monospace;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: #d4d4d8;
 }
 
-/* Notes Container */
-.wf-notes-container {
+.wf-builtin-tag {
+  color: #60a5fa;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+/* Optional Notes Panel */
+.wf-notes-panel {
+  background-color: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.wf-notes-header {
+  padding: 10px 14px;
+  background-color: #18181b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #d4d4d8;
+}
+
+.wf-notes-body {
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.wf-note-entry {
-  background-color: #0f172a;
-  border: 1px solid #283245;
-  border-radius: 6px;
-  padding: 14px;
-  font-size: 12px;
-  color: #cbd5e1;
+  gap: 8px;
+  font-size: 13px;
+  color: #a1a1aa;
   line-height: 1.6;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 
-/* 3. Raw JSON Modal */
-.wf-modal-backdrop {
+.wf-note-item {
+  white-space: pre-wrap;
+}
+
+/* ==========================================================================
+   Raw JSON Modal
+   ========================================================================= */
+.wf-modal-overlay {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 99999;
   padding: 20px;
 }
 
-.wf-modal-box {
-  background-color: #111622;
-  border: 1px solid #283245;
-  border-radius: 8px;
+.wf-modal-container {
   width: 100%;
-  max-width: 860px;
+  max-width: 820px;
   max-height: 85vh;
+  background-color: #121215;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }
 
 .wf-modal-header {
+  padding: 14px 18px;
+  background-color: #18181b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  background-color: #161b26;
-  border-bottom: 1px solid #283245;
 }
 
-.wf-modal-close-btn {
+.wf-modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wf-modal-json-tag {
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 13px;
+  color: #3b82f6;
+}
+
+.wf-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f4f4f5;
+}
+
+.wf-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wf-modal-close {
   background: none;
   border: none;
-  color: #94a3b8;
-  font-size: 18px;
+  color: #71717a;
+  font-size: 14px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 4px;
   border-radius: 4px;
+  transition: color 0.12s ease;
 }
 
-.wf-modal-close-btn:hover {
-  background-color: #283245;
+.wf-modal-close:hover {
   color: #ffffff;
 }
 
 .wf-modal-body {
   padding: 16px;
   overflow-y: auto;
-  flex: 1;
+  background-color: #09090b;
 }
 
-.wf-code-view {
-  background-color: #0b0f19;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 14px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 11px;
-  color: #f1f5f9;
-  line-height: 1.5;
+.wf-modal-pre {
   margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #d4d4d8;
   white-space: pre-wrap;
   word-break: break-all;
 }
 
-/* Toast */
+/* Toast Alert */
 .wf-toast-alert {
   position: fixed;
   bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background-color: #2563eb;
-  color: #ffffff;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
-  z-index: 100000;
+  right: 24px;
+  z-index: 1050;
   display: flex;
   align-items: center;
   gap: 8px;
-  animation: wfToastSlide 0.2s ease-out;
+  background-color: #18181b;
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #f4f4f5;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  animation: toastSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes wfToastSlide {
-  from { opacity: 0; transform: translate(-50%, 14px); }
-  to { opacity: 1; transform: translate(-50%, 0); }
+.wf-toast-alert svg {
+  color: #3b82f6;
+}
+
+@keyframes toastSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

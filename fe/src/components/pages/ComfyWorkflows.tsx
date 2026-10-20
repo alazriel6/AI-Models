@@ -21,16 +21,24 @@ export default function ComfyWorkflows() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [workflows, setWorkflows] = useState<ComfyWorkflow[]>([]);
   const [categories, setCategories] = useState<WorkflowCategory[]>([]);
-  const [baseModelOptions, setBaseModelOptions] = useState<string[]>(["All", "SDXL", "Illustrious", "Pony", "Flux.1", "SD 1.5"]);
+  const [baseModelOptions, setBaseModelOptions] = useState<string[]>([
+    "Semua",
+    "Illustrious",
+    "NoobAI",
+    "Flux",
+    "SDXL",
+    "Pony",
+    "SD 1.5"
+  ]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedWorkflow, setSelectedWorkflow] = useState<ComfyWorkflow | null>(null);
 
-  // Filters
+  // Filters (Default: "Semua")
   const [baseModelFilter, setBaseModelFilter] = useState<string>(
-    searchParams.get("base_model") || "All"
+    searchParams.get("base_model") || "Semua"
   );
   const [categoryFilter, setCategoryFilter] = useState<string>(
-    searchParams.get("category") || "All"
+    searchParams.get("category") || "Semua"
   );
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -46,6 +54,7 @@ export default function ComfyWorkflows() {
     description: "",
     author: "User",
     required_custom_nodes: "",
+    thumbnail_url: "",
     workflow_json: ""
   });
   const [uploadFileInfo, setUploadFileInfo] = useState<{
@@ -99,10 +108,10 @@ export default function ComfyWorkflows() {
         if (found) setSelectedWorkflow(found);
         else if (data.length > 0) setSelectedWorkflow(data[0]);
       } else if (data.length > 0) {
-        setSelectedWorkflow((prev) => prev ? (data.find(w => w.id === prev.id) || data[0]) : data[0]);
+        setSelectedWorkflow((prev) => (prev ? data.find((w) => w.id === prev.id) || data[0] : data[0]));
       }
     } catch {
-      showToast("Gagal memuat workflow.");
+      showToast("Gagal memuat daftar workflow.");
     } finally {
       setLoading(false);
     }
@@ -119,7 +128,11 @@ export default function ComfyWorkflows() {
         setCategories(cats);
       }
       if (Array.isArray(bms) && bms.length > 0) {
-        setBaseModelOptions(["All", ...bms]);
+        const cleanBms = bms.filter((b) => b.toLowerCase() !== "all");
+        // Ensure standard priority: Illustrious, NoobAI, Flux, SDXL, Pony
+        const defaultOrder = ["Illustrious", "NoobAI", "Flux", "SDXL", "Pony", "SD 1.5"];
+        const combined = Array.from(new Set([...defaultOrder, ...cleanBms]));
+        setBaseModelOptions(["Semua", ...combined]);
       }
     } catch {
       // fallback handled in API client
@@ -134,18 +147,30 @@ export default function ComfyWorkflows() {
   // Filtered workflows list
   const filteredWorkflows = useMemo(() => {
     return workflows.filter((w) => {
-      if (baseModelFilter !== "All" && w.base_model.toLowerCase() !== baseModelFilter.toLowerCase()) {
+      // Base Model filter
+      if (
+        baseModelFilter !== "Semua" &&
+        baseModelFilter !== "All" &&
+        w.base_model.toLowerCase() !== baseModelFilter.toLowerCase()
+      ) {
         return false;
       }
-      if (categoryFilter !== "All" && w.category.toLowerCase() !== categoryFilter.toLowerCase()) {
+      // Category filter
+      if (
+        categoryFilter !== "Semua" &&
+        categoryFilter !== "All" &&
+        w.category.toLowerCase() !== categoryFilter.toLowerCase()
+      ) {
         return false;
       }
+      // Search Query filter
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchName = w.name.toLowerCase().includes(q);
-        const matchDesc = w.description.toLowerCase().includes(q);
+        const matchDesc = w.description ? w.description.toLowerCase().includes(q) : false;
         const matchBase = w.base_model.toLowerCase().includes(q);
-        if (!matchName && !matchDesc && !matchBase) return false;
+        const matchCategory = w.category.toLowerCase().includes(q);
+        if (!matchName && !matchDesc && !matchBase && !matchCategory) return false;
       }
       return true;
     });
@@ -160,18 +185,19 @@ export default function ComfyWorkflows() {
     });
   };
 
-  // Open Add Workflow Modal
+  // Open Add Workflow Modal (Only single primary trigger on header)
   const handleOpenAddModal = () => {
     setEditingWorkflow(null);
     setWorkflowModalError(null);
     setUploadFileInfo(null);
     setWorkflowFormData({
       name: "",
-      base_model: baseModelOptions.find((b) => b !== "All") || "SDXL",
+      base_model: baseModelOptions.find((b) => b !== "Semua" && b !== "All") || "SDXL",
       category: categories.length > 0 ? categories[0].slug : "txt2img",
       description: "",
       author: "User",
       required_custom_nodes: "",
+      thumbnail_url: "",
       workflow_json: ""
     });
     setShowWorkflowModal(true);
@@ -185,7 +211,9 @@ export default function ComfyWorkflows() {
     try {
       const parsed = JSON.parse(wf.workflow_json);
       if (Array.isArray(parsed.nodes)) nodeCount = parsed.nodes.length;
-      else if (parsed.prompt && typeof parsed.prompt === "object") nodeCount = Object.keys(parsed.prompt).length;
+      else if (parsed.prompt && typeof parsed.prompt === "object") {
+        nodeCount = Object.keys(parsed.prompt).length;
+      }
     } catch {
       // ignore
     }
@@ -201,6 +229,7 @@ export default function ComfyWorkflows() {
       description: wf.description || "",
       author: wf.author || "User",
       required_custom_nodes: wf.required_custom_nodes || "",
+      thumbnail_url: wf.thumbnail_url || "",
       workflow_json: wf.workflow_json
     });
     setShowWorkflowModal(true);
@@ -218,8 +247,11 @@ export default function ComfyWorkflows() {
         try {
           const parsed = JSON.parse(text);
           if (Array.isArray(parsed.nodes)) nodeCount = parsed.nodes.length;
-          else if (parsed.prompt && typeof parsed.prompt === "object") nodeCount = Object.keys(parsed.prompt).length;
-          else if (typeof parsed === "object") nodeCount = Object.keys(parsed).length;
+          else if (parsed.prompt && typeof parsed.prompt === "object") {
+            nodeCount = Object.keys(parsed.prompt).length;
+          } else if (typeof parsed === "object") {
+            nodeCount = Object.keys(parsed).length;
+          }
         } catch {
           // ignore
         }
@@ -241,7 +273,7 @@ export default function ComfyWorkflows() {
     reader.readAsText(file);
   };
 
-  // Save (Create or Update) Workflow directly to Backend Database (PostgreSQL)
+  // Save (Create or Update) Workflow
   const handleSaveWorkflow = async (e: React.FormEvent) => {
     e.preventDefault();
     setWorkflowModalError(null);
@@ -273,7 +305,7 @@ export default function ComfyWorkflows() {
         setSelectedWorkflow(updated);
       } else {
         const created = await createWorkflowApi(workflowFormData);
-        showToast(`Workflow "${created.name}" berhasil disimpan ke database!`);
+        showToast(`Workflow "${created.name}" berhasil ditambahkan!`);
         setShowWorkflowModal(false);
         await fetchWorkflows();
         setSelectedWorkflow(created);
@@ -285,7 +317,7 @@ export default function ComfyWorkflows() {
     }
   };
 
-  // Delete Workflow from Backend Database
+  // Delete Workflow
   const handleDeleteWorkflow = async (wf: ComfyWorkflow) => {
     try {
       setIsDeletingWorkflow(true);
@@ -305,7 +337,7 @@ export default function ComfyWorkflows() {
     }
   };
 
-  // Category Manager Handlers (Add, Edit, Delete)
+  // Category Manager Handlers
   const handleOpenCatCreate = () => {
     setEditingCatId(null);
     setCatFormData({
@@ -367,189 +399,196 @@ export default function ComfyWorkflows() {
   );
 
   return (
-    <div className="comfy-page-container">
-      {/* 1. Page Header */}
-      <header className="comfy-page-header">
-        <div className="comfy-page-title-row">
-          <h1 className="comfy-page-title">
-            <span>ComfyUI Workflows</span>
-            <span className="comfy-title-badge">Katalog Preset &amp; Example</span>
-          </h1>
-          <div style={{ display: "flex", gap: "10px" }}>
-            <button
-              type="button"
-              className="btn-custom-json"
-              onClick={() => setShowCatModal(true)}
-              style={{ fontSize: "12px", padding: "6px 14px" }}
-            >
-              Kelola Kategori
-            </button>
-            <button
-              type="button"
-              className="btn-custom-json"
-              onClick={handleOpenAddModal}
-              style={{ backgroundColor: "#2563eb", borderColor: "#3b82f6", color: "#ffffff", fontSize: "12px", padding: "6px 14px", display: "inline-flex", alignItems: "center", gap: "6px" }}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-              Tambah Workflow Baru
-            </button>
-          </div>
-        </div>
-        <p className="comfy-page-subtitle">
-          Koleksi preset alur ComfyUI siap pakai. Salin workflow langsung ke clipboard (Ctrl + V)
-          atau unduh file JSON untuk di-drag &amp; drop ke canvas ComfyUI Anda.
-        </p>
-      </header>
-
-      {/* 2. Filter and Search Bar */}
-      <div className="comfy-filter-bar">
-        {/* Base Model Pills */}
-        <div className="comfy-filter-group">
-          <span className="comfy-filter-label">Base Model:</span>
-          {baseModelOptions.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              className={`comfy-filter-pill ${baseModelFilter.toLowerCase() === opt.toLowerCase() ? "active" : ""}`}
-              onClick={() => setBaseModelFilter(opt)}
-            >
-              {opt}
-            </button>
-          ))}
+    <div className="comfy-page-workspace">
+      {/* =========================================================================
+          A. TOP HEADER (Ringkas & Fungsional)
+          ========================================================================= */}
+      <header className="comfy-top-header">
+        <div className="comfy-header-title-box">
+          <h1 className="comfy-header-title">ComfyUI Workflows</h1>
+          <span className="comfy-header-badge">Katalog Preset</span>
         </div>
 
-        {/* Category Pills (Clean Monochrome, No Rainbow) */}
-        <div className="comfy-filter-group">
-          <span className="comfy-filter-label">Kategori:</span>
+        <div className="comfy-header-actions">
           <button
             type="button"
-            className={`comfy-filter-pill ${categoryFilter.toLowerCase() === "all" ? "active" : ""}`}
-            onClick={() => setCategoryFilter("All")}
+            className="comfy-btn-secondary"
+            onClick={() => setShowCatModal(true)}
           >
-            Semua
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            <span>Kelola Kategori</span>
           </button>
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              className={`comfy-filter-pill ${categoryFilter.toLowerCase() === cat.slug.toLowerCase() ? "active" : ""}`}
-              onClick={() => setCategoryFilter(cat.slug)}
-              title={cat.description}
-            >
-              {cat.name}
-            </button>
-          ))}
-        </div>
 
-        {/* Search Input */}
-        <div className="comfy-search-input-box">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            type="text"
-            className="comfy-search-input"
-            placeholder="Cari workflow (cth: FaceDetailer, SDXL, LoRA)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          {/* Satu-satunya tombol utama di seluruh layar */}
+          <button
+            type="button"
+            className="comfy-btn-primary"
+            onClick={handleOpenAddModal}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>+ Workflow Baru</span>
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* 3. Main Split Layout */}
-      <div className="comfy-split-layout">
-        {/* Left Sidebar: Presets List */}
-        <aside className="comfy-sidebar-card">
-          <div className="comfy-sidebar-header">
-            <span className="comfy-sidebar-title">Daftar Preset ({filteredWorkflows.length})</span>
+      {/* =========================================================================
+          MASTER-DETAIL WORKSPACE (Sidebar Kiri + Panel Utama Kanan)
+          ========================================================================= */}
+      <div className="comfy-workspace-body">
+        {/* =====================================================================
+            B. SIDEBAR KIRI (Daftar & Filter Terpusat - Lebar tetap 320px-360px)
+            ===================================================================== */}
+        <aside className="comfy-sidebar-pane">
+          {/* 1. Search Bar langsung di bagian paling atas Sidebar */}
+          <div className="comfy-sidebar-search-box">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              className="comfy-sidebar-search-input"
+              placeholder="Cari workflow..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="comfy-search-clear-btn"
+                onClick={() => setSearchQuery("")}
+                aria-label="Bersihkan pencarian"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
-          <div className="comfy-presets-list">
+          {/* 2. Filter Kompak Base Model & Kategori */}
+          <div className="comfy-sidebar-filters">
+            {/* Base Model Pills */}
+            <div className="comfy-filter-section">
+              <div className="comfy-filter-section-title">
+                <span>Base Model</span>
+              </div>
+              <div className="comfy-filter-pills-row">
+                {baseModelOptions.map((opt) => {
+                  const isActive =
+                    baseModelFilter.toLowerCase() === opt.toLowerCase() ||
+                    (opt === "Semua" && baseModelFilter.toLowerCase() === "all");
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      className={`comfy-filter-pill ${isActive ? "active" : ""}`}
+                      onClick={() => setBaseModelFilter(opt)}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Kategori Horizontal Scroll / Pills */}
+            <div className="comfy-filter-section">
+              <div className="comfy-filter-section-title">
+                <span>Kategori</span>
+              </div>
+              <div className="comfy-filter-pills-row">
+                <button
+                  type="button"
+                  className={`comfy-filter-pill ${
+                    categoryFilter.toLowerCase() === "semua" || categoryFilter.toLowerCase() === "all"
+                      ? "active"
+                      : ""
+                  }`}
+                  onClick={() => setCategoryFilter("Semua")}
+                >
+                  Semua
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className={`comfy-filter-pill ${
+                      categoryFilter.toLowerCase() === cat.slug.toLowerCase() ? "active" : ""
+                    }`}
+                    onClick={() => setCategoryFilter(cat.slug)}
+                    title={cat.description}
+                  >
+                    {cat.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Header Counter */}
+          <div className="comfy-sidebar-list-meta">
+            <span>Daftar Preset</span>
+            <span className="comfy-count-tag">{filteredWorkflows.length}</span>
+          </div>
+
+          {/* 4. Daftar Preset (Bersih & Elegan) */}
+          <div className="comfy-presets-scroll">
             {loading ? (
-              <div className="comfy-loading-state">
-                <span>Memuat daftar workflow...</span>
+              <div className="comfy-sidebar-empty">
+                <span>Memuat workflow...</span>
               </div>
             ) : filteredWorkflows.length === 0 ? (
-              <div className="comfy-empty-state">
-                <p>Tidak ada workflow yang cocok dengan filter.</p>
+              <div className="comfy-sidebar-empty">
+                <span>Tidak ada preset yang cocok.</span>
               </div>
             ) : (
               filteredWorkflows.map((wf) => {
                 const isActive = selectedWorkflow?.id === wf.id;
                 const catObj = categories.find((c) => c.slug.toLowerCase() === wf.category.toLowerCase());
                 return (
-                  <div key={wf.id} className={`comfy-preset-item-wrapper ${isActive ? "active" : ""}`}>
-                    <button
-                      type="button"
-                      className="comfy-preset-item-btn"
-                      onClick={() => handleSelectPreset(wf)}
-                    >
-                      <div className="preset-title-row">
-                        <span className="preset-title">{wf.name}</span>
-                      </div>
-                      <div className="preset-badge-row">
-                        <span className="preset-base-badge">{wf.base_model}</span>
-                        <span className="preset-base-badge">{catObj?.name || wf.category.toUpperCase()}</span>
-                        <span className="preset-base-badge">{wf.total_nodes || "?"} Nodes</span>
-                      </div>
-                      {wf.description && (
-                        <p className="preset-desc-snippet">{wf.description}</p>
-                      )}
-                    </button>
-                    <div className="preset-quick-actions">
-                      <button
-                        type="button"
-                        className="preset-quick-btn edit"
-                        title="Edit preset workflow ini"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenEditModal(wf);
-                        }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className="preset-quick-btn delete"
-                        title="Hapus preset workflow ini dari database"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setWorkflowToDelete(wf);
-                        }}
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                          <polyline points="3 6 5 6 21 6" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                        </svg>
-                      </button>
+                  <div
+                    key={wf.id}
+                    className={`comfy-preset-card ${isActive ? "active" : ""}`}
+                    onClick={() => handleSelectPreset(wf)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        handleSelectPreset(wf);
+                      }
+                    }}
+                  >
+                    <div className="comfy-preset-card-top">
+                      <span className="comfy-preset-name">{wf.name}</span>
                     </div>
+
+                    <div className="comfy-preset-badges">
+                      <span className="comfy-micro-badge base">{wf.base_model}</span>
+                      <span className="comfy-micro-badge cat">{catObj?.name || wf.category.toUpperCase()}</span>
+                      <span className="comfy-micro-badge mono">{wf.total_nodes || 0} Nodes</span>
+                    </div>
+
+                    {wf.description && (
+                      <p className="comfy-preset-desc-line">{wf.description}</p>
+                    )}
                   </div>
                 );
               })
             )}
           </div>
-
-          {/* Add Workflow Button at Bottom of Sidebar */}
-          <div className="comfy-custom-upload-box">
-            <button
-              type="button"
-              className="btn-custom-json"
-              onClick={handleOpenAddModal}
-            >
-              <span>+ Tambah Workflow Baru</span>
-            </button>
-          </div>
         </aside>
 
-        {/* Right Stage: Clean Simple Workflow Viewer */}
-        <main className="comfy-main-stage">
+        {/* =====================================================================
+            C. PANEL UTAMA KANAN (Detail Workflow yang Bersih & Visual)
+            ===================================================================== */}
+        <main className="comfy-detail-pane">
           {selectedWorkflow ? (
             <WorkflowSimpleViewer
               key={selectedWorkflow.id}
@@ -559,67 +598,56 @@ export default function ComfyWorkflows() {
               onDelete={(wf) => setWorkflowToDelete(wf)}
             />
           ) : (
-            <div className="comfy-no-selection">
-              <p>Pilih salah satu workflow di sebelah kiri untuk melihat detailnya.</p>
+            <div className="comfy-detail-empty">
+              <div className="comfy-detail-empty-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M9 3v18" />
+                </svg>
+              </div>
+              <h3>Pilih Workflow Preset</h3>
+              <p>Pilih salah satu alur kerja di panel sebelah kiri untuk melihat rincian konfigurasi &amp; generator.</p>
             </div>
           )}
         </main>
       </div>
 
-      {/* 4. Add / Edit Workflow Modal (Direct Database Sync) */}
+      {/* =========================================================================
+          MODAL: TAMBAH / EDIT WORKFLOW
+          ========================================================================= */}
       {showWorkflowModal && (
         <div className="comfy-modal-backdrop" onClick={() => setShowWorkflowModal(false)}>
-          <div
-            className="comfy-modal-box"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "700px" }}
-          >
-            <div className="comfy-modal-header">
-              <div className="comfy-modal-header-left">
-                <div className={`comfy-modal-icon-badge ${editingWorkflow ? "edit" : ""}`}>
-                  {editingWorkflow ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                      <line x1="12" y1="5" x2="12" y2="19" />
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <h3 className="comfy-modal-title">
-                    {editingWorkflow ? "Edit Workflow Preset" : "Tambah Workflow Baru ke Database"}
-                  </h3>
-                  <p className="comfy-modal-subtitle">
-                    {editingWorkflow
-                      ? `Menyunting data workflow #${editingWorkflow.id} di database PostgreSQL server`
-                      : "Workflow disimpan langsung ke database server PostgreSQL"}
-                  </p>
-                </div>
+          <div className="comfy-modal-surface" onClick={(e) => e.stopPropagation()}>
+            <div className="comfy-modal-head">
+              <div className="comfy-modal-head-title">
+                <h3>{editingWorkflow ? "Edit Preset Workflow" : "Tambah Workflow Baru"}</h3>
+                <p>
+                  {editingWorkflow
+                    ? `Menyunting data #${editingWorkflow.id} (${editingWorkflow.slug})`
+                    : "Simpan alur node ComfyUI siap pakai ke database"}
+                </p>
               </div>
               <button
                 type="button"
-                className="comfy-modal-close-btn"
+                className="comfy-modal-x"
                 onClick={() => setShowWorkflowModal(false)}
+                aria-label="Tutup modal"
               >
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleSaveWorkflow}>
-              <div className="comfy-modal-body">
+              <div className="comfy-modal-content">
                 {/* Workflow Name */}
-                <div className="comfy-form-group">
-                  <label className="comfy-form-label">
-                    <span>Nama Workflow <span className="comfy-form-label-required">*</span></span>
+                <div className="comfy-field">
+                  <label className="comfy-label">
+                    Nama Workflow <span className="text-blue-500">*</span>
                   </label>
                   <input
                     type="text"
-                    className="comfy-modal-input"
-                    placeholder="Contoh: Illustrious XL FaceDetailer Starter"
+                    className="comfy-input"
+                    placeholder="Contoh: Illustrious FaceDetailer Ultimate"
                     value={workflowFormData.name}
                     onChange={(e) => setWorkflowFormData({ ...workflowFormData, name: e.target.value })}
                     required
@@ -627,30 +655,32 @@ export default function ComfyWorkflows() {
                 </div>
 
                 {/* Base Model & Category */}
-                <div className="comfy-modal-row">
-                  <div className="comfy-form-group">
-                    <label className="comfy-form-label">
-                      <span>Base Model Target <span className="comfy-form-label-required">*</span></span>
+                <div className="comfy-grid-2">
+                  <div className="comfy-field">
+                    <label className="comfy-label">
+                      Base Model <span className="text-blue-500">*</span>
                     </label>
                     <select
-                      className="comfy-modal-select"
+                      className="comfy-select"
                       value={workflowFormData.base_model}
                       onChange={(e) => setWorkflowFormData({ ...workflowFormData, base_model: e.target.value })}
                     >
-                      {baseModelOptions.filter((b) => b !== "All").map((bm) => (
-                        <option key={bm} value={bm}>
-                          {bm}
-                        </option>
-                      ))}
+                      {baseModelOptions
+                        .filter((b) => b !== "Semua" && b !== "All")
+                        .map((bm) => (
+                          <option key={bm} value={bm}>
+                            {bm}
+                          </option>
+                        ))}
                     </select>
                   </div>
 
-                  <div className="comfy-form-group">
-                    <label className="comfy-form-label">
-                      <span>Kategori Workflow <span className="comfy-form-label-required">*</span></span>
+                  <div className="comfy-field">
+                    <label className="comfy-label">
+                      Kategori <span className="text-blue-500">*</span>
                     </label>
                     <select
-                      className="comfy-modal-select"
+                      className="comfy-select"
                       value={workflowFormData.category}
                       onChange={(e) => setWorkflowFormData({ ...workflowFormData, category: e.target.value })}
                     >
@@ -663,79 +693,91 @@ export default function ComfyWorkflows() {
                   </div>
                 </div>
 
-                {/* Author & Required Nodes */}
-                <div className="comfy-modal-row">
-                  <div className="comfy-form-group">
-                    <label className="comfy-form-label">
-                      <span>Author / Pembuat</span>
-                    </label>
+                {/* Author & Required Custom Nodes */}
+                <div className="comfy-grid-2">
+                  <div className="comfy-field">
+                    <label className="comfy-label">Author / Pembuat</label>
                     <input
                       type="text"
-                      className="comfy-modal-input"
-                      placeholder="Nama Anda atau pembuat workflow"
+                      className="comfy-input"
+                      placeholder="Nama Anda atau creator"
                       value={workflowFormData.author || ""}
                       onChange={(e) => setWorkflowFormData({ ...workflowFormData, author: e.target.value })}
                     />
                   </div>
 
-                  <div className="comfy-form-group">
-                    <label className="comfy-form-label">
-                      <span>Custom Nodes yang Dibutuhkan</span>
-                    </label>
+                  <div className="comfy-field">
+                    <label className="comfy-label">Custom Nodes yang Dibutuhkan</label>
                     <input
                       type="text"
-                      className="comfy-modal-input"
-                      placeholder="Contoh: ComfyUI-Impact-Pack"
+                      className="comfy-input"
+                      placeholder="Contoh: ComfyUI-Impact-Pack, ComfyUI-Manager"
                       value={workflowFormData.required_custom_nodes || ""}
-                      onChange={(e) => setWorkflowFormData({ ...workflowFormData, required_custom_nodes: e.target.value })}
+                      onChange={(e) =>
+                        setWorkflowFormData({ ...workflowFormData, required_custom_nodes: e.target.value })
+                      }
                     />
                   </div>
                 </div>
 
-                {/* Short Description */}
-                <div className="comfy-form-group">
-                  <label className="comfy-form-label">
-                    <span>Deskripsi Ringkas</span>
+                {/* Thumbnail URL (Pratinjau Visual Output) */}
+                <div className="comfy-field">
+                  <label className="comfy-label">
+                    URL Gambar Pratinjau (Thumbnail Output)
                   </label>
                   <input
                     type="text"
-                    className="comfy-modal-input"
-                    placeholder="Penjelasan ringkas tentang alur dan tujuan workflow ini..."
+                    className="comfy-input"
+                    placeholder="https://... atau /images/workflows/sample.webp"
+                    value={workflowFormData.thumbnail_url || ""}
+                    onChange={(e) => setWorkflowFormData({ ...workflowFormData, thumbnail_url: e.target.value })}
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="comfy-field">
+                  <label className="comfy-label">Deskripsi Ringkas</label>
+                  <input
+                    type="text"
+                    className="comfy-input"
+                    placeholder="Penjelasan ringkas tentang alur dan kegunaan workflow..."
                     value={workflowFormData.description || ""}
                     onChange={(e) => setWorkflowFormData({ ...workflowFormData, description: e.target.value })}
                   />
                 </div>
 
-                {/* JSON Input & File Upload */}
-                <div className="comfy-form-group">
-                  <div className="comfy-upload-row">
-                    <label className="comfy-form-label" style={{ marginBottom: 0 }}>
-                      <span>File / Isi JSON ComfyUI <span className="comfy-form-label-required">*</span></span>
+                {/* Workflow JSON & File Upload */}
+                <div className="comfy-field">
+                  <div className="comfy-json-label-bar">
+                    <label className="comfy-label" style={{ marginBottom: 0 }}>
+                      File JSON ComfyUI <span className="text-blue-500">*</span>
                     </label>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                       {uploadFileInfo && (
-                        <span className="comfy-upload-success-chip">
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                            <polyline points="20 6 9 17 4 12" />
-                          </svg>
-                          {uploadFileInfo.name} ({uploadFileInfo.sizeKb} KB, {uploadFileInfo.nodes} nodes)
+                        <span className="comfy-file-chip">
+                          ✓ {uploadFileInfo.name} ({uploadFileInfo.sizeKb} KB, {uploadFileInfo.nodes} nodes)
                         </span>
                       )}
-                      <label className="comfy-upload-btn">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <label className="comfy-upload-tag">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                           <polyline points="17 8 12 3 7 8" />
                           <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
-                        <span>Upload File .json</span>
-                        <input type="file" accept=".json,application/json" onChange={handleFileUpload} style={{ display: "none" }} />
+                        <span>Unggah File .json</span>
+                        <input
+                          type="file"
+                          accept=".json,application/json"
+                          onChange={handleFileUpload}
+                          style={{ display: "none" }}
+                        />
                       </label>
                     </div>
                   </div>
                   <textarea
-                    className="comfy-modal-textarea"
-                    rows={8}
-                    placeholder="Paste teks JSON ComfyUI di sini atau gunakan tombol upload file di atas..."
+                    className="comfy-textarea font-mono"
+                    rows={7}
+                    placeholder="Paste teks JSON ComfyUI di sini atau unggah file .json di atas..."
                     value={workflowFormData.workflow_json}
                     onChange={(e) => {
                       setWorkflowFormData({ ...workflowFormData, workflow_json: e.target.value });
@@ -746,8 +788,8 @@ export default function ComfyWorkflows() {
                 </div>
 
                 {workflowModalError && (
-                  <div className="comfy-modal-error-alert">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <div className="comfy-alert-error">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                       <circle cx="12" cy="12" r="10" />
                       <line x1="12" y1="8" x2="12" y2="12" />
                       <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -757,45 +799,24 @@ export default function ComfyWorkflows() {
                 )}
               </div>
 
-              <div className="comfy-modal-actions">
+              <div className="comfy-modal-foot">
                 <button
                   type="button"
-                  className="comfy-modal-cancel-btn"
+                  className="comfy-modal-cancel"
                   onClick={() => setShowWorkflowModal(false)}
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="comfy-modal-submit-btn"
+                  className="comfy-modal-submit"
                   disabled={isSavingWorkflow}
                 >
-                  {isSavingWorkflow ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-spin">
-                        <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
-                      </svg>
-                      Menyimpan ke Database...
-                    </>
-                  ) : editingWorkflow ? (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
-                      </svg>
-                      Simpan Perubahan
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-                        <polyline points="17 21 17 13 7 13 7 21" />
-                        <polyline points="7 3 7 8 15 8" />
-                      </svg>
-                      Simpan ke Database
-                    </>
-                  )}
+                  {isSavingWorkflow
+                    ? "Menyimpan..."
+                    : editingWorkflow
+                    ? "Simpan Perubahan"
+                    : "Simpan Workflow"}
                 </button>
               </div>
             </form>
@@ -803,46 +824,44 @@ export default function ComfyWorkflows() {
         </div>
       )}
 
-      {/* 5. Delete Workflow Confirmation Modal */}
+      {/* =========================================================================
+          MODAL: HAPUS WORKFLOW CONFIRMATION
+          ========================================================================= */}
       {workflowToDelete && (
         <div className="comfy-modal-backdrop" onClick={() => setWorkflowToDelete(null)}>
-          <div className="comfy-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "440px" }}>
-            <div className="comfy-modal-header">
-              <div className="comfy-modal-header-left">
-                <div className="comfy-modal-icon-badge danger">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="comfy-modal-title">Hapus Workflow?</h3>
-                  <p className="comfy-modal-subtitle">Tindakan ini tidak dapat dibatalkan</p>
-                </div>
+          <div className="comfy-modal-surface compact" onClick={(e) => e.stopPropagation()}>
+            <div className="comfy-modal-head">
+              <div className="comfy-modal-head-title">
+                <h3 className="text-red-400">Hapus Preset Workflow?</h3>
+                <p>Tindakan ini tidak dapat dibatalkan</p>
               </div>
-              <button type="button" className="comfy-modal-close-btn" onClick={() => setWorkflowToDelete(null)}>
+              <button
+                type="button"
+                className="comfy-modal-x"
+                onClick={() => setWorkflowToDelete(null)}
+              >
                 ✕
               </button>
             </div>
-            <div className="comfy-modal-body" style={{ padding: "20px" }}>
-              <p style={{ color: "#e2e8f0", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
+            <div className="comfy-modal-content">
+              <p style={{ margin: 0, fontSize: "13px", color: "#e4e4e7", lineHeight: 1.6 }}>
                 Apakah Anda yakin ingin menghapus preset <strong>"{workflowToDelete.name}"</strong>?
               </p>
-              <p style={{ color: "#94a3b8", fontSize: "12px", marginTop: "8px", marginBottom: 0 }}>
-                Workflow ini ({workflowToDelete.base_model} &bull; {workflowToDelete.category}) akan dihapus secara permanen dari database server.
+              <p style={{ marginTop: "6px", marginBottom: 0, fontSize: "12px", color: "#71717a" }}>
+                Workflow ini ({workflowToDelete.base_model} &bull; {workflowToDelete.category}) akan dihapus secara permanen.
               </p>
             </div>
-            <div className="comfy-modal-actions">
+            <div className="comfy-modal-foot">
               <button
                 type="button"
-                className="comfy-modal-cancel-btn"
+                className="comfy-modal-cancel"
                 onClick={() => setWorkflowToDelete(null)}
               >
                 Batal
               </button>
               <button
                 type="button"
-                className="comfy-modal-danger-btn"
+                className="comfy-modal-danger"
                 disabled={isDeletingWorkflow}
                 onClick={() => handleDeleteWorkflow(workflowToDelete)}
               >
@@ -853,64 +872,50 @@ export default function ComfyWorkflows() {
         </div>
       )}
 
-      {/* 6. Category Manager Modal (Add, Edit, Delete - Monochrome) */}
+      {/* =========================================================================
+          MODAL: KELOLA KATEGORI WORKFLOW
+          ========================================================================= */}
       {showCatModal && (
         <div className="comfy-modal-backdrop" onClick={() => setShowCatModal(false)}>
-          <div
-            className="comfy-modal-box"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: "780px", maxHeight: "90vh", overflowY: "auto" }}
-          >
-            <div className="comfy-modal-header">
-              <h3 style={{ margin: 0, fontSize: "16px", color: "#f8fafc" }}>
-                Kelola Kategori Workflow
-              </h3>
+          <div className="comfy-modal-surface large" onClick={(e) => e.stopPropagation()}>
+            <div className="comfy-modal-head">
+              <div className="comfy-modal-head-title">
+                <h3>Kelola Kategori Workflow</h3>
+                <p>Tambah, sunting, atau hapus taksonomi alur ComfyUI</p>
+              </div>
               <button
                 type="button"
-                className="comfy-modal-close-btn"
+                className="comfy-modal-x"
                 onClick={() => setShowCatModal(false)}
               >
                 ✕
               </button>
             </div>
 
-            <div className="comfy-modal-body" style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            <div className="comfy-modal-content">
               {/* Form Add / Edit Category */}
-              <form
-                onSubmit={handleSaveCategory}
-                style={{
-                  backgroundColor: "#111622",
-                  padding: "16px",
-                  borderRadius: "6px",
-                  border: "1px solid #283245",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px"
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontWeight: 700, fontSize: "13px", color: "#f8fafc" }}>
+              <form onSubmit={handleSaveCategory} className="comfy-cat-form-box">
+                <div className="comfy-cat-form-header">
+                  <span className="comfy-cat-form-title">
                     {editingCatId ? `Edit Kategori #${editingCatId}` : "Tambah Kategori Baru"}
                   </span>
                   {editingCatId && (
                     <button
                       type="button"
                       onClick={handleOpenCatCreate}
-                      style={{ fontSize: "11px", color: "#38bdf8", background: "none", border: "none", cursor: "pointer", textDecoration: "underline" }}
+                      className="comfy-cat-reset-btn"
                     >
                       Batal edit &amp; buat baru
                     </button>
                   )}
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 2fr 1fr", gap: "10px" }}>
+                <div className="comfy-grid-3">
                   <div>
-                    <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>
-                      Nama Kategori *
-                    </label>
+                    <label className="comfy-label">Nama Kategori *</label>
                     <input
                       type="text"
-                      className="comfy-modal-input"
+                      className="comfy-input"
                       placeholder="Contoh: Style Transfer"
                       value={catFormData.name}
                       onChange={(e) => setCatFormData({ ...catFormData, name: e.target.value })}
@@ -918,24 +923,20 @@ export default function ComfyWorkflows() {
                     />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>
-                      Slug (Opsional)
-                    </label>
+                    <label className="comfy-label">Slug</label>
                     <input
                       type="text"
-                      className="comfy-modal-input"
+                      className="comfy-input font-mono"
                       placeholder="style_transfer"
                       value={catFormData.slug}
                       onChange={(e) => setCatFormData({ ...catFormData, slug: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>
-                      Urutan
-                    </label>
+                    <label className="comfy-label">Urutan</label>
                     <input
                       type="number"
-                      className="comfy-modal-input"
+                      className="comfy-input"
                       value={catFormData.sort_order}
                       onChange={(e) => setCatFormData({ ...catFormData, sort_order: Number(e.target.value) })}
                     />
@@ -943,70 +944,61 @@ export default function ComfyWorkflows() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "11px", color: "#94a3b8", marginBottom: "4px" }}>
-                    Deskripsi Ringkas
-                  </label>
+                  <label className="comfy-label">Deskripsi Ringkas</label>
                   <input
                     type="text"
-                    className="comfy-modal-input"
-                    placeholder="Penjelasan ringkas tentang alur kategori ini..."
+                    className="comfy-input"
+                    placeholder="Penjelasan singkat alur kategori ini..."
                     value={catFormData.description}
                     onChange={(e) => setCatFormData({ ...catFormData, description: e.target.value })}
                   />
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
                   <button
                     type="submit"
-                    className="comfy-modal-submit-btn"
+                    className="comfy-modal-submit"
                     disabled={isSavingCategory}
-                    style={{ fontSize: "12px", padding: "6px 14px" }}
                   >
                     {editingCatId ? "Simpan Perubahan Kategori" : "+ Tambah Kategori"}
                   </button>
                 </div>
               </form>
 
-              {/* Existing Categories Table */}
-              <div>
-                <span style={{ fontWeight: 700, fontSize: "13px", color: "#f8fafc", marginBottom: "8px", display: "block" }}>
-                  Daftar Kategori Terdaftar ({categories.length})
-                </span>
-                <div style={{ border: "1px solid #283245", borderRadius: "6px", overflow: "hidden" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+              {/* Categories Table */}
+              <div className="comfy-cat-table-wrap">
+                <div className="comfy-cat-table-head">
+                  <span>Daftar Kategori Terdaftar ({categories.length})</span>
+                </div>
+                <div className="comfy-cat-table-scroll">
+                  <table className="comfy-cat-table">
                     <thead>
-                      <tr style={{ backgroundColor: "#161b26", borderBottom: "1px solid #283245", color: "#94a3b8", textAlign: "left" }}>
-                        <th style={{ padding: "8px 12px", width: "30%" }}>Nama</th>
-                        <th style={{ padding: "8px 12px", width: "25%" }}>Slug</th>
-                        <th style={{ padding: "8px 12px", width: "30%" }}>Deskripsi</th>
-                        <th style={{ padding: "8px 12px", width: "15%", textAlign: "right" }}>Aksi</th>
+                      <tr>
+                        <th style={{ width: "30%" }}>Nama</th>
+                        <th style={{ width: "25%" }}>Slug</th>
+                        <th style={{ width: "30%" }}>Deskripsi</th>
+                        <th style={{ width: "15%", textAlign: "right" }}>Aksi</th>
                       </tr>
                     </thead>
                     <tbody>
                       {categories.map((c) => (
-                        <tr key={c.id} style={{ borderBottom: "1px solid #1e293b", backgroundColor: "#0f172a" }}>
-                          <td style={{ padding: "8px 12px", fontWeight: 600, color: "#f8fafc" }}>
-                            {c.name}
-                          </td>
-                          <td style={{ padding: "8px 12px", fontFamily: "monospace", color: "#38bdf8" }}>
-                            {c.slug}
-                          </td>
-                          <td style={{ padding: "8px 12px", color: "#94a3b8" }}>
-                            {c.description || "-"}
-                          </td>
-                          <td style={{ padding: "8px 12px", textAlign: "right" }}>
+                        <tr key={c.id}>
+                          <td style={{ fontWeight: 600, color: "#f4f4f5" }}>{c.name}</td>
+                          <td className="font-mono text-blue-400">{c.slug}</td>
+                          <td style={{ color: "#a1a1aa" }}>{c.description || "-"}</td>
+                          <td style={{ textAlign: "right" }}>
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "6px" }}>
                               <button
                                 type="button"
                                 onClick={() => handleOpenCatEdit(c)}
-                                style={{ background: "#1e293b", border: "1px solid #334155", color: "#cbd5e1", borderRadius: "4px", padding: "3px 8px", cursor: "pointer", fontSize: "11px" }}
+                                className="comfy-table-btn"
                               >
                                 Edit
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setCatToDelete(c)}
-                                style={{ background: "#7f1d1d", border: "1px solid #dc2626", color: "#fecaca", borderRadius: "4px", padding: "3px 8px", cursor: "pointer", fontSize: "11px" }}
+                                className="comfy-table-btn danger"
                               >
                                 Hapus
                               </button>
@@ -1023,39 +1015,42 @@ export default function ComfyWorkflows() {
         </div>
       )}
 
-      {/* 6. Delete Category Confirmation Modal */}
+      {/* Delete Category Confirmation Modal */}
       {catToDelete && (
         <div className="comfy-modal-backdrop" onClick={() => setCatToDelete(null)}>
-          <div className="comfy-modal-box" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "420px" }}>
-            <div className="comfy-modal-header">
-              <h3 style={{ margin: 0, fontSize: "15px", color: "#f8fafc" }}>
-                Hapus Kategori?
-              </h3>
-              <button type="button" className="comfy-modal-close-btn" onClick={() => setCatToDelete(null)}>
+          <div className="comfy-modal-surface compact" onClick={(e) => e.stopPropagation()}>
+            <div className="comfy-modal-head">
+              <div className="comfy-modal-head-title">
+                <h3 className="text-red-400">Hapus Kategori?</h3>
+              </div>
+              <button
+                type="button"
+                className="comfy-modal-x"
+                onClick={() => setCatToDelete(null)}
+              >
                 ✕
               </button>
             </div>
-            <div className="comfy-modal-body" style={{ padding: "16px" }}>
-              <p style={{ color: "#cbd5e1", fontSize: "13px", lineHeight: "1.5", margin: 0 }}>
+            <div className="comfy-modal-content">
+              <p style={{ margin: 0, fontSize: "13px", color: "#e4e4e7" }}>
                 Yakin ingin menghapus kategori <strong>"{catToDelete.name}"</strong>?
               </p>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "18px" }}>
-                <button
-                  type="button"
-                  className="comfy-modal-cancel-btn"
-                  onClick={() => setCatToDelete(null)}
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  className="comfy-modal-submit-btn"
-                  onClick={() => handleDeleteCategory(catToDelete)}
-                  style={{ backgroundColor: "#dc2626" }}
-                >
-                  Hapus Kategori
-                </button>
-              </div>
+            </div>
+            <div className="comfy-modal-foot">
+              <button
+                type="button"
+                className="comfy-modal-cancel"
+                onClick={() => setCatToDelete(null)}
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                className="comfy-modal-danger"
+                onClick={() => handleDeleteCategory(catToDelete)}
+              >
+                Hapus Kategori
+              </button>
             </div>
           </div>
         </div>
@@ -1063,11 +1058,11 @@ export default function ComfyWorkflows() {
 
       {/* Toast Alert */}
       {toastMessage && (
-        <div className="wf-toast-alert">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <div className="wf-toast-alert" role="status">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="20 6 9 17 4 12" />
           </svg>
-          {toastMessage}
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>
