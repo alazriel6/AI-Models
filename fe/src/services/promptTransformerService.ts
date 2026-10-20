@@ -34,7 +34,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "pony",
         name: "Pony Diffusion V6 XL",
-        badge: "Pony Score Standard",
+        badge: "Score + Underscore",
         color: "#3b82f6",
         description: "Format Danbooru ber-underscore dengan quality score prefix (score_9, score_8_up, rating:explicit).",
         category: "Anime Booru",
@@ -42,7 +42,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "illustrious",
         name: "Illustrious-XL / NoobAI",
-        badge: "Booru (Spaces)",
+        badge: "Danbooru Spasi",
         color: "#60a5fa",
         description: "Danbooru berspasi tanpa underscore & bebas score_9 (standar resmi training OnomaAI & NoobAI).",
         category: "Anime Booru",
@@ -50,7 +50,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "animagine",
         name: "Animagine XL 3.1",
-        badge: "Booru Underscore + Aesthetic",
+        badge: "Underscore + Rating",
         color: "#0284c7",
         description: "Danbooru ber-underscore murni dengan aesthetic quality prefix dan rating:general / explicit.",
         category: "Anime Booru",
@@ -74,7 +74,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "novelai",
         name: "NovelAI (NAI Diffusion V3)",
-        badge: "NAI Brackets Syntax",
+        badge: "NAI {Brackets}",
         color: "#6366f1",
         description: "Syntax kurung kurawal khas NovelAI ({tag} untuk bobot 1.05x), spasi kata tanpa garis bawah.",
         category: "NovelAI",
@@ -82,7 +82,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "sdxl_realistic",
         name: "SDXL Photorealistic",
-        badge: "DSLR / Realism",
+        badge: "DSLR Photography",
         color: "#06b6d4",
         description: "Token kualitas fotografi (8k uhd, dslr, soft rim lighting, natural skin texture) dengan deskripsi adegan jelas.",
         category: "Photorealistic",
@@ -90,7 +90,7 @@ export const PROMPT_FORMATS: PromptFormatMeta[] = [
     {
         id: "sd15",
         name: "Classic Stable Diffusion 1.5",
-        badge: "WebUI Standard",
+        badge: "WebUI Tag Koma",
         color: "#64748b",
         description: "Tag koma klasik dengan syntax pembobotan WebUI (keyword:1.2), kompatibel untuk A1111 & ComfyUI.",
         category: "Classic",

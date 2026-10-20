@@ -352,14 +352,14 @@ interface BlockGroup {
 const BLOCK_GROUPS: BlockGroup[] = [
     {
         key: "char",
-        label: "Face & Hair / Karakter",
+        label: "Wajah & Rambut",
         match: ["hair", "eyes", "face", "character", "appearance", "hair/face"],
         modalCategory: "Hair/Face",
         defaults: ["1girl", "black hair", "long hair", "red eyes", "ponytail", "twintails", "looking at viewer", "blush", "smile"],
     },
     {
         key: "outfit",
-        label: "Outfits & Pakaian",
+        label: "Pakaian & Aksesoris",
         match: ["outfit", "clothing", "dress", "uniform"],
         modalCategory: "Outfit",
         defaults: ["school uniform", "serafuku", "blazer", "white shirt", "pleated skirt", "sweater", "maid", "kimono", "hoodie"],
@@ -373,7 +373,7 @@ const BLOCK_GROUPS: BlockGroup[] = [
     },
     {
         key: "bg",
-        label: "Latar Belakang & Setting",
+        label: "Latar & Lingkungan",
         match: ["background", "environment", "setting"],
         modalCategory: "Background",
         defaults: ["indoors", "outdoors", "bedroom", "classroom", "cafe", "city street", "night sky", "sunset", "simple background"],
@@ -633,8 +633,16 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     const [modularBaseModel, setModularBaseModel] = useState<string>("All");
     const [modularSampleImages, setModularSampleImages] = useState<string>("");
 
-    // Modular Presets from Database
+    // Modular Presets from Database & Controls
     const [modularPresets, setModularPresets] = useState<PromptPreset[]>([]);
+    const [modularCategoryFilter, setModularCategoryFilter] = useState<string>("all");
+    const [collapsedModularGroups, setCollapsedModularGroups] = useState<Record<string, boolean>>({});
+    const [inlineAddGroupKey, setInlineAddGroupKey] = useState<string | null>(null);
+    const [inlineAddTagInput, setInlineAddTagInput] = useState<string>("");
+
+    const toggleCollapseModularGroup = (key: string) => {
+        setCollapsedModularGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
 
     // Booru custom database tags for autocomplete
     const booruCustomDbTags = useMemo(() => {
@@ -1213,6 +1221,44 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         setPositivePrompt(cleanPromptText(updated));
         showToast(`Disisipkan: ${text.slice(0, 30)}...`);
     };
+
+    // Helper: Cek apakah token aktif di positive prompt
+    const isTokenActiveInPrompt = (text: string): boolean => {
+        if (!positivePrompt || !text) return false;
+        const cleanTarget = text.trim().toLowerCase();
+        const promptTokens = positivePrompt.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean);
+        return promptTokens.some((pt) => {
+            const unweighted = pt.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
+            return unweighted === cleanTarget;
+        });
+    };
+
+    // Toggle sisipkan / cabut token di positive prompt
+    const handleToggleModularTokenInPrompt = (text: string) => {
+        const cleanTarget = text.trim();
+        if (isTokenActiveInPrompt(cleanTarget)) {
+            const promptTokens = positivePrompt.split(",").map((t) => t.trim()).filter(Boolean);
+            const filtered = promptTokens.filter((pt) => {
+                const unweighted = pt.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+                return unweighted !== cleanTarget.toLowerCase();
+            });
+            setPositivePrompt(cleanPromptText(filtered.join(", ")));
+            showToast(`Dicabut: ${cleanTarget}`);
+        } else {
+            handleAppendPositive(cleanTarget);
+        }
+    };
+
+    // Cek apakah token adalah frasa deskriptif panjang
+    const isLongPhrase = (text: string): boolean => {
+        const words = text.trim().split(/\s+/);
+        return words.length > 2 || text.length > 25 || text.includes(",");
+    };
+
+    // Hitung total token tersedia untuk placeholder
+    const totalModularTokenCount = useMemo(() => {
+        return BLOCK_GROUPS.reduce((acc, g) => acc + g.defaults.length, 0) + modularPresets.length;
+    }, [modularPresets]);
 
     // Insert LoRA with compatibility weight
     const handleInsertLoRA = (m: Model) => {
@@ -2853,43 +2899,78 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                             {/* TAB 3: MODULAR BUILDING BLOCKS */}
                             {sidebarTab === "modular" && (
                                 <>
-                                    <div className="modular-top-banner">
-                                        <div className="modular-banner-text">
-                                            Klik tag untuk menyisipkan ke prompt. Token kustom disimpan permanen di database.
+                                    {/* 1. Unified Search Bar & Quick Add Token Button */}
+                                    <div className="modular-toolbar-row">
+                                        <div className="modular-search-bar">
+                                            <Icons.Search />
+                                            <input
+                                                type="text"
+                                                className="modular-search-input"
+                                                placeholder={`Cari dari ${totalModularTokenCount} blok token...`}
+                                                value={blockSearch}
+                                                onChange={(e) => setBlockSearch(e.target.value)}
+                                            />
+                                            {blockSearch && (
+                                                <button
+                                                    type="button"
+                                                    className="preset-search-clear"
+                                                    onClick={() => setBlockSearch("")}
+                                                    title="Bersihkan pencarian"
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
                                         </div>
+
                                         <button
                                             type="button"
-                                            className="modular-banner-add-btn"
+                                            className="modular-new-token-btn"
                                             onClick={() => {
                                                 setModularCategory("Outfit");
                                                 setIsAddModularModalOpen(true);
                                             }}
-                                            title="Tambah building block atau outfit kustom"
+                                            title="Tambah token / building block kustom baru ke database"
                                         >
                                             <Icons.Plus />
-                                            <span>Tambah Token</span>
+                                            <span>+ Token Baru</span>
                                         </button>
                                     </div>
 
-                                    {/* Search Blocks */}
-                                    <div className="modular-search-bar">
-                                        <Icons.Search />
-                                        <input
-                                            type="text"
-                                            className="modular-search-input"
-                                            placeholder="Cari token building blocks..."
-                                            value={blockSearch}
-                                            onChange={(e) => setBlockSearch(e.target.value)}
-                                        />
-                                        {blockSearch && (
-                                            <button type="button" className="preset-search-clear" onClick={() => setBlockSearch("")}>
-                                                ✕
+                                    {/* 2. Horizontal Category Filter Pills Bar */}
+                                    <div className="modular-category-pills-bar">
+                                        <button
+                                            type="button"
+                                            className={`modular-cat-filter-pill ${modularCategoryFilter === "all" ? "active" : ""}`}
+                                            onClick={() => setModularCategoryFilter("all")}
+                                        >
+                                            Semua
+                                        </button>
+                                        {BLOCK_GROUPS.map((g) => {
+                                            const shortLabel = g.label.split(" & ")[0].split(" / ")[0];
+                                            return (
+                                                <button
+                                                    key={g.key}
+                                                    type="button"
+                                                    className={`modular-cat-filter-pill ${modularCategoryFilter === g.key ? "active" : ""}`}
+                                                    onClick={() => setModularCategoryFilter(g.key)}
+                                                >
+                                                    {shortLabel}
+                                                </button>
+                                            );
+                                        })}
+                                        {modularPresets.some((p) => !KNOWN_BLOCK_SUBCATS.includes((p.subcategory || "").toLowerCase())) && (
+                                            <button
+                                                type="button"
+                                                className={`modular-cat-filter-pill ${modularCategoryFilter === "other" ? "active" : ""}`}
+                                                onClick={() => setModularCategoryFilter("other")}
+                                            >
+                                                Lainnya
                                             </button>
                                         )}
                                     </div>
 
-                                    {/* Data-Driven Modular Categories */}
-                                    {BLOCK_GROUPS.map((group) => {
+                                    {/* 3. Data-Driven Modular Categories */}
+                                    {BLOCK_GROUPS.filter((g) => modularCategoryFilter === "all" || modularCategoryFilter === g.key).map((group) => {
                                         const customTokens = modularPresets.filter((p) => {
                                             const sub = (p.subcategory || "").toLowerCase();
                                             return group.match.includes(sub) || (group.matchCategory && p.category === group.matchCategory);
@@ -2907,109 +2988,326 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                             return null;
                                         }
 
+                                        const totalCount = filteredDefaults.length + filteredCustom.length;
+                                        const isCollapsed = !!collapsedModularGroups[group.key];
+                                        const isInlineAddOpen = inlineAddGroupKey === group.key;
+
+                                        // Separate standard 1-2 word tags vs descriptive phrases
+                                        const standardDefaults = filteredDefaults.filter((t) => !isLongPhrase(t));
+                                        const phraseDefaults = filteredDefaults.filter((t) => isLongPhrase(t));
+
+                                        const standardCustom = filteredCustom.filter((p) => !isLongPhrase(p.positive_prompt));
+                                        const phraseCustom = filteredCustom.filter((p) => isLongPhrase(p.positive_prompt));
+
+                                        const hasPhrases = phraseDefaults.length > 0 || phraseCustom.length > 0;
+
                                         return (
-                                            <div key={group.key} className="modular-group-card">
-                                                <div className="modular-section-header">
-                                                    <span>{group.label}</span>
-                                                    <button
-                                                        type="button"
-                                                        className="modular-add-btn"
-                                                        onClick={() => {
-                                                            setModularCategory(group.modalCategory);
-                                                            setIsAddModularModalOpen(true);
+                                            <div key={group.key} className={`modular-group-card ${isCollapsed ? "collapsed" : ""}`}>
+                                                {/* Category Header with Accordion toggle */}
+                                                <div
+                                                    className="modular-section-header"
+                                                    onClick={() => toggleCollapseModularGroup(group.key)}
+                                                    title="Klik untuk ciutkan / buka kategori ini"
+                                                >
+                                                    <div className="modular-header-left">
+                                                        <span className={`modular-chevron-icon ${isCollapsed ? "collapsed" : ""}`}>
+                                                            ▾
+                                                        </span>
+                                                        <span className="modular-category-name">{group.label}</span>
+                                                        <span className="modular-category-count">({totalCount})</span>
+                                                    </div>
+
+                                                    <div className="modular-header-actions" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            type="button"
+                                                            className={`modular-add-btn ${isInlineAddOpen ? "active" : ""}`}
+                                                            onClick={() => {
+                                                                if (isInlineAddOpen) {
+                                                                    setInlineAddGroupKey(null);
+                                                                    setInlineAddTagInput("");
+                                                                } else {
+                                                                    setInlineAddGroupKey(group.key);
+                                                                    setInlineAddTagInput("");
+                                                                }
+                                                            }}
+                                                            title={`Tambah tag baru ke ${group.label}`}
+                                                        >
+                                                            <Icons.Plus />
+                                                            <span>{isInlineAddOpen ? "Tutup" : "Tambah"}</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* Inline Quick Add Input */}
+                                                {isInlineAddOpen && (
+                                                    <form
+                                                        className="modular-inline-add-form"
+                                                        onSubmit={async (e) => {
+                                                            e.preventDefault();
+                                                            const text = inlineAddTagInput.trim();
+                                                            if (!text) return;
+                                                            try {
+                                                                await handleAddModularTag(group.modalCategory, text);
+                                                                setInlineAddTagInput("");
+                                                                setInlineAddGroupKey(null);
+                                                            } catch {
+                                                                // error handled inside handleAddModularTag
+                                                            }
                                                         }}
                                                     >
-                                                        <Icons.Plus />
-                                                        <span>Tambah</span>
-                                                    </button>
-                                                </div>
-
-                                                <div className="modular-pill-group">
-                                                    {/* Built-in default tags */}
-                                                    {filteredDefaults.map((tag) => (
-                                                        <span
-                                                            key={tag}
-                                                            className="modular-token-pill"
-                                                            onClick={() => handleAppendPositive(tag)}
-                                                            title={`Sisipkan: ${tag}`}
+                                                        <input
+                                                            type="text"
+                                                            className="modular-inline-input"
+                                                            placeholder={`Ketik tag untuk ${group.label} lalu Enter...`}
+                                                            value={inlineAddTagInput}
+                                                            onChange={(e) => setInlineAddTagInput(e.target.value)}
+                                                            autoFocus
+                                                        />
+                                                        <button
+                                                            type="submit"
+                                                            className="modular-inline-submit-btn"
+                                                            disabled={!inlineAddTagInput.trim()}
                                                         >
-                                                            +{tag}
-                                                        </span>
-                                                    ))}
+                                                            Simpan
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="modular-inline-cancel-btn"
+                                                            onClick={() => {
+                                                                setInlineAddGroupKey(null);
+                                                                setInlineAddTagInput("");
+                                                            }}
+                                                        >
+                                                            Batal
+                                                        </button>
+                                                    </form>
+                                                )}
 
-                                                    {/* Custom Database Tokens */}
-                                                    {filteredCustom.map((p) => {
-                                                        const samples = parseSampleImages(p.sample_images);
-                                                        return (
-                                                            <span
-                                                                key={p.id}
-                                                                className="modular-token-pill custom-token"
-                                                                onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                                title={`Custom Token: ${p.positive_prompt}`}
-                                                            >
-                                                                +{p.title || p.positive_prompt}
-                                                                {samples.length > 0 && (
+                                                {/* Category Body: Standard Tags & Phrases */}
+                                                {!isCollapsed && (
+                                                    <div className="modular-group-body">
+                                                        {/* Standard 1-2 Word Tags */}
+                                                        <div className="modular-pill-group">
+                                                            {standardDefaults.map((tag) => {
+                                                                const active = isTokenActiveInPrompt(tag);
+                                                                return (
                                                                     <span
-                                                                        className="modular-pill-preview-btn"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
-                                                                        }}
-                                                                        title="Lihat foto preview"
+                                                                        key={tag}
+                                                                        className={`modular-token-chip ${active ? "active" : ""}`}
+                                                                        onClick={() => handleToggleModularTokenInPrompt(tag)}
+                                                                        title={active ? `✓ Aktif di prompt (Klik untuk mencabut: "${tag}")` : `Klik untuk menyisipkan: "${tag}"`}
                                                                     >
-                                                                        <Icons.Eye />
+                                                                        {active && <span className="modular-chip-check">✓</span>}
+                                                                        <span className="modular-chip-text">{tag}</span>
                                                                     </span>
-                                                                )}
-                                                                <span
-                                                                    className="modular-pill-del"
-                                                                    onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                                    title="Hapus dari database"
-                                                                >
-                                                                    ✕
-                                                                </span>
-                                                            </span>
-                                                        );
-                                                    })}
-                                                </div>
+                                                                );
+                                                            })}
+
+                                                            {standardCustom.map((p) => {
+                                                                const active = isTokenActiveInPrompt(p.positive_prompt);
+                                                                const samples = parseSampleImages(p.sample_images);
+                                                                const label = p.title || p.positive_prompt;
+
+                                                                return (
+                                                                    <span
+                                                                        key={p.id}
+                                                                        className={`modular-token-chip custom-token ${active ? "active" : ""}`}
+                                                                        onClick={() => handleToggleModularTokenInPrompt(p.positive_prompt)}
+                                                                        title={active ? `✓ Aktif di prompt (Klik untuk mencabut: "${p.positive_prompt}")` : `Custom Token: "${p.positive_prompt}" (Klik untuk menyisipkan)`}
+                                                                    >
+                                                                        {active && <span className="modular-chip-check">✓</span>}
+                                                                        <span className="modular-chip-text">{label}</span>
+                                                                        {samples.length > 0 && (
+                                                                            <span
+                                                                                className="modular-pill-preview-btn"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
+                                                                                }}
+                                                                                title="Lihat foto preview"
+                                                                            >
+                                                                                <Icons.Eye />
+                                                                            </span>
+                                                                        )}
+                                                                        <span
+                                                                            className="modular-pill-del"
+                                                                            onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                            title="Hapus token ini dari database"
+                                                                        >
+                                                                            ✕
+                                                                        </span>
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {/* Separator for Descriptive / Longer Custom Phrases */}
+                                                        {hasPhrases && (
+                                                            <div className="modular-phrases-section">
+                                                                <div className="modular-phrases-divider">
+                                                                    <span className="modular-phrases-label">Frasa Deskriptif / Kustom</span>
+                                                                </div>
+
+                                                                <div className="modular-pill-group">
+                                                                    {phraseDefaults.map((tag) => {
+                                                                        const active = isTokenActiveInPrompt(tag);
+                                                                        return (
+                                                                            <span
+                                                                                key={tag}
+                                                                                className={`modular-token-chip phrase-chip ${active ? "active" : ""}`}
+                                                                                onClick={() => handleToggleModularTokenInPrompt(tag)}
+                                                                                title={active ? `✓ Aktif di prompt (Klik untuk mencabut)` : `Klik untuk menyisipkan frasa`}
+                                                                            >
+                                                                                {active && <span className="modular-chip-check">✓</span>}
+                                                                                <span className="modular-chip-text">{tag}</span>
+                                                                            </span>
+                                                                        );
+                                                                    })}
+
+                                                                    {phraseCustom.map((p) => {
+                                                                        const active = isTokenActiveInPrompt(p.positive_prompt);
+                                                                        const samples = parseSampleImages(p.sample_images);
+                                                                        const label = p.title || p.positive_prompt;
+
+                                                                        return (
+                                                                            <span
+                                                                                key={p.id}
+                                                                                className={`modular-token-chip custom-token phrase-chip ${active ? "active" : ""}`}
+                                                                                onClick={() => handleToggleModularTokenInPrompt(p.positive_prompt)}
+                                                                                title={active ? `✓ Aktif di prompt (Klik untuk mencabut)` : `Custom Phrase: "${p.positive_prompt}"`}
+                                                                            >
+                                                                                {active && <span className="modular-chip-check">✓</span>}
+                                                                                <span className="modular-chip-text">{label}</span>
+                                                                                {samples.length > 0 && (
+                                                                                    <span
+                                                                                        className="modular-pill-preview-btn"
+                                                                                        onClick={(e) => {
+                                                                                            e.stopPropagation();
+                                                                                            setLightboxImage({ url: resolveImageUrl(samples[0]), title: p.title });
+                                                                                        }}
+                                                                                        title="Lihat foto preview"
+                                                                                    >
+                                                                                        <Icons.Eye />
+                                                                                    </span>
+                                                                                )}
+                                                                                <span
+                                                                                    className="modular-pill-del"
+                                                                                    onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                                    title="Hapus frasa ini dari database"
+                                                                                >
+                                                                                    ✕
+                                                                                </span>
+                                                                            </span>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}
 
-                                    {/* Other Custom User Categories */}
-                                    {modularPresets.filter((p) => {
-                                        const sub = (p.subcategory || "").toLowerCase();
-                                        return !KNOWN_BLOCK_SUBCATS.includes(sub);
-                                    }).length > 0 && (
-                                        <div className="modular-group-card">
-                                            <div className="modular-section-header">
-                                                <span>Token Kustom Lainnya</span>
-                                            </div>
-                                            <div className="modular-pill-group">
-                                                {modularPresets
-                                                    .filter((p) => {
-                                                        const sub = (p.subcategory || "").toLowerCase();
-                                                        return !KNOWN_BLOCK_SUBCATS.includes(sub);
-                                                    })
-                                                    .map((p) => (
-                                                        <span
-                                                            key={p.id}
-                                                            className="modular-token-pill custom-token"
-                                                            onClick={() => handleAppendPositive(p.positive_prompt)}
-                                                            title={`Custom: ${p.positive_prompt} (${p.subcategory})`}
-                                                        >
-                                                            +{p.title || p.positive_prompt}
-                                                            <span
-                                                                className="modular-pill-del"
-                                                                onClick={(e) => handleDeleteModularPreset(p.id, e)}
-                                                                title="Hapus dari database"
-                                                            >
-                                                                ✕
-                                                            </span>
+                                    {/* 4. Other Custom User Categories */}
+                                    {(modularCategoryFilter === "all" || modularCategoryFilter === "other") && (() => {
+                                        const otherPresets = modularPresets.filter((p) => {
+                                            const sub = (p.subcategory || "").toLowerCase();
+                                            return !KNOWN_BLOCK_SUBCATS.includes(sub);
+                                        });
+
+                                        const filterTerm = blockSearch.toLowerCase().trim();
+                                        const filteredOthers = filterTerm
+                                            ? otherPresets.filter((p) => (p.title || "").toLowerCase().includes(filterTerm) || p.positive_prompt.toLowerCase().includes(filterTerm))
+                                            : otherPresets;
+
+                                        if (filteredOthers.length === 0) return null;
+
+                                        const isCollapsed = !!collapsedModularGroups["other"];
+                                        const standardOthers = filteredOthers.filter((p) => !isLongPhrase(p.positive_prompt));
+                                        const phraseOthers = filteredOthers.filter((p) => isLongPhrase(p.positive_prompt));
+
+                                        return (
+                                            <div className={`modular-group-card ${isCollapsed ? "collapsed" : ""}`}>
+                                                <div
+                                                    className="modular-section-header"
+                                                    onClick={() => toggleCollapseModularGroup("other")}
+                                                    title="Klik untuk ciutkan / buka"
+                                                >
+                                                    <div className="modular-header-left">
+                                                        <span className={`modular-chevron-icon ${isCollapsed ? "collapsed" : ""}`}>
+                                                            ▾
                                                         </span>
-                                                    ))}
+                                                        <span className="modular-category-name">Token Kustom Lainnya</span>
+                                                        <span className="modular-category-count">({filteredOthers.length})</span>
+                                                    </div>
+                                                </div>
+
+                                                {!isCollapsed && (
+                                                    <div className="modular-group-body">
+                                                        <div className="modular-pill-group">
+                                                            {standardOthers.map((p) => {
+                                                                const active = isTokenActiveInPrompt(p.positive_prompt);
+                                                                const label = p.title || p.positive_prompt;
+
+                                                                return (
+                                                                    <span
+                                                                        key={p.id}
+                                                                        className={`modular-token-chip custom-token ${active ? "active" : ""}`}
+                                                                        onClick={() => handleToggleModularTokenInPrompt(p.positive_prompt)}
+                                                                        title={active ? `✓ Aktif di prompt (Klik untuk mencabut)` : `Custom: "${p.positive_prompt}"`}
+                                                                    >
+                                                                        {active && <span className="modular-chip-check">✓</span>}
+                                                                        <span className="modular-chip-text">{label}</span>
+                                                                        <span
+                                                                            className="modular-pill-del"
+                                                                            onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                            title="Hapus dari database"
+                                                                        >
+                                                                            ✕
+                                                                        </span>
+                                                                    </span>
+                                                                );
+                                                            })}
+                                                        </div>
+
+                                                        {phraseOthers.length > 0 && (
+                                                            <div className="modular-phrases-section">
+                                                                <div className="modular-phrases-divider">
+                                                                    <span className="modular-phrases-label">Frasa Deskriptif Kustom</span>
+                                                                </div>
+                                                                <div className="modular-pill-group">
+                                                                    {phraseOthers.map((p) => {
+                                                                        const active = isTokenActiveInPrompt(p.positive_prompt);
+                                                                        const label = p.title || p.positive_prompt;
+
+                                                                        return (
+                                                                            <span
+                                                                                key={p.id}
+                                                                                className={`modular-token-chip custom-token phrase-chip ${active ? "active" : ""}`}
+                                                                                onClick={() => handleToggleModularTokenInPrompt(p.positive_prompt)}
+                                                                                title={active ? `✓ Aktif di prompt (Klik untuk mencabut)` : `Custom Phrase: "${p.positive_prompt}"`}
+                                                                            >
+                                                                                {active && <span className="modular-chip-check">✓</span>}
+                                                                                <span className="modular-chip-text">{label}</span>
+                                                                                <span
+                                                                                    className="modular-pill-del"
+                                                                                    onClick={(e) => handleDeleteModularPreset(p.id, e)}
+                                                                                    title="Hapus dari database"
+                                                                                >
+                                                                                    ✕
+                                                                                </span>
+                                                                            </span>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                 </>
                             )}
                         </div>
