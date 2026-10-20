@@ -1,6 +1,14 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../../style/NegativeVault.css";
+import {
+  getNegativePresetsApi,
+  createNegativePresetApi,
+  deleteNegativePresetApi,
+  getEmbeddingsApi,
+  createEmbeddingApi,
+  deleteEmbeddingApi,
+} from "../../api/negativeVault";
 
 // ============================================================================
 // Types & Interfaces
@@ -28,6 +36,7 @@ interface PresetBundle {
   prompt: string;
   recommendedCFG: string;
   tags: string[];
+  isSystem?: boolean;
 }
 
 interface EmbeddingItem {
@@ -41,6 +50,7 @@ interface EmbeddingItem {
   comfyTrigger: string;
   downloadUrl: string;
   suppressedTags: string[];
+  isSystem?: boolean;
 }
 
 interface CustomPreset {
@@ -380,13 +390,40 @@ export default function NegativeVault() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Presets & Filter State
+  const [presetList, setPresetList] = useState<PresetBundle[]>(PRESET_BUNDLES);
   const [presetSearch, setPresetSearch] = useState("");
   const [presetArchFilter, setPresetArchFilter] = useState<string>("all");
   const [presetCatFilter, setPresetCatFilter] = useState<string>("all");
+  const [isDbSynced, setIsDbSynced] = useState<boolean>(false);
 
   // Embedding Search State
+  const [embeddingList, setEmbeddingList] = useState<EmbeddingItem[]>(EMBEDDING_DIRECTORY);
   const [embSearch, setEmbSearch] = useState("");
   const [embArchFilter, setEmbArchFilter] = useState<string>("all");
+
+  // Modals for Adding Preset & Embedding
+  const [showAddPresetModal, setShowAddPresetModal] = useState(false);
+  const [showAddEmbModal, setShowAddEmbModal] = useState(false);
+  const [presetForm, setPresetForm] = useState({
+    title: "",
+    architecture: "SDXL" as BaseArchitecture,
+    category: "General" as "General" | "Anatomy" | "Photorealism" | "Anime" | "Minimal",
+    description: "",
+    prompt: "",
+    recommendedCFG: "5.0 - 7.0",
+    tags: "",
+  });
+  const [embForm, setEmbForm] = useState({
+    name: "",
+    filename: "",
+    architecture: "SD 1.5" as "SD 1.5" | "SDXL" | "Pony",
+    filesize: "",
+    description: "",
+    a1111Trigger: "",
+    comfyTrigger: "",
+    downloadUrl: "",
+    suppressedTags: "",
+  });
 
   // Custom User Presets
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>(() => {
@@ -399,6 +436,57 @@ export default function NegativeVault() {
     return [];
   });
   const [newPresetTitle, setNewPresetTitle] = useState("");
+
+  // Sync data from Go backend on mount
+  useEffect(() => {
+    let mounted = true;
+    Promise.allSettled([getNegativePresetsApi(), getEmbeddingsApi()]).then(([pRes, eRes]) => {
+      if (!mounted) return;
+      let hasData = false;
+
+      if (pRes.status === "fulfilled" && pRes.value && pRes.value.length > 0) {
+        const mapped: PresetBundle[] = pRes.value.map((p) => ({
+          id: String(p.id),
+          title: p.title,
+          architecture: (p.architecture as BaseArchitecture) || "SDXL",
+          category: (p.category as any) || "General",
+          description: p.description,
+          prompt: p.prompt,
+          recommendedCFG: p.recommended_cfg || "4.5 - 7.0",
+          tags: p.tags ? p.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          isSystem: p.is_system,
+        }));
+        setPresetList(mapped);
+        hasData = true;
+      }
+
+      if (eRes.status === "fulfilled" && eRes.value && eRes.value.length > 0) {
+        const mappedEmb: EmbeddingItem[] = eRes.value.map((e) => ({
+          id: String(e.id),
+          name: e.name,
+          filename: e.filename,
+          architecture: (e.architecture as any) || "SD 1.5",
+          filesize: e.filesize,
+          description: e.description,
+          a1111Trigger: e.a1111_trigger,
+          comfyTrigger: e.comfy_trigger,
+          downloadUrl: e.download_url,
+          suppressedTags: e.suppressed_tags ? e.suppressed_tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+          isSystem: e.is_system,
+        }));
+        setEmbeddingList(mappedEmb);
+        hasData = true;
+      }
+
+      if (hasData) {
+        setIsDbSynced(true);
+      }
+    });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const triggerToast = useCallback((msg: string) => {
     setToastMessage(msg);
@@ -546,35 +634,75 @@ export default function NegativeVault() {
     return { count: estTokens, chunk, percent };
   }, [compiledPrompt]);
 
-  // Save to Custom Presets
-  const handleSaveToCustom = () => {
+  // Save to Custom Presets (attempts Backend API, with local fallback)
+  const handleSaveToCustom = async () => {
     if (!compiledPrompt.trim()) {
       triggerToast("Prompt negatif masih kosong");
       return;
     }
 
     const title = (newPresetTitle.trim() || `Custom Negative (${targetArch})`).slice(0, 40);
-    const newPreset: CustomPreset = {
-      id: `custom-${Date.now()}`,
-      title,
-      architecture: targetArch,
-      prompt: compiledPrompt,
-      createdAt: Date.now(),
-    };
 
-    const next = [newPreset, ...customPresets];
-    setCustomPresets(next);
     try {
-      localStorage.setItem("models_guide_negative_presets", JSON.stringify(next));
+      const res = await createNegativePresetApi({
+        title,
+        architecture: targetArch,
+        category: "General",
+        description: `Dibuat dari Modular Mixer (${new Date().toLocaleDateString("id-ID")})`,
+        prompt: compiledPrompt,
+        recommended_cfg: "5.0 - 7.0",
+        tags: targetArch.toLowerCase(),
+        is_system: false,
+      });
+
+      const newBundle: PresetBundle = {
+        id: String(res.id),
+        title: res.title,
+        architecture: res.architecture as BaseArchitecture,
+        category: "General",
+        description: res.description,
+        prompt: res.prompt,
+        recommendedCFG: res.recommended_cfg,
+        tags: [targetArch.toLowerCase()],
+        isSystem: false,
+      };
+
+      setPresetList((prev) => [newBundle, ...prev]);
+      setIsDbSynced(true);
+      triggerToast(`Disimpan ke Database Backend: "${title}"`);
     } catch {
-      // ignore
+      // Fallback local
+      const newPreset: CustomPreset = {
+        id: `custom-${Date.now()}`,
+        title,
+        architecture: targetArch,
+        prompt: compiledPrompt,
+        createdAt: Date.now(),
+      };
+      const next = [newPreset, ...customPresets];
+      setCustomPresets(next);
+      try {
+        localStorage.setItem("models_guide_negative_presets", JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      triggerToast(`Disimpan secara lokal: "${title}"`);
     }
     setNewPresetTitle("");
-    triggerToast(`Disimpan ke Preset: "${title}"`);
   };
 
   // Delete Custom Preset
-  const handleDeleteCustom = (id: string) => {
+  const handleDeleteCustom = async (id: string) => {
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      try {
+        await deleteNegativePresetApi(numericId);
+      } catch {
+        // ignore
+      }
+      setPresetList((prev) => prev.filter((p) => p.id !== id));
+    }
+
     const next = customPresets.filter((p) => p.id !== id);
     setCustomPresets(next);
     try {
@@ -582,7 +710,147 @@ export default function NegativeVault() {
     } catch {
       // ignore
     }
-    triggerToast("Preset kustom dihapus");
+    triggerToast("Preset berhasil dihapus");
+  };
+
+  // Handle Create Preset Form Submit
+  const handleCreatePresetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!presetForm.title.trim() || !presetForm.prompt.trim()) {
+      triggerToast("Judul dan Prompt Negatif wajib diisi");
+      return;
+    }
+
+    try {
+      const created = await createNegativePresetApi({
+        title: presetForm.title.trim(),
+        architecture: presetForm.architecture,
+        category: presetForm.category,
+        description: presetForm.description.trim(),
+        prompt: presetForm.prompt.trim(),
+        recommended_cfg: presetForm.recommendedCFG.trim() || "5.0 - 7.0",
+        tags: presetForm.tags.trim(),
+        is_system: false,
+      });
+
+      const newBundle: PresetBundle = {
+        id: String(created.id),
+        title: created.title,
+        architecture: created.architecture as BaseArchitecture,
+        category: created.category as any,
+        description: created.description,
+        prompt: created.prompt,
+        recommendedCFG: created.recommended_cfg,
+        tags: created.tags ? created.tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        isSystem: false,
+      };
+
+      setPresetList((prev) => [newBundle, ...prev]);
+      setShowAddPresetModal(false);
+      setPresetForm({
+        title: "",
+        architecture: "SDXL",
+        category: "General",
+        description: "",
+        prompt: "",
+        recommendedCFG: "5.0 - 7.0",
+        tags: "",
+      });
+      triggerToast(`Preset "${created.title}" berhasil disimpan ke Database!`);
+    } catch (err: any) {
+      triggerToast(`Gagal menyimpan ke DB: ${err.message || "Error"}`);
+    }
+  };
+
+  // Handle Delete Preset from catalog
+  const handleDeletePresetFromCatalog = async (id: string, title: string) => {
+    const numId = parseInt(id, 10);
+    if (isNaN(numId)) {
+      setPresetList((prev) => prev.filter((p) => p.id !== id));
+      triggerToast(`Preset "${title}" dihapus`);
+      return;
+    }
+
+    try {
+      await deleteNegativePresetApi(numId);
+      setPresetList((prev) => prev.filter((p) => p.id !== id));
+      triggerToast(`Preset "${title}" dihapus dari Database`);
+    } catch (err: any) {
+      triggerToast(`Gagal menghapus: ${err.message || "Error"}`);
+    }
+  };
+
+  // Handle Create Embedding Submit
+  const handleCreateEmbeddingSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!embForm.name.trim() || !embForm.filename.trim()) {
+      triggerToast("Nama dan Filename embedding wajib diisi");
+      return;
+    }
+
+    try {
+      const created = await createEmbeddingApi({
+        name: embForm.name.trim(),
+        filename: embForm.filename.trim(),
+        architecture: embForm.architecture,
+        filesize: embForm.filesize.trim() || "15 KB",
+        description: embForm.description.trim(),
+        a1111_trigger: embForm.a1111Trigger.trim() || embForm.filename.replace(/\.[^/.]+$/, ""),
+        comfy_trigger: embForm.comfyTrigger.trim() || `embedding:${embForm.filename.replace(/\.[^/.]+$/, "")}`,
+        download_url: embForm.downloadUrl.trim(),
+        suppressed_tags: embForm.suppressedTags.trim(),
+        is_system: false,
+      });
+
+      const newEmb: EmbeddingItem = {
+        id: String(created.id),
+        name: created.name,
+        filename: created.filename,
+        architecture: created.architecture as any,
+        filesize: created.filesize,
+        description: created.description,
+        a1111Trigger: created.a1111_trigger,
+        comfyTrigger: created.comfy_trigger,
+        downloadUrl: created.download_url,
+        suppressedTags: created.suppressed_tags ? created.suppressed_tags.split(",").map((t) => t.trim()).filter(Boolean) : [],
+        isSystem: false,
+      };
+
+      setEmbeddingList((prev) => [newEmb, ...prev]);
+      setShowAddEmbModal(false);
+      setEmbForm({
+        name: "",
+        filename: "",
+        architecture: "SD 1.5",
+        filesize: "",
+        description: "",
+        a1111Trigger: "",
+        comfyTrigger: "",
+        downloadUrl: "",
+        suppressedTags: "",
+      });
+      triggerToast(`Embedding "${created.name}" berhasil disimpan ke Database!`);
+    } catch (err: any) {
+      triggerToast(`Gagal menyimpan ke DB: ${err.message || "Error"}`);
+    }
+  };
+
+  // Handle Delete Embedding
+  const handleDeleteEmbedding = async (id: string, name: string) => {
+    const numId = parseInt(id, 10);
+    if (isNaN(numId)) {
+      setEmbeddingList((prev) => prev.filter((e) => e.id !== id));
+      triggerToast(`Embedding "${name}" dihapus`);
+      return;
+    }
+
+    try {
+      await deleteEmbeddingApi(numId);
+      setEmbeddingList((prev) => prev.filter((e) => e.id !== id));
+      triggerToast(`Embedding "${name}" dihapus dari Database`);
+    } catch (err: any) {
+      triggerToast(`Gagal menghapus: ${err.message || "Error"}`);
+    }
   };
 
   // Load Preset into Mixer
@@ -629,7 +897,7 @@ export default function NegativeVault() {
 
   // Filtered Presets
   const filteredPresets = useMemo(() => {
-    return PRESET_BUNDLES.filter((p) => {
+    return presetList.filter((p) => {
       if (presetArchFilter !== "all" && p.architecture !== presetArchFilter) return false;
       if (presetCatFilter !== "all" && p.category !== presetCatFilter) return false;
       if (presetSearch.trim()) {
@@ -643,11 +911,11 @@ export default function NegativeVault() {
       }
       return true;
     });
-  }, [presetArchFilter, presetCatFilter, presetSearch]);
+  }, [presetList, presetArchFilter, presetCatFilter, presetSearch]);
 
   // Filtered Embeddings
   const filteredEmbeddings = useMemo(() => {
-    return EMBEDDING_DIRECTORY.filter((emb) => {
+    return embeddingList.filter((emb) => {
       if (embArchFilter !== "all" && emb.architecture !== embArchFilter) return false;
       if (embSearch.trim()) {
         const q = embSearch.toLowerCase();
@@ -660,7 +928,7 @@ export default function NegativeVault() {
       }
       return true;
     });
-  }, [embArchFilter, embSearch]);
+  }, [embeddingList, embArchFilter, embSearch]);
 
   return (
     <div className="nv-page">
@@ -709,15 +977,18 @@ export default function NegativeVault() {
 
         <div className="nv-header-stats">
           <span className="nv-stat-item">
-            <span className="nv-stat-num">{PRESET_BUNDLES.length}</span> Presets
+            <span style={{ color: isDbSynced ? "#10b981" : "#f59e0b" }}>●</span>
+            <span style={{ color: isDbSynced ? "#34d399" : "#fbbf24", fontWeight: 600 }}>
+              {isDbSynced ? "PostgreSQL Terhubung" : "Mode Lokal"}
+            </span>
           </span>
           <span style={{ color: "#27272a" }}>|</span>
           <span className="nv-stat-item">
-            <span className="nv-stat-num">{EMBEDDING_DIRECTORY.length}</span> Embeddings
+            <span className="nv-stat-num">{presetList.length}</span> Presets
           </span>
           <span style={{ color: "#27272a" }}>|</span>
           <span className="nv-stat-item">
-            <span className="nv-stat-num">{customPresets.length}</span> Tersimpan
+            <span className="nv-stat-num">{embeddingList.length}</span> Embeddings
           </span>
         </div>
       </section>
@@ -1079,7 +1350,7 @@ export default function NegativeVault() {
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           {/* Filters Bar */}
           <div className="nv-header" style={{ padding: "10px 14px" }}>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flex: 1 }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flex: 1, alignItems: "center" }}>
               <input
                 type="text"
                 className="nv-input"
@@ -1114,6 +1385,15 @@ export default function NegativeVault() {
                 <option value="Anatomy">Anatomy Fix</option>
                 <option value="Minimal">Minimalist</option>
               </select>
+
+              <button
+                type="button"
+                className="nv-btn-primary"
+                style={{ padding: "7px 14px", fontSize: "12px", whiteSpace: "nowrap" }}
+                onClick={() => setShowAddPresetModal(true)}
+              >
+                + Tambah Preset
+              </button>
             </div>
           </div>
 
@@ -1147,6 +1427,17 @@ export default function NegativeVault() {
                   </div>
 
                   <div style={{ display: "flex", gap: "6px" }}>
+                    {!bundle.isSystem && (
+                      <button
+                        type="button"
+                        className="nv-btn-secondary"
+                        style={{ padding: "4px 8px", fontSize: "11px", color: "#f87171" }}
+                        onClick={() => handleDeletePresetFromCatalog(bundle.id, bundle.title)}
+                        title="Hapus preset dari database"
+                      >
+                        Hapus
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="nv-btn-secondary"
@@ -1178,7 +1469,7 @@ export default function NegativeVault() {
       {activeTab === "embeddings" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div className="nv-header" style={{ padding: "10px 14px" }}>
-            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flex: 1 }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", flex: 1, alignItems: "center" }}>
               <input
                 type="text"
                 className="nv-input"
@@ -1198,6 +1489,15 @@ export default function NegativeVault() {
                 <option value="SDXL">SDXL</option>
                 <option value="Pony">Pony</option>
               </select>
+
+              <button
+                type="button"
+                className="nv-btn-primary"
+                style={{ padding: "7px 14px", fontSize: "12px", whiteSpace: "nowrap" }}
+                onClick={() => setShowAddEmbModal(true)}
+              >
+                + Tambah Embedding
+              </button>
             </div>
           </div>
 
@@ -1261,15 +1561,28 @@ export default function NegativeVault() {
                 </div>
 
                 <div className="nv-preset-footer" style={{ marginTop: "10px" }}>
-                  <a
-                    href={emb.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="nv-btn-secondary"
-                    style={{ fontSize: "11px", padding: "4px 10px" }}
-                  >
-                    <span>Download Model ↗</span>
-                  </a>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+                    <a
+                      href={emb.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="nv-btn-secondary"
+                      style={{ fontSize: "11px", padding: "4px 10px" }}
+                    >
+                      <span>Download Model ↗</span>
+                    </a>
+                    {!emb.isSystem && (
+                      <button
+                        type="button"
+                        className="nv-btn-secondary"
+                        style={{ fontSize: "11px", padding: "4px 8px", color: "#f87171" }}
+                        onClick={() => handleDeleteEmbedding(emb.id, emb.name)}
+                        title="Hapus embedding dari database"
+                      >
+                        Hapus
+                      </button>
+                    )}
+                  </div>
 
                   <button
                     type="button"
@@ -1351,6 +1664,279 @@ export default function NegativeVault() {
             <p>
               Di ComfyUI atau Forge, generator Flux bekerja jauh lebih natural dan bebas halusinasi <strong>tanpa negative prompt sama sekali</strong>. Menambahkan negative prompt panjang ke Flux justru dapat merusak komposisi atau menghasilkan gambar buram. Gunakan negative prompt pada Flux hanya bila ada teks atau watermark yang membandel.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          MODAL: TAMBAH PRESET NEGATIF (PostgreSQL Backend)
+          =================================================================== */}
+      {showAddPresetModal && (
+        <div className="nv-modal-overlay" onClick={() => setShowAddPresetModal(false)}>
+          <div className="nv-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="nv-modal-header">
+              <h3 className="nv-modal-title">Tambah Preset Negatif ke Database</h3>
+              <button
+                type="button"
+                className="nv-syntax-btn"
+                onClick={() => setShowAddPresetModal(false)}
+                style={{ fontSize: "14px", padding: "2px 8px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePresetSubmit} className="nv-modal-body">
+              <label className="nv-field-label">
+                <span>Judul Preset:</span>
+                <input
+                  type="text"
+                  className="nv-input"
+                  placeholder="Misal: Cyberpunk Neon Clean, Anime Soft Glow..."
+                  required
+                  value={presetForm.title}
+                  onChange={(e) => setPresetForm({ ...presetForm, title: e.target.value })}
+                />
+              </label>
+
+              <div className="nv-modal-grid-2">
+                <label className="nv-field-label">
+                  <span>Target Arsitektur:</span>
+                  <select
+                    className="nv-input"
+                    value={presetForm.architecture}
+                    onChange={(e) => setPresetForm({ ...presetForm, architecture: e.target.value as any })}
+                  >
+                    <option value="SDXL">SDXL</option>
+                    <option value="Pony">Pony</option>
+                    <option value="Illustrious">Illustrious</option>
+                    <option value="SD 1.5">SD 1.5</option>
+                    <option value="Flux">Flux</option>
+                    <option value="All">Semua (Universal)</option>
+                  </select>
+                </label>
+
+                <label className="nv-field-label">
+                  <span>Kategori:</span>
+                  <select
+                    className="nv-input"
+                    value={presetForm.category}
+                    onChange={(e) => setPresetForm({ ...presetForm, category: e.target.value as any })}
+                  >
+                    <option value="General">General</option>
+                    <option value="Anime">Anime 2D</option>
+                    <option value="Photorealism">Photorealism</option>
+                    <option value="Anatomy">Anatomy Fix</option>
+                    <option value="Minimal">Minimalist</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="nv-modal-grid-2">
+                <label className="nv-field-label">
+                  <span>Rekomendasi CFG:</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: 5.0 - 6.5"
+                    value={presetForm.recommendedCFG}
+                    onChange={(e) => setPresetForm({ ...presetForm, recommendedCFG: e.target.value })}
+                  />
+                </label>
+
+                <label className="nv-field-label">
+                  <span>Tags (koma):</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: anime, hands, clean"
+                    value={presetForm.tags}
+                    onChange={(e) => setPresetForm({ ...presetForm, tags: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              <label className="nv-field-label">
+                <span>Deskripsi Singkat:</span>
+                <input
+                  type="text"
+                  className="nv-input"
+                  placeholder="Keterangan singkat fungsi preset ini..."
+                  value={presetForm.description}
+                  onChange={(e) => setPresetForm({ ...presetForm, description: e.target.value })}
+                />
+              </label>
+
+              <label className="nv-field-label">
+                <span>Konten Prompt Negatif:</span>
+                <textarea
+                  className="nv-output-box"
+                  rows={4}
+                  required
+                  placeholder="worst quality, low quality, bad anatomy, deformed hands..."
+                  value={presetForm.prompt}
+                  onChange={(e) => setPresetForm({ ...presetForm, prompt: e.target.value })}
+                />
+              </label>
+
+              <div className="nv-modal-footer">
+                <button
+                  type="button"
+                  className="nv-btn-secondary"
+                  onClick={() => setShowAddPresetModal(false)}
+                >
+                  Batal
+                </button>
+                <button type="submit" className="nv-btn-primary">
+                  Simpan ke Database
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================
+          MODAL: TAMBAH EMBEDDING BARU (PostgreSQL Backend)
+          =================================================================== */}
+      {showAddEmbModal && (
+        <div className="nv-modal-overlay" onClick={() => setShowAddEmbModal(false)}>
+          <div className="nv-modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="nv-modal-header">
+              <h3 className="nv-modal-title">Tambah Embedding ke Database</h3>
+              <button
+                type="button"
+                className="nv-syntax-btn"
+                onClick={() => setShowAddEmbModal(false)}
+                style={{ fontSize: "14px", padding: "2px 8px" }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEmbeddingSubmit} className="nv-modal-body">
+              <div className="nv-modal-grid-2">
+                <label className="nv-field-label">
+                  <span>Nama Embedding:</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: BadHandV5, EasyNegative..."
+                    required
+                    value={embForm.name}
+                    onChange={(e) => setEmbForm({ ...embForm, name: e.target.value })}
+                  />
+                </label>
+
+                <label className="nv-field-label">
+                  <span>Filename:</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: badhandv5.pt / EasyNegative.safetensors"
+                    required
+                    value={embForm.filename}
+                    onChange={(e) => setEmbForm({ ...embForm, filename: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              <div className="nv-modal-grid-2">
+                <label className="nv-field-label">
+                  <span>Target Arsitektur:</span>
+                  <select
+                    className="nv-input"
+                    value={embForm.architecture}
+                    onChange={(e) => setEmbForm({ ...embForm, architecture: e.target.value as any })}
+                  >
+                    <option value="SD 1.5">SD 1.5</option>
+                    <option value="SDXL">SDXL</option>
+                    <option value="Pony">Pony</option>
+                  </select>
+                </label>
+
+                <label className="nv-field-label">
+                  <span>Ukuran File:</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: 24 KB"
+                    value={embForm.filesize}
+                    onChange={(e) => setEmbForm({ ...embForm, filesize: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              <label className="nv-field-label">
+                <span>Deskripsi Singkat:</span>
+                <input
+                  type="text"
+                  className="nv-input"
+                  placeholder="Fungsi dan cara kerja embedding..."
+                  value={embForm.description}
+                  onChange={(e) => setEmbForm({ ...embForm, description: e.target.value })}
+                />
+              </label>
+
+              <div className="nv-modal-grid-2">
+                <label className="nv-field-label">
+                  <span>Trigger A1111 (WebUI):</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: badhandv5"
+                    value={embForm.a1111Trigger}
+                    onChange={(e) => setEmbForm({ ...embForm, a1111Trigger: e.target.value })}
+                  />
+                </label>
+
+                <label className="nv-field-label">
+                  <span>Trigger ComfyUI:</span>
+                  <input
+                    type="text"
+                    className="nv-input"
+                    placeholder="Misal: embedding:badhandv5"
+                    value={embForm.comfyTrigger}
+                    onChange={(e) => setEmbForm({ ...embForm, comfyTrigger: e.target.value })}
+                  />
+                </label>
+              </div>
+
+              <label className="nv-field-label">
+                <span>URL Download (CivitAI / HuggingFace):</span>
+                <input
+                  type="url"
+                  className="nv-input"
+                  placeholder="https://civitai.com/models/..."
+                  value={embForm.downloadUrl}
+                  onChange={(e) => setEmbForm({ ...embForm, downloadUrl: e.target.value })}
+                />
+              </label>
+
+              <label className="nv-field-label">
+                <span>Fitur yang Ditekan (koma):</span>
+                <input
+                  type="text"
+                  className="nv-input"
+                  placeholder="bad anatomy, extra fingers, lowres"
+                  value={embForm.suppressedTags}
+                  onChange={(e) => setEmbForm({ ...embForm, suppressedTags: e.target.value })}
+                />
+              </label>
+
+              <div className="nv-modal-footer">
+                <button
+                  type="button"
+                  className="nv-btn-secondary"
+                  onClick={() => setShowAddEmbModal(false)}
+                >
+                  Batal
+                </button>
+                <button type="submit" className="nv-btn-primary">
+                  Simpan Embedding ke Database
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

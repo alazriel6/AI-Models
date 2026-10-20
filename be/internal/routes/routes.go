@@ -21,6 +21,7 @@ type RouteHandlers struct {
 	BooruTagHandler         *handlers.BooruTagHandler
 	WorkflowHandler         *handlers.WorkflowHandler
 	WorkflowCategoryHandler *handlers.WorkflowCategoryHandler
+	NegativeVaultHandler    *handlers.NegativeVaultHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -159,6 +160,27 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 				workflowCats.POST("", h.WorkflowCategoryHandler.CreateCategory)
 				workflowCats.PUT("/:id", h.WorkflowCategoryHandler.UpdateCategory)
 				workflowCats.DELETE("/:id", h.WorkflowCategoryHandler.DeleteCategory)
+			}
+		}
+
+		// Negative Prompt & Embedding Vault
+		if h.NegativeVaultHandler != nil {
+			negPresets := api.Group("/negative-presets")
+			{
+				negPresets.GET("", h.NegativeVaultHandler.GetPresets)
+				negPresets.GET("/:id", h.NegativeVaultHandler.GetPreset)
+				negPresets.POST("", h.NegativeVaultHandler.CreatePreset)
+				negPresets.PUT("/:id", h.NegativeVaultHandler.UpdatePreset)
+				negPresets.DELETE("/:id", h.NegativeVaultHandler.DeletePreset)
+			}
+
+			embeddings := api.Group("/embeddings")
+			{
+				embeddings.GET("", h.NegativeVaultHandler.GetEmbeddings)
+				embeddings.GET("/:id", h.NegativeVaultHandler.GetEmbedding)
+				embeddings.POST("", h.NegativeVaultHandler.CreateEmbedding)
+				embeddings.PUT("/:id", h.NegativeVaultHandler.UpdateEmbedding)
+				embeddings.DELETE("/:id", h.NegativeVaultHandler.DeleteEmbedding)
 			}
 		}
 	}

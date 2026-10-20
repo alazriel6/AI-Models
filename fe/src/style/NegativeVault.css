@@ -1002,3 +1002,89 @@
 .nv-rule-box li {
   margin-bottom: 6px;
 }
+
+/* ==========================================================================
+   Modals: Add Preset & Add Embedding (Strict Solid Palette)
+   ========================================================================== */
+.nv-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: #000000;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.nv-modal-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+  color: #f4f4f5;
+}
+
+.nv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #27272a;
+  padding-bottom: 12px;
+}
+
+.nv-modal-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+}
+
+.nv-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nv-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 600px) {
+  .nv-modal-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nv-field-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #a1a1aa;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nv-field-label span {
+  color: #d4d4d8;
+}
+
+.nv-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #27272a;
+  padding-top: 14px;
+}

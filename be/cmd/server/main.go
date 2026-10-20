@@ -38,6 +38,7 @@ func main() {
 	resourceRepo := repositories.NewResourceRepository(db)
 	workflowRepo := repositories.NewWorkflowRepository(db)
 	workflowCategoryRepo := repositories.NewWorkflowCategoryRepository(db)
+	negativeVaultRepo := repositories.NewNegativeVaultRepository(db)
 
 	// Services
 	modelService := services.NewModelService(modelRepo)
@@ -52,6 +53,7 @@ func main() {
 	booruTagService := services.NewBooruTagService(db)
 	workflowService := services.NewWorkflowService(workflowRepo)
 	workflowCategoryService := services.NewWorkflowCategoryService(workflowCategoryRepo)
+	negativeVaultService := services.NewNegativeVaultService(negativeVaultRepo)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -67,6 +69,7 @@ func main() {
 		BooruTagHandler:         handlers.NewBooruTagHandler(booruTagService),
 		WorkflowHandler:         handlers.NewWorkflowHandler(workflowService),
 		WorkflowCategoryHandler: handlers.NewWorkflowCategoryHandler(workflowCategoryService),
+		NegativeVaultHandler:    handlers.NewNegativeVaultHandler(negativeVaultService),
 	}
 
 	router := gin.Default()

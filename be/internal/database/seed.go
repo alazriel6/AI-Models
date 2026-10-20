@@ -22,6 +22,9 @@ func SeedData(db *gorm.DB, force bool) error {
 		log.Printf("Warning: failed to seed workflows: %v\n", err)
 	}
 	SeedWorkflowCategories(db)
+	if err := SeedNegativeVault(db); err != nil {
+		log.Printf("Warning: failed to seed negative vault: %v\n", err)
+	}
 
 	var count int64
 	db.Model(&models.Model{}).Count(&count)
