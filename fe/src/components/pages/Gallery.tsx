@@ -707,6 +707,17 @@ export default function Gallery() {
       ? { aspectRatio: `${img.width} / ${img.height}` }
       : undefined;
 
+    // Title: Checkpoint name or caption
+    const cardTitle = img.model?.name || img.caption || img.model_name || `Karya #${img.id}`;
+
+    // Technical specifications string: Euler a · 30 st · CFG 5.5 · 832×1216
+    const specParts: string[] = [];
+    if (img.sampler) specParts.push(img.sampler);
+    if (img.steps) specParts.push(`${img.steps} st`);
+    if (img.cfg_scale !== undefined && img.cfg_scale !== null) specParts.push(`CFG ${img.cfg_scale}`);
+    if (hasDimensions) specParts.push(`${img.width}×${img.height}`);
+    const specString = specParts.join(' · ') || 'Tanpa parameter';
+
     return (
       <article
         key={img.id}
@@ -721,125 +732,122 @@ export default function Gallery() {
             thumbnail={true}
           />
 
-          {/* Minimal Technical Tags on image */}
-          <div className="gallery-card-tag-row">
-            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-              <span className="gallery-card-tag base">
-                {baseModel.toUpperCase()}
+          {/* Minimal 1 Badge Sudut Kiri Atas: Nama Arsitektur Solid (Maksimal 1 Badge Sudut) */}
+          <div className="gallery-card-badge-topleft">
+            <span className="gallery-arch-badge">
+              {baseModel.toUpperCase()}
+            </span>
+            {isNsfwImage(img) && (
+              <span className="gallery-nsfw-badge" title="Konten 18+ / NSFW">
+                18+
               </span>
-              {isNsfwImage(img) && (
-                <span className="gallery-card-tag nsfw" title="Konten 18+ / NSFW">
-                  18+
-                </span>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {loraCount > 0 && (
-                <span className="gallery-card-tag lora">
-                  LoRA ({loraCount})
-                </span>
-              )}
-              {hasDimensions && (
-                <span className="gallery-card-tag res">
-                  {img.width}×{img.height}
-                </span>
-              )}
-            </div>
+            )}
           </div>
 
-          {/* Hover / Touch Quick Action Overlay */}
+          {/* Favorite Star di Pojok Kanan Atas (Tampil saat hover atau sudah difavoritkan) */}
+          <button
+            type="button"
+            className={`gallery-card-fav-btn ${isFav ? 'favorited' : ''}`}
+            title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
+            onClick={(e) => {
+              e.stopPropagation();
+              const nextFav = toggleImage(img.id);
+              triggerToast(nextFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
+            }}
+          >
+            <Icons.Star filled={isFav} />
+          </button>
+
+          {/* Quick-Action Bar Saat Gambar Di-Hover (Solid Tanpa Gradien, 3 Tombol Pas) */}
           <div className="gallery-hover-actions">
             <button
               type="button"
-              className="gallery-action-link-btn"
+              className="gallery-hover-copy-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
+              }}
+              title="Salin Prompt Positif"
+            >
+              {copiedKey === `card-${img.id}` ? (
+                <>
+                  <Icons.Check />
+                  <span>Tersalin!</span>
+                </>
+              ) : (
+                <>
+                  <Icons.Copy />
+                  <span>Salin Prompt</span>
+                </>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="gallery-hover-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                const bridgeData: WorkflowBridgeData = {
+                  source: 'gallery',
+                  timestamp: Date.now(),
+                  imageId: img.id,
+                  imageUrl: resolveImageUrl(img.image_url),
+                  title: img.caption || `Artwork #${img.id}`,
+                  positivePrompt: img.positive_prompt || '',
+                  negativePrompt: img.negative_prompt || '',
+                  width: img.width || 1024,
+                  height: img.height || 1024,
+                  baseModel: img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL'),
+                  modelName: img.model?.name || img.model_name || '',
+                  sampler: img.sampler || '',
+                  steps: img.steps,
+                  cfgScale: img.cfg_scale,
+                  seed: img.seed,
+                  loras: (img.resources || [])
+                    .filter((r) => r.type === 'lora' || !r.type)
+                    .map((r) => ({ name: r.name, weight: r.weight ?? 1.0 })),
+                };
+                bridgeToPromptLab(navigate, bridgeData);
+              }}
+              title="Buka prompt di Anime Prompt Studio"
+            >
+              Buka di Studio
+            </button>
+
+            <button
+              type="button"
+              className="gallery-hover-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 handleSelectImage(img);
               }}
+              title="Lihat detail metadata lengkap"
             >
-              <Icons.Inspect />
-              Inspect
+              Detail
             </button>
-
-            <button
-              type="button"
-              className={`gallery-copy-icon-btn ${isFav ? 'favorited' : ''}`}
-              title={isFav ? 'Hapus dari favorit' : 'Simpan ke favorit'}
-              onClick={(e) => {
-                e.stopPropagation();
-                const nextFav = toggleImage(img.id);
-                triggerToast(nextFav ? 'Ditambahkan ke Favorit' : 'Dihapus dari Favorit');
-              }}
-              style={{ color: isFav ? '#f59e0b' : undefined }}
-            >
-              <Icons.Star filled={isFav} />
-            </button>
-
-            {img.positive_prompt && (
-              <button
-                type="button"
-                className="gallery-copy-icon-btn"
-                title="Copy positive prompt"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  copyToClipboard(img.positive_prompt || '', `card-${img.id}`, 'Prompt');
-                }}
-              >
-                {copiedKey === `card-${img.id}` ? <Icons.Check /> : <Icons.Copy />}
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Technical Metadata Footer */}
+        {/* Footer Kartu (Padat, Kontras Tinggi, Tanpa Pengulangan Pill Biru) */}
         <div className="gallery-card-footer">
-          <div className="gallery-card-model-row">
-            <span className="gallery-card-model-name" title={img.caption || `Artwork #${img.id}`}>
-              {img.caption || `Artwork #${img.id}`}
+          {/* Baris 1: Judul Karya */}
+          <div className="gallery-card-title-row">
+            <h3 className="gallery-card-title" title={cardTitle}>
+              {cardTitle}
+            </h3>
+          </div>
+
+          {/* Baris 2: Spesifikasi Teknis Solid + Badge LoRA */}
+          <div className="gallery-card-specs-row">
+            <span className="gallery-card-specs-text">
+              {specString}
             </span>
+            {loraCount > 0 && (
+              <span className="gallery-card-lora-badge">
+                +{loraCount} LoRA
+              </span>
+            )}
           </div>
-
-          <div className="gallery-card-params-row">
-            {img.steps ? <span>Steps {img.steps}</span> : null}
-            {img.cfg_scale ? <span>CFG {img.cfg_scale}</span> : null}
-            {img.sampler ? <span>{img.sampler}</span> : null}
-          </div>
-
-          {/* Pixiv Tags */}
-          {img.tags && img.tags.length > 0 && (
-            <div className="gallery-card-tag-chips">
-              {img.tags.slice(0, 4).map((t) => {
-                const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTag(isActive ? null : t.name);
-                    }}
-                    title={`Filter by #${t.name}`}
-                  >
-                    <span className="tag-hash">#</span>
-                    <span>{t.name}</span>
-                  </button>
-                );
-              })}
-              {img.tags.length > 4 && (
-                <span style={{ fontSize: '10px', color: 'var(--g-text-muted)', alignSelf: 'center', fontFamily: 'ui-monospace, monospace' }}>
-                  +{img.tags.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-
-          {img.positive_prompt && (
-            <div className="gallery-card-prompt-preview" title={img.positive_prompt}>
-              {img.positive_prompt}
-            </div>
-          )}
         </div>
       </article>
     );
@@ -852,6 +860,7 @@ export default function Gallery() {
     const baseModel = img.model?.base_model || (img.model_name ? 'CUSTOM' : 'SDXL');
     const isFav = isImageFav(img.id);
     const hasDimensions = Boolean(img.width && img.height);
+    const cardTitle = img.model?.name || img.caption || img.model_name || `Karya #${img.id}`;
 
     return (
       <article
@@ -867,9 +876,11 @@ export default function Gallery() {
               className="gallery-list-thumb-img"
               thumbnail={true}
             />
-            <span className="gallery-card-tag base">
-              {baseModel.toUpperCase()}
-            </span>
+            <div className="gallery-card-badge-topleft">
+              <span className="gallery-arch-badge">
+                {baseModel.toUpperCase()}
+              </span>
+            </div>
             {hasDimensions && (
               <span className="gallery-list-res-badge">
                 {img.width}×{img.height}
@@ -881,19 +892,19 @@ export default function Gallery() {
         <div className="gallery-list-info-col">
           <div className="gallery-list-header-row">
             <div className="gallery-list-title-wrap">
-              <h3 className="gallery-list-item-title" title={img.caption || `Artwork #${img.id}`}>
-                {img.caption || `Artwork #${img.id}`}
+              <h3 className="gallery-list-item-title" title={cardTitle}>
+                {cardTitle}
               </h3>
               <span className="gallery-list-model-pill" title={modelName}>
                 {modelName}
               </span>
               {loraCount > 0 && (
-                <span className="gallery-card-tag lora" style={{ fontSize: '10px', padding: '1px 5px' }}>
-                  LoRA ({loraCount})
+                <span className="gallery-card-lora-badge">
+                  +{loraCount} LoRA
                 </span>
               )}
               {isNsfwImage(img) && (
-                <span className="gallery-card-tag nsfw" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                <span className="gallery-nsfw-badge">
                   18+ NSFW
                 </span>
               )}
@@ -917,7 +928,7 @@ export default function Gallery() {
                 <button
                   type="button"
                   className="gallery-icon-btn-compact"
-                  title="Copy positive prompt"
+                  title="Salin Prompt Positif"
                   onClick={(e) => {
                     e.stopPropagation();
                     copyToClipboard(img.positive_prompt || '', `list-${img.id}`, 'Prompt');
@@ -930,7 +941,7 @@ export default function Gallery() {
               <button
                 type="button"
                 className="gallery-icon-btn-compact inspect"
-                title="Inspect generation specs"
+                title="Lihat Detail Lengkap"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleSelectImage(img);
@@ -949,38 +960,16 @@ export default function Gallery() {
 
           <div className="gallery-list-meta-row">
             <div className="gallery-list-params-cluster">
-              {img.steps ? <span className="gallery-list-param-tag">Steps {img.steps}</span> : null}
-              {img.cfg_scale ? <span className="gallery-list-param-tag">CFG {img.cfg_scale}</span> : null}
               {img.sampler ? <span className="gallery-list-param-tag">{img.sampler}</span> : null}
+              {img.steps ? <span className="gallery-list-param-tag">{img.steps} st</span> : null}
+              {img.cfg_scale ? <span className="gallery-list-param-tag">CFG {img.cfg_scale}</span> : null}
               {img.seed ? <span className="gallery-list-param-tag">Seed {img.seed}</span> : null}
             </div>
 
-            {img.tags && img.tags.length > 0 && (
-              <div className="gallery-list-tags-cluster">
-                {img.tags.slice(0, 3).map((t) => {
-                  const isActive = selectedTag?.toLowerCase() === t.name.toLowerCase();
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className={`gallery-card-tag-btn ${isActive ? 'active' : ''}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedTag(isActive ? null : t.name);
-                      }}
-                      title={`Filter by #${t.name}`}
-                    >
-                      <span className="tag-hash">#</span>
-                      <span>{t.name}</span>
-                    </button>
-                  );
-                })}
-                {img.tags.length > 3 && (
-                  <span className="gallery-list-more-tags">
-                    +{img.tags.length - 3}
-                  </span>
-                )}
-              </div>
+            {hasDimensions && (
+              <span className="gallery-card-specs-text">
+                {img.width}×{img.height}
+              </span>
             )}
           </div>
         </div>
@@ -1111,59 +1100,58 @@ export default function Gallery() {
       {/* ===================================================================
           Compact Header & Technical Metadata Row
           =================================================================== */}
-      <section className="gallery-header-section">
+      {/* ===================================================================
+          1. Header Ringkas (1 Baris)
+          =================================================================== */}
+      <header className="gallery-header-compact">
         <div className="gallery-header-left">
           <h1 className="gallery-page-title">
-            Gallery
-            <span className="gallery-text-badge">Civitai Showcase</span>
+            Galeri Karya & Showcase
           </h1>
-          <p className="gallery-page-subtitle">
-            Generation results and metadata from your AI image workflow.
-          </p>
         </div>
 
-        {/* Compact Metadata Row (as requested) */}
-        <div className="gallery-meta-row">
-          <span><span className="gallery-meta-val">{stats.totalWorks}</span> works</span>
-          <span className="gallery-meta-dot">·</span>
-          <span><span className="gallery-meta-val">{stats.totalCheckpoints}</span> checkpoints</span>
-          <span className="gallery-meta-dot">·</span>
-          <span><span className="gallery-meta-val">{stats.totalLoras}</span> LoRAs</span>
+        {/* Statistik solid: font-mono text-xs text-zinc-300 di dalam badge bg-zinc-900 border-zinc-800 */}
+        <div className="gallery-stats-badge">
+          <span>{stats.totalWorks} Karya</span>
+          <span className="gallery-stats-dot">·</span>
+          <span>{stats.totalCheckpoints} Checkpoint</span>
+          <span className="gallery-stats-dot">·</span>
+          <span>{stats.totalLoras} LoRA</span>
           {stats.totalNsfw > 0 && (
             <>
-              <span className="gallery-meta-dot">·</span>
-              <span style={{ color: filterNsfwRating !== 'sfw' ? '#fca5a5' : '#71717a' }}>
-                🔞 {stats.totalNsfw} 18+ ({filterNsfwRating === 'sfw' ? 'disembunyikan' : filterNsfwRating === 'all' ? 'ditampilkan' : 'hanya 18+'})
+              <span className="gallery-stats-dot">·</span>
+              <span style={{ color: filterNsfwRating !== 'sfw' ? '#f87171' : '#a1a1aa' }}>
+                🔞 {stats.totalNsfw} 18+
               </span>
             </>
           )}
           {hasActiveFilters && (
             <>
-              <span className="gallery-meta-dot">·</span>
-              <span style={{ color: 'var(--g-accent)' }}>{stats.filteredCount} matching</span>
+              <span className="gallery-stats-dot">·</span>
+              <span style={{ color: 'var(--g-accent-text)' }}>{stats.filteredCount} sesuai filter</span>
             </>
           )}
         </div>
-      </section>
+      </header>
 
       {/* ===================================================================
-          Unified Toolbar: Search, Selectors & Segmented Controls
+          2. Unified Control Toolbar (1 Baris Terpadu Horizontal)
           =================================================================== */}
-      <section className="gallery-toolbar">
-        {/* Primary Controls Row: Search + Main Selectors */}
-        <div className="gallery-toolbar-top">
+      <section className="gallery-unified-toolbar">
+        <div className="gallery-toolbar-single-row">
+          {/* Search Input (flex-1) */}
           <div className="gallery-search-wrap" ref={searchWrapRef}>
             <span className="gallery-search-icon">
               <Icons.Search />
             </span>
 
             {selectedTag && (
-              <span className="gallery-search-active-pill" style={{ marginLeft: "28px" }}>
+              <span className="gallery-search-active-pill">
                 <span>#{selectedTag}</span>
                 <button
                   type="button"
                   onClick={() => setSelectedTag(null)}
-                  title="Remove tag filter"
+                  title="Hapus filter tag"
                 >
                   ✕
                 </button>
@@ -1174,7 +1162,7 @@ export default function Gallery() {
               type="text"
               className="gallery-search-input"
               style={selectedTag ? { paddingLeft: "8px" } : undefined}
-              placeholder={selectedTag ? "Add more keywords (e.g. solo, blonde)..." : "Search tags (#kitsune), prompt, checkpoint, LoRA..."}
+              placeholder={selectedTag ? "Tambah kata kunci..." : "Cari prompt, tag, checkpoint, atau LoRA..."}
               value={searchQuery}
               onFocus={() => setIsSearchFocused(true)}
               onChange={(e) => {
@@ -1192,7 +1180,7 @@ export default function Gallery() {
               <button
                 className="gallery-search-clear"
                 onClick={() => setSearchQuery('')}
-                title="Clear query"
+                title="Hapus pencarian"
               >
                 <Icons.Clear />
               </button>
@@ -1202,8 +1190,8 @@ export default function Gallery() {
             {isSearchFocused && tagSuggestions.length > 0 && (
               <div className="gallery-search-suggest-menu">
                 <div className="gallery-search-suggest-header">
-                  <span>Pixiv Tag Suggestions</span>
-                  <span style={{ fontSize: '9px', opacity: 0.7 }}>Click tag to filter</span>
+                  <span>Saran Tag</span>
+                  <span style={{ fontSize: '10px', color: '#a1a1aa' }}>Klik untuk memfilter</span>
                 </div>
                 {tagSuggestions.map((tag) => (
                   <button
@@ -1216,158 +1204,156 @@ export default function Gallery() {
                       <span className="suggest-hash">#</span>
                       <span>{tag.name}</span>
                     </span>
-                    <span className="suggest-count">{tag.count} works</span>
+                    <span className="suggest-count">{tag.count} karya</span>
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Right Utility: View Mode & Grid Density */}
-          <div className="gallery-utilities">
+          {/* Dropdown: Urutkan */}
+          <label className={`gf-field ${sortBy !== 'newest' ? 'is-active' : ''}`}>
+            <span className="gf-field-label">Urutkan</span>
+            <select
+              id="gallery-sort-select"
+              className="gf-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+              <option value="fav_first">Favorit Teratas</option>
+              <option value="steps_desc">Steps Tertinggi</option>
+              <option value="steps_asc">Steps Terendah</option>
+              <option value="res_desc">Resolusi Tertinggi</option>
+              <option value="model_asc">Model A–Z</option>
+              <option value="model_desc">Model Z–A</option>
+            </select>
+          </label>
+
+          {/* Dropdown: Rating */}
+          <label className={`gf-field ${filterNsfwRating === 'nsfw' ? 'is-nsfw' : filterNsfwRating === 'all' ? 'is-active' : ''}`}>
+            <span className="gf-field-label">Rating</span>
+            <select
+              id="gallery-rating-select"
+              className="gf-select"
+              value={filterNsfwRating}
+              onChange={(e) => handleNsfwRatingChange(e.target.value as 'sfw' | 'all' | 'nsfw')}
+            >
+              <option value="sfw">SFW</option>
+              <option value="all">Semua (SFW & 18+)</option>
+              <option value="nsfw">18+ Saja</option>
+            </select>
+          </label>
+
+          {/* Dropdown: Favorit */}
+          <label className={`gf-field ${filterFavorite !== 'all' ? 'is-fav' : ''}`}>
+            <span className="gf-field-label">Karya</span>
+            <select
+              id="gallery-favorite-select"
+              className="gf-select"
+              value={filterFavorite}
+              onChange={(e) => setFilterFavorite(e.target.value as 'all' | 'fav_only' | 'non_fav')}
+            >
+              <option value="all">Semua Karya</option>
+              <option value="fav_only">Favorit Saya ({favoriteImages.length})</option>
+              <option value="non_fav">Belum Difavoritkan</option>
+            </select>
+          </label>
+
+          {/* Tombol Filter Lanjutan */}
+          <button
+            id="gallery-advanced-toggle"
+            type="button"
+            className={`gf-toggle-btn ${showAdvancedFilters ? 'open' : ''} ${advancedActiveCount > 0 ? 'has-active' : ''}`}
+            onClick={() => setShowAdvancedFilters((v) => !v)}
+            aria-expanded={showAdvancedFilters}
+            aria-controls="gallery-advanced-panel"
+            title="Buka panel filter lanjutan"
+          >
+            <Icons.Sliders />
+            <span>Filter Lanjutan</span>
+            {advancedActiveCount > 0 && <span className="gf-count">{advancedActiveCount}</span>}
+            <Icons.ChevronDown />
+          </button>
+
+          {/* Tombol Reset (jika ada filter aktif) */}
+          {hasActiveFilters && (
+            <button
+              id="gallery-reset-filters"
+              type="button"
+              className="gf-reset-btn"
+              onClick={resetFilters}
+              title="Reset semua filter ke default"
+            >
+              <Icons.RotateCcw />
+              <span>Reset</span>
+            </button>
+          )}
+
+          {/* Switcher Tampilan Grid | Masonry | List */}
+          <div className="gallery-segment-group">
+            <button
+              type="button"
+              className={`gallery-icon-btn ${layoutMode === 'grid' ? 'active' : ''}`}
+              onClick={() => handleSetLayoutMode('grid')}
+              title="Tampilan Grid simetris"
+            >
+              <Icons.Grid />
+              <span>Grid</span>
+            </button>
+            <button
+              type="button"
+              className={`gallery-icon-btn ${layoutMode === 'masonry' ? 'active' : ''}`}
+              onClick={() => handleSetLayoutMode('masonry')}
+              title="Tampilan Masonry Waterfall rasio alami"
+            >
+              <Icons.Masonry />
+              <span>Masonry</span>
+            </button>
+            <button
+              type="button"
+              className={`gallery-icon-btn ${layoutMode === 'list' ? 'active' : ''}`}
+              onClick={() => handleSetLayoutMode('list')}
+              title="Tampilan List detail"
+            >
+              <Icons.List />
+              <span>List</span>
+            </button>
+          </div>
+
+          {/* Switcher Ukuran S | M | L */}
+          {layoutMode !== 'list' && (
             <div className="gallery-segment-group">
               <button
                 type="button"
-                className={`gallery-icon-btn ${layoutMode === 'grid' ? 'active' : ''}`}
-                onClick={() => handleSetLayoutMode('grid')}
-                title="Grid layout (Standard equal cards)"
+                className={`gallery-icon-btn ${density === 'sm' ? 'active' : ''}`}
+                onClick={() => setDensity('sm')}
+                title="Ukuran S (Kecil & Padat)"
               >
-                <Icons.Grid />
-                <span>Grid</span>
+                S
               </button>
               <button
                 type="button"
-                className={`gallery-icon-btn ${layoutMode === 'masonry' ? 'active' : ''}`}
-                onClick={() => handleSetLayoutMode('masonry')}
-                title="Masonry layout (Waterfall natural heights)"
+                className={`gallery-icon-btn ${density === 'md' ? 'active' : ''}`}
+                onClick={() => setDensity('md')}
+                title="Ukuran M (Standar)"
               >
-                <Icons.Masonry />
-                <span>Masonry</span>
+                M
               </button>
               <button
                 type="button"
-                className={`gallery-icon-btn ${layoutMode === 'list' ? 'active' : ''}`}
-                onClick={() => handleSetLayoutMode('list')}
-                title="List layout (Detailed view for mobile & compact screens)"
+                className={`gallery-icon-btn ${density === 'lg' ? 'active' : ''}`}
+                onClick={() => setDensity('lg')}
+                title="Ukuran L (Besar & Lega)"
               >
-                <Icons.List />
-                <span>List</span>
+                L
               </button>
             </div>
-
-            {layoutMode !== 'list' && (
-              <div className="gallery-segment-group">
-                <button
-                  type="button"
-                  className={`gallery-icon-btn ${density === 'sm' ? 'active' : ''}`}
-                  onClick={() => setDensity('sm')}
-                  title="Compact density"
-                >
-                  S
-                </button>
-                <button
-                  type="button"
-                  className={`gallery-icon-btn ${density === 'md' ? 'active' : ''}`}
-                  onClick={() => setDensity('md')}
-                  title="Normal density"
-                >
-                  M
-                </button>
-                <button
-                  type="button"
-                  className={`gallery-icon-btn ${density === 'lg' ? 'active' : ''}`}
-                  onClick={() => setDensity('lg')}
-                  title="Spacious density"
-                >
-                  L
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* ============ Filter Bar: Primary quick filters ============ */}
-        <div className="gf-bar">
-          <div className="gf-bar-group">
-            <label className={`gf-field ${sortBy !== 'newest' ? 'is-active' : ''}`}>
-              <span className="gf-field-label">Urutkan</span>
-              <select
-                id="gallery-sort-select"
-                className="gf-select"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="newest">Upload Terbaru</option>
-                <option value="oldest">Upload Terlama</option>
-                <option value="fav_first">Favorit Teratas</option>
-                <option value="steps_desc">Steps Tertinggi</option>
-                <option value="steps_asc">Steps Terendah</option>
-                <option value="res_desc">Resolusi Tertinggi</option>
-                <option value="model_asc">Model A–Z</option>
-                <option value="model_desc">Model Z–A</option>
-              </select>
-            </label>
-
-            <label className={`gf-field ${filterNsfwRating === 'nsfw' ? 'is-nsfw' : filterNsfwRating === 'all' ? 'is-active' : ''}`}>
-              <span className="gf-field-label">Rating</span>
-              <select
-                id="gallery-rating-select"
-                className="gf-select"
-                value={filterNsfwRating}
-                onChange={(e) => handleNsfwRatingChange(e.target.value as 'sfw' | 'all' | 'nsfw')}
-              >
-                <option value="sfw">SFW Saja</option>
-                <option value="all">Semua (SFW + 18+)</option>
-                <option value="nsfw">18+ Saja</option>
-              </select>
-            </label>
-
-            <label className={`gf-field ${filterFavorite !== 'all' ? 'is-fav' : ''}`}>
-              <span className="gf-field-label">Favorit</span>
-              <select
-                id="gallery-favorite-select"
-                className="gf-select"
-                value={filterFavorite}
-                onChange={(e) => setFilterFavorite(e.target.value as 'all' | 'fav_only' | 'non_fav')}
-              >
-                <option value="all">Semua Karya</option>
-                <option value="fav_only">Favorit Saya ({favoriteImages.length})</option>
-                <option value="non_fav">Belum Difavoritkan</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="gf-bar-actions">
-            <button
-              id="gallery-advanced-toggle"
-              type="button"
-              className={`gf-toggle-btn ${showAdvancedFilters ? 'open' : ''} ${advancedActiveCount > 0 ? 'has-active' : ''}`}
-              onClick={() => setShowAdvancedFilters((v) => !v)}
-              aria-expanded={showAdvancedFilters}
-              aria-controls="gallery-advanced-panel"
-            >
-              <Icons.Sliders />
-              <span>Filter Lanjutan</span>
-              {advancedActiveCount > 0 && <span className="gf-count">{advancedActiveCount}</span>}
-              <Icons.ChevronDown />
-            </button>
-
-            {hasActiveFilters && (
-              <button
-                id="gallery-reset-filters"
-                type="button"
-                className="gf-reset-btn"
-                onClick={resetFilters}
-                title="Reset semua filter ke default"
-              >
-                <Icons.RotateCcw />
-                <span>Reset</span>
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* ============ Advanced Filter Panel (collapsible grid) ============ */}
+        {/* ============ Panel Filter Lanjutan (Collapsible Grid) ============ */}
         {showAdvancedFilters && (
           <div id="gallery-advanced-panel" className="gf-panel">
             <label className={`gf-panel-field ${filterModelId !== 'all' ? 'is-active' : ''}`}>
@@ -1378,7 +1364,7 @@ export default function Gallery() {
                 value={filterModelId}
                 onChange={(e) => setFilterModelId(e.target.value)}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Checkpoint</option>
                 <option value="standalone">Standalone (Custom)</option>
                 {models.map((m) => (
                   <option key={m.id} value={String(m.id)}>
@@ -1396,7 +1382,7 @@ export default function Gallery() {
                 value={filterBaseModel}
                 onChange={(e) => setFilterBaseModel(e.target.value)}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Base</option>
                 {availableBaseModels.map((bm) => (
                   <option key={bm} value={bm}>
                     {bm}
@@ -1413,7 +1399,7 @@ export default function Gallery() {
                 value={filterResource}
                 onChange={(e) => setFilterResource(e.target.value)}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Resource</option>
                 <option value="has_lora">Dengan LoRA</option>
                 <option value="no_lora">Tanpa LoRA</option>
                 <option value="has_prompt">Memiliki Prompt</option>
@@ -1422,14 +1408,14 @@ export default function Gallery() {
             </label>
 
             <label className={`gf-panel-field ${filterOrientation !== 'all' ? 'is-active' : ''}`}>
-              <span className="gf-panel-label">Rasio</span>
+              <span className="gf-panel-label">Rasio Gambar</span>
               <select
                 id="gallery-orientation-select"
                 className="gf-select"
                 value={filterOrientation}
                 onChange={(e) => setFilterOrientation(e.target.value)}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Rasio</option>
                 <option value="portrait">Portrait</option>
                 <option value="landscape">Landscape</option>
                 <option value="square">Square 1:1</option>
@@ -1444,7 +1430,7 @@ export default function Gallery() {
                 value={filterResolution}
                 onChange={(e) => setFilterResolution(e.target.value)}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Resolusi</option>
                 <option value="sd">SD (≤ 1 MP)</option>
                 <option value="hd">HD (1–2 MP)</option>
                 <option value="uhd">UHD (&gt; 2 MP)</option>
@@ -1460,7 +1446,7 @@ export default function Gallery() {
                 onChange={(e) => setFilterSampler(e.target.value)}
                 disabled={availableSamplers.length === 0}
               >
-                <option value="all">Semua</option>
+                <option value="all">Semua Sampler</option>
                 {availableSamplers.map((s) => (
                   <option key={s} value={s}>
                     {s}
@@ -1471,10 +1457,10 @@ export default function Gallery() {
           </div>
         )}
 
-        {/* ============ Active advanced-filter chips ============ */}
+        {/* ============ Active Advanced-Filter Chips ============ */}
         {advancedChips.length > 0 && (
           <div className="gf-chips">
-            <span className="gf-chips-label">Aktif</span>
+            <span className="gf-chips-label">Aktif:</span>
             {advancedChips.map((chip) => (
               <span key={chip.key} className="gf-chip">
                 <span className="gf-chip-key">{chip.label}:</span>
@@ -1492,20 +1478,20 @@ export default function Gallery() {
           </div>
         )}
 
-        {/* Pixiv-style Popular Tags Ribbon */}
+        {/* ============ 3. Baris Filter Tag Cepat (# TAG) ============ */}
         {allTags.length > 0 && (
-          <div className="gallery-tags-ribbon" style={{ borderTop: "1px solid var(--g-border-subtle)", paddingTop: "10px", marginTop: "4px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--g-text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: "4px", paddingRight: "4px" }}>
-              <span style={{ color: "#818CF8", fontWeight: 700 }}>#</span> Tags:
+          <div className="gallery-tags-ribbon">
+            <span className="gallery-tags-label">
+              <span className="gallery-tags-hash">#</span> TAG
             </span>
             <button
               type="button"
               className={`gallery-tag-pill ${!selectedTag ? 'active' : ''}`}
               onClick={() => setSelectedTag(null)}
             >
-              All
+              Semua ({stats.totalWorks})
             </button>
-            {allTags.slice(0, 20).map(({ name, count }) => {
+            {allTags.slice(0, 25).map(({ name, count }) => {
               const isActive = selectedTag?.toLowerCase() === name.toLowerCase();
               return (
                 <button
@@ -1513,7 +1499,7 @@ export default function Gallery() {
                   type="button"
                   className={`gallery-tag-pill ${isActive ? 'active' : ''}`}
                   onClick={() => setSelectedTag(isActive ? null : name)}
-                  title={`Filter by #${name} (${count} generations)`}
+                  title={`Filter #${name} (${count} karya)`}
                 >
                   <span className="tag-hash">#</span>
                   <span>{name}</span>
@@ -1524,19 +1510,10 @@ export default function Gallery() {
             {selectedTag && (
               <button
                 type="button"
+                className="gallery-tag-clear-btn"
                 onClick={() => setSelectedTag(null)}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#EF4444",
-                  fontSize: "11px",
-                  cursor: "pointer",
-                  padding: "2px 8px",
-                  whiteSpace: "nowrap",
-                  fontFamily: "ui-monospace, monospace",
-                }}
               >
-                Clear Tag ✕
+                Hapus Tag ✕
               </button>
             )}
           </div>
@@ -1549,7 +1526,7 @@ export default function Gallery() {
       {loading && (
         <div className="gallery-loader-box">
           <div className="gallery-spin-indicator"></div>
-          <span>Loading generations catalog...</span>
+          <span>Memuat katalog karya...</span>
         </div>
       )}
 
@@ -1561,16 +1538,16 @@ export default function Gallery() {
           <div className="gallery-empty-icon-wrap">
             <Icons.Layers />
           </div>
-          <h3 className="gallery-empty-title">Connection Error</h3>
+          <h3 className="gallery-empty-title">Gagal Terhubung</h3>
           <p className="gallery-empty-desc">{error}</p>
           <button className="gallery-btn-primary" onClick={() => window.location.reload()}>
-            Retry
+            Coba Lagi
           </button>
         </div>
       )}
 
       {/* ===================================================================
-          Compact Technical Empty State (as requested)
+          Empty State
           =================================================================== */}
       {!loading && !error && filteredImages.length === 0 && (
         <div className="gallery-empty-panel">
@@ -1578,26 +1555,26 @@ export default function Gallery() {
             <Icons.Layers />
           </div>
           <h3 className="gallery-empty-title">
-            {images.length === 0 ? 'No generations yet' : 'No matching generations'}
+            {images.length === 0 ? 'Belum ada karya tersimpan' : 'Tidak ada karya yang cocok'}
           </h3>
           <p className="gallery-empty-desc">
             {images.length === 0
-              ? 'Your workspace does not have any generated image records attached yet. Import models or upload images through the Admin console.'
-              : 'No generation items matched the specified filter criteria and search query.'}
+              ? 'Belum ada data generasi gambar pada workspace ini. Unggah gambar atau impor model melalui panel Admin.'
+              : 'Tidak ada karya yang sesuai dengan kriteria filter dan kata kunci pencarian.'}
           </p>
           <div className="gallery-empty-actions">
             {images.length === 0 ? (
               <>
                 <Link to="/admin" className="gallery-btn-primary">
-                  Add Generation
+                  Tambah Karya
                 </Link>
                 <Link to="/models" className="gallery-btn-secondary">
-                  Browse Models
+                  Jelajahi Model
                 </Link>
               </>
             ) : (
               <button className="gallery-btn-secondary" onClick={resetFilters}>
-                Clear Filters
+                Reset Filter
               </button>
             )}
           </div>
@@ -1781,7 +1758,7 @@ export default function Gallery() {
                   title="Buka seluruh node graph ComfyUI, chunks, dan parameter di Metadata Inspector"
                 >
                   <Icons.Inspect />
-                  <span>Inspect</span>
+                  <span>Inspeksi</span>
                 </a>
 
                 <a
@@ -1789,20 +1766,20 @@ export default function Gallery() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="modal-tool-link"
-                  title="Open full resolution in new tab"
+                  title="Buka resolusi penuh di tab baru"
                 >
                   <Icons.ExternalLink />
-                  <span>Raw</span>
+                  <span>Gambar Asli</span>
                 </a>
 
                 <a
                   href={resolveImageUrl(selectedImage.image_url)}
                   download={`generation-${selectedImage.id}.png`}
                   className="modal-tool-link"
-                  title="Save image to disk"
+                  title="Simpan gambar ke penyimpanan"
                 >
                   <Icons.Download />
-                  <span>Download</span>
+                  <span>Unduh</span>
                 </a>
               </div>
             </div>
@@ -1811,15 +1788,15 @@ export default function Gallery() {
             <div className="modal-spec-side">
               <div className="modal-spec-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                  <h2 className="modal-spec-title" style={{ margin: 0 }}>{selectedImage.caption || `Artwork #${selectedImage.id}`}</h2>
+                  <h2 className="modal-spec-title" style={{ margin: 0 }}>{selectedImage.caption || `Karya #${selectedImage.id}`}</h2>
                   {isNsfwImage(selectedImage) && (
-                    <span style={{ background: '#451a1a', border: '1px solid #ef4444', color: '#fca5a5', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700' }}>
+                    <span style={{ background: '#09090b', border: '1px solid #ef4444', color: '#f87171', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700' }}>
                       🔞 18+ NSFW
                     </span>
                   )}
                 </div>
                 <p className="modal-spec-subtitle">
-                  image_id: {selectedImage.id} · resolution: {selectedImage.width && selectedImage.height ? `${selectedImage.width}×${selectedImage.height}` : 'unknown'}
+                  ID: {selectedImage.id} · Resolusi: {selectedImage.width && selectedImage.height ? `${selectedImage.width}×${selectedImage.height}` : 'Tidak diketahui'}
                 </p>
               </div>
 
@@ -1827,13 +1804,13 @@ export default function Gallery() {
                 {/* Checkpoint Model Specification Block */}
                 <div className="spec-group">
                   <div className="spec-group-header">
-                    <span className="spec-group-title">Base Checkpoint</span>
+                    <span className="spec-group-title">Model Checkpoint</span>
                   </div>
 
                   <div className="spec-model-block">
                     <div className="spec-model-text">
                       <span className="spec-model-name">
-                        {selectedImage.model?.name || selectedImage.model_name || 'Checkpoint Model'}
+                        {selectedImage.model?.name || selectedImage.model_name || 'Model Checkpoint'}
                       </span>
                       <div className="spec-model-meta">
                         <span>{selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL')}</span>
@@ -1842,7 +1819,7 @@ export default function Gallery() {
                         {selectedImage.model?.author && (
                           <>
                             <span>·</span>
-                            <span>by {selectedImage.model.author}</span>
+                            <span>oleh {selectedImage.model.author}</span>
                           </>
                         )}
                       </div>
@@ -1854,7 +1831,7 @@ export default function Gallery() {
                         className="spec-model-link"
                         onClick={() => setSelectedImage(null)}
                       >
-                        Model Info
+                        Info Model
                         <Icons.ExternalLink />
                       </Link>
                     ) : (
@@ -1863,7 +1840,7 @@ export default function Gallery() {
                         className="spec-model-link"
                         onClick={() => setSelectedImage(null)}
                       >
-                        All Models
+                        Semua Model
                         <Icons.ExternalLink />
                       </Link>
                     )}
@@ -2067,10 +2044,10 @@ export default function Gallery() {
                 {/* LoRA & Auxiliary Resources */}
                 <div className="spec-group">
                   <div className="spec-group-header">
-                    <span className="spec-group-title">LoRA & Resources</span>
+                    <span className="spec-group-title">LoRA & Ekstensi</span>
                     {selectedImage.resources && selectedImage.resources.length > 0 && (
-                      <span style={{ fontSize: '11px', color: 'var(--g-text-muted)', fontFamily: 'ui-monospace, monospace' }}>
-                        {selectedImage.resources.length} active
+                      <span style={{ fontSize: '11px', color: 'var(--g-text-secondary)', fontFamily: 'ui-monospace, monospace' }}>
+                        {selectedImage.resources.length} aktif
                       </span>
                     )}
                   </div>
@@ -2096,16 +2073,16 @@ export default function Gallery() {
                           <button
                             className="spec-lora-copy"
                             onClick={() => copyToClipboard(`<lora:${res.name}:${res.weight ?? 1.0}>`, `lora-${idx}`, `<lora:${res.name}>`)}
-                            title="Copy prompt tag syntax"
+                            title="Salin sintaks tag prompt"
                           >
-                            {copiedKey === `lora-${idx}` ? 'Copied' : 'Copy Tag'}
+                            {copiedKey === `lora-${idx}` ? 'Tersalin' : 'Salin Tag'}
                           </button>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <div style={{ background: 'var(--g-surface-elevated)', border: '1px solid var(--g-border)', padding: '8px 10px', borderRadius: 'var(--g-radius)', fontSize: '12px', color: 'var(--g-text-muted)' }}>
-                      No auxiliary LoRA weights applied (Native Checkpoint).
+                    <div style={{ background: 'var(--g-surface-elevated)', border: '1px solid var(--g-border)', padding: '8px 10px', borderRadius: 'var(--g-radius)', fontSize: '12px', color: 'var(--g-text-secondary)' }}>
+                      Tanpa bobot LoRA tambahan (Checkpoint murni).
                     </div>
                   )}
                 </div>
@@ -2113,20 +2090,20 @@ export default function Gallery() {
                 {/* Positive Prompt */}
                 <div className="spec-group">
                   <div className="spec-group-header">
-                    <span className="spec-group-title">Positive Prompt</span>
+                    <span className="spec-group-title">Prompt Positif</span>
                     {selectedImage.positive_prompt && (
                       <button
                         className="spec-copy-btn"
                         onClick={() => copyToClipboard(selectedImage.positive_prompt || '', 'pos-prompt', 'Prompt')}
                       >
                         {copiedKey === 'pos-prompt' ? <Icons.Check /> : <Icons.Copy />}
-                        {copiedKey === 'pos-prompt' ? 'Copied' : 'Copy'}
+                        {copiedKey === 'pos-prompt' ? 'Tersalin' : 'Salin'}
                       </button>
                     )}
                   </div>
                   <div className="spec-code-box">
                     {selectedImage.positive_prompt || (
-                      <span style={{ color: 'var(--g-text-muted)' }}>Tidak ada prompt</span>
+                      <span style={{ color: 'var(--g-text-secondary)' }}>Tidak ada prompt</span>
                     )}
                   </div>
                 </div>
@@ -2135,13 +2112,13 @@ export default function Gallery() {
                 {selectedImage.negative_prompt && (
                   <div className="spec-group">
                     <div className="spec-group-header">
-                      <span className="spec-group-title">Negative Prompt</span>
+                      <span className="spec-group-title">Prompt Negatif</span>
                       <button
                         className="spec-copy-btn"
                         onClick={() => copyToClipboard(selectedImage.negative_prompt || '', 'neg-prompt', 'Negative Prompt')}
                       >
                         {copiedKey === 'neg-prompt' ? <Icons.Check /> : <Icons.Copy />}
-                        {copiedKey === 'neg-prompt' ? 'Copied' : 'Copy'}
+                        {copiedKey === 'neg-prompt' ? 'Tersalin' : 'Salin'}
                       </button>
                     </div>
                     <div className="spec-code-box negative">
@@ -2152,16 +2129,16 @@ export default function Gallery() {
 
                 {/* Generation Settings Grid */}
                 <div className="spec-group">
-                  <span className="spec-group-title">Pipeline Configuration</span>
+                  <span className="spec-group-title">Konfigurasi Pipeline</span>
 
                   <div className="spec-params-grid">
                     <div className="spec-param-cell">
-                      <span className="spec-cell-label">Sampling Steps</span>
+                      <span className="spec-cell-label">Langkah Sampling</span>
                       <span className="spec-cell-val">{selectedImage.steps || '28'}</span>
                     </div>
 
                     <div className="spec-param-cell">
-                      <span className="spec-cell-label">CFG Scale</span>
+                      <span className="spec-cell-label">Skala CFG</span>
                       <span className="spec-cell-val">{selectedImage.cfg_scale ? selectedImage.cfg_scale.toFixed(1) : '7.0'}</span>
                     </div>
 
@@ -2184,7 +2161,7 @@ export default function Gallery() {
                             style={{ padding: '0 4px', fontSize: '10px' }}
                             onClick={() => copyToClipboard(String(selectedImage.seed), 'seed', 'Seed')}
                           >
-                            {copiedKey === 'seed' ? <Icons.Check /> : 'Copy'}
+                            {copiedKey === 'seed' ? <Icons.Check /> : 'Salin'}
                           </button>
                         )}
                       </div>
@@ -2192,7 +2169,7 @@ export default function Gallery() {
                     </div>
 
                     <div className="spec-param-cell">
-                      <span className="spec-cell-label">Resolution</span>
+                      <span className="spec-cell-label">Resolusi</span>
                       <span className="spec-cell-val">
                         {selectedImage.width && selectedImage.height
                           ? `${selectedImage.width}×${selectedImage.height}`
@@ -2223,7 +2200,7 @@ export default function Gallery() {
                     }}
                   >
                     <Icons.Copy />
-                    {copiedKey === 'webui-params' ? 'A1111 Parameters Copied to Clipboard!' : 'Copy as A1111 / WebUI Parameters'}
+                    {copiedKey === 'webui-params' ? 'Parameter A1111 Berhasil Tersalin!' : 'Salin Parameter A1111 / WebUI'}
                   </button>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
@@ -2263,11 +2240,11 @@ export default function Gallery() {
                           width: selectedImage.width,
                           height: selectedImage.height,
                         });
-                        copyToClipboard(payload, 'api-payload', 'API Payload JSON');
+                        copyToClipboard(payload, 'api-payload', 'Payload API JSON');
                       }}
                     >
                       <Icons.Copy />
-                      {copiedKey === 'api-payload' ? 'Copied JSON!' : 'Copy API Payload'}
+                      {copiedKey === 'api-payload' ? 'JSON Tersalin!' : 'Salin Payload API'}
                     </button>
                   </div>
                 </div>
