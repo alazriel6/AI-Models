@@ -19,6 +19,7 @@ const About = lazy(() => import('./components/pages/About'));
 const Contact = lazy(() => import('./components/pages/Contact'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const ComfyWorkflows = lazy(() => import('./components/pages/ComfyWorkflows'));
+const NegativeVault = lazy(() => import('./components/pages/NegativeVault'));
 
 function PageLoadingFallback() {
   return (
@@ -169,7 +170,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -362,6 +363,23 @@ function AppLayout() {
                     <span className="nav-tool-desc">Node graph presets &amp; 1-click export</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/negative-vault"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Negative Vault</span>
+                    <span className="nav-tool-desc">Quality guard, modular mixer &amp; TI dictionary</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -404,6 +422,9 @@ function AppLayout() {
             <Route path="/deconstructor" element={<AnimePromptStudio />} />
             <Route path="/workflows" element={<ComfyWorkflows />} />
             <Route path="/comfyui" element={<ComfyWorkflows />} />
+            <Route path="/negative-vault" element={<NegativeVault />} />
+            <Route path="/negative-prompt" element={<NegativeVault />} />
+            <Route path="/embeddings" element={<NegativeVault />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

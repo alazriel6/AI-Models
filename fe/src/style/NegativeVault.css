@@ -1,0 +1,1004 @@
+/* ==========================================================================
+   Negative Prompt & Embedding Vault Styles
+   Strict Solid Palette (No AI slop, No translucent/washed opacity, No transparent buttons):
+     Background: #09090b
+     Surface: #121215
+     Surface Elevated / Inputs / Chips: #18181b
+     Surface Hover / Active: #27272a
+     Borders: #27272a
+     Border Hover: #3b82f6
+     Text Primary: #f4f4f5 (solid crisp white)
+     Text Secondary: #a1a1aa (solid gray)
+     Text Muted / Hints: #71717a (solid)
+     Accents: Solid Blue (#2563eb / #3b82f6), Solid Red (#dc2626 / #ef4444), Solid Green (#16a34a)
+   ========================================================================== */
+
+.nv-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  color: #f4f4f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  padding-bottom: 60px;
+}
+
+/* ==========================================================================
+   Header Section (Clean, Technical, Solid)
+   ========================================================================== */
+.nv-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  border-bottom: 1px solid #27272a;
+  padding-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.nv-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 840px;
+}
+
+.nv-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nv-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nv-title svg {
+  flex-shrink: 0;
+}
+
+.nv-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f87171;
+  background: #271417;
+  border: 1px solid #7f1d1d;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.nv-subtitle {
+  font-size: 14px;
+  color: #a1a1aa;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.nv-header-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #a1a1aa;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #121215;
+  border: 1px solid #27272a;
+  padding: 8px 14px;
+  border-radius: 6px;
+}
+
+.nv-stat-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nv-stat-num {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ==========================================================================
+   Tabs Navigation Bar (Segmented Solid Pills)
+   ========================================================================== */
+.nv-tabs-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nv-tabs-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nv-tab-btn {
+  background: #121215;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+.nv-tab-btn:hover {
+  color: #f4f4f5;
+  border-color: #3b82f6;
+  background: #18181b;
+}
+
+.nv-tab-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nv-tab-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
+}
+
+.nv-tab-btn.active .nv-tab-pill {
+  background: #1d4ed8;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   Tab 1: Modular Negative Builder / Mixer Layout
+   ========================================================================== */
+.nv-builder-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(360px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .nv-builder-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nv-builder-main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nv-builder-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 80px;
+}
+
+/* Architecture Segmented Bar */
+.nv-arch-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.nv-arch-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #71717a;
+  margin-right: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nv-arch-btn {
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  font-family: inherit;
+}
+
+.nv-arch-btn:hover {
+  border-color: #3b82f6;
+  color: #f4f4f5;
+}
+
+.nv-arch-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Module Cards */
+.nv-module-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.nv-module-card.active {
+  border-color: #3f3f46;
+}
+
+.nv-module-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #18181b;
+  border-bottom: 1px solid #27272a;
+  user-select: none;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nv-module-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.nv-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid #3f3f46;
+  background: #09090b;
+  cursor: pointer;
+  accent-color: #dc2626;
+}
+
+.nv-module-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f4f4f5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nv-module-desc {
+  font-size: 12px;
+  color: #a1a1aa;
+}
+
+.nv-module-weight-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nv-weight-slider {
+  accent-color: #dc2626;
+  width: 90px;
+  cursor: pointer;
+}
+
+.nv-weight-badge {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  color: #f87171;
+  background: #271417;
+  border: 1px solid #7f1d1d;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 44px;
+  text-align: center;
+}
+
+.nv-module-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Tag Chips */
+.nv-tag-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.nv-tag-chip {
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.12s ease;
+}
+
+.nv-tag-chip:hover {
+  border-color: #3b82f6;
+  background: #27272a;
+  color: #ffffff;
+}
+
+.nv-tag-chip.selected {
+  background: #3b1219;
+  border: 1px solid #dc2626;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nv-tag-chip-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #71717a;
+}
+
+.nv-tag-chip.selected .nv-tag-chip-indicator {
+  background: #ef4444;
+}
+
+/* Custom Tag Input within module */
+.nv-custom-tag-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nv-input {
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 7px 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+  box-sizing: border-box;
+}
+
+.nv-input:focus {
+  border-color: #3b82f6;
+}
+
+.nv-input::placeholder {
+  color: #71717a;
+}
+
+/* ==========================================================================
+   Sidebar: Live Output & Syntax Controls
+   ========================================================================== */
+.nv-output-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nv-output-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nv-output-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #f4f4f5;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Syntax selector pills */
+.nv-syntax-group {
+  display: flex;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.nv-syntax-btn {
+  background: #121215;
+  border: 1px solid #27272a;
+  color: #a1a1aa;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  font-family: inherit;
+}
+
+.nv-syntax-btn:hover {
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.nv-syntax-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+/* Textarea Output */
+.nv-output-box {
+  width: 100%;
+  min-height: 150px;
+  max-height: 280px;
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #f87171;
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.nv-output-box:focus {
+  border-color: #dc2626;
+}
+
+/* Token / Clip meter */
+.nv-meter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nv-meter-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: #a1a1aa;
+}
+
+.nv-meter-labels strong {
+  color: #ffffff;
+}
+
+.nv-meter-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.nv-meter-bar-fill {
+  height: 100%;
+  background: #2563eb;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.nv-meter-bar-fill.warning {
+  background: #d97706;
+}
+
+.nv-meter-bar-fill.danger {
+  background: #dc2626;
+}
+
+/* Action buttons */
+.nv-btn-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nv-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #dc2626;
+  color: #ffffff;
+  border: 1px solid #b91c1c;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  font-family: inherit;
+}
+
+.nv-btn-primary:hover {
+  background: #b91c1c;
+  border-color: #991b1b;
+}
+
+.nv-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  font-family: inherit;
+}
+
+.nv-btn-secondary:hover {
+  border-color: #3b82f6;
+  background: #27272a;
+  color: #ffffff;
+}
+
+.nv-btn-blue {
+  background: #2563eb;
+  border-color: #1d4ed8;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.nv-btn-blue:hover {
+  background: #1d4ed8;
+  border-color: #1e40af;
+  color: #ffffff;
+}
+
+/* Quick presets inside sidebar */
+.nv-sidebar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid #27272a;
+  padding-top: 14px;
+}
+
+.nv-sidebar-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #71717a;
+}
+
+.nv-save-custom-row {
+  display: flex;
+  gap: 8px;
+}
+
+.nv-custom-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 8px 10px;
+  gap: 8px;
+}
+
+.nv-custom-preset-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f4f4f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   Tab 2: Presets Vault Catalog
+   ========================================================================== */
+.nv-filter-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #121215;
+  border: 1px solid #27272a;
+  padding: 12px 16px;
+  border-radius: 8px;
+}
+
+.nv-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.nv-select {
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  font-size: 12px;
+  font-family: inherit;
+  padding: 6px 10px;
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.nv-select:focus {
+  border-color: #3b82f6;
+}
+
+.nv-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 16px;
+}
+
+.nv-preset-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.nv-preset-card:hover {
+  border-color: #3b82f6;
+}
+
+.nv-preset-top {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nv-preset-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nv-preset-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+}
+
+.nv-preset-arch-tag {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #60a5fa;
+  white-space: nowrap;
+}
+
+.nv-preset-desc {
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.nv-preset-content-preview {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: ui-monospace, monospace;
+  font-size: 11.5px;
+  color: #f87171;
+  line-height: 1.5;
+  max-height: 80px;
+  overflow-y: auto;
+  word-break: break-all;
+}
+
+.nv-preset-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #27272a;
+  padding-top: 12px;
+}
+
+.nv-preset-cfg-hint {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: #71717a;
+}
+
+.nv-preset-cfg-hint strong {
+  color: #f4f4f5;
+}
+
+/* ==========================================================================
+   Tab 3: Embeddings Directory
+   ========================================================================== */
+.nv-embedding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.nv-embedding-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  transition: border-color 0.15s ease;
+}
+
+.nv-embedding-card:hover {
+  border-color: #3b82f6;
+}
+
+.nv-emb-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nv-emb-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f4f4f5;
+  font-family: ui-monospace, monospace;
+}
+
+.nv-emb-meta {
+  font-size: 11px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.nv-emb-desc {
+  font-size: 13px;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.nv-emb-trigger-box {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nv-emb-trigger-code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: #38bdf8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nv-emb-suppressed-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nv-emb-suppressed-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #71717a;
+  letter-spacing: 0.5px;
+}
+
+.nv-emb-suppressed-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nv-emb-suppressed-tag {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #fca5a5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.nv-emb-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid #27272a;
+  padding-top: 12px;
+}
+
+/* ==========================================================================
+   Tab 4: Technical Guide & Cross-Attention Math
+   ========================================================================== */
+.nv-guide-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 900px;
+}
+
+.nv-guide-card {
+  background: #121215;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nv-guide-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+  color: #f4f4f5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nv-guide-card p {
+  font-size: 13.5px;
+  color: #a1a1aa;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.nv-formula-box {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-left: 3px solid #2563eb;
+  padding: 14px 18px;
+  border-radius: 6px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  color: #93c5fd;
+  line-height: 1.6;
+}
+
+.nv-dos-donts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 6px;
+}
+
+@media (max-width: 640px) {
+  .nv-dos-donts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.nv-rule-box {
+  padding: 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.nv-rule-box.do {
+  background: #052e16;
+  border: 1px solid #16a34a;
+  color: #dcfce7;
+}
+
+.nv-rule-box.dont {
+  background: #450a0a;
+  border: 1px solid #dc2626;
+  color: #fee2e2;
+}
+
+.nv-rule-box h4 {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nv-rule-box.do h4 {
+  color: #4ade80;
+}
+
+.nv-rule-box.dont h4 {
+  color: #f87171;
+}
+
+.nv-rule-box ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.nv-rule-box li {
+  margin-bottom: 6px;
+}
