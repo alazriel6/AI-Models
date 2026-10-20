@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import type { Model } from "../../api/models";
 import { parseImageMetadataApi, uploadGalleryImageFileApi, type ParsedImageMetadata } from "../../api/admin";
+import { hasNsfwTagString, toggleNsfwTags } from "../../utils/nsfw";
 
 interface BulkUploadItem {
     id: string;
@@ -404,22 +405,47 @@ export const BulkUploadModal: React.FC<BulkUploadModalProps> = ({
                         {/* Batch Tags */}
                         <div className="bulk-field-group">
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                                <label style={{ margin: 0 }}>
+                                <label style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
                                     <Icons.Tag /> Common Batch Tags
                                 </label>
-                                {items.some((it) => it.metadata?.positive_prompt) && (
-                                    <button
-                                        type="button"
-                                        className="btn-secondary-admin"
-                                        style={{ fontSize: "10px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                                        onClick={handleExtractTagsFromBatch}
-                                        disabled={isUploading}
-                                        title="Extract common tags from all parsed prompts in the batch queue"
-                                    >
-                                        <Icons.Tag />
-                                        <span>Extract Batch Tags</span>
-                                    </button>
-                                )}
+                                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                    {(() => {
+                                        const isBatchNsfw = hasNsfwTagString(batchTags);
+                                        return (
+                                            <button
+                                                type="button"
+                                                onClick={() => setBatchTags(toggleNsfwTags(batchTags))}
+                                                disabled={isUploading}
+                                                style={{
+                                                    padding: "2px 8px",
+                                                    borderRadius: "4px",
+                                                    fontSize: "11px",
+                                                    fontWeight: "700",
+                                                    cursor: "pointer",
+                                                    border: isBatchNsfw ? "1px solid #ef4444" : "1px solid #3f3f46",
+                                                    background: isBatchNsfw ? "#dc2626" : "#27272a",
+                                                    color: "#ffffff",
+                                                }}
+                                                title="Tandai seluruh batch sebagai 18+ / NSFW"
+                                            >
+                                                {isBatchNsfw ? "✓ 18+ NSFW (Aktif)" : "🔞 Tandai 18+"}
+                                            </button>
+                                        );
+                                    })()}
+                                    {items.some((it) => it.metadata?.positive_prompt) && (
+                                        <button
+                                            type="button"
+                                            className="btn-secondary-admin"
+                                            style={{ fontSize: "10px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                                            onClick={handleExtractTagsFromBatch}
+                                            disabled={isUploading}
+                                            title="Extract common tags from all parsed prompts in the batch queue"
+                                        >
+                                            <Icons.Tag />
+                                            <span>Extract Batch Tags</span>
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="bulk-tags-container">
                                 {batchTags.map((tag) => (

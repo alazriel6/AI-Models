@@ -4,6 +4,7 @@ import { getAllGalleryImagesApi, deleteGalleryImageApi, updateGalleryImageApi } 
 import { resolveImageUrl } from "../../api/client";
 import { GalleryImageModal } from "./GalleryImageModal";
 import { BulkUploadModal } from "./BulkUploadModal";
+import { isNsfwImage } from "../../utils/nsfw";
 
 interface GalleryManagerProps {
     availableModels: Model[];
@@ -133,6 +134,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
     const [selectedTag, setSelectedTag] = useState<string>("all");
     const [aspectRatioFilter, setAspectRatioFilter] = useState<AspectRatioCategory>("all");
     const [loraFilter, setLoraFilter] = useState<LoraFilterType>("all");
+    const [nsfwFilter, setNsfwFilter] = useState<"all" | "sfw" | "nsfw">("all");
     const [sortBy, setSortBy] = useState<string>("newest");
     const [isSearchFocused, setIsSearchFocused] = useState(false);
     const searchWrapRef = useRef<HTMLDivElement | null>(null);
@@ -282,6 +284,10 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                 if (img.resources && img.resources.length > 0) return false;
             }
 
+            // NSFW Rating Filter
+            if (nsfwFilter === "sfw" && isNsfwImage(img)) return false;
+            if (nsfwFilter === "nsfw" && !isNsfwImage(img)) return false;
+
             // Search query (multi-token AND search)
             if (searchQuery.trim()) {
                 const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -313,7 +319,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
 
             return true;
         });
-    }, [images, modelFilter, selectedTag, aspectRatioFilter, loraFilter, searchQuery]);
+    }, [images, modelFilter, selectedTag, aspectRatioFilter, loraFilter, nsfwFilter, searchQuery]);
 
     // Active filters summary
     const hasActiveFilters =
@@ -321,7 +327,8 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         modelFilter !== "all" ||
         selectedTag !== "all" ||
         aspectRatioFilter !== "all" ||
-        loraFilter !== "all";
+        loraFilter !== "all" ||
+        nsfwFilter !== "all";
 
     const handleClearAllFilters = () => {
         setSearchQuery("");
@@ -329,6 +336,7 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
         setSelectedTag("all");
         setAspectRatioFilter("all");
         setLoraFilter("all");
+        setNsfwFilter("all");
     };
 
     // Selection handlers
@@ -510,6 +518,45 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
             await loadImages();
         } catch (err: any) {
             onToast("error", err?.message || "Batch add tags failed.");
+        } finally {
+            setIsProcessingBatch(false);
+            setBatchProgress({ current: 0, total: 0 });
+        }
+    };
+
+    // Batch Toggle 18+ (NSFW)
+    const handleBatchToggleNsfw = async (markNsfw: boolean) => {
+        if (selectedIds.size === 0) return;
+        try {
+            setIsProcessingBatch(true);
+            const ids = Array.from(selectedIds);
+            let count = 0;
+            for (let i = 0; i < ids.length; i++) {
+                setBatchProgress({ current: i + 1, total: ids.length });
+                const currentImg = images.find((img) => img.id === ids[i]);
+                const existingTags = (currentImg?.tags || []).map((t) =>
+                    typeof t === "string" ? t : t.name
+                );
+                let nextTags: string[];
+                if (markNsfw) {
+                    nextTags = Array.from(new Set([...existingTags, "18+", "nsfw"]));
+                } else {
+                    nextTags = existingTags.filter(
+                        (t) => !["18+", "nsfw", "r18", "r-18"].includes(t.toLowerCase().trim())
+                    );
+                }
+                try {
+                    await updateGalleryImageApi(ids[i], { tags: nextTags });
+                    count++;
+                } catch (e) {
+                    console.error("Failed to update NSFW tag for image:", ids[i], e);
+                }
+            }
+            onToast("success", `${count} karya berhasil ${markNsfw ? "ditandai sebagai 18+ (NSFW)" : "dihapus status 18+"}.`);
+            setSelectedIds(new Set());
+            await loadImages();
+        } catch (err: any) {
+            onToast("error", err?.message || "Gagal mengubah tag 18+ batch.");
         } finally {
             setIsProcessingBatch(false);
             setBatchProgress({ current: 0, total: 0 });
@@ -698,6 +745,18 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                         <option value="all">All Resources</option>
                         <option value="has_lora">With LoRA (+N)</option>
                         <option value="checkpoint_only">Pure Checkpoint</option>
+                    </select>
+
+                    {/* NSFW Filter */}
+                    <select
+                        className="admin-select"
+                        value={nsfwFilter}
+                        onChange={(e) => setNsfwFilter(e.target.value as "all" | "sfw" | "nsfw")}
+                        title="Filter Rating Usia"
+                    >
+                        <option value="all">Rating: Semua</option>
+                        <option value="sfw">SFW Saja</option>
+                        <option value="nsfw">🔞 18+ NSFW Saja</option>
                     </select>
 
                     {/* Sort Filter */}
@@ -1070,17 +1129,34 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                 {/* Hover overlay */}
                                 <div className="gallery-compact-overlay">
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                                        <span
-                                            style={{
-                                                fontSize: "10px",
-                                                fontFamily: "ui-monospace, monospace",
-                                                background: "rgba(0,0,0,0.75)",
-                                                padding: "1px 5px",
-                                                borderRadius: "3px",
-                                            }}
-                                        >
-                                            #{img.id}
-                                        </span>
+                                        <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
+                                            <span
+                                                style={{
+                                                    fontSize: "10px",
+                                                    fontFamily: "ui-monospace, monospace",
+                                                    background: "rgba(0,0,0,0.75)",
+                                                    padding: "1px 5px",
+                                                    borderRadius: "3px",
+                                                }}
+                                            >
+                                                #{img.id}
+                                            </span>
+                                            {isNsfwImage(img) && (
+                                                <span
+                                                    style={{
+                                                        fontSize: "9px",
+                                                        fontWeight: 700,
+                                                        background: "#451a1a",
+                                                        border: "1px solid #ef4444",
+                                                        color: "#fca5a5",
+                                                        padding: "1px 4px",
+                                                        borderRadius: "3px",
+                                                    }}
+                                                >
+                                                    18+
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div>
@@ -1207,6 +1283,24 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                         </td>
                                         <td style={{ fontFamily: "ui-monospace, monospace", fontWeight: 600, color: "#818CF8" }}>
                                             #{img.id}
+                                            {isNsfwImage(img) && (
+                                                <span
+                                                    style={{
+                                                        display: "inline-block",
+                                                        marginLeft: "6px",
+                                                        fontSize: "9px",
+                                                        fontWeight: 700,
+                                                        background: "#451a1a",
+                                                        border: "1px solid #ef4444",
+                                                        color: "#fca5a5",
+                                                        padding: "1px 4px",
+                                                        borderRadius: "3px",
+                                                        verticalAlign: "middle",
+                                                    }}
+                                                >
+                                                    18+
+                                                </span>
+                                            )}
                                         </td>
                                         <td style={{ maxWidth: "280px" }}>
                                             <div style={{ fontWeight: 600, color: "#FFFFFF", marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -1416,24 +1510,38 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                                         </span>
                                     )}
 
-                                    {/* ID badge */}
-                                    <span
-                                        style={{
-                                            position: "absolute",
-                                            top: "8px",
-                                            left: "8px",
-                                            background: "rgba(17, 19, 21, 0.88)",
-                                            border: "1px solid #292D32",
-                                            color: "#E6E8EB",
-                                            fontSize: "10px",
-                                            padding: "2px 6px",
-                                            borderRadius: "3px",
-                                            fontFamily: "ui-monospace, monospace",
-                                            fontWeight: 600,
-                                        }}
-                                    >
-                                        #{img.id}
-                                    </span>
+                                    {/* ID & Rating badge */}
+                                    <div style={{ position: "absolute", top: "8px", left: "8px", display: "flex", gap: "4px", zIndex: 5 }}>
+                                        <span
+                                            style={{
+                                                background: "rgba(17, 19, 21, 0.88)",
+                                                border: "1px solid #292D32",
+                                                color: "#E6E8EB",
+                                                fontSize: "10px",
+                                                padding: "2px 6px",
+                                                borderRadius: "3px",
+                                                fontFamily: "ui-monospace, monospace",
+                                                fontWeight: 600,
+                                            }}
+                                        >
+                                            #{img.id}
+                                        </span>
+                                        {isNsfwImage(img) && (
+                                            <span
+                                                style={{
+                                                    background: "#451a1a",
+                                                    border: "1px solid #ef4444",
+                                                    color: "#fca5a5",
+                                                    fontSize: "10px",
+                                                    padding: "2px 6px",
+                                                    borderRadius: "3px",
+                                                    fontWeight: 700,
+                                                }}
+                                            >
+                                                🔞 18+
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* Content Details */}
@@ -1643,6 +1751,25 @@ export const GalleryManager: React.FC<GalleryManagerProps> = ({ availableModels,
                     >
                         <ActionIcons.Tag />
                         <span>Add Tags</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="gallery-bulk-btn"
+                        onClick={() => handleBatchToggleNsfw(true)}
+                        title="Tandai semua karya terpilih sebagai 18+ (NSFW)"
+                        style={{ color: "#fca5a5" }}
+                    >
+                        <span>🔞 Tandai 18+</span>
+                    </button>
+
+                    <button
+                        type="button"
+                        className="gallery-bulk-btn"
+                        onClick={() => handleBatchToggleNsfw(false)}
+                        title="Hapus tanda 18+ dari karya terpilih"
+                    >
+                        <span>Hapus 18+</span>
                     </button>
 
                     <button

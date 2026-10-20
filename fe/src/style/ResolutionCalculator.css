@@ -6,11 +6,7 @@
 
 .calc-container {
     width: 100%;
-    max-width: var(--container-max, 1440px);
-    margin: 0 auto;
-    padding: 32px 24px 64px 24px;
     box-sizing: border-box;
-    background-color: #09090b;
     color: #f4f4f5;
 }
 

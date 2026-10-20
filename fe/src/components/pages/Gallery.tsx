@@ -10,6 +10,7 @@ import {
   buildWebUIApiPayload,
   downloadTextAsFile,
 } from '../../utils/exportFormats';
+import { isNsfwImage } from '../../utils/nsfw';
 import '../../style/Gallery.css';
 
 // ============================================================================
@@ -136,7 +137,6 @@ export default function Gallery() {
   const imageParam = searchParams.get('image');
 
   const { isImageFav, toggleImage, favoriteImages } = useFavorites();
-  const [filterOnlyFavorites, setFilterOnlyFavorites] = useState(false);
 
   const [images, setImages] = useState<ModelImage[]>([]);
   const [models, setModels] = useState<Model[]>([]);
@@ -147,10 +147,13 @@ export default function Gallery() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [filterFavorite, setFilterFavorite] = useState<'all' | 'fav_only' | 'non_fav'>('all');
   const [filterBaseModel, setFilterBaseModel] = useState<string>('all');
   const [filterModelId, setFilterModelId] = useState<string>('all');
-  const [filterResource, setFilterResource] = useState<string>('all'); // 'all' | 'has_lora' | 'no_lora' | 'has_prompt'
+  const [filterResource, setFilterResource] = useState<string>('all'); // 'all' | 'has_lora' | 'no_lora' | 'has_prompt' | 'has_params'
   const [filterOrientation, setFilterOrientation] = useState<string>('all'); // 'all' | 'portrait' | 'landscape' | 'square'
+  const [filterResolution, setFilterResolution] = useState<string>('all'); // 'all' | 'sd' | 'hd' | 'uhd'
+  const [filterSampler, setFilterSampler] = useState<string>('all');
   
   // View mode & density: Grid, Masonry waterfall, or List mode (optimized for mobile)
   const [layoutMode, setLayoutMode] = useState<'grid' | 'masonry' | 'list'>(() => {
@@ -210,6 +213,34 @@ export default function Gallery() {
       setToastMessage((cur) => (cur === msg ? null : cur));
     }, 2200);
   }, []);
+
+  // NSFW Setting state: persisted in localStorage ('gallery_nsfw_rating' & 'gallery_show_nsfw')
+  const [filterNsfwRating, setFilterNsfwRating] = useState<'sfw' | 'all' | 'nsfw'>(() => {
+    try {
+      const savedRating = localStorage.getItem('gallery_nsfw_rating');
+      if (savedRating === 'sfw' || savedRating === 'all' || savedRating === 'nsfw') {
+        return savedRating;
+      }
+      const legacyShowNsfw = localStorage.getItem('gallery_show_nsfw');
+      if (legacyShowNsfw === 'true') return 'all';
+    } catch {
+      // ignore
+    }
+    return 'sfw';
+  });
+
+  const handleNsfwRatingChange = useCallback((val: 'sfw' | 'all' | 'nsfw') => {
+    setFilterNsfwRating(val);
+    try {
+      localStorage.setItem('gallery_nsfw_rating', val);
+      localStorage.setItem('gallery_show_nsfw', String(val !== 'sfw'));
+    } catch {
+      // ignore
+    }
+    if (val === 'sfw') triggerToast('Filter: SFW Saja (Konten 18+ disembunyikan)');
+    else if (val === 'all') triggerToast('Filter: Menampilkan semua konten (SFW & 18+)');
+    else if (val === 'nsfw') triggerToast('Filter: Khusus konten 🔞 18+ (NSFW)');
+  }, [triggerToast]);
 
   // Fetch images and models
   useEffect(() => {
@@ -292,6 +323,17 @@ export default function Gallery() {
     return Array.from(set).sort();
   }, [images, models]);
 
+  // Extract unique samplers
+  const availableSamplers = useMemo(() => {
+    const set = new Set<string>();
+    images.forEach((img) => {
+      if (img.sampler && img.sampler.trim()) {
+        set.add(img.sampler.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [images]);
+
   // Autocomplete / Search suggestion state
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchWrapRef = useRef<HTMLDivElement>(null);
@@ -358,12 +400,28 @@ export default function Gallery() {
   // Filtered & Sorted Images list
   const filteredImages = useMemo(() => {
     return images.filter((img) => {
-      // 0. Filter Only Favorites
-      if (filterOnlyFavorites && !isImageFav(img.id)) {
+      // 0. NSFW Rating Filter
+      const isNsfw = isNsfwImage(img);
+      if (filterNsfwRating === 'sfw' && isNsfw) {
+        const isExplicitSearch =
+          (selectedTag && ['18+', 'nsfw', 'r18', 'r-18'].includes(selectedTag.toLowerCase().trim())) ||
+          searchQuery.toLowerCase().includes('18+') ||
+          searchQuery.toLowerCase().includes('nsfw');
+        if (!isExplicitSearch) {
+          return false;
+        }
+      } else if (filterNsfwRating === 'nsfw' && !isNsfw) {
         return false;
       }
 
-      // 0. Selected Tag filter (Pixiv style)
+      // 1. Favorites Filter
+      if (filterFavorite === 'fav_only' && !isImageFav(img.id)) {
+        return false;
+      } else if (filterFavorite === 'non_fav' && isImageFav(img.id)) {
+        return false;
+      }
+
+      // 2. Selected Tag filter (Pixiv style)
       if (selectedTag) {
         const normSelected = selectedTag.toLowerCase().trim();
         const hasTag = img.tags?.some((t: any) => {
@@ -374,7 +432,7 @@ export default function Gallery() {
         if (!hasTag) return false;
       }
 
-      // 1. Text & Tags search (Pixiv Multi-Token AND Search)
+      // 3. Text & Tags search (Pixiv Multi-Token AND Search)
       if (searchQuery.trim()) {
         const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
         const matchesAllTokens = tokens.every((token) => {
@@ -406,7 +464,7 @@ export default function Gallery() {
         if (!matchesAllTokens) return false;
       }
 
-      // 2. Base model filter
+      // 4. Base model filter
       if (filterBaseModel !== 'all') {
         const base = img.model?.base_model || '';
         if (base.toLowerCase() !== filterBaseModel.toLowerCase()) {
@@ -414,14 +472,18 @@ export default function Gallery() {
         }
       }
 
-      // 3. Model ID filter
+      // 5. Model ID filter
       if (filterModelId !== 'all') {
-        if (String(img.model_id) !== filterModelId && String(img.model?.id) !== filterModelId) {
-          return false;
+        if (filterModelId === 'standalone') {
+          if (img.model_id && img.model_id > 0) return false;
+        } else {
+          if (String(img.model_id) !== filterModelId && String(img.model?.id) !== filterModelId) {
+            return false;
+          }
         }
       }
 
-      // 4. Resource type filter
+      // 6. Resource type filter
       if (filterResource === 'has_lora') {
         const hasLora = img.resources?.some((r) => r.type?.toLowerCase() === 'lora') ?? false;
         if (!hasLora) return false;
@@ -430,9 +492,11 @@ export default function Gallery() {
         if (hasLora) return false;
       } else if (filterResource === 'has_prompt') {
         if (!img.positive_prompt || !img.positive_prompt.trim()) return false;
+      } else if (filterResource === 'has_params') {
+        if (!img.sampler || !img.steps || !img.cfg_scale) return false;
       }
 
-      // 5. Orientation filter
+      // 7. Orientation filter
       if (filterOrientation !== 'all') {
         const w = img.width || 0;
         const h = img.height || 0;
@@ -443,19 +507,40 @@ export default function Gallery() {
         }
       }
 
+      // 8. Resolution filter
+      if (filterResolution !== 'all') {
+        const px = (img.width || 0) * (img.height || 0);
+        if (filterResolution === 'sd' && px > 1024 * 1024) return false;
+        if (filterResolution === 'hd' && (px <= 1024 * 1024 || px > 1920 * 1080)) return false;
+        if (filterResolution === 'uhd' && px <= 1920 * 1080) return false;
+      }
+
+      // 9. Sampler filter
+      if (filterSampler !== 'all') {
+        if ((img.sampler || '').toLowerCase() !== filterSampler.toLowerCase()) {
+          return false;
+        }
+      }
+
       return true;
     }).sort((a, b) => {
       switch (sortBy) {
         case 'oldest':
           return (a.id || 0) - (b.id || 0);
+        case 'fav_first': {
+          const aFav = isImageFav(a.id) ? 1 : 0;
+          const bFav = isImageFav(b.id) ? 1 : 0;
+          if (aFav !== bFav) return bFav - aFav;
+          return (b.id || 0) - (a.id || 0);
+        }
         case 'steps_desc':
           return (b.steps || 0) - (a.steps || 0);
         case 'steps_asc':
           return (a.steps || 0) - (b.steps || 0);
         case 'model_asc':
-          return (a.model?.name || '').localeCompare(b.model?.name || '');
+          return (a.model?.name || a.model_name || '').localeCompare(b.model?.name || b.model_name || '');
         case 'model_desc':
-          return (b.model?.name || '').localeCompare(a.model?.name || '');
+          return (b.model?.name || b.model_name || '').localeCompare(a.model?.name || a.model_name || '');
         case 'res_desc': {
           const resA = (a.width || 0) * (a.height || 0);
           const resB = (b.width || 0) * (b.height || 0);
@@ -466,18 +551,36 @@ export default function Gallery() {
           return (b.id || 0) - (a.id || 0);
       }
     });
-  }, [images, searchQuery, selectedTag, sortBy, filterBaseModel, filterModelId, filterResource, filterOrientation, filterOnlyFavorites, isImageFav]);
+  }, [
+    images,
+    searchQuery,
+    selectedTag,
+    sortBy,
+    filterFavorite,
+    filterNsfwRating,
+    filterBaseModel,
+    filterModelId,
+    filterResource,
+    filterOrientation,
+    filterResolution,
+    filterSampler,
+    isImageFav,
+  ]);
 
   // Overall Statistics (Compact Inline Metadata)
   const stats = useMemo(() => {
     const uniqueModels = new Set<string>();
     const uniqueLoras = new Set<string>();
+    let nsfwCount = 0;
 
     images.forEach((img) => {
       if (img.model?.name) uniqueModels.add(img.model.name);
       img.resources?.forEach((r) => {
         if (r.type?.toLowerCase() === 'lora') uniqueLoras.add(r.name);
       });
+      if (isNsfwImage(img)) {
+        nsfwCount++;
+      }
     });
 
     return {
@@ -485,6 +588,7 @@ export default function Gallery() {
       filteredCount: filteredImages.length,
       totalCheckpoints: uniqueModels.size,
       totalLoras: uniqueLoras.size,
+      totalNsfw: nsfwCount,
     };
   }, [images, filteredImages]);
 
@@ -591,9 +695,16 @@ export default function Gallery() {
 
           {/* Minimal Technical Tags on image */}
           <div className="gallery-card-tag-row">
-            <span className="gallery-card-tag base">
-              {baseModel.toUpperCase()}
-            </span>
+            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+              <span className="gallery-card-tag base">
+                {baseModel.toUpperCase()}
+              </span>
+              {isNsfwImage(img) && (
+                <span className="gallery-card-tag nsfw" title="Konten 18+ / NSFW">
+                  18+
+                </span>
+              )}
+            </div>
 
             <div style={{ display: 'flex', gap: '4px' }}>
               {loraCount > 0 && (
@@ -753,6 +864,11 @@ export default function Gallery() {
                   LoRA ({loraCount})
                 </span>
               )}
+              {isNsfwImage(img) && (
+                <span className="gallery-card-tag nsfw" style={{ fontSize: '10px', padding: '1px 5px' }}>
+                  18+ NSFW
+                </span>
+              )}
             </div>
 
             <div className="gallery-list-actions">
@@ -861,14 +977,35 @@ export default function Gallery() {
     setSearchQuery('');
     setSelectedTag(null);
     setSortBy('newest');
+    setFilterFavorite('all');
+    setFilterNsfwRating('sfw');
     setFilterBaseModel('all');
     setFilterModelId('all');
     setFilterResource('all');
     setFilterOrientation('all');
-    setFilterOnlyFavorites(false);
+    setFilterResolution('all');
+    setFilterSampler('all');
+    try {
+      localStorage.setItem('gallery_nsfw_rating', 'sfw');
+      localStorage.setItem('gallery_show_nsfw', 'false');
+    } catch {
+      // ignore
+    }
+    triggerToast('Semua filter direset ke awal');
   };
 
-  const hasActiveFilters = searchQuery || !!selectedTag || filterBaseModel !== 'all' || filterModelId !== 'all' || filterResource !== 'all' || filterOrientation !== 'all' || filterOnlyFavorites;
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    Boolean(selectedTag) ||
+    sortBy !== 'newest' ||
+    filterFavorite !== 'all' ||
+    filterNsfwRating !== 'sfw' ||
+    filterBaseModel !== 'all' ||
+    filterModelId !== 'all' ||
+    filterResource !== 'all' ||
+    filterOrientation !== 'all' ||
+    filterResolution !== 'all' ||
+    filterSampler !== 'all';
 
   // Keyboard navigation for Lightbox Modal
   useEffect(() => {
@@ -922,6 +1059,14 @@ export default function Gallery() {
           <span><span className="gallery-meta-val">{stats.totalCheckpoints}</span> checkpoints</span>
           <span className="gallery-meta-dot">·</span>
           <span><span className="gallery-meta-val">{stats.totalLoras}</span> LoRAs</span>
+          {stats.totalNsfw > 0 && (
+            <>
+              <span className="gallery-meta-dot">·</span>
+              <span style={{ color: filterNsfwRating !== 'sfw' ? '#fca5a5' : '#71717a' }}>
+                🔞 {stats.totalNsfw} 18+ ({filterNsfwRating === 'sfw' ? 'disembunyikan' : filterNsfwRating === 'all' ? 'ditampilkan' : 'hanya 18+'})
+              </span>
+            </>
+          )}
           {hasActiveFilters && (
             <>
               <span className="gallery-meta-dot">·</span>
@@ -1008,130 +1153,6 @@ export default function Gallery() {
             )}
           </div>
 
-          <div className="gallery-select-cluster">
-            {/* Sort Dropdown */}
-            <select
-              className="gallery-field-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              title="Sort orders"
-            >
-              <option value="newest">Sort: Newest</option>
-              <option value="oldest">Sort: Oldest</option>
-              <option value="steps_desc">Steps: High to Low</option>
-              <option value="steps_asc">Steps: Low to High</option>
-              <option value="model_asc">Model: A to Z</option>
-              <option value="model_desc">Model: Z to A</option>
-              <option value="res_desc">Resolution: Largest</option>
-            </select>
-
-            {/* Base Model Dropdown */}
-            <select
-              className="gallery-field-select"
-              value={filterBaseModel}
-              onChange={(e) => setFilterBaseModel(e.target.value)}
-              title="Filter by Base Model architecture"
-            >
-              <option value="all">Base Model: All</option>
-              {availableBaseModels.map((bm) => (
-                <option key={bm} value={bm}>
-                  Base: {bm}
-                </option>
-              ))}
-            </select>
-
-            {/* Model / Checkpoint Dropdown */}
-            <select
-              className="gallery-field-select"
-              value={filterModelId}
-              onChange={(e) => setFilterModelId(e.target.value)}
-              title="Filter by Checkpoint Model"
-            >
-              <option value="all">Model: All Checkpoints</option>
-              {models.map((m) => (
-                <option key={m.id} value={String(m.id)}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Secondary Controls Row: Segmented Filters + View Utilities */}
-        <div className="gallery-toolbar-bottom">
-          <div className="gallery-filter-segments">
-            <span className="gallery-filter-label">Filter:</span>
-
-            <button
-              className={`gallery-btn-segment ${filterOnlyFavorites ? 'active' : ''}`}
-              onClick={() => setFilterOnlyFavorites(!filterOnlyFavorites)}
-              title="Tampilkan hanya gambar yang difavoritkan"
-            >
-              <Icons.Star filled={favoriteImages.length > 0} />
-              <span>Favorit ({favoriteImages.length})</span>
-            </button>
-
-            <button
-              className={`gallery-btn-segment ${!filterOnlyFavorites && filterResource === 'all' && filterOrientation === 'all' ? 'active' : ''}`}
-              onClick={() => {
-                setFilterOnlyFavorites(false);
-                setFilterResource('all');
-                setFilterOrientation('all');
-              }}
-            >
-              All
-            </button>
-            <button
-              className={`gallery-btn-segment ${filterResource === 'has_lora' ? 'active' : ''}`}
-              onClick={() => setFilterResource(filterResource === 'has_lora' ? 'all' : 'has_lora')}
-            >
-              With LoRA
-            </button>
-            <button
-              className={`gallery-btn-segment ${filterResource === 'no_lora' ? 'active' : ''}`}
-              onClick={() => setFilterResource(filterResource === 'no_lora' ? 'all' : 'no_lora')}
-            >
-              Checkpoint
-            </button>
-            <button
-              className={`gallery-btn-segment ${filterResource === 'has_prompt' ? 'active' : ''}`}
-              onClick={() => setFilterResource(filterResource === 'has_prompt' ? 'all' : 'has_prompt')}
-            >
-              Has Prompt
-            </button>
-
-            <span className="gallery-filter-divider"></span>
-
-            <button
-              className={`gallery-btn-segment ${filterOrientation === 'portrait' ? 'active' : ''}`}
-              onClick={() => setFilterOrientation(filterOrientation === 'portrait' ? 'all' : 'portrait')}
-            >
-              Portrait
-            </button>
-            <button
-              className={`gallery-btn-segment ${filterOrientation === 'landscape' ? 'active' : ''}`}
-              onClick={() => setFilterOrientation(filterOrientation === 'landscape' ? 'all' : 'landscape')}
-            >
-              Landscape
-            </button>
-            <button
-              className={`gallery-btn-segment ${filterOrientation === 'square' ? 'active' : ''}`}
-              onClick={() => setFilterOrientation(filterOrientation === 'square' ? 'all' : 'square')}
-            >
-              Square
-            </button>
-
-            {hasActiveFilters && (
-              <>
-                <span className="gallery-filter-divider"></span>
-                <button className="gallery-btn-reset" onClick={resetFilters}>
-                  <Icons.RotateCcw />
-                  Reset
-                </button>
-              </>
-            )}
-          </div>
-
           {/* Right Utility: View Mode & Grid Density */}
           <div className="gallery-utilities">
             <div className="gallery-segment-group">
@@ -1178,7 +1199,7 @@ export default function Gallery() {
                   type="button"
                   className={`gallery-icon-btn ${density === 'md' ? 'active' : ''}`}
                   onClick={() => setDensity('md')}
-                  title="Regular density"
+                  title="Normal density"
                 >
                   M
                 </button>
@@ -1186,11 +1207,158 @@ export default function Gallery() {
                   type="button"
                   className={`gallery-icon-btn ${density === 'lg' ? 'active' : ''}`}
                   onClick={() => setDensity('lg')}
-                  title="Large density"
+                  title="Spacious density"
                 >
                   L
                 </button>
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Secondary Controls Row: All-Dropdown Filter Cluster */}
+        <div className="gallery-toolbar-bottom">
+          <div className="gallery-select-cluster">
+            {/* Sort Dropdown */}
+            <select
+              className={`gallery-field-select ${sortBy !== 'newest' ? 'is-active' : ''}`}
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              title="Urutan Tampilan Galeri"
+            >
+              <option value="newest">Urutkan: Upload Terbaru</option>
+              <option value="oldest">Urutkan: Upload Terlama</option>
+              <option value="fav_first">❤️ Urutkan: Favorit Saya Teratas</option>
+              <option value="steps_desc">Urutkan: Steps Tertinggi</option>
+              <option value="steps_asc">Urutkan: Steps Terendah</option>
+              <option value="res_desc">Urutkan: Resolusi Tertinggi</option>
+              <option value="model_asc">Urutkan: Model (A - Z)</option>
+              <option value="model_desc">Urutkan: Model (Z - A)</option>
+            </select>
+
+            {/* NSFW Rating Dropdown */}
+            <select
+              className={`gallery-field-select ${filterNsfwRating === 'nsfw' ? 'is-nsfw-active' : filterNsfwRating === 'all' ? 'is-active' : ''}`}
+              value={filterNsfwRating}
+              onChange={(e) => handleNsfwRatingChange(e.target.value as 'sfw' | 'all' | 'nsfw')}
+              title="Filter Rating Usia Konten (NSFW)"
+            >
+              <option value="sfw">Rating: SFW Saja (Aman)</option>
+              <option value="all">Rating: Semua (SFW & 18+)</option>
+              <option value="nsfw">🔞 Rating: 18+ / NSFW Saja</option>
+            </select>
+
+            {/* Favorite Filter Dropdown */}
+            <select
+              className={`gallery-field-select ${filterFavorite !== 'all' ? 'is-fav-active' : ''}`}
+              value={filterFavorite}
+              onChange={(e) => setFilterFavorite(e.target.value as 'all' | 'fav_only' | 'non_fav')}
+              title="Filter Status Favorit"
+            >
+              <option value="all">Favorit: Semua Karya</option>
+              <option value="fav_only">❤️ Favorit Saya ({favoriteImages.length})</option>
+              <option value="non_fav">Belum Difavoritkan</option>
+            </select>
+
+            {/* Checkpoint Model Dropdown */}
+            <select
+              className={`gallery-field-select ${filterModelId !== 'all' ? 'is-active' : ''}`}
+              value={filterModelId}
+              onChange={(e) => setFilterModelId(e.target.value)}
+              title="Filter Model Checkpoint"
+            >
+              <option value="all">Checkpoint: Semua</option>
+              <option value="standalone">Standalone (Custom)</option>
+              {models.map((m) => (
+                <option key={m.id} value={String(m.id)}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+
+            {/* Base Model Architecture Dropdown */}
+            <select
+              className={`gallery-field-select ${filterBaseModel !== 'all' ? 'is-active' : ''}`}
+              value={filterBaseModel}
+              onChange={(e) => setFilterBaseModel(e.target.value)}
+              title="Filter Arsitektur Base Model"
+            >
+              <option value="all">Base: Semua Arsitektur</option>
+              {availableBaseModels.map((bm) => (
+                <option key={bm} value={bm}>
+                  Base: {bm}
+                </option>
+              ))}
+            </select>
+
+            {/* Resource & LoRA Dropdown */}
+            <select
+              className={`gallery-field-select ${filterResource !== 'all' ? 'is-active' : ''}`}
+              value={filterResource}
+              onChange={(e) => setFilterResource(e.target.value)}
+              title="Filter Resource & Prompt"
+            >
+              <option value="all">Resource: Semua</option>
+              <option value="has_lora">Dengan LoRA (+N)</option>
+              <option value="no_lora">Checkpoint Murni (Tanpa LoRA)</option>
+              <option value="has_prompt">Memiliki Prompt</option>
+              <option value="has_params">Parameter Lengkap (CFG/Steps)</option>
+            </select>
+
+            {/* Aspect Ratio / Orientation Dropdown */}
+            <select
+              className={`gallery-field-select ${filterOrientation !== 'all' ? 'is-active' : ''}`}
+              value={filterOrientation}
+              onChange={(e) => setFilterOrientation(e.target.value)}
+              title="Filter Orientasi / Aspek Rasio"
+            >
+              <option value="all">Rasio: Semua Orientasi</option>
+              <option value="portrait">Portrait (Tegak)</option>
+              <option value="landscape">Landscape (Lebar)</option>
+              <option value="square">Square (1:1 Persegi)</option>
+            </select>
+
+            {/* Resolution Filter Dropdown */}
+            <select
+              className={`gallery-field-select ${filterResolution !== 'all' ? 'is-active' : ''}`}
+              value={filterResolution}
+              onChange={(e) => setFilterResolution(e.target.value)}
+              title="Filter Resolusi Gambar"
+            >
+              <option value="all">Resolusi: Semua</option>
+              <option value="sd">Standard SD (≤ 1 MP)</option>
+              <option value="hd">HD / High Res (&gt; 1 MP)</option>
+              <option value="uhd">Ultra HD 2K+ (&gt; 2 MP)</option>
+            </select>
+
+            {/* Sampler Dropdown */}
+            {availableSamplers.length > 0 && (
+              <select
+                className={`gallery-field-select ${filterSampler !== 'all' ? 'is-active' : ''}`}
+                value={filterSampler}
+                onChange={(e) => setFilterSampler(e.target.value)}
+                title="Filter Sampler Algorithm"
+              >
+                <option value="all">Sampler: Semua</option>
+                {availableSamplers.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            {/* Reset All Filters Button */}
+            {hasActiveFilters && (
+              <button
+                type="button"
+                className="gallery-btn-reset"
+                onClick={resetFilters}
+                title="Reset semua filter ke default"
+              >
+                <Icons.RotateCcw />
+                <span>Reset</span>
+              </button>
             )}
           </div>
         </div>
@@ -1482,7 +1650,14 @@ export default function Gallery() {
             {/* Right: Technical Metadata Inspector */}
             <div className="modal-spec-side">
               <div className="modal-spec-header">
-                <h2 className="modal-spec-title">{selectedImage.caption || `Artwork #${selectedImage.id}`}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <h2 className="modal-spec-title" style={{ margin: 0 }}>{selectedImage.caption || `Artwork #${selectedImage.id}`}</h2>
+                  {isNsfwImage(selectedImage) && (
+                    <span style={{ background: '#451a1a', border: '1px solid #ef4444', color: '#fca5a5', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '700' }}>
+                      🔞 18+ NSFW
+                    </span>
+                  )}
+                </div>
                 <p className="modal-spec-subtitle">
                   image_id: {selectedImage.id} · resolution: {selectedImage.width && selectedImage.height ? `${selectedImage.width}×${selectedImage.height}` : 'unknown'}
                 </p>

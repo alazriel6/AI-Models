@@ -5,8 +5,9 @@ import {
     uploadGalleryImageFileApi,
     updateGalleryImageApi,
     parseImageMetadataApi,
+    type CreateGalleryImagePayload,
 } from "../../api/admin";
-import type { CreateGalleryImagePayload } from "../../api/admin";
+import { hasNsfwTagString, toggleNsfwTags } from "../../utils/nsfw";
 
 interface GalleryImageModalProps {
     isOpen: boolean;
@@ -838,10 +839,62 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
 
                         {/* Section 3.5: Pixiv-Style Tags */}
                         <div className="form-group">
+                            {/* Dedicated 18+ / NSFW Tag Banner Toggle */}
+                            {(() => {
+                                const isNsfw = hasNsfwTagString(tags);
+                                return (
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
+                                            marginBottom: "10px",
+                                            padding: "10px 14px",
+                                            background: isNsfw ? "#2d1215" : "#18181b",
+                                            border: isNsfw ? "1.5px solid #ef4444" : "1px solid #27272a",
+                                            borderRadius: "6px",
+                                            gap: "12px",
+                                        }}
+                                    >
+                                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                            <span style={{ fontSize: "18px" }}>🔞</span>
+                                            <div>
+                                                <div style={{ fontSize: "12px", fontWeight: "700", color: isNsfw ? "#fca5a5" : "#f4f4f5" }}>
+                                                    Tag Khusus Konten 18+ / NSFW
+                                                </div>
+                                                <div style={{ fontSize: "11px", color: isNsfw ? "#f87171" : "#a1a1aa" }}>
+                                                    {isNsfw
+                                                        ? "Karya ini ditandai sebagai 18+ (NSFW). Akan difilter di Galeri sesuai preferensi pengguna."
+                                                        : "Tandai karya ini jika mengandung konten dewasa/erotis agar dapat difilter."}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setTags(toggleNsfwTags(tags))}
+                                            style={{
+                                                padding: "6px 14px",
+                                                borderRadius: "4px",
+                                                fontSize: "12px",
+                                                fontWeight: "700",
+                                                cursor: "pointer",
+                                                border: isNsfw ? "1px solid #f87171" : "1px solid #3f3f46",
+                                                background: isNsfw ? "#dc2626" : "#27272a",
+                                                color: "#ffffff",
+                                                transition: "all 0.15s ease",
+                                                whiteSpace: "nowrap",
+                                            }}
+                                        >
+                                            {isNsfw ? "✓ Terpasang 18+ (Aktif)" : "+ Pasang Tag 18+"}
+                                        </button>
+                                    </div>
+                                );
+                            })()}
+
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
                                 <label className="form-label" style={{ margin: 0, display: "flex", alignItems: "center", gap: "6px" }}>
-                                    <span>Tags (Pixiv-Style Searchable Labels)</span>
-                                    <span style={{ fontSize: "11px", color: "#666C75", fontWeight: 400 }}>({tags.length} added)</span>
+                                    <span>Tags (Label Pencarian Gambar)</span>
+                                    <span style={{ fontSize: "11px", color: "#666C75", fontWeight: 400 }}>({tags.length} ditambahkan)</span>
                                 </label>
                                 {positivePrompt.trim() && (
                                     <button
@@ -849,15 +902,15 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                                         className="btn-secondary-admin"
                                         style={{ fontSize: "11px", padding: "2px 8px", height: "auto", display: "inline-flex", alignItems: "center", gap: "4px" }}
                                         onClick={handleSuggestTagsFromPrompt}
-                                        title="Extract comma-separated prompt tokens as tags automatically"
+                                        title="Ekstrak token prompt koma sebagai tag otomatis"
                                     >
                                         <ModalIcons.Extract />
-                                        <span>Extract Tags</span>
+                                        <span>Ekstrak Tag dari Prompt</span>
                                     </button>
                                 )}
                             </div>
 
-                            {/* Tag Input Field */}
+                            {/* Tag Input Field & Quick Pills */}
                             <div style={{ display: "flex", gap: "6px", marginBottom: "8px" }}>
                                 <div style={{ position: "relative", flex: 1 }}>
                                     <span style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#6B7280", fontSize: "12px", fontFamily: "ui-monospace, monospace" }}>#</span>
@@ -865,7 +918,7 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                                         type="text"
                                         className="form-input"
                                         style={{ paddingLeft: "24px" }}
-                                        placeholder="Type tag (e.g. 1girl, rio tsukatsuki, blue archive, athletic) and press Enter or comma"
+                                        placeholder="Ketik tag (contoh: 1girl, bikini, athletic, 18+) lalu tekan Enter atau koma"
                                         value={tagInput}
                                         onChange={(e) => setTagInput(e.target.value)}
                                         onKeyDown={handleTagKeyDown}
@@ -877,7 +930,7 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                                     onClick={() => handleAddTag(tagInput)}
                                     disabled={!tagInput.trim()}
                                 >
-                                    + Add Tag
+                                    + Tambah Tag
                                 </button>
                             </div>
 
@@ -885,46 +938,50 @@ export const GalleryImageModal: React.FC<GalleryImageModalProps> = ({
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", minHeight: "28px" }}>
                                 {tags.length === 0 ? (
                                     <div style={{ fontSize: "11px", color: "#666C75", fontStyle: "italic" }}>
-                                        No tags added yet. Type tags above or click "Auto-extract from Prompt" to tag this artwork like Pixiv.
+                                        Belum ada tag yang ditambahkan. Gunakan kolom di atas atau tombol Ekstrak Tag.
                                     </div>
                                 ) : (
-                                    tags.map((tag) => (
-                                        <span
-                                            key={tag}
-                                            style={{
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                gap: "5px",
-                                                background: "rgba(99, 102, 241, 0.12)",
-                                                border: "1px solid rgba(99, 102, 241, 0.3)",
-                                                color: "#C7D2FE",
-                                                fontSize: "11px",
-                                                padding: "3px 8px",
-                                                borderRadius: "14px",
-                                                fontFamily: "ui-monospace, monospace",
-                                            }}
-                                        >
-                                            <span>#{tag}</span>
-                                            <button
-                                                type="button"
-                                                onClick={() => handleRemoveTag(tag)}
+                                    tags.map((tag) => {
+                                        const isTagNsfw = tag.toLowerCase() === "18+" || tag.toLowerCase() === "nsfw" || tag.toLowerCase() === "r18" || tag.toLowerCase() === "r-18";
+                                        return (
+                                            <span
+                                                key={tag}
                                                 style={{
-                                                    background: "transparent",
-                                                    border: "none",
-                                                    color: "#818CF8",
-                                                    cursor: "pointer",
-                                                    padding: 0,
-                                                    display: "flex",
+                                                    display: "inline-flex",
                                                     alignItems: "center",
-                                                    fontSize: "12px",
-                                                    lineHeight: 1,
+                                                    gap: "5px",
+                                                    background: isTagNsfw ? "#451a1a" : "rgba(99, 102, 241, 0.12)",
+                                                    border: isTagNsfw ? "1px solid #ef4444" : "1px solid rgba(99, 102, 241, 0.3)",
+                                                    color: isTagNsfw ? "#fca5a5" : "#C7D2FE",
+                                                    fontWeight: isTagNsfw ? "700" : "500",
+                                                    fontSize: "11px",
+                                                    padding: "3px 8px",
+                                                    borderRadius: "14px",
+                                                    fontFamily: "ui-monospace, monospace",
                                                 }}
-                                                title="Remove tag"
                                             >
-                                                ✕
-                                            </button>
-                                        </span>
-                                    ))
+                                                <span>#{tag}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveTag(tag)}
+                                                    style={{
+                                                        background: "transparent",
+                                                        border: "none",
+                                                        color: isTagNsfw ? "#f87171" : "#818CF8",
+                                                        cursor: "pointer",
+                                                        padding: 0,
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        fontSize: "12px",
+                                                        lineHeight: 1,
+                                                    }}
+                                                    title="Hapus tag"
+                                                >
+                                                    ✕
+                                                </button>
+                                            </span>
+                                        );
+                                    })
                                 )}
                             </div>
                         </div>
