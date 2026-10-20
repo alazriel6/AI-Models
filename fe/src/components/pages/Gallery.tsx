@@ -18,6 +18,24 @@ import '../../style/Gallery.css';
 // ============================================================================
 
 const Icons = {
+  Sliders: () => (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="4" y1="21" x2="4" y2="14" />
+      <line x1="4" y1="10" x2="4" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="12" />
+      <line x1="12" y1="8" x2="12" y2="3" />
+      <line x1="20" y1="21" x2="20" y2="16" />
+      <line x1="20" y1="12" x2="20" y2="3" />
+      <line x1="1" y1="14" x2="7" y2="14" />
+      <line x1="9" y1="8" x2="15" y2="8" />
+      <line x1="17" y1="16" x2="23" y2="16" />
+    </svg>
+  ),
+  ChevronDown: () => (
+    <svg className="gf-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
   Search: () => (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="11" cy="11" r="8" />
@@ -154,6 +172,7 @@ export default function Gallery() {
   const [filterOrientation, setFilterOrientation] = useState<string>('all'); // 'all' | 'portrait' | 'landscape' | 'square'
   const [filterResolution, setFilterResolution] = useState<string>('all'); // 'all' | 'sd' | 'hd' | 'uhd'
   const [filterSampler, setFilterSampler] = useState<string>('all');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // View mode & density: Grid, Masonry waterfall, or List mode (optimized for mobile)
   const [layoutMode, setLayoutMode] = useState<'grid' | 'masonry' | 'list'>(() => {
@@ -1007,6 +1026,48 @@ export default function Gallery() {
     filterResolution !== 'all' ||
     filterSampler !== 'all';
 
+  // Active advanced-filter chips (shown below the filter bar, each removable)
+  const RESOURCE_LABELS: Record<string, string> = {
+    has_lora: 'Dengan LoRA',
+    no_lora: 'Tanpa LoRA',
+    has_prompt: 'Memiliki Prompt',
+    has_params: 'Parameter Lengkap',
+  };
+  const ORIENTATION_LABELS: Record<string, string> = {
+    portrait: 'Portrait',
+    landscape: 'Landscape',
+    square: 'Square 1:1',
+  };
+  const RESOLUTION_LABELS: Record<string, string> = {
+    sd: 'SD ≤ 1 MP',
+    hd: 'HD 1–2 MP',
+    uhd: 'UHD > 2 MP',
+  };
+
+  const advancedChips: { key: string; label: string; value: string; onClear: () => void }[] = [];
+  if (filterModelId !== 'all') {
+    const name = filterModelId === 'standalone'
+      ? 'Standalone'
+      : models.find((m) => String(m.id) === filterModelId)?.name || filterModelId;
+    advancedChips.push({ key: 'model', label: 'Checkpoint', value: name, onClear: () => setFilterModelId('all') });
+  }
+  if (filterBaseModel !== 'all') {
+    advancedChips.push({ key: 'base', label: 'Base', value: filterBaseModel, onClear: () => setFilterBaseModel('all') });
+  }
+  if (filterResource !== 'all') {
+    advancedChips.push({ key: 'resource', label: 'Resource', value: RESOURCE_LABELS[filterResource] || filterResource, onClear: () => setFilterResource('all') });
+  }
+  if (filterOrientation !== 'all') {
+    advancedChips.push({ key: 'orientation', label: 'Rasio', value: ORIENTATION_LABELS[filterOrientation] || filterOrientation, onClear: () => setFilterOrientation('all') });
+  }
+  if (filterResolution !== 'all') {
+    advancedChips.push({ key: 'resolution', label: 'Resolusi', value: RESOLUTION_LABELS[filterResolution] || filterResolution, onClear: () => setFilterResolution('all') });
+  }
+  if (filterSampler !== 'all') {
+    advancedChips.push({ key: 'sampler', label: 'Sampler', value: filterSampler, onClear: () => setFilterSampler('all') });
+  }
+  const advancedActiveCount = advancedChips.length;
+
   // Keyboard navigation for Lightbox Modal
   useEffect(() => {
     if (!selectedImage) return;
@@ -1216,143 +1277,77 @@ export default function Gallery() {
           </div>
         </div>
 
-        {/* Secondary Controls Row: All-Dropdown Filter Cluster */}
-        <div className="gallery-toolbar-bottom">
-          <div className="gallery-select-cluster">
-            {/* Sort Dropdown */}
-            <select
-              className={`gallery-field-select ${sortBy !== 'newest' ? 'is-active' : ''}`}
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              title="Urutan Tampilan Galeri"
-            >
-              <option value="newest">Urutkan: Upload Terbaru</option>
-              <option value="oldest">Urutkan: Upload Terlama</option>
-              <option value="fav_first">❤️ Urutkan: Favorit Saya Teratas</option>
-              <option value="steps_desc">Urutkan: Steps Tertinggi</option>
-              <option value="steps_asc">Urutkan: Steps Terendah</option>
-              <option value="res_desc">Urutkan: Resolusi Tertinggi</option>
-              <option value="model_asc">Urutkan: Model (A - Z)</option>
-              <option value="model_desc">Urutkan: Model (Z - A)</option>
-            </select>
-
-            {/* NSFW Rating Dropdown */}
-            <select
-              className={`gallery-field-select ${filterNsfwRating === 'nsfw' ? 'is-nsfw-active' : filterNsfwRating === 'all' ? 'is-active' : ''}`}
-              value={filterNsfwRating}
-              onChange={(e) => handleNsfwRatingChange(e.target.value as 'sfw' | 'all' | 'nsfw')}
-              title="Filter Rating Usia Konten (NSFW)"
-            >
-              <option value="sfw">Rating: SFW Saja (Aman)</option>
-              <option value="all">Rating: Semua (SFW & 18+)</option>
-              <option value="nsfw">🔞 Rating: 18+ / NSFW Saja</option>
-            </select>
-
-            {/* Favorite Filter Dropdown */}
-            <select
-              className={`gallery-field-select ${filterFavorite !== 'all' ? 'is-fav-active' : ''}`}
-              value={filterFavorite}
-              onChange={(e) => setFilterFavorite(e.target.value as 'all' | 'fav_only' | 'non_fav')}
-              title="Filter Status Favorit"
-            >
-              <option value="all">Favorit: Semua Karya</option>
-              <option value="fav_only">❤️ Favorit Saya ({favoriteImages.length})</option>
-              <option value="non_fav">Belum Difavoritkan</option>
-            </select>
-
-            {/* Checkpoint Model Dropdown */}
-            <select
-              className={`gallery-field-select ${filterModelId !== 'all' ? 'is-active' : ''}`}
-              value={filterModelId}
-              onChange={(e) => setFilterModelId(e.target.value)}
-              title="Filter Model Checkpoint"
-            >
-              <option value="all">Checkpoint: Semua</option>
-              <option value="standalone">Standalone (Custom)</option>
-              {models.map((m) => (
-                <option key={m.id} value={String(m.id)}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-
-            {/* Base Model Architecture Dropdown */}
-            <select
-              className={`gallery-field-select ${filterBaseModel !== 'all' ? 'is-active' : ''}`}
-              value={filterBaseModel}
-              onChange={(e) => setFilterBaseModel(e.target.value)}
-              title="Filter Arsitektur Base Model"
-            >
-              <option value="all">Base: Semua Arsitektur</option>
-              {availableBaseModels.map((bm) => (
-                <option key={bm} value={bm}>
-                  Base: {bm}
-                </option>
-              ))}
-            </select>
-
-            {/* Resource & LoRA Dropdown */}
-            <select
-              className={`gallery-field-select ${filterResource !== 'all' ? 'is-active' : ''}`}
-              value={filterResource}
-              onChange={(e) => setFilterResource(e.target.value)}
-              title="Filter Resource & Prompt"
-            >
-              <option value="all">Resource: Semua</option>
-              <option value="has_lora">Dengan LoRA (+N)</option>
-              <option value="no_lora">Checkpoint Murni (Tanpa LoRA)</option>
-              <option value="has_prompt">Memiliki Prompt</option>
-              <option value="has_params">Parameter Lengkap (CFG/Steps)</option>
-            </select>
-
-            {/* Aspect Ratio / Orientation Dropdown */}
-            <select
-              className={`gallery-field-select ${filterOrientation !== 'all' ? 'is-active' : ''}`}
-              value={filterOrientation}
-              onChange={(e) => setFilterOrientation(e.target.value)}
-              title="Filter Orientasi / Aspek Rasio"
-            >
-              <option value="all">Rasio: Semua Orientasi</option>
-              <option value="portrait">Portrait (Tegak)</option>
-              <option value="landscape">Landscape (Lebar)</option>
-              <option value="square">Square (1:1 Persegi)</option>
-            </select>
-
-            {/* Resolution Filter Dropdown */}
-            <select
-              className={`gallery-field-select ${filterResolution !== 'all' ? 'is-active' : ''}`}
-              value={filterResolution}
-              onChange={(e) => setFilterResolution(e.target.value)}
-              title="Filter Resolusi Gambar"
-            >
-              <option value="all">Resolusi: Semua</option>
-              <option value="sd">Standard SD (≤ 1 MP)</option>
-              <option value="hd">HD / High Res (&gt; 1 MP)</option>
-              <option value="uhd">Ultra HD 2K+ (&gt; 2 MP)</option>
-            </select>
-
-            {/* Sampler Dropdown */}
-            {availableSamplers.length > 0 && (
+        {/* ============ Filter Bar: Primary quick filters ============ */}
+        <div className="gf-bar">
+          <div className="gf-bar-group">
+            <label className={`gf-field ${sortBy !== 'newest' ? 'is-active' : ''}`}>
+              <span className="gf-field-label">Urutkan</span>
               <select
-                className={`gallery-field-select ${filterSampler !== 'all' ? 'is-active' : ''}`}
-                value={filterSampler}
-                onChange={(e) => setFilterSampler(e.target.value)}
-                title="Filter Sampler Algorithm"
+                id="gallery-sort-select"
+                className="gf-select"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
               >
-                <option value="all">Sampler: Semua</option>
-                {availableSamplers.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
+                <option value="newest">Upload Terbaru</option>
+                <option value="oldest">Upload Terlama</option>
+                <option value="fav_first">Favorit Teratas</option>
+                <option value="steps_desc">Steps Tertinggi</option>
+                <option value="steps_asc">Steps Terendah</option>
+                <option value="res_desc">Resolusi Tertinggi</option>
+                <option value="model_asc">Model A–Z</option>
+                <option value="model_desc">Model Z–A</option>
               </select>
-            )}
+            </label>
 
-            {/* Reset All Filters Button */}
+            <label className={`gf-field ${filterNsfwRating === 'nsfw' ? 'is-nsfw' : filterNsfwRating === 'all' ? 'is-active' : ''}`}>
+              <span className="gf-field-label">Rating</span>
+              <select
+                id="gallery-rating-select"
+                className="gf-select"
+                value={filterNsfwRating}
+                onChange={(e) => handleNsfwRatingChange(e.target.value as 'sfw' | 'all' | 'nsfw')}
+              >
+                <option value="sfw">SFW Saja</option>
+                <option value="all">Semua (SFW + 18+)</option>
+                <option value="nsfw">18+ Saja</option>
+              </select>
+            </label>
+
+            <label className={`gf-field ${filterFavorite !== 'all' ? 'is-fav' : ''}`}>
+              <span className="gf-field-label">Favorit</span>
+              <select
+                id="gallery-favorite-select"
+                className="gf-select"
+                value={filterFavorite}
+                onChange={(e) => setFilterFavorite(e.target.value as 'all' | 'fav_only' | 'non_fav')}
+              >
+                <option value="all">Semua Karya</option>
+                <option value="fav_only">Favorit Saya ({favoriteImages.length})</option>
+                <option value="non_fav">Belum Difavoritkan</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="gf-bar-actions">
+            <button
+              id="gallery-advanced-toggle"
+              type="button"
+              className={`gf-toggle-btn ${showAdvancedFilters ? 'open' : ''} ${advancedActiveCount > 0 ? 'has-active' : ''}`}
+              onClick={() => setShowAdvancedFilters((v) => !v)}
+              aria-expanded={showAdvancedFilters}
+              aria-controls="gallery-advanced-panel"
+            >
+              <Icons.Sliders />
+              <span>Filter Lanjutan</span>
+              {advancedActiveCount > 0 && <span className="gf-count">{advancedActiveCount}</span>}
+              <Icons.ChevronDown />
+            </button>
+
             {hasActiveFilters && (
               <button
+                id="gallery-reset-filters"
                 type="button"
-                className="gallery-btn-reset"
+                className="gf-reset-btn"
                 onClick={resetFilters}
                 title="Reset semua filter ke default"
               >
@@ -1362,6 +1357,131 @@ export default function Gallery() {
             )}
           </div>
         </div>
+
+        {/* ============ Advanced Filter Panel (collapsible grid) ============ */}
+        {showAdvancedFilters && (
+          <div id="gallery-advanced-panel" className="gf-panel">
+            <label className={`gf-panel-field ${filterModelId !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Checkpoint</span>
+              <select
+                id="gallery-checkpoint-select"
+                className="gf-select"
+                value={filterModelId}
+                onChange={(e) => setFilterModelId(e.target.value)}
+              >
+                <option value="all">Semua</option>
+                <option value="standalone">Standalone (Custom)</option>
+                {models.map((m) => (
+                  <option key={m.id} value={String(m.id)}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={`gf-panel-field ${filterBaseModel !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Base Model</span>
+              <select
+                id="gallery-base-select"
+                className="gf-select"
+                value={filterBaseModel}
+                onChange={(e) => setFilterBaseModel(e.target.value)}
+              >
+                <option value="all">Semua</option>
+                {availableBaseModels.map((bm) => (
+                  <option key={bm} value={bm}>
+                    {bm}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={`gf-panel-field ${filterResource !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Resource</span>
+              <select
+                id="gallery-resource-select"
+                className="gf-select"
+                value={filterResource}
+                onChange={(e) => setFilterResource(e.target.value)}
+              >
+                <option value="all">Semua</option>
+                <option value="has_lora">Dengan LoRA</option>
+                <option value="no_lora">Tanpa LoRA</option>
+                <option value="has_prompt">Memiliki Prompt</option>
+                <option value="has_params">Parameter Lengkap</option>
+              </select>
+            </label>
+
+            <label className={`gf-panel-field ${filterOrientation !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Rasio</span>
+              <select
+                id="gallery-orientation-select"
+                className="gf-select"
+                value={filterOrientation}
+                onChange={(e) => setFilterOrientation(e.target.value)}
+              >
+                <option value="all">Semua</option>
+                <option value="portrait">Portrait</option>
+                <option value="landscape">Landscape</option>
+                <option value="square">Square 1:1</option>
+              </select>
+            </label>
+
+            <label className={`gf-panel-field ${filterResolution !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Resolusi</span>
+              <select
+                id="gallery-resolution-select"
+                className="gf-select"
+                value={filterResolution}
+                onChange={(e) => setFilterResolution(e.target.value)}
+              >
+                <option value="all">Semua</option>
+                <option value="sd">SD (≤ 1 MP)</option>
+                <option value="hd">HD (1–2 MP)</option>
+                <option value="uhd">UHD (&gt; 2 MP)</option>
+              </select>
+            </label>
+
+            <label className={`gf-panel-field ${filterSampler !== 'all' ? 'is-active' : ''}`}>
+              <span className="gf-panel-label">Sampler</span>
+              <select
+                id="gallery-sampler-select"
+                className="gf-select"
+                value={filterSampler}
+                onChange={(e) => setFilterSampler(e.target.value)}
+                disabled={availableSamplers.length === 0}
+              >
+                <option value="all">Semua</option>
+                {availableSamplers.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+
+        {/* ============ Active advanced-filter chips ============ */}
+        {advancedChips.length > 0 && (
+          <div className="gf-chips">
+            <span className="gf-chips-label">Aktif</span>
+            {advancedChips.map((chip) => (
+              <span key={chip.key} className="gf-chip">
+                <span className="gf-chip-key">{chip.label}:</span>
+                <span className="gf-chip-val">{chip.value}</span>
+                <button
+                  type="button"
+                  onClick={chip.onClear}
+                  title={`Hapus filter ${chip.label}`}
+                  aria-label={`Hapus filter ${chip.label}`}
+                >
+                  <Icons.Clear />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Pixiv-style Popular Tags Ribbon */}
         {allTags.length > 0 && (
