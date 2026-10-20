@@ -9,6 +9,8 @@ import {
   createEmbeddingApi,
   deleteEmbeddingApi,
 } from "../../api/negativeVault";
+import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { bridgeToPromptLab, type WorkflowBridgeData } from "../../utils/workflowBridge";
 
 // ============================================================================
 // Types & Interfaces
@@ -880,19 +882,38 @@ export default function NegativeVault() {
     triggerToast("Preset dimuat ke dalam Mixer!");
   };
 
-  // Send to Prompt Lab
+  // Send to Prompt Lab via Workflow Bridge
   const handleSendToPromptLab = () => {
     if (!compiledPrompt.trim()) {
       triggerToast("Prompt negatif masih kosong");
       return;
     }
-    // Store in localStorage for PromptLab to pick up or query param
-    try {
-      localStorage.setItem("models_guide_active_negative", compiledPrompt);
-    } catch {
-      // ignore
+    bridgeToPromptLab(navigate, {
+      source: "negative-vault",
+      timestamp: Date.now(),
+      negativePrompt: compiledPrompt,
+      baseModel: targetArch,
+    });
+  };
+
+  // Handle incoming bridge data
+  const handleApplyBridge = (data: WorkflowBridgeData) => {
+    let matchedArch: BaseArchitecture = targetArch;
+    if (data.baseModel) {
+      const archUpper = data.baseModel.toUpperCase();
+      if (archUpper.includes("SDXL")) matchedArch = "SDXL";
+      else if (archUpper.includes("PONY")) matchedArch = "Pony";
+      else if (archUpper.includes("ILLUSTRIOUS")) matchedArch = "Illustrious";
+      else if (archUpper.includes("1.5")) matchedArch = "SD 1.5";
+      else if (archUpper.includes("FLUX")) matchedArch = "Flux";
+      setTargetArch(matchedArch);
     }
-    navigate(`/prompt-lab?negative=${encodeURIComponent(compiledPrompt.slice(0, 500))}`);
+    if (data.negativePrompt && data.negativePrompt.trim()) {
+      handleLoadPresetToMixer(data.negativePrompt, matchedArch);
+      triggerToast("Negative prompt dari Workflow Bridge berhasil dimuat ke Mixer!");
+    } else {
+      triggerToast("Spesifikasi model dari Workflow Bridge berhasil disinkronkan!");
+    }
   };
 
   // Filtered Presets
@@ -932,6 +953,9 @@ export default function NegativeVault() {
 
   return (
     <div className="nv-page">
+      {/* Workflow Bridge Banner */}
+      <WorkflowBridgeBanner currentTool="negative-vault" onApply={handleApplyBridge} />
+
       {/* Toast Notification */}
       {toastMessage && (
         <div

@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { parseImageMetadataApi, type ParsedImageMetadata } from "../../api/admin";
 import { getImage, type ModelImage } from "../../api/models";
 import { resolveImageUrl } from "../../api/client";
+import { WorkflowBridgeMenu } from "../common/WorkflowBridgeMenu";
+import { extractLorasFromPrompt, type WorkflowBridgeData } from "../../utils/workflowBridge";
 import {
     buildA1111ParametersText,
     buildWebUIApiPayload,
@@ -266,6 +268,29 @@ export default function MetadataInspector() {
         setCopiedKey(key);
         setTimeout(() => setCopiedKey(null), 2000);
     };
+
+    // Workflow Bridge Data
+    const bridgeData: WorkflowBridgeData = useMemo(() => {
+        const rawPos = metaResult?.positive_prompt || interrogateResult?.danbooru_prompt || interrogateResult?.natural_prompt || "";
+        const rawNeg = metaResult?.negative_prompt || interrogateResult?.negative_prompt || "";
+        const extracted = extractLorasFromPrompt(rawPos);
+        return {
+            source: "inspector",
+            timestamp: Date.now(),
+            positivePrompt: rawPos,
+            negativePrompt: rawNeg,
+            width: metaResult?.width || naturalDimensions?.width,
+            height: metaResult?.height || naturalDimensions?.height,
+            baseModel: metaResult?.model_name || interrogateResult?.recommended_model,
+            modelName: metaResult?.model_name || interrogateResult?.recommended_model,
+            seed: metaResult?.seed,
+            steps: metaResult?.steps || interrogateResult?.recommended_steps,
+            cfgScale: metaResult?.cfg_scale || interrogateResult?.recommended_cfg,
+            sampler: metaResult?.sampler || interrogateResult?.recommended_sampler,
+            scheduler: metaResult?.scheduler,
+            loras: extracted.length > 0 ? extracted : (interrogateResult?.suggested_loras || []),
+        };
+    }, [metaResult, naturalDimensions, interrogateResult]);
 
     const handleProcessFile = useCallback(async (file: File, galleryItemFallback?: ModelImage | null) => {
         setIsLoading(true);
@@ -1814,6 +1839,21 @@ export default function MetadataInspector() {
                                             <span>Ekspor Workflow (.json)</span>
                                         </button>
                                     ) : null)}
+
+                                    {/* Workflow Bridge Integration */}
+                                    {(hasAiMetadata || (interrogateResult && (interrogateResult.danbooru_prompt || interrogateResult.natural_prompt))) && (
+                                        <div style={{ marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #27272a" }}>
+                                            <div style={{ fontSize: "11px", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "8px" }}>
+                                                Workflow Bridge
+                                            </div>
+                                            <WorkflowBridgeMenu
+                                                data={bridgeData}
+                                                variant="solid-dark"
+                                                buttonLabel="Kirim ke Alat ▾"
+                                                align="left"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -2031,6 +2071,32 @@ export default function MetadataInspector() {
                         ) : (
                             /* KASUS A — Jika Metadata Ditemukan (Valid AI Image) */
                             <>
+                                {/* Workflow Bridge Strip */}
+                                <div style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "space-between",
+                                    padding: "8px 14px",
+                                    marginBottom: "12px",
+                                    background: "#121215",
+                                    border: "1px solid #27272a",
+                                    borderRadius: "8px",
+                                    gap: "12px",
+                                    flexWrap: "wrap",
+                                }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#2563eb", display: "inline-block" }} />
+                                        <span style={{ fontSize: "12px", fontWeight: 700, color: "#f4f4f5" }}>Workflow Bridge:</span>
+                                        <span style={{ fontSize: "11px", color: "#a1a1aa" }}>Kirim metadata ini langsung ke tool lain:</span>
+                                    </div>
+                                    <WorkflowBridgeMenu
+                                        data={bridgeData}
+                                        variant="solid-blue"
+                                        buttonLabel="Kirim ke Alat ▾"
+                                        align="right"
+                                    />
+                                </div>
+
                                 <div className="inspector-tabs-header">
                                     <button
                                         type="button"

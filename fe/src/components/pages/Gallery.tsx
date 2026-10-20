@@ -1,7 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
+import { WorkflowBridgeMenu } from '../common/WorkflowBridgeMenu';
+import {
+  type WorkflowBridgeData,
+  bridgeToPromptLab,
+  bridgeToCalculator,
+  bridgeToLoraStack,
+  bridgeToNegativeVault,
+} from '../../utils/workflowBridge';
 import { useFavorites } from '../../api/favorites';
 import { OptimizedImage } from '../common/OptimizedImage';
 import {
@@ -196,6 +204,7 @@ export default function Gallery() {
     }
   }, []);
 
+  const navigate = useNavigate();
   const [density, setDensity] = useState<'sm' | 'md' | 'lg'>('md');
 
   // Modal / Lightbox state
@@ -1695,10 +1704,11 @@ export default function Gallery() {
                 </span>
 
                 <button
+                  type="button"
                   className="modal-tool-link"
                   onClick={() => setIsZoomed(!isZoomed)}
                 >
-                  {isZoomed ? 'Fit' : 'Zoom'}
+                  <span>{isZoomed ? 'Fit' : 'Zoom'}</span>
                 </button>
 
                 {/* Share Deep Link */}
@@ -1714,7 +1724,7 @@ export default function Gallery() {
                   title="Salin link langsung ke gambar ini (Deep Link)"
                 >
                   <Icons.ExternalLink />
-                  Share Link
+                  <span>Share Link</span>
                 </button>
 
                 {/* Favorite Button */}
@@ -1731,6 +1741,36 @@ export default function Gallery() {
                   <Icons.Star filled={isImageFav(selectedImage.id)} />
                   <span>{isImageFav(selectedImage.id) ? 'Favorit' : 'Simpan'}</span>
                 </button>
+
+                {/* Workflow Bridge: Send to Tools */}
+                <WorkflowBridgeMenu
+                  data={{
+                    source: "gallery",
+                    timestamp: Date.now(),
+                    imageId: selectedImage.id,
+                    imageUrl: resolveImageUrl(selectedImage.image_url),
+                    title: selectedImage.caption || `Artwork #${selectedImage.id}`,
+                    positivePrompt: selectedImage.positive_prompt || "",
+                    negativePrompt: selectedImage.negative_prompt || "",
+                    width: selectedImage.width || 1024,
+                    height: selectedImage.height || 1024,
+                    baseModel: selectedImage.model?.base_model || (selectedImage.model_name ? "CUSTOM" : "SDXL"),
+                    modelName: selectedImage.model?.name || selectedImage.model_name || "",
+                    sampler: selectedImage.sampler || "",
+                    steps: selectedImage.steps,
+                    cfgScale: selectedImage.cfg_scale,
+                    seed: selectedImage.seed,
+                    loras: (selectedImage.resources || [])
+                      .filter((r) => r.type === "lora" || !r.type)
+                      .map((r) => ({ name: r.name, weight: r.weight ?? 1.0 })),
+                  }}
+                  buttonLabel="Kirim ke Alat ▾"
+                  variant="solid-blue"
+                  direction="up"
+                  align="center"
+                  buttonStyle={{ height: '28px', padding: '0 10px', fontSize: '11.5px' }}
+                  onActionComplete={() => setSelectedImage(null)}
+                />
 
                 {/* Inspect in Metadata Inspector */}
                 <a
@@ -1752,7 +1792,7 @@ export default function Gallery() {
                   title="Open full resolution in new tab"
                 >
                   <Icons.ExternalLink />
-                  Raw
+                  <span>Raw</span>
                 </a>
 
                 <a
@@ -1762,7 +1802,7 @@ export default function Gallery() {
                   title="Save image to disk"
                 >
                   <Icons.Download />
-                  Download
+                  <span>Download</span>
                 </a>
               </div>
             </div>
@@ -1827,6 +1867,170 @@ export default function Gallery() {
                         <Icons.ExternalLink />
                       </Link>
                     )}
+                  </div>
+                </div>
+
+                {/* Workflow Bridge Quick Actions Strip */}
+                <div className="spec-group" style={{ background: '#18181b', border: '1px solid #27272a', padding: '12px', borderRadius: '6px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#60a5fa', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 3 21 3 21 9" />
+                        <polyline points="9 21 3 21 3 15" />
+                        <line x1="21" y1="3" x2="14" y2="10" />
+                        <line x1="3" y1="21" x2="10" y2="14" />
+                      </svg>
+                      Workflow Bridge
+                    </span>
+                    <span style={{ fontSize: '11px', color: '#a1a1aa' }}>Bawa data ke alat lain</span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bridgeData: WorkflowBridgeData = {
+                          source: 'gallery',
+                          timestamp: Date.now(),
+                          imageId: selectedImage.id,
+                          imageUrl: resolveImageUrl(selectedImage.image_url),
+                          title: selectedImage.caption || `Artwork #${selectedImage.id}`,
+                          positivePrompt: selectedImage.positive_prompt || '',
+                          negativePrompt: selectedImage.negative_prompt || '',
+                          width: selectedImage.width || 1024,
+                          height: selectedImage.height || 1024,
+                          baseModel: selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL'),
+                          modelName: selectedImage.model?.name || selectedImage.model_name || '',
+                          sampler: selectedImage.sampler || '',
+                          steps: selectedImage.steps,
+                          cfgScale: selectedImage.cfg_scale,
+                          seed: selectedImage.seed,
+                          loras: (selectedImage.resources || [])
+                            .filter((r) => r.type === 'lora' || !r.type)
+                            .map((r) => ({ name: r.name, weight: r.weight ?? 1.0 })),
+                        };
+                        setSelectedImage(null);
+                        bridgeToPromptLab(navigate, bridgeData);
+                      }}
+                      style={{
+                        background: '#121215',
+                        border: '1px solid #27272a',
+                        color: '#f4f4f5',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                      title="Kirim prompt positif & negatif ke Prompt Lab"
+                    >
+                      <span>🚀 Prompt Lab</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bridgeData: WorkflowBridgeData = {
+                          source: 'gallery',
+                          timestamp: Date.now(),
+                          imageId: selectedImage.id,
+                          width: selectedImage.width || 1024,
+                          height: selectedImage.height || 1024,
+                          baseModel: selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL'),
+                        };
+                        setSelectedImage(null);
+                        bridgeToCalculator(navigate, bridgeData);
+                      }}
+                      style={{
+                        background: '#121215',
+                        border: '1px solid #27272a',
+                        color: '#f4f4f5',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                      title="Bawa dimensi ke Resolution Calculator"
+                    >
+                      <span>📐 Calculator ({selectedImage.width || 1024}×{selectedImage.height || 1024})</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bridgeData: WorkflowBridgeData = {
+                          source: 'gallery',
+                          timestamp: Date.now(),
+                          imageId: selectedImage.id,
+                          title: selectedImage.caption || `Artwork #${selectedImage.id}`,
+                          positivePrompt: selectedImage.positive_prompt || '',
+                          baseModel: selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL'),
+                          loras: (selectedImage.resources || [])
+                            .filter((r) => r.type === 'lora' || !r.type)
+                            .map((r) => ({ name: r.name, weight: r.weight ?? 1.0 })),
+                        };
+                        setSelectedImage(null);
+                        bridgeToLoraStack(navigate, bridgeData);
+                      }}
+                      style={{
+                        background: '#121215',
+                        border: '1px solid #27272a',
+                        color: '#f4f4f5',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                      title="Bawa LoRA yang digunakan ke LoRA Stack Studio"
+                    >
+                      <span>🧩 LoRA Stack</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const bridgeData: WorkflowBridgeData = {
+                          source: 'gallery',
+                          timestamp: Date.now(),
+                          imageId: selectedImage.id,
+                          negativePrompt: selectedImage.negative_prompt || '',
+                          baseModel: selectedImage.model?.base_model || (selectedImage.model_name ? 'CUSTOM' : 'SDXL'),
+                        };
+                        setSelectedImage(null);
+                        bridgeToNegativeVault(navigate, bridgeData);
+                      }}
+                      style={{
+                        background: '#121215',
+                        border: '1px solid #27272a',
+                        color: '#f4f4f5',
+                        padding: '6px 8px',
+                        borderRadius: '4px',
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                      title="Analisis prompt negatif di Negative Vault"
+                    >
+                      <span>🛡️ Negative Vault</span>
+                    </button>
                   </div>
                 </div>
 

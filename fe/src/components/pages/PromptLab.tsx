@@ -21,6 +21,8 @@ import {
     PromptStudioTabs,
     type StudioTabKey,
 } from "../prompt-studio/PromptStudioTabs";
+import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { type WorkflowBridgeData } from "../../utils/workflowBridge";
 import {
     INITIAL_CATEGORY_INPUTS,
     compileCategoriesPrompt,
@@ -1700,6 +1702,39 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
 
     return (
         <div className="prompt-lab-container">
+            {/* Workflow Bridge Incoming Banner */}
+            <WorkflowBridgeBanner
+                currentTool="prompt-lab"
+                onApply={(data: WorkflowBridgeData) => {
+                    let updatedCount = 0;
+                    if (data.positivePrompt && data.positivePrompt.trim()) {
+                        setPositivePrompt(data.positivePrompt.trim());
+                        const { buckets, lora } = deconstructPromptText(data.positivePrompt.trim());
+                        setCategoryInputs(buckets);
+                        if (lora) {
+                            setLoraName(lora.name);
+                            setLoraWeight(lora.weight);
+                            setLoraEnabled(true);
+                        }
+                        updatedCount++;
+                    }
+                    if (data.negativePrompt && data.negativePrompt.trim()) {
+                        setNegativePrompt(data.negativePrompt.trim());
+                        updatedCount++;
+                    }
+                    if (data.loras && data.loras.length > 0) {
+                        setLoraName(data.loras[0].name);
+                        setLoraWeight(data.loras[0].weight);
+                        setLoraEnabled(true);
+                    }
+                    showToast(
+                        updatedCount > 0
+                            ? "Prompt positif & negatif dari Workflow Bridge berhasil dimuat ke Studio!"
+                            : "Data Workflow Bridge siap digunakan di Studio!"
+                    );
+                }}
+            />
+
             {/* Studio Header Bar */}
             <header className="prompt-lab-header">
                 <div className="prompt-lab-title-row">

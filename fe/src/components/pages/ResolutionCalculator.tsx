@@ -1,4 +1,7 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { type WorkflowBridgeData, normalizeBaseModel } from "../../utils/workflowBridge";
 import "../../style/ResolutionCalculator.css";
 
 interface BucketPreset {
@@ -116,6 +119,7 @@ function getRatioDetails(w: number, h: number): RatioDetails {
 }
 
 export default function ResolutionCalculator() {
+    const [searchParams] = useSearchParams();
     const [arch, setArch] = useState<"sdxl" | "flux" | "sd15">("sdxl");
     const [fluxMode, setFluxMode] = useState<"standard" | "native15">("standard");
     const [width, setWidth] = useState<number>(832);
@@ -124,6 +128,24 @@ export default function ResolutionCalculator() {
     const [customScale, setCustomScale] = useState<string>("1.5");
     const [snap64, setSnap64] = useState<boolean>(true);
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+    // Parse Workflow Bridge query parameters on load
+    useEffect(() => {
+        const qW = searchParams.get("width");
+        const qH = searchParams.get("height");
+        const qArch = searchParams.get("arch");
+        if (qW) {
+            const val = parseInt(qW, 10);
+            if (!isNaN(val) && val > 0) setWidth(val);
+        }
+        if (qH) {
+            const val = parseInt(qH, 10);
+            if (!isNaN(val) && val > 0) setHeight(val);
+        }
+        if (qArch) {
+            setArch(normalizeBaseModel(qArch));
+        }
+    }, [searchParams]);
 
     // Active presets selection
     const activePresets = useMemo(() => {
@@ -334,6 +356,16 @@ export default function ResolutionCalculator() {
 
     return (
         <div className="calc-container">
+            {/* Workflow Bridge Banner */}
+            <WorkflowBridgeBanner
+                currentTool="calculator"
+                onApply={(b: WorkflowBridgeData) => {
+                    if (b.width) setWidth(b.width);
+                    if (b.height) setHeight(b.height);
+                    if (b.baseModel) setArch(normalizeBaseModel(b.baseModel));
+                }}
+            />
+
             {/* Header */}
             <div className="calc-header">
                 <h1 className="calc-title">

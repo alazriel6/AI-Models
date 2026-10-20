@@ -3,6 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { getModels, type Model } from "../../api/models";
 import { resolveImageUrl } from "../../api/client";
 import { downloadTextAsFile } from "../../utils/exportFormats";
+import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import {
+    type WorkflowBridgeData,
+    extractLorasFromPrompt,
+    stripLoraTags,
+} from "../../utils/workflowBridge";
 import "../../style/LoraStack.css";
 
 // Clean Unified Technical SVG Icons (100% Monochrome / Single-Color)
@@ -615,6 +621,38 @@ export default function LoraStack() {
 
     return (
         <div className="lora-stack-container">
+            {/* Workflow Bridge Banner */}
+            <WorkflowBridgeBanner
+                currentTool="lora-stack"
+                onApply={(b: WorkflowBridgeData) => {
+                    if (b.positivePrompt) {
+                        setBasePrompt(stripLoraTags(b.positivePrompt));
+                    }
+                    if (b.baseModel) {
+                        setTargetArch(b.baseModel);
+                    }
+                    const incomingLoras = b.loras && b.loras.length > 0
+                        ? b.loras
+                        : extractLorasFromPrompt(b.positivePrompt);
+
+                    if (incomingLoras.length > 0) {
+                        const mapped: StackItem[] = incomingLoras.map((l, idx) => ({
+                            id: `bridge-${idx}-${Date.now()}`,
+                            name: l.name,
+                            fileName: l.name.toLowerCase().replace(/\s+/g, "_"),
+                            baseModel: b.baseModel || "SDXL",
+                            weight: l.weight,
+                            isDualWeight: false,
+                            enabled: true,
+                            category: "style",
+                            triggerWords: [{ text: l.name, enabled: true }],
+                            isCustom: true,
+                        }));
+                        setStack(mapped);
+                    }
+                }}
+            />
+
             {/* Header Section */}
             <header className="lora-header">
                 <div className="lora-header-top">

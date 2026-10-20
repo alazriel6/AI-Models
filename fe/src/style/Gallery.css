@@ -1411,43 +1411,75 @@
 /* Bottom Canvas Bar */
 .modal-canvas-bar {
   position: absolute;
-  bottom: 12px;
+  bottom: 14px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(23, 25, 28, 0.9);
-  border: 1px solid var(--g-border);
-  padding: 4px 10px;
-  border-radius: var(--g-radius);
-  z-index: 10;
-  font-size: 11px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  gap: 6px;
+  background: #121215;
+  border: 1px solid #27272a;
+  padding: 4px 6px;
+  border-radius: 8px;
+  z-index: 50;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7);
+  white-space: nowrap;
+  flex-wrap: nowrap;
 }
 
 .modal-canvas-counter {
-  color: var(--g-text-secondary);
-  padding-right: 6px;
-  border-right: 1px solid var(--g-border);
+  color: #a1a1aa;
+  padding: 0 8px 0 6px;
+  border-right: 1px solid #27272a;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  line-height: 1;
 }
 
 .modal-tool-link {
-  background: transparent;
-  border: none;
-  color: var(--g-text-secondary);
+  background: #18181b;
+  border: 1px solid #27272a;
+  color: #d4d4d8;
   text-decoration: none;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
-  border-radius: var(--g-radius-sm);
-  transition: color 0.12s ease;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 9px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.12s ease;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .modal-tool-link:hover {
-  color: var(--g-text-primary);
+  background: #27272a;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.modal-tool-link.favorited {
+  background: #2a1f10;
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.modal-tool-link svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
 }
 
 /* Right: Technical Inspector Panel */
