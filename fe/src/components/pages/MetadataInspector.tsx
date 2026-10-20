@@ -146,6 +146,21 @@ const Icons = {
             <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
         </svg>
     ),
+    AlertTriangle: () => (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+    ),
+    Refresh: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 21h5v-5" />
+        </svg>
+    ),
 };
 
 export interface BatchInspectorItem {
@@ -219,6 +234,7 @@ export default function MetadataInspector() {
         format?: string;
     } | null>(null);
     const [rawFile, setRawFile] = useState<File | null>(null);
+    const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number } | null>(null);
 
     // AI Vision Interrogator State
     const [isInterrogating, setIsInterrogating] = useState<boolean>(false);
@@ -241,7 +257,7 @@ export default function MetadataInspector() {
 
     // Parsed results
     const [metaResult, setMetaResult] = useState<ParsedImageMetadata | null>(null);
-    const [activeTab, setActiveTab] = useState<"params" | "workflow" | "raw" | "chunks">("params");
+    const [activeTab, setActiveTab] = useState<"params" | "workflow" | "raw" | "chunks" | "reverse">("params");
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const handleCopy = (text: string, key: string) => {
@@ -257,6 +273,7 @@ export default function MetadataInspector() {
         setRawFile(file);
         setInterrogateResult(null);
         setInterrogateError(null);
+        setNaturalDimensions(null);
         // CRITICAL: Immediately wipe previous file's metadata to prevent state leak
         setMetaResult(null);
 
@@ -329,7 +346,7 @@ export default function MetadataInspector() {
                     raw_chunks: {},
                     extra_params: {},
                 });
-                setErrorMsg(err?.message || "File ini tidak memiliki metadata generasi AI tertanam.");
+                // Stripped image: no error alert banner, Kasus B will show Callout Card
             }
         } finally {
             setIsLoading(false);
@@ -878,8 +895,59 @@ export default function MetadataInspector() {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
     };
 
+    const handleResetAll = () => {
+        setCurrentFile(null);
+        setRawFile(null);
+        setMetaResult(null);
+        setInterrogateResult(null);
+        setInterrogateError(null);
+        setErrorMsg(null);
+        setPastedText("");
+        setNaturalDimensions(null);
+        handleClearBatch();
+    };
+
+    const hasAiMetadata = Boolean(
+        metaResult &&
+        (
+            Boolean(metaResult.positive_prompt && metaResult.positive_prompt.trim()) ||
+            Boolean(metaResult.workflow_json && metaResult.workflow_json.trim()) ||
+            Boolean(metaResult.prompt_json && metaResult.prompt_json.trim()) ||
+            Boolean(metaResult.raw_prompt && metaResult.raw_prompt.trim()) ||
+            (metaResult.steps !== undefined && metaResult.steps > 0) ||
+            Boolean(metaResult.sampler && metaResult.sampler.trim()) ||
+            Boolean(metaResult.model_name && metaResult.model_name.trim()) ||
+            (metaResult.loras && metaResult.loras.length > 0) ||
+            (metaResult.source && !["unknown", "none"].includes(metaResult.source))
+        )
+    );
+
+    const isInspecting = Boolean(currentFile || (mode === "batch" && selectedBatchIdx !== null));
+
     return (
-        <div className="inspector-container">
+        <div
+            className="inspector-container"
+            onDragOver={(e) => {
+                e.preventDefault();
+                if (!isDragging) setIsDragging(true);
+            }}
+            onDragLeave={(e) => {
+                if (e.currentTarget === e.target) {
+                    setIsDragging(false);
+                }
+            }}
+            onDrop={handleDrop}
+        >
+            {/* Global Drag Overlay when in Inspecting State */}
+            {isDragging && isInspecting && (
+                <div className="inspector-drag-overlay">
+                    <div className="inspector-drag-box">
+                        <Icons.UploadCloud />
+                        <span>Lepaskan gambar di sini untuk menganalisis</span>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="inspector-header">
                 <div className="inspector-title-row">
@@ -890,24 +958,21 @@ export default function MetadataInspector() {
                         Metadata Inspector & Prompt Reader
                     </h1>
 
-                    <button type="button" className="demo-sample-btn" onClick={handleLoadDemo} title="Load interactive demo generation parameters">
-                        ✦ Load Demo Generation
-                    </button>
+                    {!isInspecting && (
+                        <button
+                            type="button"
+                            className="demo-sample-btn"
+                            onClick={handleLoadDemo}
+                            title="Muat contoh parameter generasi interaktif"
+                        >
+                            <Icons.Sparkles />
+                            <span>Muat Contoh (Demo)</span>
+                        </button>
+                    )}
                 </div>
                 <p className="inspector-subtitle">
-                    Inspeksi dan ekstrak seluruh metadata hasil generasi AI secara instan. Mendukung format gambar multi-ekstensi (PNG, WebP, JPEG) dan workflow JSON.
+                    Inspeksi dan ekstrak seluruh metadata hasil generasi AI secara instan. Mendukung format gambar PNG, WebP, JPEG, dan workflow JSON.
                 </p>
-
-                <div className="inspector-format-badges">
-                    <span className="format-pill highlight">PNG (tEXt / iTXt / zTXt)</span>
-                    <span className="format-pill highlight">WEBP (EXIF / XMP)</span>
-                    <span className="format-pill highlight">JPEG (APP1 / COM)</span>
-                    <span className="format-pill highlight">ComfyUI (.json)</span>
-                    <span className="format-pill">Automatic1111 / Forge</span>
-                    <span className="format-pill">NovelAI</span>
-                    <span className="format-pill">Fooocus</span>
-                    <span className="format-pill">Client-Safe (In-Memory)</span>
-                </div>
             </div>
 
             {/* Gallery Source Banner when loaded via URL param */}
@@ -922,12 +987,25 @@ export default function MetadataInspector() {
                     </div>
                     <Link to={`/gallery?image=${inspectedGalleryItem.id}`} className="inspector-gallery-back-link">
                         <Icons.ArrowLeft />
-                        <span>View in Gallery</span>
+                        <span>Lihat di Galeri</span>
                     </Link>
                 </div>
             )}
 
             {/* Hidden File / Folder Inputs */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/webp,image/jpeg,image/jpg,application/json,text/plain"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                        handleProcessFile(e.target.files[0]);
+                        e.target.value = "";
+                    }
+                }}
+            />
+
             <input
                 ref={folderInputRef}
                 type="file"
@@ -956,63 +1034,135 @@ export default function MetadataInspector() {
                 }}
             />
 
-            {/* Input Selection Bar */}
-            <div className="inspector-mode-bar">
-                <div className="inspector-tabs-toggle">
-                    <button
-                        type="button"
-                        className={`mode-tab-btn ${mode === "upload" ? "active" : ""}`}
-                        onClick={() => {
-                            setMode("upload");
-                            setSelectedBatchIdx(null);
-                        }}
-                    >
-                        <span>Single File</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`mode-tab-btn ${mode === "batch" ? "active" : ""}`}
-                        onClick={() => setMode("batch")}
-                    >
-                        <span>
-                            📁 Batch Folder / Multi-File {batchItems.length > 0 ? `(${batchItems.length})` : ""}
-                        </span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`mode-tab-btn ${mode === "paste" ? "active" : ""}`}
-                        onClick={() => {
-                            setMode("paste");
-                            setSelectedBatchIdx(null);
-                        }}
-                    >
-                        <span>Paste Raw Text / JSON</span>
-                    </button>
-                </div>
+            {/* STATE 2: Compact Top Action Bar (Saat Gambar Sudah Dimuat) */}
+            {isInspecting ? (
+                <div className="inspector-compact-bar">
+                    <div className="inspector-tabs-toggle">
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "upload" ? "active" : ""}`}
+                            onClick={() => {
+                                setMode("upload");
+                                setSelectedBatchIdx(null);
+                            }}
+                        >
+                            <span>Satu File</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "batch" ? "active" : ""}`}
+                            onClick={() => setMode("batch")}
+                        >
+                            <Icons.Folder />
+                            <span>
+                                Batch / Multi-File {batchItems.length > 0 ? `(${batchItems.length})` : ""}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "paste" ? "active" : ""}`}
+                            onClick={() => {
+                                setMode("paste");
+                                setSelectedBatchIdx(null);
+                            }}
+                        >
+                            <span>Tempel JSON / Teks Mentah</span>
+                        </button>
+                    </div>
 
-                {(currentFile || batchItems.length > 0) && (
+                    <div className="compact-bar-hint">
+                        <Icons.UploadCloud />
+                        <span>Tarik file baru ke mana saja atau tekan <kbd>Ctrl+V</kbd> untuk mengganti</span>
+                    </div>
+
+                    <div className="compact-bar-actions">
+                        <button
+                            type="button"
+                            className="demo-sample-btn"
+                            onClick={handleLoadDemo}
+                            title="Muat contoh parameter generasi interaktif"
+                        >
+                            <Icons.Sparkles />
+                            <span>Muat Contoh (Demo)</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="reset-clean-btn"
+                            onClick={handleResetAll}
+                            title="Reset dan bersihkan data inspeksi"
+                        >
+                            <Icons.Trash />
+                            <span>Reset / Bersihkan</span>
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                /* STATE 1: Standard Mode Bar (Saat Belum Ada Gambar) */
+                <div className="inspector-mode-bar">
+                    <div className="inspector-tabs-toggle">
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "upload" ? "active" : ""}`}
+                            onClick={() => {
+                                setMode("upload");
+                                setSelectedBatchIdx(null);
+                            }}
+                        >
+                            <span>Satu File</span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "batch" ? "active" : ""}`}
+                            onClick={() => setMode("batch")}
+                        >
+                            <Icons.Folder />
+                            <span>
+                                Batch / Multi-File {batchItems.length > 0 ? `(${batchItems.length})` : ""}
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            className={`mode-tab-btn ${mode === "paste" ? "active" : ""}`}
+                            onClick={() => {
+                                setMode("paste");
+                                setSelectedBatchIdx(null);
+                            }}
+                        >
+                            <span>Tempel JSON / Teks Mentah</span>
+                        </button>
+                    </div>
+
                     <button
                         type="button"
                         className="demo-sample-btn"
-                        onClick={() => {
-                            setCurrentFile(null);
-                            setRawFile(null);
-                            setMetaResult(null);
-                            setInterrogateResult(null);
-                            setInterrogateError(null);
-                            setErrorMsg(null);
-                            setPastedText("");
-                            handleClearBatch();
-                        }}
+                        onClick={handleLoadDemo}
+                        title="Muat contoh parameter generasi interaktif"
                     >
-                        <Icons.Trash />
-                        <span>Reset / Clear</span>
+                        <Icons.Sparkles />
+                        <span>Muat Contoh (Demo)</span>
                     </button>
-                )}
-            </div>
+                </div>
+            )}
 
-            {/* Mode 1: Single File Dropzone */}
-            {mode === "upload" && (
+            {/* Error Message for fatal errors */}
+            {errorMsg && (
+                <div
+                    style={{
+                        marginBottom: "18px",
+                        padding: "12px 16px",
+                        background: "rgba(239, 68, 68, 0.08)",
+                        border: "1px solid rgba(239, 68, 68, 0.25)",
+                        borderRadius: "8px",
+                        color: "#f87171",
+                        fontSize: "13px",
+                    }}
+                >
+                    {errorMsg}
+                </div>
+            )}
+
+            {/* STATE 1 - Mode 1: Single File Dropzone (Hanya Tampil Saat Belum Ada Gambar) */}
+            {!isInspecting && mode === "upload" && (
                 <div
                     className={`inspector-dropzone ${isDragging ? "dragging" : ""}`}
                     onDragOver={(e) => {
@@ -1023,19 +1173,6 @@ export default function MetadataInspector() {
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
                 >
-                    <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/png,image/webp,image/jpeg,image/jpg,application/json,text/plain"
-                        style={{ display: "none" }}
-                        onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                                handleProcessFile(e.target.files[0]);
-                                e.target.value = "";
-                            }
-                        }}
-                    />
-
                     <div className="dropzone-icon-box">
                         <Icons.UploadCloud />
                     </div>
@@ -1051,7 +1188,7 @@ export default function MetadataInspector() {
                         )}
                     </div>
                     <div className="dropzone-sub-text">
-                        Mendukung PNG (ComfyUI / WebUI), WebP, JPEG dengan embedded EXIF/XMP, serta file ComfyUI Workflow JSON. Tarik 1 folder ke sini untuk otomatis beralih ke Batch Mode.
+                        Mendukung format PNG, WebP, JPEG, serta file ComfyUI Workflow JSON. Tarik 1 folder ke sini untuk otomatis beralih ke Mode Batch.
                     </div>
 
                     <div className="dropzone-paste-hint">
@@ -1060,7 +1197,7 @@ export default function MetadataInspector() {
                 </div>
             )}
 
-            {/* Mode 2: Batch Folder / Multi-File Mode */}
+            {/* STATE 1 - Mode 2: Batch Folder / Multi-File Mode (Hanya jika belum memilih foto spesifik) */}
             {mode === "batch" && selectedBatchIdx === null && (
                 <>
                     {batchItems.length === 0 ? (
@@ -1084,11 +1221,11 @@ export default function MetadataInspector() {
                                         Memindai folder gambar...
                                     </span>
                                 ) : (
-                                    "Tarik & Lepas 1 Folder Lokal atau Puluhan Foto di sini"
+                                    "Tarik & Lepas 1 Folder Lokal atau Puluhan File Gambar di sini"
                                 )}
                             </div>
                             <div className="dropzone-sub-text">
-                                Sistem akan otomatis memindai seluruh isi folder dan mendeteksi foto mana yang berisi metadata generasi AI (ComfyUI, WebUI, NovelAI, Fooocus) beserta prompt, LoRA, dan model checkpoint-nya.
+                                Sistem akan otomatis memindai seluruh file dan mendeteksi metadata AI (ComfyUI, WebUI, NovelAI) beserta parameter dan prompt-nya.
                             </div>
 
                             <div className="batch-dropzone-actions" onClick={(e) => e.stopPropagation()}>
@@ -1173,14 +1310,14 @@ export default function MetadataInspector() {
                                             className={`batch-filter-btn ${batchFilter === "has_meta" ? "active" : ""}`}
                                             onClick={() => setBatchFilter("has_meta")}
                                         >
-                                            ✨ Berisi Metadata AI ({withMetaCount})
+                                            Berisi Metadata AI ({withMetaCount})
                                         </button>
                                         <button
                                             type="button"
                                             className={`batch-filter-btn ${batchFilter === "no_meta" ? "active" : ""}`}
                                             onClick={() => setBatchFilter("no_meta")}
                                         >
-                                            ⚪ Tanpa Metadata ({noMetaCount})
+                                            Tanpa Metadata ({noMetaCount})
                                         </button>
                                     </div>
 
@@ -1212,7 +1349,7 @@ export default function MetadataInspector() {
                                                     title="Unduh laporan ringkasan JSON seluruh file dan metadata"
                                                 >
                                                     <Icons.Download />
-                                                    <span>Export JSON</span>
+                                                    <span>Ekspor JSON</span>
                                                 </button>
                                             </>
                                         )}
@@ -1324,7 +1461,7 @@ export default function MetadataInspector() {
                                                                         className="batch-model-pill"
                                                                         title={`Checkpoint Model: ${item.metadata.model_name}`}
                                                                     >
-                                                                        📦 {item.metadata.model_name}
+                                                                        {item.metadata.model_name}
                                                                     </span>
                                                                 )}
 
@@ -1335,7 +1472,7 @@ export default function MetadataInspector() {
                                                                             className="batch-lora-pill"
                                                                             title={`LoRA: <lora:${lora.name}:${lora.weight}>`}
                                                                         >
-                                                                            ⚡ {lora.name} ({lora.weight})
+                                                                            {lora.name} ({lora.weight})
                                                                         </span>
                                                                     ))}
 
@@ -1382,7 +1519,8 @@ export default function MetadataInspector() {
                                                                 handleInspectBatchItem(actualIdx);
                                                             }}
                                                         >
-                                                            <span>Inspeksi Lengkap 🔍</span>
+                                                            <Icons.Search />
+                                                            <span>Inspeksi Lengkap</span>
                                                         </button>
 
                                                         {!item.hasMetadata && item.status === "done" && (
@@ -1397,7 +1535,8 @@ export default function MetadataInspector() {
                                                                 }}
                                                                 title="Bedah prompt gambar ini menggunakan AI Vision"
                                                             >
-                                                                <span>🔮 AI Prompt</span>
+                                                                <Icons.Sparkles />
+                                                                <span>AI Reverse Prompt</span>
                                                             </button>
                                                         )}
 
@@ -1412,7 +1551,7 @@ export default function MetadataInspector() {
                                                                     }}
                                                                     title="Salin Positive Prompt"
                                                                 >
-                                                                    {copiedKey === `copy-batch-${item.id}` ? "Tersalin!" : "Copy"}
+                                                                    {copiedKey === `copy-batch-${item.id}` ? "Tersalin!" : "Salin"}
                                                                 </button>
 
                                                                 <Link
@@ -1438,12 +1577,12 @@ export default function MetadataInspector() {
                 </>
             )}
 
-            {/* Mode 3: Text Paste Mode */}
-            {mode === "paste" && (
+            {/* STATE 1 - Mode 3: Text Paste Mode (Hanya jika belum ada file aktif) */}
+            {!isInspecting && mode === "paste" && (
                 <div className="inspector-paste-box">
                     <textarea
                         className="paste-textarea"
-                        placeholder="Paste parameter teks Automatic1111 / WebUI atau ComfyUI Prompt JSON di sini..."
+                        placeholder="Tempel parameter teks Automatic1111 / WebUI atau ComfyUI Prompt JSON di sini..."
                         value={pastedText}
                         onChange={(e) => setPastedText(e.target.value)}
                     />
@@ -1455,26 +1594,9 @@ export default function MetadataInspector() {
                             disabled={!pastedText.trim() || isLoading}
                             style={{ padding: "8px 18px", fontSize: 13 }}
                         >
-                            {isLoading ? "Menganalisis..." : "Parse Metadata Text"}
+                            {isLoading ? "Menganalisis..." : "Analisis Teks Metadata"}
                         </button>
                     </div>
-                </div>
-            )}
-
-            {/* Error Message */}
-            {errorMsg && (
-                <div
-                    style={{
-                        marginTop: "18px",
-                        padding: "12px 16px",
-                        background: "rgba(239, 68, 68, 0.08)",
-                        border: "1px solid rgba(239, 68, 68, 0.25)",
-                        borderRadius: "8px",
-                        color: "#f87171",
-                        fontSize: "13px",
-                    }}
-                >
-                    {errorMsg}
                 </div>
             )}
 
@@ -1487,7 +1609,8 @@ export default function MetadataInspector() {
                             className="batch-back-btn"
                             onClick={() => setSelectedBatchIdx(null)}
                         >
-                            ← Kembali ke Daftar Batch ({batchItems.length} Foto)
+                            <Icons.ArrowLeft />
+                            <span>Kembali ke Daftar Batch ({batchItems.length} Foto)</span>
                         </button>
                         <span style={{ fontSize: "12px", color: "#94a3b8" }}>
                             Foto {selectedBatchIdx + 1} dari {batchItems.length}:{" "}
@@ -1515,29 +1638,29 @@ export default function MetadataInspector() {
                 </div>
             )}
 
-            {/* Results Grid (Shown in Single Mode, Paste Mode, or when drilling down into a Batch Item) */}
-            {((mode !== "batch" && metaResult && currentFile) || (mode === "batch" && selectedBatchIdx !== null && metaResult && currentFile)) && (
+            {/* STATE 2: Active Inspection Workspace (2-Kolom Grid) */}
+            {isInspecting && currentFile && (
                 <div className="inspector-results-grid">
-                    {/* Left Column: Image Preview & Details */}
+                    {/* Kolom Kiri: Image Preview & File Card (~340px) */}
                     <div className="inspector-left-panel">
                         <div className="preview-card">
                             <div className="preview-image-wrap">
                                 {currentFile.url ? (
-                                    <img src={currentFile.url} alt={currentFile.name} className="preview-img" />
-                                ) : (
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            padding: "40px 20px",
-                                            color: "#666c75",
-                                            gap: "10px",
+                                    <img
+                                        src={currentFile.url}
+                                        alt={currentFile.name}
+                                        className="preview-img"
+                                        onLoad={(e) => {
+                                            setNaturalDimensions({
+                                                width: e.currentTarget.naturalWidth,
+                                                height: e.currentTarget.naturalHeight,
+                                            });
                                         }}
-                                    >
+                                    />
+                                ) : (
+                                    <div className="preview-placeholder">
                                         <Icons.Layers />
-                                        <span style={{ fontSize: 13 }}>Workflow / Text Source</span>
+                                        <span>Sumber Workflow / Teks Mentah</span>
                                     </div>
                                 )}
                             </div>
@@ -1546,48 +1669,67 @@ export default function MetadataInspector() {
                                 <h3 className="preview-file-name" title={currentFile.name}>
                                     {currentFile.name}
                                 </h3>
-                                <div style={{ fontSize: "11px", color: "#666c75", fontFamily: "ui-monospace, monospace" }}>
-                                    Size: {formatBytes(currentFile.size)}
-                                </div>
 
-                                <div className="preview-tags-row">
-                                    <span className="tag-badge tag-format">{metaResult.format?.toUpperCase() || currentFile.format}</span>
-                                    <span
-                                        className={`tag-badge ${
-                                            metaResult.source === "comfyui"
-                                                ? "tag-source-comfyui"
-                                                : metaResult.source === "a1111"
-                                                ? "tag-source-a1111"
-                                                : metaResult.source === "novelai"
-                                                ? "tag-source-novelai"
-                                                : "tag-source-other"
-                                        }`}
-                                    >
-                                        {metaResult.source === "comfyui"
-                                            ? "ComfyUI"
-                                            : metaResult.source === "a1111"
-                                            ? "Automatic1111 / Forge"
-                                            : metaResult.source === "novelai"
-                                            ? "NovelAI"
-                                            : "Custom Generator"}
-                                    </span>
-                                    {metaResult.width && metaResult.height ? (
-                                        <span className="tag-badge tag-format">
-                                            {metaResult.width} × {metaResult.height}
+                                {/* Micro Properties Grid */}
+                                <div className="preview-micro-grid">
+                                    <div className="micro-prop-cell">
+                                        <span className="micro-prop-label">Ukuran</span>
+                                        <span className="micro-prop-val">{formatBytes(currentFile.size)}</span>
+                                    </div>
+                                    <div className="micro-prop-cell">
+                                        <span className="micro-prop-label">Dimensi</span>
+                                        <span className="micro-prop-val">
+                                            {metaResult?.width && metaResult?.height
+                                                ? `${metaResult.width} × ${metaResult.height} px`
+                                                : naturalDimensions
+                                                ? `${naturalDimensions.width} × ${naturalDimensions.height} px`
+                                                : "-"}
                                         </span>
-                                    ) : null}
+                                    </div>
+                                    <div className="micro-prop-cell">
+                                        <span className="micro-prop-label">Format</span>
+                                        <span className="micro-prop-val">{metaResult?.format?.toUpperCase() || currentFile.format || "PNG"}</span>
+                                    </div>
+                                    <div className="micro-prop-cell">
+                                        <span className="micro-prop-label">Status</span>
+                                        <span className={`micro-prop-val ${hasAiMetadata ? "highlight" : "muted"}`}>
+                                            {hasAiMetadata
+                                                ? (metaResult?.source === "comfyui"
+                                                    ? "ComfyUI"
+                                                    : metaResult?.source === "a1111"
+                                                    ? "WebUI"
+                                                    : metaResult?.source === "novelai"
+                                                    ? "NovelAI"
+                                                    : metaResult?.source === "gallery_db"
+                                                    ? "Galeri"
+                                                    : metaResult?.source === "ai_interrogated"
+                                                    ? "AI Vision"
+                                                    : "AI Metadata")
+                                                : "Polos (Stripped)"}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="preview-actions-column">
-                                    {metaResult.positive_prompt && (
+                                    <button
+                                        type="button"
+                                        className="preview-btn preview-btn-primary"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        title="Pilih file gambar baru untuk diperiksa"
+                                    >
+                                        <Icons.Refresh />
+                                        <span>Ganti Gambar / Unggah Baru</span>
+                                    </button>
+
+                                    {hasAiMetadata && metaResult?.positive_prompt && (
                                         <>
                                             <button
                                                 type="button"
-                                                className="preview-btn preview-btn-primary"
+                                                className="preview-btn preview-btn-secondary"
                                                 onClick={() => handleCopy(metaResult.positive_prompt || "", "left-pos")}
                                             >
                                                 {copiedKey === "left-pos" ? <Icons.Check /> : <Icons.Copy />}
-                                                <span>Copy Positive Prompt</span>
+                                                <span>Salin Positive Prompt</span>
                                             </button>
 
                                             <button
@@ -1602,8 +1744,8 @@ export default function MetadataInspector() {
                                                         scheduler: metaResult.scheduler,
                                                         cfg_scale: metaResult.cfg_scale,
                                                         seed: metaResult.seed,
-                                                        width: metaResult.width,
-                                                        height: metaResult.height,
+                                                        width: metaResult.width || naturalDimensions?.width,
+                                                        height: metaResult.height || naturalDimensions?.height,
                                                         model_name: metaResult.model_name,
                                                         model_hash: metaResult.model_hash,
                                                     });
@@ -1611,9 +1753,8 @@ export default function MetadataInspector() {
                                                 }}
                                             >
                                                 {copiedKey === "left-webui" ? <Icons.Check /> : <Icons.Copy />}
-                                                <span>Copy WebUI Parameters</span>
+                                                <span>Salin Parameter WebUI</span>
                                             </button>
-
                                             <button
                                                 type="button"
                                                 className="preview-btn preview-btn-secondary"
@@ -1625,31 +1766,31 @@ export default function MetadataInspector() {
                                                         sampler: metaResult.sampler,
                                                         cfg_scale: metaResult.cfg_scale,
                                                         seed: metaResult.seed,
-                                                        width: metaResult.width,
-                                                        height: metaResult.height,
+                                                        width: metaResult.width || naturalDimensions?.width,
+                                                        height: metaResult.height || naturalDimensions?.height,
                                                     });
                                                     handleCopy(payload, "left-api");
                                                 }}
                                             >
                                                 {copiedKey === "left-api" ? <Icons.Check /> : <Icons.Code />}
-                                                <span>Copy API Payload (JSON)</span>
+                                                <span>Salin Payload API</span>
                                             </button>
                                         </>
                                     )}
 
-                                    {(metaResult.workflow_json || metaResult.prompt_json) ? (
+                                    {hasAiMetadata && ((metaResult?.workflow_json || metaResult?.prompt_json) ? (
                                         <button
                                             type="button"
-                                            className="preview-btn preview-btn-primary"
+                                            className="preview-btn preview-btn-secondary"
                                             onClick={handleDownloadWorkflow}
                                         >
                                             <Icons.Download />
-                                            <span>Download Workflow (.json)</span>
+                                            <span>Unduh Workflow (.json)</span>
                                         </button>
-                                    ) : metaResult.positive_prompt ? (
+                                    ) : metaResult?.positive_prompt ? (
                                         <button
                                             type="button"
-                                            className="preview-btn preview-btn-primary"
+                                            className="preview-btn preview-btn-secondary"
                                             onClick={() => {
                                                 const workflowJson = buildComfyUIWorkflowJSON({
                                                     positive_prompt: metaResult.positive_prompt,
@@ -1659,8 +1800,8 @@ export default function MetadataInspector() {
                                                     scheduler: metaResult.scheduler,
                                                     cfg_scale: metaResult.cfg_scale,
                                                     seed: metaResult.seed,
-                                                    width: metaResult.width,
-                                                    height: metaResult.height,
+                                                    width: metaResult.width || naturalDimensions?.width,
+                                                    height: metaResult.height || naturalDimensions?.height,
                                                     model_name: metaResult.model_name,
                                                 });
                                                 downloadTextAsFile(
@@ -1670,651 +1811,749 @@ export default function MetadataInspector() {
                                             }}
                                         >
                                             <Icons.Download />
-                                            <span>Export ComfyUI Workflow (.json)</span>
+                                            <span>Ekspor Workflow (.json)</span>
                                         </button>
-                                    ) : null}
-
-                                    <button
-                                        type="button"
-                                        className="preview-btn preview-btn-secondary"
-                                        onClick={() => {
-                                            setCurrentFile(null);
-                                            setMetaResult(null);
-                                        }}
-                                    >
-                                        <Icons.Trash />
-                                        <span>Inspect Another Image</span>
-                                    </button>
+                                    ) : null)}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right Column: Inspector Tabs */}
+                    {/* Kolom Kanan: Panel Hasil Inspeksi & Reverse Prompt */}
                     <div className="inspector-right-panel">
-                        {/* AI Image-to-Prompt Interrogator Banner */}
-                        {(!metaResult.positive_prompt || metaResult.source === "unknown" || metaResult.source === "ai_interrogated") && (
-                            <div className="ai-interrogator-hero">
-                                <div className="ai-interrogator-hero-left">
-                                    <div className="ai-interrogator-icon-box">
-                                        <Icons.Sparkles />
+                        {/* KASUS B — Jika Metadata TIDAK Ditemukan (File Polos / Stripped) */}
+                        {!hasAiMetadata ? (
+                            <div className="empty-meta-callout-card">
+                                <div className="empty-meta-header">
+                                    <div className="empty-meta-icon">
+                                        <Icons.AlertTriangle />
                                     </div>
-                                    <div className="ai-interrogator-content">
-                                        <div className="ai-interrogator-title-row">
-                                            <h4 className="ai-interrogator-title">Reverse Prompt</h4>
-                                            <span
-                                                className="ai-model-active-pill"
-                                                title={`Engine aktif: ${aiProvider === "gemini" ? selectedGeminiModel : (localModelInput || "Default Model")}`}
-                                            >
-                                                <span className="ai-pill-dot" />
-                                                <span className="ai-pill-provider">
-                                                    {aiProvider === "gemini" ? "Gemini" : aiProvider === "ollama" ? "Ollama" : "LM Studio"}
-                                                </span>
-                                                <span className="ai-pill-divider">:</span>
-                                                <span className="ai-pill-model">
-                                                    {aiProvider === "gemini"
-                                                        ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
-                                                        : (localModelInput || "local-model")}
-                                                </span>
-                                            </span>
-                                        </div>
-                                        <p className="ai-interrogator-desc">
-                                            {aiProvider === "gemini"
-                                                ? "Ekstrak prompt, style, dan tag Danbooru dari gambar menggunakan Gemini Vision."
-                                                : `Ekstrak prompt, style, dan tag Danbooru secara lokal menggunakan Vision LLM (${aiProvider === "ollama" ? "Ollama" : "LM Studio"}).`}
+                                    <div className="empty-meta-title-group">
+                                        <h3 className="empty-meta-title">Metadata Generasi Tidak Ditemukan (File Polos / Stripped)</h3>
+                                        <p className="empty-meta-desc">
+                                            File ini tidak memiliki chunk metadata AI (kemungkinan telah terkompresi oleh media sosial atau dihapus saat ekspor).
                                         </p>
                                     </div>
                                 </div>
-                                <div className="ai-interrogator-hero-right">
-                                    <button
-                                        type="button"
-                                        className="ai-settings-btn"
-                                        onClick={() => setShowApiKeyModal(true)}
-                                        title="Pengaturan Provider & Model AI"
-                                    >
-                                        <Icons.Settings />
-                                        <span>Provider & Model</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="ai-interrogate-trigger-btn"
-                                        onClick={() => handleRunInterrogate()}
-                                        disabled={isInterrogating || !rawFile}
-                                    >
-                                        {isInterrogating ? (
-                                            <>
-                                                <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
-                                                <span>Menganalisis...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Icons.Sparkles />
-                                                <span>Generate Prompt</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
 
-                        {/* Interrogation Error Alert */}
-                        {interrogateError && (
-                            <div
-                                style={{
-                                    marginBottom: "16px",
-                                    padding: "12px 16px",
-                                    background: "rgba(239, 68, 68, 0.1)",
-                                    border: "1px solid rgba(239, 68, 68, 0.3)",
-                                    borderRadius: "8px",
-                                    color: "#f87171",
-                                    fontSize: "13px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "10px",
-                                }}
-                            >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px" }}>
-                                    <span>⚠️ {interrogateError}</span>
-                                    <button
-                                        type="button"
-                                        className="ai-settings-btn"
-                                        style={{ padding: "4px 10px", fontSize: "11px", whiteSpace: "nowrap" }}
-                                        onClick={() => setShowApiKeyModal(true)}
-                                    >
-                                        <Icons.Settings />
-                                        <span>Provider & Model</span>
-                                    </button>
-                                </div>
-                                {(interrogateError.includes("503") ||
-                                    interrogateError.includes("high demand") ||
-                                    interrogateError.includes("UNAVAILABLE") ||
-                                    interrogateError.includes("sibuk")) && (
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "space-between",
-                                            background: "rgba(0, 0, 0, 0.25)",
-                                            padding: "8px 12px",
-                                            borderRadius: "6px",
-                                            gap: "10px",
-                                        }}
-                                    >
-                                        <span style={{ fontSize: "12px", color: "#e2e8f0" }}>
-                                            <strong>Solusi Alternatif:</strong> Server Google untuk model tersebut sedang antrean tinggi. Anda dapat beralih ke <strong>Gemini 1.5 Flash</strong> atau gunakan <strong>AI Lokal</strong>:
-                                        </span>
-                                        <div style={{ display: "flex", gap: "6px" }}>
-                                            <button
-                                                type="button"
-                                                className="mode-tab-btn active"
-                                                style={{ padding: "5px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
-                                                onClick={() => {
-                                                    setStoredGeminiModel("gemini-1.5-flash-latest");
-                                                    setSelectedGeminiModel("gemini-1.5-flash-latest");
-                                                    handleRunInterrogate();
-                                                }}
-                                            >
-                                                <Icons.Cloud />
-                                                <span>Beralih ke 1.5 Flash</span>
-                                            </button>
+                                <div className="empty-meta-action-section">
+                                    <div className="empty-meta-action-header">
+                                        <div className="empty-meta-action-info">
+                                            <span className="empty-meta-action-badge">Solusi AI Vision</span>
+                                            <p className="empty-meta-action-lead">
+                                                Gunakan AI Vision untuk mengekstrak estimasi prompt, gaya visual, dan tag Danbooru dari gambar ini.
+                                            </p>
+                                        </div>
+                                        <div className="empty-meta-action-buttons">
                                             <button
                                                 type="button"
                                                 className="ai-settings-btn"
-                                                style={{ padding: "5px 12px", fontSize: "11px", whiteSpace: "nowrap" }}
-                                                onClick={() => {
-                                                    setAiProvider("ollama");
-                                                    setShowApiKeyModal(true);
-                                                }}
+                                                onClick={() => setShowApiKeyModal(true)}
+                                                title="Pengaturan Provider & Model AI"
                                             >
-                                                <Icons.Cpu />
-                                                <span>Pakai AI Lokal</span>
+                                                <Icons.Settings />
+                                                <span>Provider & Model</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="ai-interrogate-trigger-btn primary-cta"
+                                                onClick={() => handleRunInterrogate()}
+                                                disabled={isInterrogating || !rawFile}
+                                            >
+                                                {isInterrogating ? (
+                                                    <>
+                                                        <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
+                                                        <span>Mengekstrak Prompt...</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Icons.Sparkles />
+                                                        <span>Ekstrak Prompt dengan AI</span>
+                                                    </>
+                                                )}
                                             </button>
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        )}
 
-                        {/* Interrogation Result Panel */}
-                        {interrogateResult && (
-                            <div className="ai-interrogate-result-panel">
-                                <div className="ai-result-header">
-                                    <div className="ai-result-badge-group">
-                                        <span className="ai-model-rec-badge">Hasil Reverse Prompt</span>
-                                        {interrogateResult.used_model && (
-                                            <span className="ai-character-badge" title="Model AI Gemini yang berhasil memproses gambar ini">
-                                                Model: <strong>{interrogateResult.used_model}</strong>
-                                                {interrogateResult.fallback_occurred && " (Failover Auto)"}
-                                            </span>
-                                        )}
-                                        {interrogateResult.character && (
-                                            <span className="ai-character-badge">
-                                                Karakter: <strong>{interrogateResult.character}</strong>
-                                            </span>
-                                        )}
-                                        <span className="ai-model-rec-badge">
-                                            Rekomendasi Model: <strong>{interrogateResult.recommended_model}</strong>
+                                    {/* Active Provider Indicator */}
+                                    <div className="empty-meta-provider-status">
+                                        <span className="ai-pill-dot" />
+                                        <span className="ai-pill-provider">
+                                            {aiProvider === "gemini" ? "Google Gemini" : aiProvider === "ollama" ? "Ollama Lokal" : "LM Studio Lokal"}
+                                        </span>
+                                        <span className="ai-pill-divider">•</span>
+                                        <span className="ai-pill-model">
+                                            {aiProvider === "gemini"
+                                                ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
+                                                : (localModelInput || "Default Model")}
                                         </span>
                                     </div>
-                                    <button
-                                        type="button"
-                                        className="batch-bulk-btn"
-                                        onClick={() => setInterrogateResult(null)}
-                                        style={{ fontSize: 11 }}
-                                    >
-                                        ✕ Tutup Panel AI
-                                    </button>
-                                </div>
 
-                                {/* Danbooru Tags Prompt */}
-                                <div className="ai-result-box">
-                                    <div className="ai-result-label-row">
-                                        <span className="ai-result-label">🎨 Danbooru Tag Prompt (Pony / Illustrious / Anime):</span>
-                                        <button
-                                            type="button"
-                                            className="copy-chip-btn"
-                                            onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
-                                        >
-                                            <Icons.Copy />
-                                            <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
-                                        </button>
-                                    </div>
-                                    <div className="ai-result-prompt-box danbooru">
-                                        {interrogateResult.danbooru_prompt}
-                                    </div>
-                                </div>
-
-                                {/* Negative Prompt */}
-                                {interrogateResult.negative_prompt && (
-                                    <div className="ai-result-box">
-                                        <div className="ai-result-label-row">
-                                            <span className="ai-result-label">🚫 Negative Prompt:</span>
+                                    {/* Error Alert if Interrogation Failed */}
+                                    {interrogateError && (
+                                        <div className="ai-interrogate-inline-error">
+                                            <span>{interrogateError}</span>
                                             <button
                                                 type="button"
-                                                className="copy-chip-btn"
-                                                onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
+                                                className="ai-settings-btn mini"
+                                                onClick={() => setShowApiKeyModal(true)}
                                             >
-                                                <Icons.Copy />
-                                                <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin Negative"}</span>
+                                                <Icons.Settings />
+                                                <span>Buka Pengaturan</span>
                                             </button>
-                                        </div>
-                                        <div className="ai-result-prompt-box">
-                                            {interrogateResult.negative_prompt}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Natural Language Prompt */}
-                                {interrogateResult.natural_prompt && (
-                                    <div className="ai-result-box">
-                                        <div className="ai-result-label-row">
-                                            <span className="ai-result-label">📖 Natural Language Prompt (SDXL / Flux / Midjourney):</span>
-                                            <button
-                                                type="button"
-                                                className="copy-chip-btn"
-                                                onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
-                                            >
-                                                <Icons.Copy />
-                                                <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
-                                            </button>
-                                        </div>
-                                        <div className="ai-result-prompt-box">
-                                            {interrogateResult.natural_prompt}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Style Tags & Suggested LoRAs */}
-                                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 14, marginTop: 12 }}>
-                                    {interrogateResult.style_tags?.length > 0 && (
-                                        <div>
-                                            <span className="ai-result-label">🎭 Art Style Tags:</span>
-                                            <div className="ai-style-chips-row">
-                                                {interrogateResult.style_tags.map((st, i) => (
-                                                    <span key={i} className="ai-style-chip">#{st}</span>
-                                                ))}
-                                            </div>
                                         </div>
                                     )}
 
-                                    {interrogateResult.suggested_loras?.length > 0 && (
-                                        <div>
-                                            <span className="ai-result-label">⚡ Saran LoRA:</span>
-                                            <div className="lora-chips-row" style={{ marginTop: 6 }}>
-                                                {interrogateResult.suggested_loras.map((lora, i) => (
-                                                    <div key={i} className="lora-chip-item">
-                                                        <span>{lora.name}</span>
-                                                        <span className="lora-weight-badge">{lora.weight}</span>
+                                    {/* Interrogation Result directly embedded in the callout */}
+                                    {interrogateResult && (
+                                        <div className="ai-interrogate-result-panel embedded">
+                                            <div className="ai-result-header">
+                                                <div className="ai-result-badge-group">
+                                                    <span className="ai-model-rec-badge">Hasil Ekstraksi AI</span>
+                                                    {interrogateResult.character && (
+                                                        <span className="ai-character-badge">
+                                                            Karakter: <strong>{interrogateResult.character}</strong>
+                                                        </span>
+                                                    )}
+                                                    <span className="ai-model-rec-badge">
+                                                        Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            {/* Danbooru Tags Prompt */}
+                                            <div className="ai-result-box">
+                                                <div className="ai-result-label-row">
+                                                    <span className="ai-result-label">Danbooru Tag Prompt:</span>
+                                                    <button
+                                                        type="button"
+                                                        className="copy-chip-btn"
+                                                        onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
+                                                    >
+                                                        {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
+                                                    </button>
+                                                </div>
+                                                <div className="ai-result-prompt-box danbooru">
+                                                    {interrogateResult.danbooru_prompt}
+                                                </div>
+                                            </div>
+
+                                            {/* Negative Prompt */}
+                                            {interrogateResult.negative_prompt && (
+                                                <div className="ai-result-box">
+                                                    <div className="ai-result-label-row">
+                                                        <span className="ai-result-label">Negative Prompt:</span>
+                                                        <button
+                                                            type="button"
+                                                            className="copy-chip-btn"
+                                                            onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
+                                                        >
+                                                            {copiedKey === "copy-ai-neg" ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin Negative"}</span>
+                                                        </button>
                                                     </div>
-                                                ))}
+                                                    <div className="ai-result-prompt-box">
+                                                        {interrogateResult.negative_prompt}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Natural Language Prompt */}
+                                            {interrogateResult.natural_prompt && (
+                                                <div className="ai-result-box">
+                                                    <div className="ai-result-label-row">
+                                                        <span className="ai-result-label">Natural Language Prompt:</span>
+                                                        <button
+                                                            type="button"
+                                                            className="copy-chip-btn"
+                                                            onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
+                                                        >
+                                                            {copiedKey === "copy-ai-natural" ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
+                                                        </button>
+                                                    </div>
+                                                    <div className="ai-result-prompt-box">
+                                                        {interrogateResult.natural_prompt}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Style Tags & Suggested LoRAs */}
+                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 10 }}>
+                                                {interrogateResult.style_tags?.length > 0 && (
+                                                    <div>
+                                                        <span className="ai-result-label">Art Style Tags:</span>
+                                                        <div className="ai-style-chips-row">
+                                                            {interrogateResult.style_tags.map((st, i) => (
+                                                                <span key={i} className="ai-style-chip">#{st}</span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {interrogateResult.suggested_loras?.length > 0 && (
+                                                    <div>
+                                                        <span className="ai-result-label">Saran LoRA:</span>
+                                                        <div className="lora-chips-row" style={{ marginTop: 6 }}>
+                                                            {interrogateResult.suggested_loras.map((lora, i) => (
+                                                                <div key={i} className="lora-chip-item">
+                                                                    <span>{lora.name}</span>
+                                                                    <span className="lora-weight-badge">{lora.weight}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Bottom Apply & Lab Actions */}
+                                            <div className="ai-interrogate-bottom-actions" style={{ marginTop: 16 }}>
+                                                <button
+                                                    type="button"
+                                                    className="ai-apply-meta-btn"
+                                                    onClick={handleApplyInterrogateToMetadata}
+                                                >
+                                                    <Icons.Copy />
+                                                    <span>Terapkan ke Parameter & Quick Copy</span>
+                                                </button>
+                                                <Link
+                                                    to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
+                                                    className="ai-lab-transfer-btn"
+                                                >
+                                                    <span>Buka di Prompt Lab Canvas →</span>
+                                                </Link>
                                             </div>
                                         </div>
                                     )}
-                                </div>
-
-                                {/* Bottom Actions */}
-                                <div className="ai-interrogate-bottom-actions">
-                                    <button
-                                        type="button"
-                                        className="ai-apply-meta-btn"
-                                        onClick={handleApplyInterrogateToMetadata}
-                                    >
-                                        📋 Terapkan ke Tab Parameter & Quick Copy
-                                    </button>
-                                    <Link
-                                        to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
-                                        className="ai-lab-transfer-btn"
-                                    >
-                                        🚀 Buka di Prompt Lab Canvas →
-                                    </Link>
                                 </div>
                             </div>
-                        )}
+                        ) : (
+                            /* KASUS A — Jika Metadata Ditemukan (Valid AI Image) */
+                            <>
+                                <div className="inspector-tabs-header">
+                                    <button
+                                        type="button"
+                                        className={`inspector-tab-item ${activeTab === "params" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("params")}
+                                    >
+                                        <Icons.Inspector />
+                                        <span>Prompt & Parameter</span>
+                                    </button>
 
-                        <div className="inspector-tabs-header">
-                            <button
-                                type="button"
-                                className={`inspector-tab-item ${activeTab === "params" ? "active" : ""}`}
-                                onClick={() => setActiveTab("params")}
-                            >
-                                <Icons.Inspector />
-                                <span>Parameters & Prompt</span>
-                            </button>
-
-                            {(metaResult.workflow_json || metaResult.prompt_json) && (
-                                <button
-                                    type="button"
-                                    className={`inspector-tab-item ${activeTab === "workflow" ? "active" : ""}`}
-                                    onClick={() => setActiveTab("workflow")}
-                                >
-                                    <Icons.Layers />
-                                    <span>ComfyUI Node Graph</span>
-                                </button>
-                            )}
-
-                            {metaResult.raw_prompt && (
-                                <button
-                                    type="button"
-                                    className={`inspector-tab-item ${activeTab === "raw" ? "active" : ""}`}
-                                    onClick={() => setActiveTab("raw")}
-                                >
-                                    <Icons.Code />
-                                    <span>Raw Parameters Block</span>
-                                </button>
-                            )}
-
-                            {metaResult.raw_chunks && Object.keys(metaResult.raw_chunks).length > 0 && (
-                                <button
-                                    type="button"
-                                    className={`inspector-tab-item ${activeTab === "chunks" ? "active" : ""}`}
-                                    onClick={() => setActiveTab("chunks")}
-                                >
-                                    <span>All Chunks & EXIF</span>
-                                    <span className="inspector-tab-count">
-                                        {Object.keys(metaResult.raw_chunks).length}
-                                    </span>
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="inspector-tab-body">
-                            {/* Tab 1: Parameters & Prompt */}
-                            {activeTab === "params" && (
-                                <>
-                                    {/* Diagnostic Alert if Image Metadata is Missing/Stripped */}
-                                    {!metaResult.positive_prompt && !metaResult.workflow_json && !metaResult.raw_prompt && (!metaResult.steps || metaResult.steps === 0) && (
-                                        <div className="inspector-stripped-alert">
-                                            <div className="stripped-alert-header">
-                                                <Icons.Info />
-                                                <span>Metadata Generasi Tidak Ditemukan (File Polos / Stripped)</span>
-                                            </div>
-                                            <p className="stripped-alert-desc">
-                                                Gambar ini valid dan berhasil dibaca ({metaResult.width} × {metaResult.height}), namun <strong>tidak memiliki chunk metadata generasi AI</strong> (tEXt/EXIF/ComfyUI).
-                                            </p>
-                                            <div className="stripped-reasons-list">
-                                                <div className="stripped-reason-item">
-                                                    <strong>1. Kompresi & Pembersihan oleh Platform (Pixiv, Twitter/X, Reddit, Discord):</strong>
-                                                    <span>Hampir semua platform media sosial secara otomatis menghapus (scrubbing) seluruh metadata non-standar saat gambar diunggah demi privasi dan penghematan bandwidth CDN server mereka.</span>
-                                                </div>
-                                                <div className="stripped-reason-item">
-                                                    <strong>2. Kreator Sengaja Menghapusnya:</strong>
-                                                    <span>Banyak kreator AI mencentang opsi <em>"Strip Metadata"</em> di WebUI/ComfyUI atau mengeditnya di Photoshop/Canva sebelum upload agar prompt dan racikan LoRA mereka tidak dicontek orang lain.</span>
-                                                </div>
-                                                <div className="stripped-reason-item">
-                                                    <strong>3. Mengunduh Versi Web Preview (Bukan File Master Asli):</strong>
-                                                    <span>Menyimpan gambar dari klik kanan preview feed web atau screenshot Snipping Tool hanya mengunduh piksel tampilan tanpa menyertakan chunk data asli generator.</span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    {(metaResult?.workflow_json || metaResult?.prompt_json) && (
+                                        <button
+                                            type="button"
+                                            className={`inspector-tab-item ${activeTab === "workflow" ? "active" : ""}`}
+                                            onClick={() => setActiveTab("workflow")}
+                                        >
+                                            <Icons.Layers />
+                                            <span>Workflow / Node Graph</span>
+                                        </button>
                                     )}
 
-                                    {/* Positive Prompt */}
-                                    <div className="inspector-section">
-                                        <div className="inspector-section-title">
-                                            <span>Positive Prompt</span>
-                                            {metaResult.positive_prompt && (
-                                                <button
-                                                    type="button"
-                                                    className={`copy-mini-btn ${copiedKey === "tab-pos" ? "copied" : ""}`}
-                                                    onClick={() => handleCopy(metaResult.positive_prompt || "", "tab-pos")}
-                                                >
-                                                    {copiedKey === "tab-pos" ? <Icons.Check /> : <Icons.Copy />}
-                                                    <span>{copiedKey === "tab-pos" ? "Copied" : "Copy"}</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                        <div className="inspector-prompt-block">
-                                            {metaResult.positive_prompt || (
-                                                <span style={{ color: "#666c75" }}>Tidak ada positive prompt ditemukan</span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    {metaResult?.raw_prompt && (
+                                        <button
+                                            type="button"
+                                            className={`inspector-tab-item ${activeTab === "raw" ? "active" : ""}`}
+                                            onClick={() => setActiveTab("raw")}
+                                        >
+                                            <Icons.Code />
+                                            <span>Blok Parameter Mentah</span>
+                                        </button>
+                                    )}
 
-                                    {/* Negative Prompt */}
-                                    {metaResult.negative_prompt && (
+                                    {metaResult?.raw_chunks && Object.keys(metaResult.raw_chunks).length > 0 && (
+                                        <button
+                                            type="button"
+                                            className={`inspector-tab-item ${activeTab === "chunks" ? "active" : ""}`}
+                                            onClick={() => setActiveTab("chunks")}
+                                        >
+                                            <span>Raw EXIF / JSON</span>
+                                            <span className="inspector-tab-count">
+                                                {Object.keys(metaResult.raw_chunks).length}
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    <button
+                                        type="button"
+                                        className={`inspector-tab-item ${activeTab === "reverse" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("reverse")}
+                                    >
+                                        <Icons.Sparkles />
+                                        <span>Reverse Prompt (AI Vision)</span>
+                                    </button>
+                                </div>
+
+                                <div className="inspector-tab-body">
+                                    {/* Tab 1: Prompt & Parameter */}
+                                    {activeTab === "params" && (
+                                        <>
+                                            {/* Positive Prompt */}
+                                            {metaResult?.positive_prompt && (
+                                                <div className="inspector-section">
+                                                    <div className="inspector-section-title">
+                                                        <span>Positive Prompt</span>
+                                                        <button
+                                                            type="button"
+                                                            className={`copy-mini-btn ${copiedKey === "tab-pos" ? "copied" : ""}`}
+                                                            onClick={() => handleCopy(metaResult.positive_prompt || "", "tab-pos")}
+                                                        >
+                                                            {copiedKey === "tab-pos" ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === "tab-pos" ? "Tersalin!" : "Salin"}</span>
+                                                        </button>
+                                                    </div>
+                                                    <div className="inspector-prompt-block">
+                                                        {metaResult.positive_prompt}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Negative Prompt */}
+                                            {metaResult?.negative_prompt && (
+                                                <div className="inspector-section">
+                                                    <div className="inspector-section-title">
+                                                        <span>Negative Prompt</span>
+                                                        <button
+                                                            type="button"
+                                                            className={`copy-mini-btn ${copiedKey === "tab-neg" ? "copied" : ""}`}
+                                                            onClick={() => handleCopy(metaResult.negative_prompt || "", "tab-neg")}
+                                                        >
+                                                            {copiedKey === "tab-neg" ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === "tab-neg" ? "Tersalin!" : "Salin"}</span>
+                                                        </button>
+                                                    </div>
+                                                    <div className="inspector-prompt-block negative">
+                                                        {metaResult.negative_prompt}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Parameter Generasi Grid */}
+                                            <div className="inspector-section">
+                                                <div className="inspector-section-title">
+                                                    <span>Parameter Generasi</span>
+                                                </div>
+                                                <div className="params-meta-grid">
+                                                    {metaResult?.model_name && (
+                                                        <div className="param-meta-cell full-span">
+                                                            <span className="param-cell-label">Checkpoint / Model</span>
+                                                            <span className="param-cell-value" title={metaResult.model_name}>
+                                                                {metaResult.model_name}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.sampler && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Sampler</span>
+                                                            <span className="param-cell-value">
+                                                                {metaResult.sampler}
+                                                                {metaResult.scheduler ? ` (${metaResult.scheduler})` : ""}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.steps !== undefined && metaResult.steps > 0 && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Steps</span>
+                                                            <span className="param-cell-value">{metaResult.steps}</span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.cfg_scale !== undefined && metaResult.cfg_scale > 0 && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">CFG Scale</span>
+                                                            <span className="param-cell-value">{metaResult.cfg_scale}</span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.seed !== undefined && metaResult.seed !== 0 && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Seed</span>
+                                                            <span className="param-cell-value seed-cell">
+                                                                <span>{metaResult.seed}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="copy-mini-btn"
+                                                                    style={{ padding: "1px 5px", fontSize: 10 }}
+                                                                    onClick={() => handleCopy(String(metaResult.seed), "seed-copy")}
+                                                                    title="Salin Seed"
+                                                                >
+                                                                    {copiedKey === "seed-copy" ? <Icons.Check /> : <Icons.Copy />}
+                                                                </button>
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                    {(metaResult?.width && metaResult?.height) || naturalDimensions ? (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Resolusi</span>
+                                                            <span className="param-cell-value">
+                                                                {metaResult?.width && metaResult?.height
+                                                                    ? `${metaResult.width} × ${metaResult.height}`
+                                                                    : `${naturalDimensions?.width} × ${naturalDimensions?.height}`}
+                                                            </span>
+                                                        </div>
+                                                    ) : null}
+                                                    {metaResult?.clip_skip !== undefined && metaResult.clip_skip > 0 && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Clip Skip</span>
+                                                            <span className="param-cell-value">{metaResult.clip_skip}</span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.denoising_strength !== undefined && metaResult.denoising_strength > 0 && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Denoise Strength</span>
+                                                            <span className="param-cell-value">{metaResult.denoising_strength}</span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.vae && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">VAE</span>
+                                                            <span className="param-cell-value">{metaResult.vae}</span>
+                                                        </div>
+                                                    )}
+                                                    {metaResult?.hires_upscaler && (
+                                                        <div className="param-meta-cell">
+                                                            <span className="param-cell-label">Hires Upscaler</span>
+                                                            <span className="param-cell-value">
+                                                                {metaResult.hires_upscaler}
+                                                                {metaResult.hires_upscale ? ` (${metaResult.hires_upscale}x)` : ""}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* LoRA Terdeteksi */}
+                                            {metaResult?.loras && metaResult.loras.length > 0 && (
+                                                <div className="inspector-section">
+                                                    <div className="inspector-section-title">
+                                                        <span>LoRA Terdeteksi ({metaResult.loras.length})</span>
+                                                    </div>
+                                                    <div className="lora-chips-row">
+                                                        {metaResult.loras.map((lora, idx) => (
+                                                            <div key={idx} className="lora-chip-item">
+                                                                <span>{lora.name}</span>
+                                                                <span className="lora-weight-badge">{lora.weight.toFixed(2)}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Parameter Tambahan */}
+                                            {metaResult?.extra_params && Object.keys(metaResult.extra_params).length > 0 && (
+                                                <div className="inspector-section">
+                                                    <div className="inspector-section-title">
+                                                        <span>Parameter Tambahan</span>
+                                                    </div>
+                                                    <div className="params-meta-grid">
+                                                        {Object.entries(metaResult.extra_params).map(([k, v]) => (
+                                                            <div key={k} className="param-meta-cell">
+                                                                <span className="param-cell-label">{k}</span>
+                                                                <span className="param-cell-value" title={v}>{v}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {/* Tab 2: Workflow / Node Graph */}
+                                    {activeTab === "workflow" && (
                                         <div className="inspector-section">
                                             <div className="inspector-section-title">
-                                                <span>Negative Prompt</span>
-                                                <button
-                                                    type="button"
-                                                    className={`copy-mini-btn ${copiedKey === "tab-neg" ? "copied" : ""}`}
-                                                    onClick={() => handleCopy(metaResult.negative_prompt || "", "tab-neg")}
-                                                >
-                                                    {copiedKey === "tab-neg" ? <Icons.Check /> : <Icons.Copy />}
-                                                    <span>{copiedKey === "tab-neg" ? "Copied" : "Copy"}</span>
-                                                </button>
+                                                <span>ComfyUI Node Graph / Workflow</span>
+                                                <div style={{ display: "flex", gap: 8 }}>
+                                                    <button
+                                                        type="button"
+                                                        className="copy-mini-btn"
+                                                        onClick={handleDownloadWorkflow}
+                                                    >
+                                                        <Icons.Download />
+                                                        <span>Simpan JSON</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="copy-mini-btn"
+                                                        onClick={() =>
+                                                            handleCopy(
+                                                                metaResult?.workflow_json || metaResult?.prompt_json || "",
+                                                                "workflow-copy"
+                                                            )
+                                                        }
+                                                    >
+                                                        {copiedKey === "workflow-copy" ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === "workflow-copy" ? "Tersalin!" : "Salin JSON"}</span>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div className="inspector-prompt-block negative">
-                                                {metaResult.negative_prompt}
+                                            <div className="inspector-prompt-block" style={{ maxHeight: "500px" }}>
+                                                {(() => {
+                                                    try {
+                                                        const raw = metaResult?.workflow_json || metaResult?.prompt_json || "{}";
+                                                        return JSON.stringify(JSON.parse(raw), null, 2);
+                                                    } catch {
+                                                        return metaResult?.workflow_json || metaResult?.prompt_json || "{}";
+                                                    }
+                                                })()}
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* Generation Core Parameters Grid */}
-                                    <div className="inspector-section">
-                                        <div className="inspector-section-title">
-                                            <span>Generation Settings</span>
+                                    {/* Tab 3: Blok Parameter Mentah */}
+                                    {activeTab === "raw" && (
+                                        <div className="inspector-section">
+                                            <div className="inspector-section-title">
+                                                <span>Blok Parameter Mentah (Unparsed)</span>
+                                                <button
+                                                    type="button"
+                                                    className={`copy-mini-btn ${copiedKey === "raw-copy" ? "copied" : ""}`}
+                                                    onClick={() => handleCopy(metaResult?.raw_prompt || "", "raw-copy")}
+                                                >
+                                                    {copiedKey === "raw-copy" ? <Icons.Check /> : <Icons.Copy />}
+                                                    <span>{copiedKey === "raw-copy" ? "Tersalin!" : "Salin Blok Parameter"}</span>
+                                                </button>
+                                            </div>
+                                            <div className="inspector-prompt-block" style={{ maxHeight: "450px" }}>
+                                                {metaResult?.raw_prompt}
+                                            </div>
                                         </div>
-                                        <div className="params-meta-grid">
-                                            {metaResult.steps !== undefined && metaResult.steps > 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Steps</span>
-                                                    <span className="param-cell-value">{metaResult.steps}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.sampler && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Sampler</span>
-                                                    <span className="param-cell-value">{metaResult.sampler}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.scheduler && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Scheduler</span>
-                                                    <span className="param-cell-value">{metaResult.scheduler}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.cfg_scale !== undefined && metaResult.cfg_scale > 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">CFG Scale</span>
-                                                    <span className="param-cell-value">{metaResult.cfg_scale}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.seed !== undefined && metaResult.seed !== 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Seed</span>
-                                                    <span className="param-cell-value" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                                        {metaResult.seed}
+                                    )}
+
+                                    {/* Tab 4: Raw EXIF / JSON */}
+                                    {activeTab === "chunks" && metaResult?.raw_chunks && (
+                                        <div className="raw-chunks-container">
+                                            <div className="inspector-section-title">
+                                                <span>Semua Chunk & Tag EXIF Tertanam</span>
+                                            </div>
+                                            {Object.entries(metaResult.raw_chunks).map(([key, val]) => (
+                                                <div key={key} className="raw-chunk-card">
+                                                    <div className="raw-chunk-header">
+                                                        <span className="raw-chunk-title">
+                                                            <code>{key}</code>
+                                                            <span className="raw-chunk-size">({val.length} karakter)</span>
+                                                        </span>
                                                         <button
                                                             type="button"
                                                             className="copy-mini-btn"
-                                                            style={{ padding: "1px 5px", fontSize: 10 }}
-                                                            onClick={() => handleCopy(String(metaResult.seed), "seed-copy")}
+                                                            onClick={() => handleCopy(val, `chunk-${key}`)}
                                                         >
-                                                            {copiedKey === "seed-copy" ? <Icons.Check /> : <Icons.Copy />}
+                                                            {copiedKey === `chunk-${key}` ? <Icons.Check /> : <Icons.Copy />}
+                                                            <span>{copiedKey === `chunk-${key}` ? "Tersalin!" : "Salin"}</span>
                                                         </button>
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {metaResult.width && metaResult.height ? (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Resolution</span>
-                                                    <span className="param-cell-value">{metaResult.width} × {metaResult.height}</span>
-                                                </div>
-                                            ) : null}
-                                            {metaResult.model_name && (
-                                                <div className="param-meta-cell" style={{ gridColumn: "span 2" }}>
-                                                    <span className="param-cell-label">Checkpoint / Model</span>
-                                                    <span className="param-cell-value" title={metaResult.model_name}>
-                                                        {metaResult.model_name}
-                                                    </span>
-                                                </div>
-                                            )}
-                                            {metaResult.model_hash && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Model Hash</span>
-                                                    <span className="param-cell-value">{metaResult.model_hash}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.clip_skip !== undefined && metaResult.clip_skip > 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Clip Skip</span>
-                                                    <span className="param-cell-value">{metaResult.clip_skip}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.denoising_strength !== undefined && metaResult.denoising_strength > 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Denoise Strength</span>
-                                                    <span className="param-cell-value">{metaResult.denoising_strength}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.vae && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">VAE</span>
-                                                    <span className="param-cell-value">{metaResult.vae}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.hires_upscaler && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Hires Upscaler</span>
-                                                    <span className="param-cell-value">{metaResult.hires_upscaler}</span>
-                                                </div>
-                                            )}
-                                            {metaResult.hires_upscale !== undefined && metaResult.hires_upscale > 0 && (
-                                                <div className="param-meta-cell">
-                                                    <span className="param-cell-label">Hires Scale</span>
-                                                    <span className="param-cell-value">{metaResult.hires_upscale}x</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* LoRAs Detected */}
-                                    {metaResult.loras && metaResult.loras.length > 0 && (
-                                        <div className="inspector-section">
-                                            <div className="inspector-section-title">
-                                                <span>Detected LoRAs ({metaResult.loras.length})</span>
-                                            </div>
-                                            <div className="lora-chips-row">
-                                                {metaResult.loras.map((lora, idx) => (
-                                                    <div key={idx} className="lora-chip-item">
-                                                        <span>{lora.name}</span>
-                                                        <span className="lora-weight-badge">{lora.weight.toFixed(2)}</span>
                                                     </div>
-                                                ))}
-                                            </div>
+                                                    <div className="raw-chunk-content">{val}</div>
+                                                </div>
+                                            ))}
                                         </div>
                                     )}
 
-                                    {/* Extra Parameters */}
-                                    {metaResult.extra_params && Object.keys(metaResult.extra_params).length > 0 && (
+                                    {/* Tab 5: Reverse Prompt (AI Vision) */}
+                                    {activeTab === "reverse" && (
                                         <div className="inspector-section">
-                                            <div className="inspector-section-title">
-                                                <span>Additional Parameters</span>
-                                            </div>
-                                            <div className="params-meta-grid">
-                                                {Object.entries(metaResult.extra_params).map(([k, v]) => (
-                                                    <div key={k} className="param-meta-cell">
-                                                        <span className="param-cell-label">{k}</span>
-                                                        <span className="param-cell-value" title={v}>{v}</span>
+                                            <div className="ai-interrogator-hero" style={{ margin: 0 }}>
+                                                <div className="ai-interrogator-hero-left">
+                                                    <div className="ai-interrogator-icon-box">
+                                                        <Icons.Sparkles />
                                                     </div>
-                                                ))}
+                                                    <div className="ai-interrogator-content">
+                                                        <div className="ai-interrogator-title-row">
+                                                            <h4 className="ai-interrogator-title">Reverse Prompt (AI Vision)</h4>
+                                                            <span
+                                                                className="ai-model-active-pill"
+                                                                title={`Engine aktif: ${aiProvider === "gemini" ? selectedGeminiModel : (localModelInput || "Default Model")}`}
+                                                            >
+                                                                <span className="ai-pill-dot" />
+                                                                <span className="ai-pill-provider">
+                                                                    {aiProvider === "gemini" ? "Gemini" : aiProvider === "ollama" ? "Ollama" : "LM Studio"}
+                                                                </span>
+                                                                <span className="ai-pill-divider">:</span>
+                                                                <span className="ai-pill-model">
+                                                                    {aiProvider === "gemini"
+                                                                        ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
+                                                                        : (localModelInput || "local-model")}
+                                                                </span>
+                                                            </span>
+                                                        </div>
+                                                        <p className="ai-interrogator-desc">
+                                                            Ekstrak gaya visual, tag Danbooru tambahan, dan prompt deskriptif langsung menggunakan AI Vision.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="ai-interrogator-hero-right">
+                                                    <button
+                                                        type="button"
+                                                        className="ai-settings-btn"
+                                                        onClick={() => setShowApiKeyModal(true)}
+                                                        title="Pengaturan Provider & Model AI"
+                                                    >
+                                                        <Icons.Settings />
+                                                        <span>Provider & Model</span>
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="ai-interrogate-trigger-btn"
+                                                        onClick={() => handleRunInterrogate()}
+                                                        disabled={isInterrogating || !rawFile}
+                                                    >
+                                                        {isInterrogating ? (
+                                                            <>
+                                                                <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
+                                                                <span>Menganalisis...</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Icons.Sparkles />
+                                                                <span>Ekstrak Prompt dengan AI</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
                                             </div>
+
+                                            {interrogateError && (
+                                                <div className="ai-interrogate-inline-error" style={{ marginTop: 12 }}>
+                                                    <span>{interrogateError}</span>
+                                                    <button
+                                                        type="button"
+                                                        className="ai-settings-btn mini"
+                                                        onClick={() => setShowApiKeyModal(true)}
+                                                    >
+                                                        <Icons.Settings />
+                                                        <span>Buka Pengaturan</span>
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {interrogateResult && (
+                                                <div className="ai-interrogate-result-panel" style={{ marginTop: 16 }}>
+                                                    <div className="ai-result-header">
+                                                        <div className="ai-result-badge-group">
+                                                            <span className="ai-model-rec-badge">Hasil Reverse Prompt</span>
+                                                            {interrogateResult.character && (
+                                                                <span className="ai-character-badge">
+                                                                    Karakter: <strong>{interrogateResult.character}</strong>
+                                                                </span>
+                                                            )}
+                                                            <span className="ai-model-rec-badge">
+                                                                Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
+                                                            </span>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="batch-bulk-btn"
+                                                            onClick={() => setInterrogateResult(null)}
+                                                            style={{ fontSize: 11 }}
+                                                        >
+                                                            ✕ Tutup Hasil
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="ai-result-box">
+                                                        <div className="ai-result-label-row">
+                                                            <span className="ai-result-label">Danbooru Tag Prompt:</span>
+                                                            <button
+                                                                type="button"
+                                                                className="copy-chip-btn"
+                                                                onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
+                                                            >
+                                                                {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
+                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
+                                                            </button>
+                                                        </div>
+                                                        <div className="ai-result-prompt-box danbooru">
+                                                            {interrogateResult.danbooru_prompt}
+                                                        </div>
+                                                    </div>
+
+                                                    {interrogateResult.negative_prompt && (
+                                                        <div className="ai-result-box">
+                                                            <div className="ai-result-label-row">
+                                                                <span className="ai-result-label">Negative Prompt:</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="copy-chip-btn"
+                                                                    onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
+                                                                >
+                                                                    {copiedKey === "copy-ai-neg" ? <Icons.Check /> : <Icons.Copy />}
+                                                                    <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin Negative"}</span>
+                                                                </button>
+                                                            </div>
+                                                            <div className="ai-result-prompt-box">
+                                                                {interrogateResult.negative_prompt}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {interrogateResult.natural_prompt && (
+                                                        <div className="ai-result-box">
+                                                            <div className="ai-result-label-row">
+                                                                <span className="ai-result-label">Natural Language Prompt:</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="copy-chip-btn"
+                                                                    onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
+                                                                >
+                                                                    {copiedKey === "copy-ai-natural" ? <Icons.Check /> : <Icons.Copy />}
+                                                                    <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
+                                                                </button>
+                                                            </div>
+                                                            <div className="ai-result-prompt-box">
+                                                                {interrogateResult.natural_prompt}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 10 }}>
+                                                        {interrogateResult.style_tags?.length > 0 && (
+                                                            <div>
+                                                                <span className="ai-result-label">Art Style Tags:</span>
+                                                                <div className="ai-style-chips-row">
+                                                                    {interrogateResult.style_tags.map((st, i) => (
+                                                                        <span key={i} className="ai-style-chip">#{st}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {interrogateResult.suggested_loras?.length > 0 && (
+                                                            <div>
+                                                                <span className="ai-result-label">Saran LoRA:</span>
+                                                                <div className="lora-chips-row" style={{ marginTop: 6 }}>
+                                                                    {interrogateResult.suggested_loras.map((lora, i) => (
+                                                                        <div key={i} className="lora-chip-item">
+                                                                            <span>{lora.name}</span>
+                                                                            <span className="lora-weight-badge">{lora.weight}</span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="ai-interrogate-bottom-actions" style={{ marginTop: 16 }}>
+                                                        <button
+                                                            type="button"
+                                                            className="ai-apply-meta-btn"
+                                                            onClick={handleApplyInterrogateToMetadata}
+                                                        >
+                                                            <Icons.Copy />
+                                                            <span>Terapkan ke Tab Parameter & Quick Copy</span>
+                                                        </button>
+                                                        <Link
+                                                            to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
+                                                            className="ai-lab-transfer-btn"
+                                                        >
+                                                            <span>Buka di Prompt Lab Canvas →</span>
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
-                                </>
-                            )}
-
-                            {/* Tab 2: ComfyUI Node Graph */}
-                            {activeTab === "workflow" && (
-                                <div className="inspector-section">
-                                    <div className="inspector-section-title">
-                                        <span>ComfyUI Node Graph / Workflow</span>
-                                        <div style={{ display: "flex", gap: 8 }}>
-                                            <button
-                                                type="button"
-                                                className="copy-mini-btn"
-                                                onClick={handleDownloadWorkflow}
-                                            >
-                                                <Icons.Download />
-                                                <span>Save JSON</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="copy-mini-btn"
-                                                onClick={() =>
-                                                    handleCopy(
-                                                        metaResult.workflow_json || metaResult.prompt_json || "",
-                                                        "workflow-copy"
-                                                    )
-                                                }
-                                            >
-                                                {copiedKey === "workflow-copy" ? <Icons.Check /> : <Icons.Copy />}
-                                                <span>{copiedKey === "workflow-copy" ? "Copied" : "Copy JSON"}</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div className="inspector-prompt-block" style={{ maxHeight: "500px" }}>
-                                        {(() => {
-                                            try {
-                                                const raw = metaResult.workflow_json || metaResult.prompt_json || "{}";
-                                                return JSON.stringify(JSON.parse(raw), null, 2);
-                                            } catch {
-                                                return metaResult.workflow_json || metaResult.prompt_json || "{}";
-                                            }
-                                        })()}
-                                    </div>
                                 </div>
-                            )}
-
-                            {/* Tab 3: Raw Parameters Block */}
-                            {activeTab === "raw" && (
-                                <div className="inspector-section">
-                                    <div className="inspector-section-title">
-                                        <span>Complete Unparsed Parameter Block</span>
-                                        <button
-                                            type="button"
-                                            className={`copy-mini-btn ${copiedKey === "raw-copy" ? "copied" : ""}`}
-                                            onClick={() => handleCopy(metaResult.raw_prompt || "", "raw-copy")}
-                                        >
-                                            {copiedKey === "raw-copy" ? <Icons.Check /> : <Icons.Copy />}
-                                            <span>{copiedKey === "raw-copy" ? "Copied" : "Copy Raw Block"}</span>
-                                        </button>
-                                    </div>
-                                    <div className="inspector-prompt-block" style={{ maxHeight: "450px" }}>
-                                        {metaResult.raw_prompt}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Tab 4: All Discovered Chunks & EXIF Tags */}
-                            {activeTab === "chunks" && metaResult.raw_chunks && (
-                                <div className="raw-chunks-container">
-                                    <div className="inspector-section-title">
-                                        <span>All Discovered Embedded Chunks & Tags</span>
-                                    </div>
-                                    {Object.entries(metaResult.raw_chunks).map(([key, val]) => (
-                                        <div key={key} className="raw-chunk-card">
-                                            <div className="raw-chunk-header">
-                                                <span className="raw-chunk-title">
-                                                    <code>{key}</code>
-                                                    <span className="raw-chunk-size">({val.length} chars)</span>
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="copy-mini-btn"
-                                                    onClick={() => handleCopy(val, `chunk-${key}`)}
-                                                >
-                                                    {copiedKey === `chunk-${key}` ? <Icons.Check /> : <Icons.Copy />}
-                                                    <span>{copiedKey === `chunk-${key}` ? "Copied" : "Copy"}</span>
-                                                </button>
-                                            </div>
-                                            <div className="raw-chunk-content">{val}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}

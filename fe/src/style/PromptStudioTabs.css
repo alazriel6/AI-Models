@@ -1,142 +1,141 @@
 /* ==========================================================================
    Prompt Studio & Lab Unified Tabs Navigation
-   Clean Developer Workstation Aesthetic
-   NO GRADIENTS | NO PURPLE/PINK | NO FUZZY TRANSPARENCY | 1-COLOR ICONS
+   Clean Developer Workstation Aesthetic (Raycast / Linear / Figma)
+   NO GRADIENTS | NO AI-SLOP | COMPACT 1-LINE SEGMENTED TAB BAR
    ========================================================================== */
 
 .studio-mode-tab-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    background: #111419;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #0d1015;
     border: 1px solid #232934;
-    border-radius: 10px;
-    padding: 6px;
-    margin-bottom: 24px;
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 16px;
     box-sizing: border-box;
+    overflow-x: auto;
+    scrollbar-width: none;
+    position: relative;
+    z-index: 10;
 }
 
-@media (max-width: 992px) {
-    .studio-mode-tab-bar {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 580px) {
-    .studio-mode-tab-bar {
-        grid-template-columns: 1fr;
-    }
+.studio-mode-tab-bar::-webkit-scrollbar {
+    display: none;
 }
 
 .studio-mode-tab-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: 7px;
+    padding: 6px 12px;
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 8px;
+    border-radius: 6px;
     cursor: pointer;
     text-align: left;
-    transition: all 0.15s ease;
+    transition: all 0.14s ease;
     color: #94a3b8;
     position: relative;
     user-select: none;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    flex: 1;
+    justify-content: center;
+    min-height: 34px;
+}
+
+@media (max-width: 900px) {
+    .studio-mode-tab-btn {
+        flex: initial;
+    }
 }
 
 .studio-mode-tab-btn:hover {
-    background: #181c23;
+    background: #151921;
     color: #cbd5e1;
-    border-color: #272f3d;
+    border-color: #262e3c;
 }
 
 .studio-mode-tab-btn.active {
-    background: #191d24;
-    border-color: #3b82f6;
-    color: #f8fafc;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    background: rgba(39, 39, 42, 0.9);
+    border-color: #3f3f46;
+    color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    position: relative;
 }
 
-.studio-mode-icon-box {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    background: #14171d;
-    border: 1px solid #272d38;
-    color: #94a3b8;
-    display: flex;
+.studio-mode-tab-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 12px;
+    right: 12px;
+    height: 2px;
+    background: #3b82f6;
+    border-radius: 2px;
+}
+
+.studio-mode-tab-icon {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    color: #64748b;
     flex-shrink: 0;
+    transition: color 0.14s ease;
 }
 
-.studio-mode-tab-btn.active .studio-mode-icon-box {
-    background: #1e2430;
-    border-color: #3b82f6;
-    color: #60a5fa;
+.studio-mode-tab-btn:hover .studio-mode-tab-icon {
+    color: #94a3b8;
 }
 
-.studio-mode-label-group {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
+.studio-mode-tab-btn.active .studio-mode-tab-icon {
+    color: #ffffff;
 }
 
 .studio-mode-title {
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
     color: inherit;
-}
-
-.studio-mode-sub {
-    font-size: 11px;
-    color: #64748b;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.studio-mode-tab-btn.active .studio-mode-sub {
-    color: #94a3b8;
 }
 
 .studio-tab-badge {
     font-size: 10px;
     font-weight: 600;
-    padding: 2px 7px;
+    padding: 1px 6px;
     border-radius: 4px;
     background: #14171d;
-    border: 1px solid #272d38;
-    color: #94a3b8;
+    border: 1px solid #232a35;
+    color: #64748b;
     font-family: var(--pl-font-mono, monospace);
     white-space: nowrap;
+    line-height: 14px;
+    margin-left: 2px;
 }
 
 .studio-tab-badge.active-layers {
-    background: #16202e;
-    border-color: #2563eb;
-    color: #93c5fd;
+    background: rgba(39, 39, 42, 0.9);
+    border-color: rgba(63, 63, 70, 0.6);
+    color: #d4d4d8;
 }
 
 .studio-tab-badge.tokens {
-    background: #15221c;
+    background: #132219;
     border-color: #059669;
     color: #6ee7b7;
 }
 
 .studio-tab-badge.parser {
-    background: #181d26;
+    background: #171b24;
     border-color: #272f3d;
     color: #cbd5e1;
 }
 
 .studio-tab-badge.presets {
-    background: #1a1e26;
+    background: #181d26;
     border-color: #374151;
     color: #94a3b8;
 }

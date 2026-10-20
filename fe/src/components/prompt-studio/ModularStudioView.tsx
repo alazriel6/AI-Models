@@ -21,6 +21,188 @@ import {
 import { BooruAutocompleteInput } from "../common/BooruAutocompleteInput";
 import { DanbooruCatalogDrawer } from "./DanbooruCatalogDrawer";
 
+// Technical Lucide SVG Icons (Strictly 14px, Zero Emojis, Developer Workstation Aesthetic)
+const LucideIcons = {
+    Check: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="20 6 9 17 4 12" />
+        </svg>
+    ),
+    Copy: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+    ),
+    Sliders: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" />
+            <line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" />
+            <line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+        </svg>
+    ),
+    Layers: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2" />
+            <polyline points="2 17 12 22 22 17" />
+            <polyline points="2 12 12 17 22 12" />
+        </svg>
+    ),
+    Dices: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <circle cx="15.5" cy="15.5" r="1.5" />
+            <circle cx="12" cy="12" r="1.5" />
+            <circle cx="8.5" cy="15.5" r="1.5" />
+            <circle cx="15.5" cy="8.5" r="1.5" />
+        </svg>
+    ),
+    RefreshCw: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="23 4 23 10 17 10" />
+            <polyline points="1 20 1 14 7 14" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+        </svg>
+    ),
+    ShieldAlert: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+        </svg>
+    ),
+    Bookmark: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+        </svg>
+    ),
+    Trash: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+    ),
+    ChevronDown: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="6 9 12 15 18 9" />
+        </svg>
+    ),
+    ChevronUp: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="18 15 12 9 6 15" />
+        </svg>
+    ),
+    X: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+    ),
+    BookOpen: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+    ),
+    Search: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+    ),
+    Grid: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+        </svg>
+    ),
+    ArrowRight: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+        </svg>
+    ),
+    Plus: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+    ),
+    RotateCcw: () => (
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+        </svg>
+    ),
+    User: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+        </svg>
+    ),
+    Globe: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="2" y1="12" x2="22" y2="12" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+    ),
+    Sparkles: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.912 5.885a2 2 0 0 0 1.272 1.272L21 12l-5.816 1.843a2 2 0 0 0-1.272 1.272L12 21l-1.912-5.885a2 2 0 0 0-1.272-1.272L3 12l5.816-1.843a2 2 0 0 0 1.272-1.272L12 3z" />
+        </svg>
+    ),
+};
+
+// Syntax Highlighting Renderer for Code-Block Prompt Output
+const PromptSyntaxHighlighter: React.FC<{ text: string }> = ({ text }) => {
+    const tokens = useMemo(() => {
+        if (!text.trim()) return [];
+        return text.split(/(<lora:[^>]+>|###[^:\n]+:|\([^)]+:[0-9.]+\)|\{[^}]+\}|[,\n])/g).filter(Boolean);
+    }, [text]);
+
+    if (!text.trim()) {
+        return (
+            <div className="aps-syntax-output font-mono text-xs empty">
+                <span className="syntax-placeholder">
+                    Prompt yang Anda rancang dari layer modular akan diparse ke model pilihan secara real-time di sini...
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <div className="aps-syntax-output font-mono text-xs" tabIndex={0}>
+            {tokens.map((token, i) => {
+                const trimmed = token.trim();
+                if (!trimmed) {
+                    return <span key={i}>{token}</span>;
+                }
+                if (token.startsWith("###")) {
+                    return <div key={i} className="syntax-category-header">{token}</div>;
+                }
+                if (token.startsWith("<lora:")) {
+                    return <span key={i} className="syntax-lora" title="Injeksi LoRA">{token}</span>;
+                }
+                if (/^(\(|\[).+:[0-9.]+(\)|\])$/.test(token) || /^\{.+\}$/.test(token)) {
+                    return <span key={i} className="syntax-weight" title="Tag dengan Bobot">{token}</span>;
+                }
+                if (/^(score_[0-9]|score_[0-9]_up|rating:|masterpiece|best quality|very aesthetic|newest|ultra-detailed|amazing quality)/i.test(trimmed)) {
+                    return <span key={i} className="syntax-prefix" title="Auto-Injected Quality Prefix">{token}</span>;
+                }
+                if (token === "," || token === "\n") {
+                    return <span key={i} className="syntax-delimiter">{token} </span>;
+                }
+                return <span key={i} className="syntax-tag">{token}</span>;
+            })}
+        </div>
+    );
+};
+
 interface ModularStudioViewProps {
     inputs: Record<string, string>;
     onInputChange: (id: string, value: string) => void;
@@ -75,28 +257,37 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     showToast,
     onLoadPresetData,
     modularPresets = [],
-    onAddModularTag,
-    onDeleteModularTag,
+    onAddModularTag: _onAddModularTag,
+    onDeleteModularTag: _onDeleteModularTag,
 }) => {
-    // Database Saved Studio Presets (Strictly in PostgreSQL DB, NO localStorage)
+    // Database Saved Studio Presets
     const [savedStudioPresets, setSavedStudioPresets] = useState<PromptPreset[]>([]);
     const [savedPresetsLoading, setSavedPresetsLoading] = useState<boolean>(false);
     const [newPresetName, setNewPresetName] = useState<string>("");
     const [showSaveDrawer, setShowSaveDrawer] = useState<boolean>(false);
     const [isSavingPreset, setIsSavingPreset] = useState<boolean>(false);
 
-    // Inline Add Tag State per Category Card
-    const [addingTagCatId, setAddingTagCatId] = useState<string | null>(null);
-    const [newTagInput, setNewTagInput] = useState<string>("");
-    const [newTagSubgroup, setNewTagSubgroup] = useState<string>("");
-    const [isSavingTag, setIsSavingTag] = useState<boolean>(false);
-
     // Danbooru Catalog Drawer & Layer Tag Modal States
     const [showDanbooruCatalog, setShowDanbooruCatalog] = useState<boolean>(false);
     const [catalogTargetLayer, setCatalogTargetLayer] = useState<string>("all");
     const [catalogTargetCategory, setCatalogTargetCategory] = useState<string>("all");
     const [identityMode, setIdentityMode] = useState<"general" | "character">("general");
-    const [expandedLayers, setExpandedLayers] = useState<Record<string, boolean>>({});
+
+    // Smart Collapsible Accordion State
+    const [openLayers, setOpenLayers] = useState<Record<string, boolean>>(() => {
+        // Default: buka layer quality & identity, dan layer lain yang sudah terisi
+        return {
+            quality: true,
+            identity: true,
+        };
+    });
+
+    // Expand quick tray tags per layer
+    const [expandedQuickTray, setExpandedQuickTray] = useState<Record<string, boolean>>({});
+
+    // Inline input typing per layer
+    const [layerInputDrafts, setLayerInputDrafts] = useState<Record<string, string>>({});
+
     const [modalLayerDetail, setModalLayerDetail] = useState<{ id: string; title: string; chips: any[] } | null>(null);
     const [layerModalSearch, setLayerModalSearch] = useState<string>("");
     const [isNsfwEnabled, setIsNsfwEnabled] = useState<boolean>(
@@ -105,7 +296,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     const [booruStats, setBooruStats] = useState<BooruTagStats | null>(null);
 
     // Target Model Parser State (persisted to localStorage)
-    const [selectedTargetModel, setSelectedTargetModel] = useState<PromptFormatId | "raw">(() => {
+    const [selectedTargetModel, setSelectedTargetModel] = useState<PromptFormatId | "raw" | "noobai">(() => {
         const saved = localStorage.getItem("modular_studio_target_model");
         if (saved) return saved as any;
         return "pony";
@@ -113,6 +304,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     const [showMultiModelModal, setShowMultiModelModal] = useState<boolean>(false);
     const [copiedModelId, setCopiedModelId] = useState<string | null>(null);
     const [showNormalizeMenu, setShowNormalizeMenu] = useState<boolean>(false);
+    const [isRawTextEditMode, setIsRawTextEditMode] = useState<boolean>(false);
 
     useEffect(() => {
         getBooruTagStatsApi()
@@ -120,24 +312,86 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             .catch((err) => console.error("Gagal memuat stats katalog Danbooru:", err));
     }, []);
 
+    // Toggle accordion layer
+    const toggleLayerAccordion = (catId: string) => {
+        setOpenLayers((prev) => ({
+            ...prev,
+            [catId]: !prev[catId],
+        }));
+    };
+
+    // Check if layer should be visually open
+    const isLayerExpanded = (catId: string, hasContent: boolean): boolean => {
+        if (openLayers[catId] !== undefined) {
+            return openLayers[catId];
+        }
+        return hasContent || catId === "quality";
+    };
+
+    // Add tag to a layer directly from input
+    const handleAddTagToLayer = (catId: string, rawTagText: string) => {
+        const text = rawTagText.trim();
+        if (!text) return;
+        const currentVal = inputs[catId] || "";
+        const tags = parseTagList(currentVal);
+        const norm = (s: string) => s.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+        if (tags.some((t) => norm(t) === norm(text))) {
+            showToast(`Tag "${text}" sudah ada di layer ini!`);
+            return;
+        }
+        const updated = [...tags, text];
+        onInputChange(catId, updated.join(", "));
+        setLayerInputDrafts((prev) => ({ ...prev, [catId]: "" }));
+    };
+
+    // Remove single tag pill from layer
+    const handleRemoveTagPill = (e: React.MouseEvent, catId: string, indexToRemove: number) => {
+        e.stopPropagation();
+        const currentVal = inputs[catId] || "";
+        const tags = parseTagList(currentVal);
+        const updated = tags.filter((_, i) => i !== indexToRemove);
+        onInputChange(catId, updated.join(", "));
+    };
+
+    // Adjust single tag weight on mouse wheel or click
+    const handleAdjustTagWeight = (e: React.WheelEvent | React.MouseEvent, catId: string, index: number, delta: number) => {
+        e.stopPropagation();
+        const currentVal = inputs[catId] || "";
+        const tags = parseTagList(currentVal);
+        const tag = tags[index];
+        if (!tag) return;
+
+        const match = tag.match(/^\(?([^:)]+)(?::([0-9.]+))?\)?$/);
+        if (match) {
+            const base = match[1].trim();
+            const currentWeight = match[2] ? parseFloat(match[2]) : 1.0;
+            let nextWeight = Math.round((currentWeight + delta) * 100) / 100;
+            nextWeight = Math.max(0.6, Math.min(1.6, nextWeight));
+            if (nextWeight === 1.0) {
+                tags[index] = base;
+            } else {
+                tags[index] = `(${base}:${nextWeight.toFixed(2)})`;
+            }
+            onInputChange(catId, tags.join(", "));
+        }
+    };
+
     const handleInsertTagFromCatalog = (tag: string, targetLayer?: string) => {
         const layerId = targetLayer && targetLayer !== "all" ? targetLayer : (catalogTargetLayer !== "all" ? catalogTargetLayer : "identity");
         const currentVal = inputs[layerId] || "";
-        const cleanTag = normalizeTagForModel(tag.trim(), selectedTargetModel);
+        const effectiveModel = selectedTargetModel === "noobai" ? "illustrious" : selectedTargetModel;
+        const cleanTag = normalizeTagForModel(tag.trim(), effectiveModel);
         if (!cleanTag) return;
 
-        if (!currentVal.trim()) {
-            onInputChange(layerId, cleanTag);
-        } else {
-            const parts = currentVal.split(",").map((p) => p.trim()).filter(Boolean);
-            if (!parts.includes(cleanTag)) {
-                onInputChange(layerId, `${currentVal.trim()}, ${cleanTag}`);
-            }
+        const parts = parseTagList(currentVal);
+        if (!parts.includes(cleanTag)) {
+            parts.push(cleanTag);
+            onInputChange(layerId, parts.join(", "));
+            // Pastikan layer terbuka saat dimasukkan tag
+            setOpenLayers((prev) => ({ ...prev, [layerId]: true }));
         }
         showToast(`Tag "${cleanTag}" dimasukkan ke layer ${layerId}!`);
     };
-
-
 
     // Fetch saved studio presets from PostgreSQL DB
     const loadSavedStudioPresets = async () => {
@@ -150,7 +404,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             });
             setSavedStudioPresets(data);
         } catch (err) {
-            console.error("Failed to load saved studio presets from DB:", err);
+            console.error("Gagal memuat preset studio tersimpan:", err);
         } finally {
             setSavedPresetsLoading(false);
         }
@@ -188,26 +442,24 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             setShowSaveDrawer(false);
             showToast(`Preset "${created.title}" berhasil disimpan di database!`);
         } catch (err) {
-            console.error("Failed to save preset to DB:", err);
+            console.error("Gagal menyimpan preset ke database:", err);
             showToast("Gagal menyimpan preset ke database");
         } finally {
             setIsSavingPreset(false);
         }
     };
 
-    // Delete custom preset from PostgreSQL DB
     const handleDeleteCustomFromDb = async (id: number, title: string) => {
         try {
             await deletePromptPresetApi(id);
             setSavedStudioPresets((prev) => prev.filter((p) => p.id !== id));
             showToast(`Preset "${title}" dihapus dari database`);
         } catch (err) {
-            console.error("Failed to delete preset from DB:", err);
-            showToast("Gagal menghapus preset dari database");
+            console.error("Gagal menghapus preset:", err);
+            showToast("Gagal menghapus preset");
         }
     };
 
-    // Load preset data into inputs
     const handleLoadSavedPreset = (preset: PromptPreset) => {
         try {
             if (preset.description) {
@@ -227,7 +479,26 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         showToast(`Preset "${preset.title}" dimuat!`);
     };
 
-    // Pre-made quick templates (one-click inspiration)
+    // Quick presets
+    const loadPresetRin = () => {
+        onLoadPresetData(
+            {
+                quality: "(anime_coloring:1.20), masterpiece, newest, best quality, highres, illustration",
+                identity: "1girl, solo, tohsaka rin, aqua eyes, twin braids, black hair, hair ribbon",
+                proportions: "slender, thigh gap, delicate hands",
+                details: "glistening skin, slight blush, parted lips",
+                expression: "tsundere expression, confident smirk, blushing slightly",
+                outfit: "red turtleneck sweater, black pleated skirt, black thighhighs, pendant necklace",
+                pose: "standing with hands on hips, looking at viewer",
+                camera: "cowboy shot, upper body, slight low angle, depth of field",
+                background: "fuyuki city rooftop at night, glowing city lights, moonlit sky",
+                effects: "volumetric moonlight, gentle wind blowing hair, atmospheric lighting",
+            },
+            { name: "tohsaka_rin_illustrious", weight: 0.85 }
+        );
+        showToast("Preset Rin Tohsaka (Fate) dimuat!");
+    };
+
     const loadPresetRio = () => {
         onLoadPresetData(
             {
@@ -244,7 +515,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             },
             { name: "tsukatsuki_rio_illustrious", weight: 0.85 }
         );
-        showToast("Preset Rio Tsukatsuki - Gothic Cathedral dimuat!");
+        showToast("Preset Rio Tsukatsuki (Gothic) dimuat!");
     };
 
     const loadPresetElf = () => {
@@ -263,18 +534,18 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             },
             { name: "fantasy_elf_ranger_xl", weight: 0.8 }
         );
-        showToast("Preset Fantasy Elf - Mystical Forest dimuat!");
+        showToast("Preset Fantasy Elf (Forest) dimuat!");
     };
 
     const handleRandomize = () => {
         const randomFrom = (arr: string[]) => arr[Math.floor(Math.random() * arr.length)];
         onLoadPresetData({
             quality: "(anime_coloring:1.15), masterpiece, best quality, illustration",
-            identity: `${randomFrom(["1girl, solo, red eyes, black hair, bangs", "1girl, solo, emerald eyes, silver hair, elf ears"])}`,
+            identity: `${randomFrom(["1girl, solo, red eyes, black hair, bangs", "1girl, solo, emerald eyes, silver hair, elf ears", "1girl, solo, tohsaka rin, twin braids"])}`,
             proportions: `${randomFrom(["tall female, slender waist, long legs", "petite, slender, delicate hands, thigh gap"])}`,
             details: `${randomFrom(["sweat, glistening skin, slight blush", "pale skin, sweatdrops on neck and collarbone"])}`,
             expression: `${randomFrom(["melancholic intense expression", "focused fierce expression", "intense gaze, slightly parted lips"])}`,
-            outfit: `${randomFrom(["ornate Victorian gothic black dress, sheer lace sleeves, corset bodice", "white fantasy ranger tunic, leather corset, detached sleeves"])}`,
+            outfit: `${randomFrom(["ornate Victorian gothic black dress, sheer lace sleeves, corset bodice", "white fantasy ranger tunic, leather corset, detached sleeves", "red turtleneck sweater, black pleated skirt"])}`,
             pose: `${randomFrom(["theatrical standing pose, holding a glowing crimson violin", "dynamic combat stance, drawing a glowing magic bow"])}`,
             camera: `${randomFrom(["environmental portrait, full body, dramatic dutch angle", "wide shot, low angle view, cinematic composition"])}`,
             background: `${randomFrom(["abandoned gothic cathedral, giant shattered stained-glass window behind her", "ancient mystical forest, giant bioluminescent trees, waterfall"])}`,
@@ -283,32 +554,14 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         showToast("Inspirasi karakter & scene diacak!");
     };
 
-    // Handle adding a new tag directly to the database for a specific category
-    const handleConfirmAddTag = async (categoryId: string) => {
-        const text = newTagInput.trim();
-        if (!text) return;
-
-        try {
-            setIsSavingTag(true);
-            if (onAddModularTag) {
-                await onAddModularTag(categoryId, text, newTagSubgroup || undefined);
-            }
-            setNewTagInput("");
-            setAddingTagCatId(null);
-        } catch {
-            // error toasted by caller
-        } finally {
-            setIsSavingTag(false);
-        }
-    };
-
-    // Realtime Model Parsed Output for the 10 Modular Layers
+    // Realtime Model Parsed Output
     const activeParsedOutput = useMemo(() => {
+        const modelToCompile = selectedTargetModel === "noobai" ? "illustrious" : selectedTargetModel;
         return compileCategoriesPrompt(
             inputs,
             loraEnabled ? { enabled: true, name: loraName, weight: loraWeight } : undefined,
             formatMode,
-            selectedTargetModel,
+            modelToCompile,
             { isNsfw: isNsfwEnabled }
         );
     }, [inputs, loraEnabled, loraName, loraWeight, formatMode, selectedTargetModel, isNsfwEnabled]);
@@ -352,8 +605,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         } else {
             navigator.clipboard.writeText(text);
         }
-        const modelLabel = selectedTargetModel === "raw" ? "Raw Booru" : (PROMPT_FORMATS.find((f) => f.id === selectedTargetModel)?.name || selectedTargetModel);
-        showToast(`Prompt (${modelLabel}) berhasil disalin!`);
+        const modelLabel = selectedTargetModel === "raw" ? "Raw Booru" : selectedTargetModel === "noobai" ? "NoobAI" : selectedTargetModel;
+        showToast(`Prompt (${modelLabel}) berhasil disalin ke clipboard!`);
     };
 
     const handleSwitchCanvasActive = () => {
@@ -390,19 +643,41 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         showToast(`Berhasil menormalisasi ${updatedCount} layer input!`);
     };
 
+    // Model name labels mapping
+    const getModelHint = () => {
+        if (selectedTargetModel === "pony") return "Auto-Inject: score_9, score_8_up... + Danbooru (_) + bobot (tag:1.1)";
+        if (selectedTargetModel === "illustrious") return "Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (tanpa score_9)";
+        if (selectedTargetModel === "noobai") return "Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (Standar NoobAI / OnomaAI)";
+        if (selectedTargetModel === "animagine") return "Auto-Inject: masterpiece, newest, aesthetic + Danbooru (_) + rating:general";
+        if (selectedTargetModel === "flux") return "Auto-Transform: Kalimat naratif deskriptif bahasa Inggris kontinu untuk Flux.1";
+        if (selectedTargetModel === "midjourney") return "Auto-Transform: Prosa sinematik + parameter --ar 16:9 --v 6.1 --stylize 250";
+        if (selectedTargetModel === "novelai") return "Auto-Convert: Syntax kurung kurawal {tag} (1.05x), spasi kata tanpa _";
+        if (selectedTargetModel === "sdxl_realistic") return "Auto-Inject: Token fotografi tajam DSLR, 8k uhd, soft rim lighting";
+        if (selectedTargetModel === "sd15") return "Format Klasik WebUI: Koma standar dengan pembobotan (keyword:1.2)";
+        return "Format Asli Modular: Tag murni apa adanya tanpa transformasi tambahan";
+    };
+
     return (
         <div className="aps-modular-view-wrapper">
-            {/* Top Toolbar: Quick Presets & Database Drawer */}
+            {/* Top Toolbar: Quick Presets & Config Bar (Satu Baris Bersih) */}
             <div className="aps-templates-strip">
                 <div className="aps-templates-left">
-                    <span className="aps-templates-label">Quick Presets:</span>
+                    <span className="aps-templates-label">Preset Cepat:</span>
+                    <button
+                        type="button"
+                        className="aps-preset-pill-btn"
+                        onClick={loadPresetRin}
+                        title="Muat preset Rin Tohsaka (Fate)"
+                    >
+                        <span>Rin Tohsaka</span>
+                    </button>
                     <button
                         type="button"
                         className="aps-preset-pill-btn"
                         onClick={loadPresetRio}
                         title="Muat preset Rio Tsukatsuki (Gothic Cathedral)"
                     >
-                        <span>Rio Tsukatsuki (Gothic)</span>
+                        <span>Rio Tsukatsuki</span>
                     </button>
                     <button
                         type="button"
@@ -410,7 +685,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         onClick={loadPresetElf}
                         title="Muat preset Fantasy Elf Ranger"
                     >
-                        <span>Fantasy Elf (Forest)</span>
+                        <span>Fantasy Elf</span>
                     </button>
                     <button
                         type="button"
@@ -418,14 +693,16 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         onClick={handleRandomize}
                         title="Acak inspirasi karakter & latar"
                     >
-                        <span>Randomize Roll</span>
+                        <LucideIcons.Dices />
+                        <span>Acak / Roll</span>
                     </button>
                 </div>
 
                 <div className="aps-templates-right">
+                    {/* Toggle Mode NSFW (18+) Tanpa Emoji */}
                     <label
                         className={`aps-nsfw-toggle-pill ${isNsfwEnabled ? "active" : ""}`}
-                        title="Tampilkan pilihan tag Danbooru NSFW / 18+ pada 10 kategori modular"
+                        title="Tampilkan pilihan tag Danbooru NSFW / 18+ pada modul layer"
                     >
                         <input
                             type="checkbox"
@@ -436,16 +713,17 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 localStorage.setItem("modular_studio_nsfw_enabled", String(checked));
                                 showToast(
                                     checked
-                                        ? "🔞 Mode NSFW aktif: Tag dewasa Danbooru ditampilkan di 10 modul!"
+                                        ? "Mode NSFW aktif: Tag dewasa Danbooru ditampilkan pada modul!"
                                         : "Mode SFW: Tag dewasa disembunyikan."
                                 );
                             }}
                             className="aps-nsfw-toggle-checkbox"
                         />
-                        <span>🔞 Mode NSFW (18+)</span>
+                        <LucideIcons.ShieldAlert />
+                        <span>Mode NSFW (18+)</span>
                     </label>
 
-                    {/* Normalize layer inputs dropdown */}
+                    {/* Normalisasi Tag Dropdown */}
                     <div style={{ position: "relative" }}>
                         <button
                             type="button"
@@ -453,78 +731,65 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             onClick={() => setShowNormalizeMenu(!showNormalizeMenu)}
                             title="Normalisasi ejaan seluruh kolom 10 layer (spasi vs underscore)"
                         >
-                            <span>🔄 Normalisasi Tag ▾</span>
+                            <LucideIcons.RefreshCw />
+                            <span>Normalisasi Tag</span>
+                            <LucideIcons.ChevronDown />
                         </button>
                         {showNormalizeMenu && (
-                            <div
-                                style={{
-                                    position: "absolute",
-                                    top: "100%",
-                                    right: 0,
-                                    marginTop: "4px",
-                                    background: "#111419",
-                                    border: "1px solid #283142",
-                                    borderRadius: "6px",
-                                    padding: "6px",
-                                    zIndex: 100,
-                                    width: "260px",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "4px",
-                                    boxShadow: "0 10px 25px rgba(0,0,0,0.6)",
-                                }}
-                            >
+                            <div className="aps-normalize-menu-popover">
                                 <button
                                     type="button"
-                                    className="aps-mode-btn"
-                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    className="aps-normalize-menu-item"
                                     onClick={() => handleNormalizeAllLayers("spaces")}
-                                    title="Ganti semua tanda _ menjadi spasi (Standar Illustrious-XL & NovelAI)"
+                                    title="Ganti semua tanda _ menjadi spasi (Standar Illustrious-XL, NoobAI & NAI)"
                                 >
-                                    🔤 Ganti _ ke Spasi (Illustrious/NAI)
+                                    <span>Ganti _ ke Spasi (Illustrious / NoobAI)</span>
                                 </button>
                                 <button
                                     type="button"
-                                    className="aps-mode-btn"
-                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    className="aps-normalize-menu-item"
                                     onClick={() => handleNormalizeAllLayers("underscores")}
                                     title="Ganti semua spasi menjadi _ (Standar Pony & Animagine)"
                                 >
-                                    _ Ganti Spasi ke _ (Pony/Animagine)
+                                    <span>Ganti Spasi ke _ (Pony / Animagine)</span>
                                 </button>
                                 <button
                                     type="button"
-                                    className="aps-mode-btn"
-                                    style={{ textAlign: "left", padding: "6px 8px" }}
+                                    className="aps-normalize-menu-item"
                                     onClick={() => handleNormalizeAllLayers("strip_weights")}
                                     title="Hapus tanda kurung bobot () atau {} dan jadikan tag bersih"
                                 >
-                                    🧹 Bersihkan Bobot Kurung () &amp; &#123;&#125;
+                                    <span>Bersihkan Bobot Kurung () &amp; &#123;&#125;</span>
                                 </button>
                             </div>
                         )}
                     </div>
 
+                    {/* Preset Tersimpan di DB */}
                     <button
                         type="button"
                         className={`aps-action-btn-sm ${showSaveDrawer ? "active" : ""}`}
                         onClick={() => setShowSaveDrawer(!showSaveDrawer)}
-                        title="Buka Preset Tersimpan di Database"
+                        title="Buka Preset Tersimpan di Database PostgreSQL"
                     >
-                        <span>Database Presets ({savedStudioPresets.length})</span>
+                        <LucideIcons.Bookmark />
+                        <span>Preset Tersimpan ({savedStudioPresets.length})</span>
                     </button>
+
+                    {/* Bersihkan Semua */}
                     <button
                         type="button"
                         className="aps-action-btn-sm reset"
                         onClick={onClearAll}
-                        title="Kosongkan seluruh 10 kategori"
+                        title="Kosongkan seluruh kategori layer"
                     >
-                        <span>Clear All</span>
+                        <LucideIcons.Trash />
+                        <span>Bersihkan Semua</span>
                     </button>
                 </div>
             </div>
 
-            {/* Custom Presets Drawer (PostgreSQL DB, No LocalStorage) */}
+            {/* Custom Presets Drawer (PostgreSQL DB) */}
             {showSaveDrawer && (
                 <div className="aps-save-drawer">
                     <div className="aps-save-input-row">
@@ -545,7 +810,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             onClick={handleSaveCustomToDb}
                             disabled={isSavingPreset || !newPresetName.trim()}
                         >
-                            {isSavingPreset ? "Menyimpan ke DB..." : "Simpan ke Database"}
+                            {isSavingPreset ? "Menyimpan..." : "Simpan ke Database"}
                         </button>
                         <button
                             type="button"
@@ -593,7 +858,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 onClick={() => handleDeleteCustomFromDb(p.id, p.title)}
                                                 title="Hapus preset dari database"
                                             >
-                                                ✕
+                                                <LucideIcons.X />
                                             </button>
                                         </div>
                                     </div>
@@ -608,15 +873,18 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                 </div>
             )}
 
-            {/* Main Categories 2-Column / Stack Grid */}
+            {/* Main Layout Grid: 10 Categories Smart Accordion (Left) vs Sticky Output (Right) */}
             <div className="aps-layout-grid">
-                {/* 10 Modular Categories Column */}
+                {/* 10 Modular Categories Column (Smart Accordion) */}
                 <div className="aps-categories-col">
                     {CATEGORIES.map((cat) => {
                         const currentVal = inputs[cat.id] || "";
-                        const activeCount = parseTagList(currentVal).length;
+                        const parsedTags = parseTagList(currentVal);
+                        const activeCount = parsedTags.length;
+                        const hasContent = activeCount > 0;
+                        const isExpanded = isLayerExpanded(cat.id, hasContent);
 
-                        // Retrieve tags from PostgreSQL database for this category
+                        // Tags from database
                         const dbItems = modularPresets.filter(
                             (p) => p.subcategory?.toLowerCase() === cat.id.toLowerCase()
                         );
@@ -626,21 +894,9 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             layer: cat.id,
                         }));
 
-                        // Extract all known subgroups (both predefined and dynamically created in DB)
-                        const predefinedSubgroups = (cat.subgroups || []).map((s) => s.label);
-                        const dbSubgroups = Array.from(
-                            new Set(dbItems.map((p) => p.trigger_words).filter(Boolean) as string[])
-                        );
-                        const availableSubgroups = Array.from(
-                            new Set([...predefinedSubgroups, ...dbSubgroups])
-                        );
-
-                        // Determine flat vs subgrouped items
+                        // Extract predefined & DB chips
                         let flatChips: { text: string; isCustom: boolean; id?: number }[] = [];
-                        let subgroupChips: {
-                            label: string;
-                            chips: { text: string; isCustom: boolean; id?: number }[];
-                        }[] = [];
+                        let subgroupChips: { label: string; chips: { text: string; isCustom: boolean; id?: number }[] }[] = [];
 
                         if (dbItems.length > 0) {
                             flatChips = dbItems
@@ -650,6 +906,12 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     isCustom: !p.is_system,
                                     id: p.id,
                                 }));
+
+                            const predefinedSubgroups = (cat.subgroups || []).map((s) => s.label);
+                            const dbSubgroups = Array.from(
+                                new Set(dbItems.map((p) => p.trigger_words).filter(Boolean) as string[])
+                            );
+                            const availableSubgroups = Array.from(new Set([...predefinedSubgroups, ...dbSubgroups]));
 
                             if (availableSubgroups.length > 0) {
                                 subgroupChips = availableSubgroups
@@ -666,7 +928,6 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     .filter((g) => g.chips.length > 0 || predefinedSubgroups.includes(g.label));
                             }
                         } else {
-                            // Fallback to static category definition while initial DB fetch occurs
                             if (cat.chips) {
                                 flatChips = cat.chips.map((c) => ({ text: c, isCustom: false }));
                             }
@@ -688,105 +949,139 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             subgroupChips.reduce((sum, g) => sum + g.chips.length, 0) +
                             nsfwChipsCount;
 
+                        // Single Unified Layer Card with Smooth Animated Accordion (CSS Grid 0fr -> 1fr)
                         return (
                             <div
                                 key={cat.id}
-                                className={`aps-category-card ${activeCount > 0 ? "has-content" : ""}`}
+                                className={`aps-category-card ${isExpanded ? "expanded" : "collapsed"} ${hasContent ? "has-content" : ""}`}
                             >
-                                <div className="aps-cat-header">
+                                {/* Header Layer: Selalu terlihat (~44px), klik untuk buka/tutup */}
+                                <div
+                                    className="aps-cat-header"
+                                    onClick={() => toggleLayerAccordion(cat.id)}
+                                    role="button"
+                                    tabIndex={0}
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" || e.key === " ") {
+                                            e.preventDefault();
+                                            toggleLayerAccordion(cat.id);
+                                        }
+                                    }}
+                                    title={isExpanded ? "Klik untuk menciutkan layer ini" : "Klik untuk membuka dan mengedit layer ini"}
+                                >
                                     <div className="aps-cat-title-group">
-                                        <span className="aps-cat-number">{cat.num}</span>
+                                        <span
+                                            className={`aps-status-dot ${hasContent ? "active" : "empty"}`}
+                                            aria-hidden="true"
+                                        />
                                         <h3 className="aps-cat-title">{cat.title}</h3>
+                                        {hasContent ? (
+                                            <span className="aps-cat-tag-count">
+                                                {activeCount} {isExpanded ? "tag" : "tag aktif"}
+                                            </span>
+                                        ) : !isExpanded ? (
+                                            <span className="aps-layer-row-placeholder">
+                                                Klik untuk menambah tag...
+                                            </span>
+                                        ) : null}
                                         {isNsfwEnabled && (cat.nsfwChips || cat.nsfwSubgroups) && (
-                                            <span className="aps-cat-nsfw-badge" title="Tersedia pilihan tag dewasa NSFW">🔞 18+</span>
-                                        )}
-                                        {activeCount > 0 && (
-                                            <span className="aps-cat-tag-count">{activeCount} tag</span>
+                                            <span className="aps-cat-nsfw-badge" title="Tersedia pilihan tag dewasa NSFW">
+                                                <LucideIcons.ShieldAlert />
+                                                <span>18+</span>
+                                            </span>
                                         )}
                                     </div>
-                                    {activeCount > 0 && (
+
+                                    <div className="aps-cat-header-actions" onClick={(e) => e.stopPropagation()}>
+                                        {!isExpanded && hasContent && (
+                                            <span className="aps-layer-snippet-text">
+                                                {parsedTags.slice(0, 3).join(", ")}{parsedTags.length > 3 ? "..." : ""}
+                                            </span>
+                                        )}
+                                        {!isExpanded && (
+                                            <span className="aps-layer-catalog-badge">
+                                                {totalChipsCount}+ katalog
+                                            </span>
+                                        )}
+                                        {isExpanded && hasContent && (
+                                            <button
+                                                type="button"
+                                                className="aps-cat-clear-btn"
+                                                onClick={() => onClearCategory(cat.id)}
+                                                title="Kosongkan seluruh tag pada layer ini"
+                                            >
+                                                <LucideIcons.RotateCcw />
+                                                <span>Reset</span>
+                                            </button>
+                                        )}
                                         <button
                                             type="button"
-                                            className="aps-cat-clear-btn"
-                                            onClick={() => onClearCategory(cat.id)}
-                                            title="Kosongkan kategori ini"
+                                            className="aps-layer-collapse-btn"
+                                            onClick={() => toggleLayerAccordion(cat.id)}
+                                            title={isExpanded ? "Ciutkan layer ini" : "Buka layer ini"}
+                                            aria-expanded={isExpanded}
                                         >
-                                            Reset
+                                            <span className={`aps-layer-chevron ${isExpanded ? "open" : ""}`}>
+                                                <LucideIcons.ChevronDown />
+                                            </span>
                                         </button>
-                                    )}
+                                    </div>
                                 </div>
 
-                                {/* Identity Mode Switcher for Modular 2 (Keeps 1 Modular, switches between General & Character-Only) */}
-                                {cat.id === "identity" && (
-                                    <div className="aps-identity-mode-switcher">
-                                        <button
-                                            type="button"
-                                            className={`aps-id-mode-btn ${identityMode === "general" ? "active" : ""}`}
-                                            onClick={() => setIdentityMode("general")}
-                                            title="Tampilkan ciri fisik umum (rambut, mata, bentuk wajah)"
-                                        >
-                                            🌐 Ciri & Rambut (Umum)
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`aps-id-mode-btn ${identityMode === "character" ? "active" : ""}`}
-                                            onClick={() => setIdentityMode("character")}
-                                            title="Hanya cari & tampilkan karakter Danbooru"
-                                        >
-                                            👤 Karakter Danbooru Saja
-                                        </button>
-                                    </div>
-                                )}
+                                {/* Smooth Animated Accordion Body */}
+                                <div className={`aps-layer-accordion-content ${isExpanded ? "open" : ""}`}>
+                                    <div className="aps-layer-accordion-inner">
 
-                                <BooruAutocompleteInput
-                                    as="input"
-                                    className="aps-cat-input"
-                                    placeholder={
-                                        cat.id === "identity" && identityMode === "character"
-                                            ? "Ketik nama karakter Danbooru (misal: frieren, raiden_shogun, mika, 2b)..."
-                                            : cat.placeholder
-                                    }
-                                    value={currentVal}
-                                    onChange={(val) => onInputChange(cat.id, val)}
-                                    customDbTags={categoryCustomDbTags}
-                                    layer={cat.id}
-                                    category={cat.id === "identity" && identityMode === "character" ? "character" : undefined}
-                                    isNsfwEnabled={isNsfwEnabled}
-                                />
-
-                                {/* Special LoRA Module for Category 2 (Identity & LoRA) */}
+                                {/* Khusus Layer 2: LoRA & Identitas Karakter Horizontal Bar */}
                                 {cat.id === "identity" && (
-                                    <div className="aps-lora-module">
-                                        <div className="aps-lora-module-header">
-                                            <span>
-                                                LoRA Injector (&lt;lora:nama:{loraWeight.toFixed(2)}&gt;)
-                                            </span>
-                                            <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+                                    <div className="aps-id-horizontal-bar">
+                                        {/* Toggle Gaya & Rambut vs Karakter Danbooru */}
+                                        <div className="aps-identity-mode-switcher">
+                                            <button
+                                                type="button"
+                                                className={`aps-id-mode-btn ${identityMode === "general" ? "active" : ""}`}
+                                                onClick={() => setIdentityMode("general")}
+                                                title="Tampilkan ciri fisik umum (rambut, mata, bentuk wajah)"
+                                            >
+                                                <LucideIcons.Globe />
+                                                <span>Gaya &amp; Rambut</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`aps-id-mode-btn ${identityMode === "character" ? "active" : ""}`}
+                                                onClick={() => setIdentityMode("character")}
+                                                title="Hanya cari & tampilkan karakter Danbooru"
+                                            >
+                                                <LucideIcons.User />
+                                                <span>Karakter Danbooru</span>
+                                            </button>
+                                        </div>
+
+                                        {/* Compact LoRA Injector Bar */}
+                                        <div className="aps-lora-compact-strip">
+                                            <label className="aps-lora-active-check">
                                                 <input
                                                     type="checkbox"
                                                     checked={loraEnabled}
                                                     onChange={(e) => setLoraEnabled(e.target.checked)}
-                                                    style={{ accentColor: "#3b82f6" }}
                                                 />
-                                                <span>Aktif</span>
+                                                <span>LoRA</span>
                                             </label>
-                                        </div>
-                                        <div className="aps-lora-controls-row">
                                             <input
                                                 type="text"
-                                                className="aps-lora-name-input"
-                                                placeholder="Nama LoRA (misal: tsukatsuki_rio_illustrious)"
+                                                className="aps-lora-name-input-compact"
+                                                placeholder="Nama LoRA (misal: tsukatsuki_rio)..."
                                                 value={loraName}
                                                 onChange={(e) => setLoraName(e.target.value)}
                                             />
-                                            <div className="aps-lora-slider-box">
+                                            <div className="aps-lora-slider-box-compact">
                                                 <input
                                                     type="range"
                                                     min="0.1"
                                                     max="1.5"
                                                     step="0.05"
                                                     value={loraWeight}
-                                                    onChange={(e) => setLoraWeight(parseFloat(e.target.value) || 0.8)}
+                                                    onChange={(e) => setLoraWeight(parseFloat(e.target.value) || 0.85)}
                                                     className="aps-lora-slider"
                                                 />
                                                 <span className="aps-lora-val-badge">{loraWeight.toFixed(2)}</span>
@@ -795,468 +1090,217 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     </div>
                                 )}
 
-                                {/* Character Mode Danbooru Panel or Normal Quick-Tag Chips Section */}
-                                {cat.id === "identity" && identityMode === "character" ? (
-                                    <div className="aps-char-mode-danbooru-panel">
-                                        <div className="aps-char-danbooru-info">
-                                            <span className="aps-char-danbooru-icon">👤</span>
-                                            <div className="aps-char-danbooru-text-col">
-                                                <span className="aps-char-danbooru-title">
-                                                    Mode Karakter Danbooru Database ({booruStats?.categories?.character ? `${booruStats.categories.character}+ Karakter` : "218+ Karakter"})
-                                                </span>
-                                                <span className="aps-char-danbooru-desc">
-                                                    Semua karakter diambil langsung dari database Danbooru tanpa quick-tags bertumpuk. Ketik nama karakter di kolom input atas untuk autokomplit instan, atau buka katalog untuk menjelajah.
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="aps-char-danbooru-actions">
-                                            <button
-                                                type="button"
-                                                className="aps-char-danbooru-btn-primary"
-                                                onClick={() => {
-                                                    setCatalogTargetLayer("identity");
-                                                    setCatalogTargetCategory("character");
-                                                    setShowDanbooruCatalog(true);
-                                                }}
-                                                title="Buka katalog database Danbooru khusus karakter"
-                                            >
-                                                <span>🔍 Buka Katalog Karakter ({booruStats?.categories?.character ? `${booruStats.categories.character}+ Tag` : "218+ Tag"})</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="aps-chips-section">
-                                        <div className="aps-chips-label-row">
-                                            <div className="aps-chips-label-left">
-                                                <span style={{ color: "#94a3b8" }}>
-                                                    Quick-Tag Chips ({totalChipsCount}):
-                                                </span>
-                                                <button
-                                                    type="button"
-                                                    className="aps-add-chip-trigger"
-                                                    onClick={() => {
-                                                        if (addingTagCatId === cat.id) {
-                                                            setAddingTagCatId(null);
-                                                        } else {
-                                                            setAddingTagCatId(cat.id);
-                                                            setNewTagInput("");
-                                                            setNewTagSubgroup("");
-                                                        }
-                                                    }}
-                                                    title="Tambah quick tag baru ke database pada layer ini"
-                                                >
-                                                    <span className="aps-add-chip-icon">+</span>
-                                                    <span>Tambah Tag</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="aps-add-chip-trigger"
-                                                    style={{ borderColor: "#2563eb", color: "#60a5fa" }}
-                                                    onClick={() => {
-                                                        setCatalogTargetLayer(cat.id);
-                                                        setCatalogTargetCategory("all");
-                                                        setShowDanbooruCatalog(true);
-                                                    }}
-                                                    title={`Buka katalog Danbooru khusus untuk ${cat.title}`}
-                                                >
-                                                    <span>🔍 Katalog Tag{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
-                                                </button>
-                                                {totalChipsCount > 20 && (
-                                                    <button
-                                                        type="button"
-                                                        className="aps-add-chip-trigger"
-                                                        style={{ borderColor: "#475569", color: "#94a3b8" }}
-                                                        onClick={() => {
-                                                            const allChips = [...flatChips];
-                                                            subgroupChips.forEach((sg) => allChips.push(...sg.chips));
-                                                            if (isNsfwEnabled) {
-                                                                if (cat.nsfwChips) {
-                                                                    allChips.push(...cat.nsfwChips.map((c) => ({ text: c, isCustom: false })));
-                                                                }
-                                                                if (cat.nsfwSubgroups) {
-                                                                    cat.nsfwSubgroups.forEach((sg) =>
-                                                                        allChips.push(...sg.chips.map((c) => ({ text: c, isCustom: false })))
-                                                                    );
-                                                                }
-                                                            }
-                                                            setModalLayerDetail({ id: cat.id, title: cat.title, chips: allChips });
-                                                        }}
-                                                        title={`Buka pop-up modal semua ${totalChipsCount} tag untuk layer ${cat.title}`}
-                                                    >
-                                                        <span>📋 Semua Tag ({totalChipsCount})</span>
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <span className="aps-chips-tip">
-                                                Klik kanan / (+) untuk bobot
-                                            </span>
-                                        </div>
-
-                                    {/* Inline Add Tag Form for this Layer */}
-                                    {addingTagCatId === cat.id && (
-                                        <div className="aps-inline-add-tag-box">
-                                            <div className="aps-inline-tag-input-row">
-                                                <BooruAutocompleteInput
-                                                    as="input"
-                                                    className="aps-inline-tag-input"
-                                                    placeholder={`Tag baru untuk ${cat.title} (misal: halo, wings)...`}
-                                                    value={newTagInput}
-                                                    onChange={(val) => setNewTagInput(val)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" && !e.shiftKey) {
-                                                            e.preventDefault();
-                                                            handleConfirmAddTag(cat.id);
-                                                        } else if (e.key === "Escape") {
-                                                            setAddingTagCatId(null);
-                                                        }
-                                                    }}
-                                                    autoFocus
-                                                    disabled={isSavingTag}
-                                                    customDbTags={categoryCustomDbTags}
-                                                    layer={cat.id}
-                                                    isNsfwEnabled={isNsfwEnabled}
-                                                />
-                                                {availableSubgroups.length > 0 && (
-                                                    <select
-                                                        className="aps-inline-subgroup-select"
-                                                        value={newTagSubgroup}
-                                                        onChange={(e) => setNewTagSubgroup(e.target.value)}
-                                                        disabled={isSavingTag}
-                                                    >
-                                                        <option value="">Umum (Tanpa Subgrup)</option>
-                                                        {availableSubgroups.map((sg) => (
-                                                            <option key={sg} value={sg}>
-                                                                Subgrup: {sg}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    className="aps-inline-tag-btn-save"
-                                                    onClick={() => handleConfirmAddTag(cat.id)}
-                                                    disabled={isSavingTag || !newTagInput.trim()}
-                                                >
-                                                    {isSavingTag ? "Menyimpan..." : "Simpan ke DB"}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="aps-inline-tag-btn-cancel"
-                                                    onClick={() => {
-                                                        setAddingTagCatId(null);
-                                                        setNewTagInput("");
-                                                    }}
-                                                    disabled={isSavingTag}
-                                                >
-                                                    Batal
-                                                </button>
-                                            </div>
-                                            <span className="aps-inline-tag-hint">
-                                                Tag otomatis tersimpan di PostgreSQL database.
-                                            </span>
-                                        </div>
-                                    )}
-                                    {/* Flat list of chips (Max 20 visible by default, expandable or modal popup) */}
-                                    {flatChips.length > 0 && (() => {
-                                        const isExpanded = !!expandedLayers[cat.id];
-                                        const visibleFlatChips = isExpanded ? flatChips : flatChips.slice(0, 20);
-                                        const hasMore = flatChips.length > 20;
+                                {/* Unified Token Input Box (Pills + Inline Type/Autocomplete + Catalog Trigger) */}
+                                <div className="aps-unified-token-box">
+                                    {/* Active Token Pills */}
+                                    {parsedTags.map((tagItem, idx) => {
+                                        const weightMatch = tagItem.match(/:([0-9.]+)\)?$/);
+                                        const cleanText = tagItem.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
 
                                         return (
-                                            <div className="aps-chips-wrap">
-                                                {visibleFlatChips.map((chipItem) => {
-                                                    const active = isChipActive(cat.id, chipItem.text);
-                                                    const weightLabel = getChipWeightLabel(cat.id, chipItem.text);
-
-                                                    return (
-                                                        <div
-                                                            key={chipItem.id ? `db-${chipItem.id}` : `c-${chipItem.text}`}
-                                                            className={`aps-chip-item ${active ? "active" : ""} ${
-                                                                chipItem.isCustom ? "is-custom" : ""
-                                                            }`}
-                                                            onClick={() => onToggleChip(cat.id, chipItem.text)}
-                                                            onContextMenu={(e) => {
-                                                                e.preventDefault();
-                                                                onCycleChipWeight(e, cat.id, chipItem.text);
-                                                            }}
-                                                            title={
-                                                                chipItem.isCustom
-                                                                    ? "Tag kustom tersimpan di DB - Klik kanan untuk bobot"
-                                                                    : "Klik kanan / (+) untuk bobot (1.15 / 1.25)"
-                                                            }
-                                                        >
-                                                            <span className="aps-chip-text">{chipItem.text}</span>
-                                                            {weightLabel && (
-                                                                <span className="aps-chip-weight-pill">
-                                                                    :{weightLabel}
-                                                                </span>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                className="aps-chip-weight-cycler"
-                                                                title="Tingkatkan bobot tag"
-                                                                onClick={(e) => onCycleChipWeight(e, cat.id, chipItem.text)}
-                                                            >
-                                                                +
-                                                            </button>
-                                                            {chipItem.isCustom && chipItem.id && onDeleteModularTag && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="aps-chip-del-btn"
-                                                                    title="Hapus tag kustom ini dari database"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        onDeleteModularTag(chipItem.id!, chipItem.text);
-                                                                    }}
-                                                                >
-                                                                    ✕
-                                                                </button>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })}
-
-                                                {hasMore && !isExpanded && (
-                                                    <>
-                                                        <button
-                                                            type="button"
-                                                            className="aps-chip-more-btn"
-                                                            onClick={() => setExpandedLayers((prev) => ({ ...prev, [cat.id]: true }))}
-                                                            title="Tampilkan semua tag di layer ini"
-                                                        >
-                                                            +{flatChips.length - 20} tag lainnya ▾
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="aps-chip-more-btn"
-                                                            style={{ borderColor: "#64748b", color: "#94a3b8" }}
-                                                            onClick={() => setModalLayerDetail({ id: cat.id, title: cat.title, chips: flatChips })}
-                                                            title="Buka pop-up modal lengkap untuk melihat & mencari tag layer ini"
-                                                        >
-                                                            🔍 Pop-up Lengkap
-                                                        </button>
-                                                    </>
-                                                )}
-
-                                                {hasMore && isExpanded && (
-                                                    <button
-                                                        type="button"
-                                                        className="aps-chip-more-btn"
-                                                        onClick={() => setExpandedLayers((prev) => ({ ...prev, [cat.id]: false }))}
+                                            <span
+                                                key={`pill-${cat.id}-${idx}-${cleanText}`}
+                                                className="aps-token-pill"
+                                                onWheel={(e) => {
+                                                    const delta = e.deltaY < 0 ? 0.05 : -0.05;
+                                                    handleAdjustTagWeight(e, cat.id, idx, delta);
+                                                }}
+                                                title="Scroll mouse untuk mengatur bobot nilai tag"
+                                            >
+                                                <span className="aps-token-text">{cleanText}</span>
+                                                {weightMatch && (
+                                                    <span
+                                                        className="aps-token-weight"
+                                                        onClick={(e) => handleAdjustTagWeight(e, cat.id, idx, 0.05)}
+                                                        title="Klik untuk menaikkan bobot"
                                                     >
-                                                        ▴ Sembunyikan (Ringkas 20)
-                                                    </button>
+                                                        :{weightMatch[1]}
+                                                    </span>
                                                 )}
-                                            </div>
+                                                <button
+                                                    type="button"
+                                                    className="aps-token-del-btn"
+                                                    onClick={(e) => handleRemoveTagPill(e, cat.id, idx)}
+                                                    title="Hapus tag ini"
+                                                >
+                                                    <LucideIcons.X />
+                                                </button>
+                                            </span>
                                         );
-                                    })()}
+                                    })}
 
-                                    {/* Subgroup chips */}
-                                    {subgroupChips.length > 0 && (
-                                        <div className="aps-subgroups-wrap">
-                                            {subgroupChips.map((group) => {
-                                                const groupKey = `${cat.id}-${group.label}`;
-                                                const isGrpExpanded = !!expandedLayers[groupKey];
-                                                const visibleGroupChips = isGrpExpanded ? group.chips : group.chips.slice(0, 20);
-                                                const hasMoreGrp = group.chips.length > 20;
+                                    {/* Inline Autocomplete Input */}
+                                    <div className="aps-token-input-wrapper">
+                                        <BooruAutocompleteInput
+                                            as="input"
+                                            className="aps-token-inline-input"
+                                            placeholder={
+                                                cat.id === "identity" && identityMode === "character"
+                                                    ? "Ketik nama karakter Danbooru (frieren, raiden_shogun, mika)..."
+                                                    : parsedTags.length === 0
+                                                    ? cat.placeholder
+                                                    : "+ Ketik tag baru..."
+                                            }
+                                            value={layerInputDrafts[cat.id] || ""}
+                                            onChange={(val) => {
+                                                // Jika input diisi dan diakhiri koma atau dipilih, tambahkan ke tags
+                                                if (val.includes(",")) {
+                                                    const parts = val.split(",").map((p) => p.trim()).filter(Boolean);
+                                                    parts.forEach((p) => handleAddTagToLayer(cat.id, p));
+                                                    setLayerInputDrafts((prev) => ({ ...prev, [cat.id]: "" }));
+                                                } else {
+                                                    setLayerInputDrafts((prev) => ({ ...prev, [cat.id]: val }));
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    const draft = (layerInputDrafts[cat.id] || "").trim();
+                                                    if (draft) {
+                                                        handleAddTagToLayer(cat.id, draft);
+                                                    }
+                                                }
+                                            }}
+                                            customDbTags={categoryCustomDbTags}
+                                            layer={cat.id}
+                                            category={cat.id === "identity" && identityMode === "character" ? "character" : undefined}
+                                            isNsfwEnabled={isNsfwEnabled}
+                                        />
+                                    </div>
+
+                                    {/* Inline Actions (Katalog Drawer Trigger) */}
+                                    <div className="aps-token-box-actions">
+                                        <button
+                                            type="button"
+                                            className="aps-token-catalog-btn"
+                                            onClick={() => {
+                                                setCatalogTargetLayer(cat.id);
+                                                setCatalogTargetCategory(cat.id === "identity" && identityMode === "character" ? "character" : "all");
+                                                setShowDanbooruCatalog(true);
+                                            }}
+                                            title={`Buka katalog Danbooru khusus ${cat.title}`}
+                                        >
+                                            <LucideIcons.BookOpen />
+                                            <span>Katalog{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Collapsible Quick-Tag Tray (Hanya ditampilkan pada layer yang sedang difokuskan, ringkas 1-2 baris) */}
+                                {cat.id === "identity" && identityMode === "character" ? (
+                                    <div className="aps-char-quick-banner">
+                                        <span className="aps-char-quick-text">
+                                            Mode Karakter Danbooru aktif. Ketik nama karakter di kotak atas untuk autokomplit instan, atau buka katalog karakter.
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="aps-char-quick-link"
+                                            onClick={() => {
+                                                setCatalogTargetLayer("identity");
+                                                setCatalogTargetCategory("character");
+                                                setShowDanbooruCatalog(true);
+                                            }}
+                                        >
+                                            <LucideIcons.Search />
+                                            <span>Buka Katalog Karakter ({booruStats?.categories?.character ? `${booruStats.categories.character}+` : "218+"})</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="aps-quick-tag-tray">
+                                        <div className="aps-quick-tray-header">
+                                            <span className="aps-quick-tray-label">Rekomendasi Cepat:</span>
+                                            <span className="aps-quick-tray-hint">Klik untuk pasang | Klik kanan untuk bobot</span>
+                                        </div>
+
+                                        <div className={`aps-quick-tray-chips ${expandedQuickTray[cat.id] ? "expanded" : ""}`}>
+                                            {flatChips.slice(0, expandedQuickTray[cat.id] ? undefined : 14).map((chipItem) => {
+                                                const active = isChipActive(cat.id, chipItem.text);
+                                                const weightLabel = getChipWeightLabel(cat.id, chipItem.text);
 
                                                 return (
-                                                    <div key={group.label} className="aps-subgroup-row">
-                                                        <span className="aps-subgroup-label">{group.label}:</span>
-                                                        <div className="aps-chips-wrap">
-                                                            {visibleGroupChips.map((chipItem) => {
-                                                                const active = isChipActive(cat.id, chipItem.text);
-                                                                const weightLabel = getChipWeightLabel(cat.id, chipItem.text);
-
-                                                                return (
-                                                                    <div
-                                                                        key={
-                                                                            chipItem.id
-                                                                                ? `db-${chipItem.id}`
-                                                                                : `g-${group.label}-${chipItem.text}`
-                                                                        }
-                                                                        className={`aps-chip-item ${active ? "active" : ""} ${
-                                                                            chipItem.isCustom ? "is-custom" : ""
-                                                                        }`}
-                                                                        onClick={() => onToggleChip(cat.id, chipItem.text)}
-                                                                        onContextMenu={(e) => {
-                                                                            e.preventDefault();
-                                                                            onCycleChipWeight(e, cat.id, chipItem.text);
-                                                                        }}
-                                                                        title={
-                                                                            chipItem.isCustom
-                                                                                ? "Tag kustom tersimpan di DB - Klik kanan untuk bobot"
-                                                                                : "Klik kanan / (+) untuk bobot (1.15 / 1.25)"
-                                                                        }
-                                                                    >
-                                                                        <span className="aps-chip-text">{chipItem.text}</span>
-                                                                        {weightLabel && (
-                                                                            <span className="aps-chip-weight-pill">
-                                                                                :{weightLabel}
-                                                                            </span>
-                                                                        )}
-                                                                        <button
-                                                                            type="button"
-                                                                            className="aps-chip-weight-cycler"
-                                                                            title="Tingkatkan bobot tag"
-                                                                            onClick={(e) =>
-                                                                                onCycleChipWeight(e, cat.id, chipItem.text)
-                                                                            }
-                                                                        >
-                                                                            +
-                                                                        </button>
-                                                                        {chipItem.isCustom && chipItem.id && onDeleteModularTag && (
-                                                                            <button
-                                                                                type="button"
-                                                                                className="aps-chip-del-btn"
-                                                                                title="Hapus tag kustom ini dari database"
-                                                                                onClick={(e) => {
-                                                                                    e.stopPropagation();
-                                                                                    onDeleteModularTag(chipItem.id!, chipItem.text);
-                                                                                }}
-                                                                            >
-                                                                                ✕
-                                                                            </button>
-                                                                        )}
-                                                                    </div>
-                                                                );
-                                                            })}
-
-                                                            {hasMoreGrp && !isGrpExpanded && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="aps-chip-more-btn"
-                                                                    onClick={() => setExpandedLayers((prev) => ({ ...prev, [groupKey]: true }))}
-                                                                >
-                                                                    +{group.chips.length - 20} tag ▾
-                                                                </button>
-                                                            )}
-                                                            {hasMoreGrp && isGrpExpanded && (
-                                                                <button
-                                                                    type="button"
-                                                                    className="aps-chip-more-btn"
-                                                                    onClick={() => setExpandedLayers((prev) => ({ ...prev, [groupKey]: false }))}
-                                                                >
-                                                                    ▴ Ringkas
-                                                                </button>
-                                                            )}
-                                                        </div>
+                                                    <div
+                                                        key={`quick-${cat.id}-${chipItem.text}`}
+                                                        className={`aps-chip-item ${active ? "active" : ""}`}
+                                                        onClick={() => onToggleChip(cat.id, chipItem.text)}
+                                                        onContextMenu={(e) => {
+                                                            e.preventDefault();
+                                                            onCycleChipWeight(e, cat.id, chipItem.text);
+                                                        }}
+                                                        title="Klik untuk pasang | Klik kanan untuk bobot"
+                                                    >
+                                                        <span className="aps-chip-text">{chipItem.text}</span>
+                                                        {weightLabel && (
+                                                            <span className="aps-chip-weight-pill">
+                                                                :{weightLabel}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 );
                                             })}
-                                        </div>
-                                    )}
 
-                                    {/* Conditional NSFW Quick-Tag Chips when Mode NSFW is enabled */}
-                                    {isNsfwEnabled && (
-                                        <>
-                                            {cat.nsfwChips && cat.nsfwChips.length > 0 && (
-                                                <div className="aps-subgroup-row aps-nsfw-subgroup-row">
-                                                    <span className="aps-subgroup-label aps-nsfw-label">
-                                                        🔞 Tag Dewasa / NSFW:
-                                                    </span>
-                                                    <div className="aps-chips-wrap">
-                                                        {cat.nsfwChips.map((chipText) => {
-                                                            const active = isChipActive(cat.id, chipText);
-                                                            const weightLabel = getChipWeightLabel(cat.id, chipText);
-                                                            return (
-                                                                <div
-                                                                    key={`nsfw-flat-${chipText}`}
-                                                                    className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
-                                                                    onClick={() => onToggleChip(cat.id, chipText)}
-                                                                    onContextMenu={(e) => {
-                                                                        e.preventDefault();
-                                                                        onCycleChipWeight(e, cat.id, chipText);
-                                                                    }}
-                                                                    title="Tag Danbooru Dewasa (18+) - Klik untuk pasang, klik kanan untuk bobot"
-                                                                >
-                                                                    <span className="aps-chip-text">{chipText}</span>
-                                                                    {weightLabel && (
-                                                                        <span className="aps-chip-weight-pill">
-                                                                            :{weightLabel}
-                                                                        </span>
-                                                                    )}
-                                                                    <button
-                                                                        type="button"
-                                                                        className="aps-chip-weight-cycler"
-                                                                        title="Tingkatkan bobot tag"
-                                                                        onClick={(e) =>
-                                                                            onCycleChipWeight(e, cat.id, chipText)
-                                                                        }
-                                                                    >
-                                                                        +
-                                                                    </button>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {cat.nsfwSubgroups && cat.nsfwSubgroups.length > 0 && (
-                                                <div className="aps-subgroups-wrap aps-nsfw-subgroups-container">
-                                                    {cat.nsfwSubgroups.map((group) => (
-                                                        <div key={group.label} className="aps-subgroup-row aps-nsfw-subgroup-row">
-                                                            <span className="aps-subgroup-label aps-nsfw-label">
-                                                                {group.label}:
-                                                            </span>
-                                                            <div className="aps-chips-wrap">
-                                                                {group.chips.map((chipText) => {
-                                                                    const active = isChipActive(cat.id, chipText);
-                                                                    const weightLabel = getChipWeightLabel(cat.id, chipText);
-                                                                    return (
-                                                                        <div
-                                                                            key={`nsfw-grp-${group.label}-${chipText}`}
-                                                                            className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
-                                                                            onClick={() => onToggleChip(cat.id, chipText)}
-                                                                            onContextMenu={(e) => {
-                                                                                e.preventDefault();
-                                                                                onCycleChipWeight(e, cat.id, chipText);
-                                                                            }}
-                                                                            title="Tag Danbooru Dewasa (18+) - Klik untuk pasang, klik kanan untuk bobot"
-                                                                        >
-                                                                            <span className="aps-chip-text">{chipText}</span>
-                                                                            {weightLabel && (
-                                                                                <span className="aps-chip-weight-pill">
-                                                                                    :{weightLabel}
-                                                                                </span>
-                                                                            )}
-                                                                            <button
-                                                                                type="button"
-                                                                                className="aps-chip-weight-cycler"
-                                                                                title="Tingkatkan bobot tag"
-                                                                                onClick={(e) =>
-                                                                                    onCycleChipWeight(e, cat.id, chipText)
-                                                                                }
-                                                                            >
-                                                                                +
-                                                                            </button>
-                                                                        </div>
-                                                                    );
-                                                                })}
+                                            {/* NSFW Chips if enabled */}
+                                            {isNsfwEnabled && cat.nsfwChips && cat.nsfwChips.length > 0 && (
+                                                <>
+                                                    {cat.nsfwChips.slice(0, expandedQuickTray[cat.id] ? undefined : 6).map((chipText) => {
+                                                        const active = isChipActive(cat.id, chipText);
+                                                        const weightLabel = getChipWeightLabel(cat.id, chipText);
+                                                        return (
+                                                            <div
+                                                                key={`quick-nsfw-${cat.id}-${chipText}`}
+                                                                className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
+                                                                onClick={() => onToggleChip(cat.id, chipText)}
+                                                                onContextMenu={(e) => {
+                                                                    e.preventDefault();
+                                                                    onCycleChipWeight(e, cat.id, chipText);
+                                                                }}
+                                                                title="Tag Dewasa (18+) - Klik untuk pasang | Klik kanan untuk bobot"
+                                                            >
+                                                                <span className="aps-chip-text">{chipText}</span>
+                                                                {weightLabel && (
+                                                                    <span className="aps-chip-weight-pill">
+                                                                        :{weightLabel}
+                                                                    </span>
+                                                                )}
                                                             </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                        );
+                                                    })}
+                                                </>
                                             )}
-                                        </>
-                                    )}
-                                </div>
-                            )}
+
+                                            {totalChipsCount > 14 && (
+                                                <button
+                                                    type="button"
+                                                    className="aps-quick-tray-expand-btn"
+                                                    onClick={() => {
+                                                        setExpandedQuickTray((prev) => ({
+                                                            ...prev,
+                                                            [cat.id]: !prev[cat.id],
+                                                        }));
+                                                    }}
+                                                >
+                                                    {expandedQuickTray[cat.id] ? "Tampilkan lebih sedikit" : `+${totalChipsCount - 14} lainnya...`}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                        );
+                    </div>
+                );
                     })}
                 </div>
 
-                {/* Right / Sticky Live Output Bar */}
+                {/* Right Column: Sticky Live Output & Target Model (sticky top-6) */}
                 <div className="aps-output-col">
                     <div className="aps-output-card">
+                        {/* Header Box Output */}
                         <div className="aps-output-header">
                             <div className="aps-output-title-group">
                                 <h3 className="aps-output-title">Live Model Output</h3>
                                 <div className="aps-output-metrics">
                                     <span className="aps-metric-pill">~{approxTokens} tok</span>
-                                    <span className="aps-metric-pill">{tagCount} tags</span>
+                                    <span className="aps-metric-pill">{tagCount} tag</span>
                                 </div>
                             </div>
 
@@ -1266,23 +1310,23 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     className={`aps-mode-btn ${formatMode === "single" ? "active" : ""}`}
                                     onClick={() => setFormatMode("single")}
                                 >
-                                    Single-Line
+                                    Satu Baris
                                 </button>
                                 <button
                                     type="button"
                                     className={`aps-mode-btn ${formatMode === "multiline" ? "active" : ""}`}
                                     onClick={() => setFormatMode("multiline")}
                                 >
-                                    Per-Kategori
+                                    Per Kategori
                                 </button>
                             </div>
                         </div>
 
-                        {/* Model Parser Selector Bar */}
+                        {/* Target AI Model Selector (Compact Segmented Grid) */}
                         <div className="aps-model-parser-bar">
                             <div className="aps-model-parser-label-row">
                                 <span className="aps-model-parser-label">
-                                    🎯 Target AI Model:
+                                    Target Arsitektur AI:
                                 </span>
                                 <button
                                     type="button"
@@ -1290,11 +1334,13 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     onClick={() => setShowMultiModelModal(true)}
                                     title="Buka panel perbandingan 8 model sekaligus"
                                 >
-                                    ⚡ Bandingkan 8 Model
+                                    <LucideIcons.Grid />
+                                    <span>Bandingkan 8 Model</span>
                                 </button>
                             </div>
 
-                            <div className="aps-model-chips-scroll">
+                            {/* Compact Grid of Pills */}
+                            <div className="aps-model-chips-grid">
                                 <button
                                     type="button"
                                     className={`aps-model-btn ${selectedTargetModel === "pony" ? "active pony" : ""}`}
@@ -1307,7 +1353,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     type="button"
                                     className={`aps-model-btn ${selectedTargetModel === "illustrious" ? "active illustrious" : ""}`}
                                     onClick={() => { setSelectedTargetModel("illustrious"); localStorage.setItem("modular_studio_target_model", "illustrious"); }}
-                                    title="Illustrious-XL / NoobAI - Danbooru berspasi & masterpiece"
+                                    title="Illustrious-XL - Danbooru berspasi & masterpiece"
                                 >
                                     Illustrious
                                 </button>
@@ -1329,6 +1375,22 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "noobai" ? "active illustrious" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("noobai"); localStorage.setItem("modular_studio_target_model", "noobai"); }}
+                                    title="NoobAI - Standar resmi OnomaAI tanpa score_9"
+                                >
+                                    NoobAI
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`aps-model-btn ${selectedTargetModel === "sdxl_realistic" ? "active sdxl" : ""}`}
+                                    onClick={() => { setSelectedTargetModel("sdxl_realistic"); localStorage.setItem("modular_studio_target_model", "sdxl_realistic"); }}
+                                    title="SDXL Photorealistic - Token DSLR & fotografi tajam"
+                                >
+                                    SDXL
+                                </button>
+                                <button
+                                    type="button"
                                     className={`aps-model-btn ${selectedTargetModel === "midjourney" ? "active midjourney" : ""}`}
                                     onClick={() => { setSelectedTargetModel("midjourney"); localStorage.setItem("modular_studio_target_model", "midjourney"); }}
                                     title="Midjourney V6.1 - Prosa sinematik & parameter render"
@@ -1337,115 +1399,93 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "novelai" ? "active novelai" : ""}`}
-                                    onClick={() => { setSelectedTargetModel("novelai"); localStorage.setItem("modular_studio_target_model", "novelai"); }}
-                                    title="NovelAI V3 - Kurung kurawal {tag} & spasi"
-                                >
-                                    NovelAI
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "sdxl_realistic" ? "active sdxl" : ""}`}
-                                    onClick={() => { setSelectedTargetModel("sdxl_realistic"); localStorage.setItem("modular_studio_target_model", "sdxl_realistic"); }}
-                                    title="SDXL Photorealistic - Token DSLR & fotografi tajam"
-                                >
-                                    SDXL Real
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "sd15" ? "active sd15" : ""}`}
-                                    onClick={() => { setSelectedTargetModel("sd15"); localStorage.setItem("modular_studio_target_model", "sd15"); }}
-                                    title="Classic SD 1.5 - Koma standar & bobot WebUI"
-                                >
-                                    SD 1.5
-                                </button>
-                                <button
-                                    type="button"
                                     className={`aps-model-btn ${selectedTargetModel === "raw" ? "active raw" : ""}`}
                                     onClick={() => { setSelectedTargetModel("raw"); localStorage.setItem("modular_studio_target_model", "raw"); }}
                                     title="Raw 10-Layer - Format asli tanpa transformasi"
                                 >
-                                    Raw Booru
+                                    Raw
                                 </button>
                             </div>
 
+                            {/* Auto-Prefix / Quality Rule Hint */}
                             <div className="aps-model-rule-hint">
-                                {selectedTargetModel === "pony" && "Auto-Inject: score_9, score_8_up... + tag Danbooru (_) + bobot (tag:1.1)"}
-                                {selectedTargetModel === "illustrious" && "Auto-Inject: masterpiece, very aesthetic + Danbooru spasi (tanpa score_9)"}
-                                {selectedTargetModel === "animagine" && "Auto-Inject: masterpiece, newest, aesthetic + Danbooru (_) + rating:general"}
-                                {selectedTargetModel === "flux" && "Auto-Transform: Kalimat naratif deskriptif bahasa Inggris kontinu untuk Flux.1"}
-                                {selectedTargetModel === "midjourney" && "Auto-Transform: Prosa sinematik + parameter --ar 16:9 --v 6.1 --stylize 250"}
-                                {selectedTargetModel === "novelai" && "Auto-Convert: Syntax kurung kurawal {tag} (1.05x), spasi kata tanpa _"}
-                                {selectedTargetModel === "sdxl_realistic" && "Auto-Inject: Token fotografi tajam DSLR, 8k uhd, soft rim lighting"}
-                                {selectedTargetModel === "sd15" && "Format Klasik WebUI: Koma standar dengan pembobotan (keyword:1.2)"}
-                                {selectedTargetModel === "raw" && "Format Asli 10-Layer: Tag murni apa adanya sesuai yang dipilih"}
+                                {getModelHint()}
                             </div>
                         </div>
 
-                        <textarea
-                            className="aps-output-textarea"
-                            rows={11}
-                            value={displayOutput}
-                            readOnly
-                            placeholder="Prompt yang Anda rancang dari 10 kategori akan otomatis diparse ke model yang dipilih secara real-time..."
-                        />
-
-                        <div className="aps-output-actions">
-                            <button
-                                type="button"
-                                className="aps-copy-btn"
-                                onClick={handleCopyActive}
-                            >
-                                <span>{copied ? "Berhasil Disalin!" : `Salin Prompt (${selectedTargetModel === "raw" ? "Raw" : selectedTargetModel})`}</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                className="aps-canvas-switch-btn"
-                                onClick={handleSwitchCanvasActive}
-                                title="Buka prompt terformat ini di Lab Canvas untuk tes token, bobot kurung, dan matrix"
-                            >
-                                <span>Uji di Lab Canvas ({selectedTargetModel === "raw" ? "Raw" : selectedTargetModel}) →</span>
-                            </button>
-
-                            <div style={{ display: "flex", gap: "8px" }}>
+                        {/* Live Prompt Output (Code Block Style with Color-Coded Syntax Highlighting) */}
+                        <div className="aps-codeblock-wrapper">
+                            <div className="aps-codeblock-header">
+                                <span className="aps-codeblock-badge">FORMATTED PROMPT</span>
                                 <button
                                     type="button"
-                                    className="aps-action-btn-sm"
-                                    style={{ flex: 1 }}
+                                    className="aps-codeblock-toggle-raw"
+                                    onClick={() => setIsRawTextEditMode(!isRawTextEditMode)}
+                                >
+                                    {isRawTextEditMode ? "Tampilan Syntax" : "Edit Teks Mentah"}
+                                </button>
+                            </div>
+
+                            {isRawTextEditMode ? (
+                                <textarea
+                                    className="aps-output-textarea"
+                                    rows={8}
+                                    value={displayOutput}
+                                    readOnly
+                                    placeholder="Prompt otomatis terkompilasi di sini..."
+                                />
+                            ) : (
+                                <PromptSyntaxHighlighter text={displayOutput} />
+                            )}
+                        </div>
+
+                        {/* Hierarchical Action Buttons */}
+                        <div className="aps-output-actions">
+                            {/* 1 Tombol Utama Penuh */}
+                            <button
+                                type="button"
+                                className="aps-copy-btn-primary"
+                                onClick={handleCopyActive}
+                            >
+                                {copied ? <LucideIcons.Check /> : <LucideIcons.Copy />}
+                                <span>{copied ? "Prompt Berhasil Disalin!" : `Salin Prompt (${selectedTargetModel === "noobai" ? "NoobAI" : selectedTargetModel})`}</span>
+                            </button>
+
+                            {/* Baris ke-2: Grid 2 Kolom */}
+                            <div className="aps-action-grid-2">
+                                <button
+                                    type="button"
+                                    className="aps-action-sub-btn"
+                                    onClick={handleSwitchCanvasActive}
+                                    title="Uji prompt ini di Lab Canvas"
+                                >
+                                    <LucideIcons.ArrowRight />
+                                    <span>Uji di Lab Canvas</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="aps-action-sub-btn"
                                     onClick={onSaveToPresetLibrary}
                                     title="Simpan sebagai Preset ke Database"
                                 >
-                                    <span>Save Preset</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="aps-action-btn-sm"
-                                    style={{ flex: 1, color: "#60a5fa", borderColor: "#2563eb" }}
-                                    onClick={() => setShowMultiModelModal(true)}
-                                    title="Buka perbandingan 8 model sekaligus"
-                                >
-                                    <span>8 Model Grid</span>
+                                    <LucideIcons.Bookmark />
+                                    <span>Simpan Preset</span>
                                 </button>
                             </div>
-                        </div>
 
-                        {/* Bottom Right Floating / Catalog Banner */}
-                        <div className="aps-output-catalog-banner">
+                            {/* Baris ke-3: Tombol Katalog Danbooru (Lebar Penuh) */}
                             <button
                                 type="button"
-                                className="aps-open-catalog-btn"
-                                onMouseEnter={() => {
-                                    getBooruTagStatsApi().then((d) => setBooruStats(d)).catch(() => {});
-                                }}
+                                className="aps-action-sub-btn secondary full-width"
                                 onClick={() => {
                                     setCatalogTargetLayer("all");
                                     setCatalogTargetCategory("all");
                                     setShowDanbooruCatalog(true);
                                 }}
-                                title={`Buka kamus & katalog Danbooru database lengkap dengan tab 10 layer dan pencarian (${booruStats ? booruStats.total_tags.toLocaleString("id-ID") : "1.353+"} tag PostgreSQL)`}
+                                title="Buka katalog Danbooru lengkap"
                             >
-                                <span>📖 Buka Katalog Danbooru ({booruStats ? `${booruStats.total_tags.toLocaleString("id-ID")}+ Tag` : "1.353+ Tag"})</span>
+                                <LucideIcons.BookOpen />
+                                <span>Katalog Danbooru ({booruStats ? `${booruStats.total_tags.toLocaleString("id-ID")}+ Tag` : "1.835+ Tag"})</span>
                             </button>
                         </div>
                     </div>
@@ -1481,59 +1521,66 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="aps-layer-modal-header">
-                            <div>
-                                <h4 className="aps-layer-modal-title">
-                                    Daftar Lengkap Quick-Tag: {modalLayerDetail.title}
-                                </h4>
-                                <span style={{ fontSize: "11px", color: "#64748b" }}>
-                                    Total {modalLayerDetail.chips.length} tag tersedia di layer ini
+                            <div className="aps-layer-modal-title-group">
+                                <h3 className="aps-layer-modal-title">
+                                    Katalog Tag: {modalLayerDetail.title}
+                                </h3>
+                                <span className="aps-layer-modal-badge">
+                                    {modalLayerDetail.chips.length} Tag Tersedia
                                 </span>
                             </div>
                             <button
                                 type="button"
-                                className="booru-catalog-close-btn"
+                                className="aps-layer-modal-close-btn"
                                 onClick={() => {
                                     setModalLayerDetail(null);
                                     setLayerModalSearch("");
                                 }}
                             >
-                                ✕
+                                <LucideIcons.X />
                             </button>
                         </div>
 
-                        <div style={{ padding: "10px 18px", borderBottom: "1px solid #232934", background: "#0d0f13" }}>
+                        <div className="aps-layer-modal-search-row">
                             <input
                                 type="text"
-                                className="booru-catalog-search-input"
-                                placeholder="Filter tag pada layer ini..."
+                                className="aps-layer-modal-search-input"
+                                placeholder={`Cari tag untuk ${modalLayerDetail.title}...`}
                                 value={layerModalSearch}
                                 onChange={(e) => setLayerModalSearch(e.target.value)}
                                 autoFocus
                             />
+                            {layerModalSearch && (
+                                <button
+                                    type="button"
+                                    className="aps-layer-modal-search-clear"
+                                    onClick={() => setLayerModalSearch("")}
+                                >
+                                    Bersihkan
+                                </button>
+                            )}
                         </div>
 
                         <div className="aps-layer-modal-body">
                             <div className="aps-chips-wrap">
                                 {modalLayerDetail.chips
                                     .filter((c) =>
-                                        !layerModalSearch ||
-                                        c.text.toLowerCase().includes(layerModalSearch.toLowerCase())
+                                        c.text.toLowerCase().includes(layerModalSearch.toLowerCase().trim())
                                     )
                                     .map((chipItem) => {
                                         const active = isChipActive(modalLayerDetail.id, chipItem.text);
                                         const weightLabel = getChipWeightLabel(modalLayerDetail.id, chipItem.text);
+
                                         return (
                                             <div
-                                                key={chipItem.id ? `modal-${chipItem.id}` : `modal-${chipItem.text}`}
-                                                className={`aps-chip-item ${active ? "active" : ""} ${
-                                                    chipItem.isCustom ? "is-custom" : ""
-                                                }`}
+                                                key={`modal-${chipItem.text}`}
+                                                className={`aps-chip-item ${active ? "active" : ""}`}
                                                 onClick={() => onToggleChip(modalLayerDetail.id, chipItem.text)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
                                                     onCycleChipWeight(e, modalLayerDetail.id, chipItem.text);
                                                 }}
-                                                title="Klik untuk toggle ke prompt layer ini"
+                                                title="Klik untuk pasang | Klik kanan untuk bobot"
                                             >
                                                 <span className="aps-chip-text">{chipItem.text}</span>
                                                 {weightLabel && (
@@ -1541,16 +1588,6 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                         :{weightLabel}
                                                     </span>
                                                 )}
-                                                <button
-                                                    type="button"
-                                                    className="aps-chip-weight-cycler"
-                                                    title="Tingkatkan bobot tag"
-                                                    onClick={(e) =>
-                                                        onCycleChipWeight(e, modalLayerDetail.id, chipItem.text)
-                                                    }
-                                                >
-                                                    +
-                                                </button>
                                             </div>
                                         );
                                     })}
@@ -1560,7 +1597,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                 </div>
             )}
 
-            {/* Multi-Model Comparison Modal */}
+            {/* Multi-Model Comparison Modal (8 Model Grid) */}
             {showMultiModelModal && (
                 <div
                     className="aps-multi-model-modal-backdrop"
@@ -1571,96 +1608,63 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="aps-multi-model-header">
-                            <div>
+                            <div className="aps-multi-model-title-group">
                                 <h3 className="aps-multi-model-title">
-                                    Real-time Multi-Model Comparison (8 Target Engine)
+                                    Perbandingan 8 Model Arsitektur AI
                                 </h3>
-                                <div className="aps-multi-model-sub">
-                                    Prompt dari 10 modular layer langsung diparse sesuai sintaks database Danbooru ke masing-masing model.
-                                </div>
+                                <span className="aps-multi-model-sub">
+                                    Format otomatis diparsing real-time dari 10 layer visual
+                                </span>
                             </div>
                             <button
                                 type="button"
-                                className="booru-catalog-close-btn"
+                                className="aps-multi-model-close-btn"
                                 onClick={() => setShowMultiModelModal(false)}
                             >
-                                ✕
+                                <LucideIcons.X />
                             </button>
                         </div>
 
-                        <div className="aps-multi-model-body">
+                        <div className="aps-multi-model-grid">
                             {PROMPT_FORMATS.map((fmt) => {
-                                const promptText = allModelOutputs[fmt.id] || "";
+                                const out = allModelOutputs[fmt.id] || "";
                                 const isCopied = copiedModelId === fmt.id;
-                                const isCurrent = selectedTargetModel === fmt.id;
+
                                 return (
-                                    <div
-                                        key={fmt.id}
-                                        className="aps-multi-model-card"
-                                        style={{
-                                            borderColor: isCurrent ? fmt.color : "#282c34",
-                                        }}
-                                    >
-                                        <div className="aps-multi-model-card-top">
-                                            <span className="aps-multi-model-card-name">{fmt.name}</span>
-                                            <span
-                                                className="aps-multi-model-card-badge"
-                                                style={{
-                                                    background: isCurrent ? "#172554" : "#181d26",
-                                                    color: isCurrent ? "#93c5fd" : "#94a3b8",
-                                                    border: `1px solid ${isCurrent ? "#2563eb" : "#282c34"}`,
+                                    <div key={fmt.id} className="aps-multi-model-card">
+                                        <div className="aps-multi-model-card-header">
+                                            <div className="aps-multi-model-card-title-group">
+                                                <span
+                                                    className="aps-multi-model-dot"
+                                                    style={{ background: fmt.color }}
+                                                />
+                                                <span className="aps-multi-model-name">{fmt.name}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className={`aps-multi-model-copy-btn ${isCopied ? "copied" : ""}`}
+                                                onClick={() => {
+                                                    if (!out.trim()) return;
+                                                    navigator.clipboard.writeText(out);
+                                                    setCopiedModelId(fmt.id);
+                                                    showToast(`Format ${fmt.name} berhasil disalin!`);
+                                                    setTimeout(() => setCopiedModelId(null), 2000);
                                                 }}
+                                                disabled={!out.trim()}
                                             >
-                                                {isCurrent ? "✓ Model Aktif" : fmt.id}
-                                            </span>
+                                                {isCopied ? <LucideIcons.Check /> : <LucideIcons.Copy />}
+                                                <span>{isCopied ? "Tersalin!" : "Salin"}</span>
+                                            </button>
                                         </div>
+
+                                        <p className="aps-multi-model-desc">{fmt.description}</p>
 
                                         <textarea
                                             className="aps-multi-model-textarea"
-                                            value={promptText}
+                                            value={out}
                                             readOnly
-                                            rows={5}
+                                            placeholder="Belum ada tag yang dipilih..."
                                         />
-
-                                        <div className="aps-multi-model-card-actions">
-                                            <button
-                                                type="button"
-                                                className="aps-multi-model-btn-sm"
-                                                onClick={() => {
-                                                    setSelectedTargetModel(fmt.id);
-                                                    localStorage.setItem("modular_studio_target_model", fmt.id);
-                                                    showToast(`Target model aktif diubah ke ${fmt.name}`);
-                                                }}
-                                                style={isCurrent ? { background: "#2563eb", color: "#fff" } : undefined}
-                                            >
-                                                {isCurrent ? "✓ Aktif" : "Pilih Model"}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="aps-multi-model-btn-sm"
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(promptText);
-                                                    setCopiedModelId(fmt.id);
-                                                    showToast(`Prompt untuk ${fmt.name} berhasil disalin!`);
-                                                    setTimeout(() => setCopiedModelId(null), 2000);
-                                                }}
-                                            >
-                                                {isCopied ? "✓ Disalin!" : "📋 Salin"}
-                                            </button>
-                                            {onSwitchToCanvas && (
-                                                <button
-                                                    type="button"
-                                                    className="aps-multi-model-btn-sm"
-                                                    style={{ background: "#2563eb", color: "#fff", borderColor: "#3b82f6" }}
-                                                    onClick={() => {
-                                                        setShowMultiModelModal(false);
-                                                        onSwitchToCanvas(promptText);
-                                                    }}
-                                                >
-                                                    Ke Canvas →
-                                                </button>
-                                            )}
-                                        </div>
                                     </div>
                                 );
                             })}

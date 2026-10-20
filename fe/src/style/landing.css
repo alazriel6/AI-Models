@@ -2547,6 +2547,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -2556,6 +2557,7 @@
   from {
     transform: rotate(360deg);
   }
+
   to {
     transform: rotate(0deg);
   }
@@ -2576,6 +2578,7 @@
     transform: scale(0.9);
     opacity: 0.55;
   }
+
   100% {
     transform: scale(1.15);
     opacity: 0.95;
@@ -2591,6 +2594,7 @@
   0% {
     filter: drop-shadow(0 0 1px rgba(250, 204, 21, 0.3));
   }
+
   100% {
     filter: drop-shadow(0 0 5px rgba(250, 204, 21, 0.7));
   }
@@ -2600,6 +2604,7 @@
   0% {
     stroke-dashoffset: 900;
   }
+
   100% {
     stroke-dashoffset: -460;
   }
@@ -2609,6 +2614,7 @@
   0% {
     stroke-dashoffset: 1100;
   }
+
   100% {
     stroke-dashoffset: -580;
   }
@@ -2623,6 +2629,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   .mg-svg-spin-slow,
   .mg-svg-spin-counter,
   .mg-svg-pulse-core,
@@ -3451,6 +3458,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -4080,6 +4088,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

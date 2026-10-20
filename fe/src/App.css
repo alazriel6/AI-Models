@@ -73,13 +73,14 @@ textarea {
    Navigation Header
    ========================================================================== */
 
-nav {
+nav,
+.nav-editorial {
   width: 100%;
   border-bottom: 1px solid var(--border);
   background-color: var(--card-bg);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 1000;
   padding: 10px 24px;
   box-sizing: border-box;
 }
