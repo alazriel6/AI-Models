@@ -22,6 +22,7 @@ type RouteHandlers struct {
 	WorkflowHandler         *handlers.WorkflowHandler
 	WorkflowCategoryHandler *handlers.WorkflowCategoryHandler
 	NegativeVaultHandler    *handlers.NegativeVaultHandler
+	ControlNetHandler       *handlers.ControlNetHandler
 }
 
 func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretKey string) {
@@ -181,6 +182,25 @@ func Setup(router *gin.Engine, h RouteHandlers, storagePath string, adminSecretK
 				embeddings.POST("", h.NegativeVaultHandler.CreateEmbedding)
 				embeddings.PUT("/:id", h.NegativeVaultHandler.UpdateEmbedding)
 				embeddings.DELETE("/:id", h.NegativeVaultHandler.DeleteEmbedding)
+			}
+		}
+
+		// ControlNet & OpenPose Library
+		if h.ControlNetHandler != nil {
+			controlnet := api.Group("/controlnet")
+			{
+				controlnet.GET("/poses", h.ControlNetHandler.GetPoses)
+				controlnet.GET("/poses/:id", h.ControlNetHandler.GetPose)
+				controlnet.POST("/poses", h.ControlNetHandler.CreatePose)
+				controlnet.PUT("/poses/:id", h.ControlNetHandler.UpdatePose)
+				controlnet.DELETE("/poses/:id", h.ControlNetHandler.DeletePose)
+
+				// Models catalog
+				controlnet.GET("/models", h.ControlNetHandler.GetModels)
+				controlnet.GET("/models/:id", h.ControlNetHandler.GetModel)
+				controlnet.POST("/models", h.ControlNetHandler.CreateModel)
+				controlnet.PUT("/models/:id", h.ControlNetHandler.UpdateModel)
+				controlnet.DELETE("/models/:id", h.ControlNetHandler.DeleteModel)
 			}
 		}
 	}

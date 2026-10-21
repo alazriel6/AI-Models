@@ -21,6 +21,7 @@ const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const ComfyWorkflows = lazy(() => import('./components/pages/ComfyWorkflows'));
 const NegativeVault = lazy(() => import('./components/pages/NegativeVault'));
 const SamplerGuide = lazy(() => import('./components/pages/SamplerGuide'));
+const ControlNetStudio = lazy(() => import('./components/pages/ControlNetStudio'));
 
 function PageLoadingFallback() {
   return (
@@ -171,7 +172,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -399,6 +400,27 @@ function AppLayout() {
                     <span className="nav-tool-desc">Sigma curve plotter &amp; diffusion math</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/controlnet"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="5" r="2" />
+                      <line x1="12" y1="7" x2="12" y2="14" />
+                      <line x1="12" y1="9" x2="7" y2="12" />
+                      <line x1="12" y1="9" x2="17" y2="12" />
+                      <line x1="12" y1="14" x2="8" y2="21" />
+                      <line x1="12" y1="14" x2="16" y2="21" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">ControlNet &amp; OpenPose Rig</span>
+                    <span className="nav-tool-desc">18-Joint skeleton editor &amp; preprocessor labs</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -447,6 +469,9 @@ function AppLayout() {
             <Route path="/sampler-guide" element={<SamplerGuide />} />
             <Route path="/samplers" element={<SamplerGuide />} />
             <Route path="/schedulers" element={<SamplerGuide />} />
+            <Route path="/controlnet" element={<ControlNetStudio />} />
+            <Route path="/openpose" element={<ControlNetStudio />} />
+            <Route path="/preprocessor" element={<ControlNetStudio />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

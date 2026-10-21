@@ -25,6 +25,12 @@ func SeedData(db *gorm.DB, force bool) error {
 	if err := SeedNegativeVault(db); err != nil {
 		log.Printf("Warning: failed to seed negative vault: %v\n", err)
 	}
+	if err := SeedControlNetPoses(db); err != nil {
+		log.Printf("Warning: failed to seed controlnet poses: %v\n", err)
+	}
+	if err := SeedControlNetModels(db); err != nil {
+		log.Printf("Warning: failed to seed controlnet models: %v\n", err)
+	}
 
 	var count int64
 	db.Model(&models.Model{}).Count(&count)

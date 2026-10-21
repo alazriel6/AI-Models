@@ -61,3 +61,27 @@ export async function apiFetch<T>(
 
     return response.json();
 }
+
+export function apiGet<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return apiFetch<T>(endpoint, { ...options, method: "GET" });
+}
+
+export function apiPost<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    return apiFetch<T>(endpoint, {
+        ...options,
+        method: "POST",
+        body: body !== undefined ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined,
+    });
+}
+
+export function apiPut<T>(endpoint: string, body?: any, options?: RequestInit): Promise<T> {
+    return apiFetch<T>(endpoint, {
+        ...options,
+        method: "PUT",
+        body: body !== undefined ? (typeof body === "string" ? body : JSON.stringify(body)) : undefined,
+    });
+}
+
+export function apiDelete<T>(endpoint: string, options?: RequestInit): Promise<T> {
+    return apiFetch<T>(endpoint, { ...options, method: "DELETE" });
+}

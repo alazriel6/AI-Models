@@ -1058,7 +1058,7 @@ export default function SamplerGuide() {
                   </div>
                   <div className="sg-spec-col">
                     <span className="sg-spec-label">Sifat Aliran</span>
-                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#60a5fa" : sampler.category === "flow_matching" ? "#e11d48" : "#f59e0b" }}>
+                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#cbd5e1" : sampler.category === "flow_matching" ? "#f43f5e" : "#f59e0b" }}>
                       {sampler.category === "deterministic" ? "Deterministik" : sampler.category === "flow_matching" ? "Flow Match" : "Stokastik"}
                     </span>
                   </div>
@@ -1080,7 +1080,7 @@ export default function SamplerGuide() {
                     href={sampler.paperUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#60a5fa", textDecoration: "underline", fontSize: "11px", fontWeight: 600 }}
+                    style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "11px", fontWeight: 600 }}
                   >
                     Buka Paper / Source ↗
                   </a>
@@ -1284,7 +1284,7 @@ export default function SamplerGuide() {
                   top: "20px",
                   right: "24px",
                   background: "#18181b",
-                  border: "1px solid #2563eb",
+                  border: "1px solid #3f3f46",
                   borderRadius: "6px",
                   padding: "8px 12px",
                   fontSize: "12px",
@@ -1299,7 +1299,7 @@ export default function SamplerGuide() {
                 </div>
                 <div style={{ color: "#a1a1aa" }}>
                   Step {hoveredPoint.step} / {plotterSteps - 1} →{" "}
-                  <strong style={{ color: "#60a5fa" }}>σ = {hoveredPoint.sigma}</strong>
+                  <strong style={{ color: "#f4f4f5" }}>σ = {hoveredPoint.sigma}</strong>
                 </div>
               </div>
             )}
@@ -1356,10 +1356,12 @@ export default function SamplerGuide() {
 
           <div className="sg-grid">
             {CURATED_RECIPES.map((recipe) => (
-              <div key={recipe.id} className="sg-card highlighted">
+              <div key={recipe.id} className="sg-card sg-recipe-card">
                 <div className="sg-card-header">
                   <div className="sg-card-title-group">
-                    <span className="sg-result-badge">{recipe.badge}</span>
+                    <span className={`sg-recipe-badge ${recipe.badge.toLowerCase().includes("wajib") || recipe.badge.toLowerCase().includes("peringatan") ? "warning" : recipe.badge.toLowerCase().includes("flow") || recipe.badge.toLowerCase().includes("distilled") ? "flux" : "standard"}`}>
+                      {recipe.badge}
+                    </span>
                     <h3 className="sg-card-title" style={{ marginTop: "6px" }}>
                       {recipe.title}
                     </h3>
@@ -1372,7 +1374,7 @@ export default function SamplerGuide() {
                 <div className="sg-specs-row">
                   <div className="sg-spec-col">
                     <span className="sg-spec-label">Sampler</span>
-                    <span className="sg-spec-val" style={{ color: "#60a5fa" }}>
+                    <span className="sg-spec-val">
                       {recipe.samplerName}
                     </span>
                   </div>
@@ -1392,22 +1394,22 @@ export default function SamplerGuide() {
                   </div>
                 </div>
 
-                <div style={{ fontSize: "12px", color: "#d4d4d8", lineHeight: 1.5 }}>
-                  <strong style={{ color: "#f4f4f5" }}>Target Model: </strong>
-                  {recipe.useCase}
+                <div style={{ fontSize: "12px", color: "#a1a1aa", lineHeight: 1.5 }}>
+                  <strong style={{ color: "#e4e4e7" }}>Target Model: </strong>
+                  <span style={{ color: "#d4d4d8" }}>{recipe.useCase}</span>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#18181b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "4px" }}>
-                  <span><strong style={{ color: "#d4d4d8" }}>CLIP Skip: </strong><code style={{ color: "#f59e0b" }}>{recipe.clipSkip}</code></span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#18181b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "2px" }}>
+                  <span><strong style={{ color: "#a1a1aa" }}>CLIP Skip: </strong><code style={{ color: "#fbbf24", background: "rgba(245, 158, 11, 0.1)", padding: "1px 5px", borderRadius: "3px" }}>{recipe.clipSkip}</code></span>
                   <span>
-                    <strong style={{ color: "#d4d4d8" }}>Model Card: </strong>
-                    <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "underline", fontWeight: 600 }}>
+                    <strong style={{ color: "#a1a1aa" }}>Model Card: </strong>
+                    <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontWeight: 600 }}>
                       {recipe.sourceName} ↗
                     </a>
                   </span>
                 </div>
 
-                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#121215", padding: "8px 10px", borderRadius: "6px", borderLeft: "3px solid #2563eb", marginTop: "4px", fontStyle: "italic", lineHeight: 1.45 }}>
+                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#18181b", padding: "8px 12px", borderRadius: "4px", border: "1px solid #27272a", borderLeft: "3px solid #52525b", marginTop: "2px", fontStyle: "italic", lineHeight: 1.45 }}>
                   "{recipe.officialNotes}"
                 </div>
 
@@ -1555,7 +1557,7 @@ export default function SamplerGuide() {
                     href={itemA.paperUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#60a5fa", textDecoration: "underline", fontSize: "12px", fontWeight: 600 }}
+                    style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "12px", fontWeight: 600 }}
                   >
                     {itemA.paperTitle} ↗
                   </a>
@@ -1565,7 +1567,7 @@ export default function SamplerGuide() {
                     href={itemB.paperUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#34d399", textDecoration: "underline", fontSize: "12px", fontWeight: 600 }}
+                    style={{ color: "#34d399", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "12px", fontWeight: 600 }}
                   >
                     {itemB.paperTitle} ↗
                   </a>
@@ -1758,7 +1760,7 @@ export default function SamplerGuide() {
       {/* Footnote Disclaimers: Technical Accuracy Principles */}
       <footer style={{ marginTop: "32px", padding: "16px 20px", background: "#121215", border: "1px solid #27272a", borderRadius: "8px", fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-          <span style={{ color: "#2563eb", fontWeight: 700 }}>ℹ️ Prinsip Akurasi Teknis:</span>
+          <span style={{ color: "#d4d4d8", fontWeight: 700 }}>ℹ️ Prinsip Akurasi Teknis:</span>
         </div>
         <p style={{ margin: 0 }}>
           Nilai steps dan CFG yang tercantum pada seluruh panduan ini adalah <strong>titik awal eksperimen praktis</strong>, bukan nilai universal atau spesifikasi mutlak. Hasil akhir difusi sangat dipengaruhi oleh arsitektur checkpoint (SD 1.5, SDXL, Illustrious, NoobAI, FLUX.1), VAE, LoRA stack, CLIP Skip, resolusi gambar, scheduler yang dipasangkan, dan seed. Pengujian perbandingan antar konfigurasi yang valid menuntut kontrol variabel ketat (checkpoint, prompt, negative prompt, seed, dan resolusi harus identik).

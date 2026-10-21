@@ -5,25 +5,25 @@
    ========================================================================== */
 
 :root {
-    --pl-bg: #0b0d11;
-    --pl-surface-1: #12151b;
-    --pl-surface-2: #181c24;
-    --pl-surface-3: #1f2530;
-    --pl-surface-hover: #262d3b;
+    --pl-bg: #121215;
+    --pl-surface-1: #121215;
+    --pl-surface-2: #18181b;
+    --pl-surface-3: #202024;
+    --pl-surface-hover: #27272a;
 
-    --pl-border-subtle: #232934;
-    --pl-border: #282c34;
-    --pl-border-hover: #3b82f6;
+    --pl-border-subtle: #27272a;
+    --pl-border: #27272a;
+    --pl-border-hover: #3f3f46;
     --pl-border-focus: #3b82f6;
 
-    --pl-text-primary: #f8fafc;
-    --pl-text-secondary: #cbd5e1;
-    --pl-text-muted: #94a3b8;
-    --pl-text-faint: #64748b;
+    --pl-text-primary: #f4f4f5;
+    --pl-text-secondary: #d4d4d8;
+    --pl-text-muted: #a1a1aa;
+    --pl-text-faint: #71717a;
 
-    --pl-accent: #3b82f6;
-    --pl-accent-hover: #2563eb;
-    --pl-accent-muted: #172554;
+    --pl-accent: #2563eb;
+    --pl-accent-hover: #1d4ed8;
+    --pl-accent-muted: #18181b;
 
     --pl-pos-accent: #10b981;
     --pl-pos-muted: #064e3b;

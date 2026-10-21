@@ -12,7 +12,7 @@ import {
 } from "../../utils/workflowBridge";
 
 interface WorkflowBridgeBannerProps {
-  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide";
+  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet";
   onApply?: (data: WorkflowBridgeData) => void;
 }
 
@@ -51,6 +51,8 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
         return "Negative Vault";
       case "sampler-guide":
         return "Sampler & Scheduler Guide";
+      case "controlnet":
+        return "ControlNet Studio";
       default:
         return "Alat Generator";
     }

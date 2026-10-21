@@ -39,6 +39,7 @@ func main() {
 	workflowRepo := repositories.NewWorkflowRepository(db)
 	workflowCategoryRepo := repositories.NewWorkflowCategoryRepository(db)
 	negativeVaultRepo := repositories.NewNegativeVaultRepository(db)
+	controlnetRepo := repositories.NewControlNetRepository(db)
 
 	// Services
 	modelService := services.NewModelService(modelRepo)
@@ -54,6 +55,7 @@ func main() {
 	workflowService := services.NewWorkflowService(workflowRepo)
 	workflowCategoryService := services.NewWorkflowCategoryService(workflowCategoryRepo)
 	negativeVaultService := services.NewNegativeVaultService(negativeVaultRepo)
+	controlnetService := services.NewControlNetService(controlnetRepo)
 
 	// Handlers
 	h := routes.RouteHandlers{
@@ -70,6 +72,7 @@ func main() {
 		WorkflowHandler:         handlers.NewWorkflowHandler(workflowService),
 		WorkflowCategoryHandler: handlers.NewWorkflowCategoryHandler(workflowCategoryService),
 		NegativeVaultHandler:    handlers.NewNegativeVaultHandler(negativeVaultService),
+		ControlNetHandler:       handlers.NewControlNetHandler(controlnetService),
 	}
 
 	router := gin.Default()

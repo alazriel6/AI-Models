@@ -6,7 +6,7 @@ export interface LoraBridgeItem {
 }
 
 export interface WorkflowBridgeData {
-  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide";
+  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet";
   timestamp: number;
   imageId?: number;
   imageUrl?: string;
