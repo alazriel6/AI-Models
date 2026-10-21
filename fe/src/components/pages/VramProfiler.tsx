@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
 import {
@@ -14,11 +14,15 @@ import {
 import { HardwareProfileModal } from "../common/HardwareProfileModal";
 import "../../style/VramProfiler.css";
 
+// ============================================================================
+// Model & Pipeline Definitions
+// ============================================================================
+
 interface BaseModelDef {
     id: string;
     name: string;
     archLabel: string;
-    paramCountB: number; // In Billions of parameters for DiT/UNet
+    paramCountB: number;
     defaultResolution: { w: number; h: number };
     defaultTextEncoder: string;
     supportedQuantizations: string[];
@@ -134,11 +138,11 @@ interface QuantizationDef {
 const QUANTIZATIONS: Record<string, QuantizationDef> = {
     fp32: { id: "fp32", name: "FP32 (Full)", bytesPerParam: 4.0, desc: "Format 32-bit float penuh (--no-half), bobot 2x lipat lebih besar" },
     fp16: { id: "fp16", name: "FP16 (Half)", bytesPerParam: 2.0, desc: "Standar industri tanpa kehilangan kualitas (16-bit float)" },
-    bf16: { id: "bf16", name: "BF16 (Bfloat16)", bytesPerParam: 2.0, desc: "Rentang dinamis lebar standar Flux/Wan 2.1" },
-    fp8_e4m3: { id: "fp8_e4m3", name: "FP8_e4m3", bytesPerParam: 1.0, desc: "Kuantisasi native RTX 40xx, hemat 50% VRAM bobot" },
-    gguf_q8: { id: "gguf_q8", name: "GGUF Q8_0", bytesPerParam: 1.05, desc: "GGUF quant 8-bit kualitas prima via llama.cpp/ComfyUI" },
-    gguf_q4: { id: "gguf_q4", name: "GGUF Q4_K_M", bytesPerParam: 0.55, desc: "Kuantisasi agresif 4-bit, hemat VRAM ekstrem ~72%" },
-    nf4: { id: "nf4", name: "NF4 (BitsAndBytes)", bytesPerParam: 0.55, desc: "NormalFloat 4-bit native checkpoint Flux.1 BnB" },
+    bf16: { id: "bf16", name: "BF16 (Bfloat16)", bytesPerParam: 2.0, desc: "Rentang dinamis lebar standar Flux dan Wan 2.1 Video" },
+    fp8_e4m3: { id: "fp8_e4m3", name: "FP8 (e4m3)", bytesPerParam: 1.0, desc: "Kuantisasi native RTX 40xx/Ada & RDNA 3+, hemat 50% VRAM bobot" },
+    gguf_q8: { id: "gguf_q8", name: "GGUF Q8", bytesPerParam: 1.05, desc: "GGUF quant 8-bit kualitas prima via llama.cpp dan ComfyUI" },
+    gguf_q4: { id: "gguf_q4", name: "GGUF Q4", bytesPerParam: 0.55, desc: "Kuantisasi agresif 4-bit, hemat alokasi VRAM ekstrem ~72%" },
+    nf4: { id: "nf4", name: "NF4 (BnB)", bytesPerParam: 0.55, desc: "NormalFloat 4-bit native checkpoint Flux.1 BitsAndBytes" },
 };
 
 interface TextEncoderDef {
@@ -157,7 +161,11 @@ const TEXT_ENCODERS: Record<string, TextEncoderDef> = {
     none: { id: "none", name: "None / CPU Offloaded", vramGb: 0.0, desc: "Offload ke RAM sistem (0 GB VRAM terpakai)" },
 };
 
-interface GpuPreset {
+// ============================================================================
+// Hardware Presets (NVIDIA, AMD Radeon & Apple Silicon Mac)
+// ============================================================================
+
+export interface GpuPreset {
     id: string;
     name: string;
     vramGb: number;
@@ -172,9 +180,7 @@ interface GpuPreset {
 }
 
 const GPU_PRESETS: GpuPreset[] = [
-    // -------------------------------------------------------------
-    // RTX 50 SERIES (BLACKWELL ARCHITECTURE - GDDR7)
-    // -------------------------------------------------------------
+    // RTX 50 SERIES (BLACKWELL)
     { id: "rtx5090_desktop", name: "RTX 5090 Desktop (32 GB GDDR7)", vramGb: 32, tier: "Ultra Flagship", fp16Tflops: 700, memBandwidthGbps: 1792, category: "RTX 50 Series (Blackwell)", tdpWatts: 600 },
     { id: "rtx5090_laptop", name: "RTX 5090 Laptop (24 GB GDDR7)", vramGb: 24, tier: "Flagship Mobile", fp16Tflops: 450, memBandwidthGbps: 1152, category: "RTX 50 Series (Blackwell)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 95, tgpMaxWatts: 175 },
     { id: "rtx5080_desktop", name: "RTX 5080 Desktop (16 GB GDDR7)", vramGb: 16, tier: "High-End Enthusiast", fp16Tflops: 380, memBandwidthGbps: 1008, category: "RTX 50 Series (Blackwell)", tdpWatts: 400 },
@@ -188,9 +194,7 @@ const GPU_PRESETS: GpuPreset[] = [
     { id: "rtx5050_desktop", name: "RTX 5050 Desktop (8 GB GDDR7)", vramGb: 8, tier: "Budget Entry", fp16Tflops: 60, memBandwidthGbps: 288, category: "RTX 50 Series (Blackwell)", tdpWatts: 130 },
     { id: "rtx5050_laptop", name: "RTX 5050 Laptop (8 GB GDDR7)", vramGb: 8, tier: "Entry Mobile", fp16Tflops: 55, memBandwidthGbps: 256, category: "RTX 50 Series (Blackwell)", tdpWatts: 85, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 85 },
 
-    // -------------------------------------------------------------
-    // RTX 40 SERIES (ADA LOVELACE ARCHITECTURE)
-    // -------------------------------------------------------------
+    // RTX 40 SERIES (ADA LOVELACE)
     { id: "rtx4090", name: "RTX 4090 Desktop (24 GB)", vramGb: 24, tier: "Flagship Creator", fp16Tflops: 330, memBandwidthGbps: 1008, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 450 },
     { id: "rtx4090_laptop", name: "RTX 4090 Laptop (16 GB)", vramGb: 16, tier: "Flagship Mobile", fp16Tflops: 190, memBandwidthGbps: 576, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 175 },
     { id: "rtx4080super_desktop", name: "RTX 4080 Super Desktop (16 GB)", vramGb: 16, tier: "High-End Enthusiast", fp16Tflops: 210, memBandwidthGbps: 736, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 320 },
@@ -207,9 +211,7 @@ const GPU_PRESETS: GpuPreset[] = [
     { id: "rtx4060_laptop", name: "RTX 4060 Laptop (8 GB - TUF A16 / Nitro)", vramGb: 8, tier: "Mainstream Mobile 140W", fp16Tflops: 50, memBandwidthGbps: 256, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 140, isLaptop: true, tgpMinWatts: 45, tgpMaxWatts: 140 },
     { id: "rtx4050_laptop", name: "RTX 4050 Laptop (6 GB)", vramGb: 6, tier: "Budget Entry Mobile", fp16Tflops: 38, memBandwidthGbps: 192, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 115 },
 
-    // -------------------------------------------------------------
-    // RTX 30 SERIES (AMPERE ARCHITECTURE)
-    // -------------------------------------------------------------
+    // RTX 30 SERIES (AMPERE)
     { id: "rtx3090ti_desktop", name: "RTX 3090 Ti Desktop (24 GB)", vramGb: 24, tier: "Titan Class", fp16Tflops: 160, memBandwidthGbps: 1008, category: "RTX 30 Series (Ampere)", tdpWatts: 450 },
     { id: "rtx3090_desktop", name: "RTX 3090 Desktop (24 GB)", vramGb: 24, tier: "AI Creator 24GB", fp16Tflops: 142, memBandwidthGbps: 936, category: "RTX 30 Series (Ampere)", tdpWatts: 350 },
     { id: "rtx3080ti_desktop", name: "RTX 3080 Ti Desktop (12 GB)", vramGb: 12, tier: "High-End", fp16Tflops: 136, memBandwidthGbps: 912, category: "RTX 30 Series (Ampere)", tdpWatts: 350 },
@@ -231,9 +233,7 @@ const GPU_PRESETS: GpuPreset[] = [
     { id: "rtx3050_laptop_6gb", name: "RTX 3050 Laptop (6 GB)", vramGb: 6, tier: "Entry Mobile 6GB", fp16Tflops: 28, memBandwidthGbps: 168, category: "RTX 30 Series (Ampere)", tdpWatts: 80, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 80 },
     { id: "rtx3050_laptop_4gb", name: "RTX 3050 Laptop (4 GB)", vramGb: 4, tier: "Entry Mobile 4GB", fp16Tflops: 24, memBandwidthGbps: 192, category: "RTX 30 Series (Ampere)", tdpWatts: 80, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 80 },
 
-    // -------------------------------------------------------------
-    // RTX 20 SERIES & GTX (TURING ARCHITECTURE)
-    // -------------------------------------------------------------
+    // RTX 20 SERIES & GTX
     { id: "titan_rtx", name: "TITAN RTX Desktop (24 GB)", vramGb: 24, tier: "Turing Flagship", fp16Tflops: 65, memBandwidthGbps: 672, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 280 },
     { id: "rtx2080ti_desktop", name: "RTX 2080 Ti Desktop (11 GB)", vramGb: 11, tier: "Enthusiast Turing", fp16Tflops: 54, memBandwidthGbps: 616, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 250 },
     { id: "rtx2080super_desktop", name: "RTX 2080 Super Desktop (8 GB)", vramGb: 8, tier: "High-End Turing", fp16Tflops: 45, memBandwidthGbps: 496, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 250 },
@@ -252,16 +252,7 @@ const GPU_PRESETS: GpuPreset[] = [
     { id: "gtx1660ti", name: "GTX 1660 Ti / Super Desktop (6 GB)", vramGb: 6, tier: "Legacy GTX", fp16Tflops: 10, memBandwidthGbps: 288, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 125 },
     { id: "gtx1650", name: "GTX 1650 Desktop / Laptop (4 GB)", vramGb: 4, tier: "Budget Entry", fp16Tflops: 6.5, memBandwidthGbps: 128, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 75 },
 
-    // -------------------------------------------------------------
-    // AMD RADEON MOBILE (ASUS TUF A16 ADVANTAGE & ROCm)
-    // -------------------------------------------------------------
-    { id: "rx7700s_laptop", name: "AMD Radeon RX 7700S Laptop (8 GB - TUF A16)", vramGb: 8, tier: "TUF A16 Advantage", fp16Tflops: 64, memBandwidthGbps: 288, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 120, isLaptop: true, tgpMinWatts: 75, tgpMaxWatts: 120 },
-    { id: "rx7600s_laptop", name: "AMD Radeon RX 7600S Laptop (8 GB - TUF A16)", vramGb: 8, tier: "TUF A16 Advantage", fp16Tflops: 56, memBandwidthGbps: 256, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 95, isLaptop: true, tgpMinWatts: 50, tgpMaxWatts: 95 },
-    { id: "rx7600m_xt", name: "AMD Radeon RX 7600M XT Laptop (8 GB)", vramGb: 8, tier: "RDNA3 Mobile", fp16Tflops: 60, memBandwidthGbps: 288, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 130, isLaptop: true, tgpMinWatts: 75, tgpMaxWatts: 130 },
-
-    // -------------------------------------------------------------
-    // WORKSTATION & DATACENTER (ADA, AMPERE, HOPPER)
-    // -------------------------------------------------------------
+    // WORKSTATION & DATACENTER
     { id: "h100", name: "NVIDIA H100 SXM5 / PCIe (80 GB)", vramGb: 80, tier: "Enterprise Hopper", fp16Tflops: 990, memBandwidthGbps: 3350, category: "Workstation & Datacenter", tdpWatts: 700 },
     { id: "a100_80gb", name: "NVIDIA A100 PCIe (80 GB)", vramGb: 80, tier: "Enterprise Ampere", fp16Tflops: 312, memBandwidthGbps: 1935, category: "Workstation & Datacenter", tdpWatts: 250 },
     { id: "a6000", name: "RTX 6000 Ada Generation (48 GB)", vramGb: 48, tier: "Workstation Pro", fp16Tflops: 365, memBandwidthGbps: 960, category: "Workstation & Datacenter", tdpWatts: 300 },
@@ -272,9 +263,7 @@ const GPU_PRESETS: GpuPreset[] = [
     { id: "rtxa4000", name: "RTX A4000 Ampere (16 GB)", vramGb: 16, tier: "Pro Workstation", fp16Tflops: 75, memBandwidthGbps: 448, category: "Workstation & Datacenter", tdpWatts: 140 },
     { id: "rtxa2000_12gb", name: "RTX A2000 (12 GB)", vramGb: 12, tier: "Compact Workstation", fp16Tflops: 32, memBandwidthGbps: 288, category: "Workstation & Datacenter", tdpWatts: 70 },
 
-    // -------------------------------------------------------------
     // KUSTOM / MANUAL
-    // -------------------------------------------------------------
     { id: "custom", name: "Kustom / Slider Bebas Manual", vramGb: 12, tier: "Manual", fp16Tflops: 70, memBandwidthGbps: 400, category: "Kustom / Manual", tdpWatts: 200 },
 ];
 
@@ -286,6 +275,90 @@ const GROUPED_GPU_PRESETS: Record<string, GpuPreset[]> = GPU_PRESETS.reduce((acc
     acc[cat].push(gpu);
     return acc;
 }, {} as Record<string, GpuPreset[]>);
+
+// AMD Radeon Presets (DirectML / ROCm)
+export interface AmdGpuPreset {
+    id: string;
+    name: string;
+    vramGb: number;
+    series: "RX 6000" | "RX 7000" | "RX 8000";
+    fp16Tflops: number;
+    memBandwidthGbps: number;
+    tbpWatts: number;
+    gfxVersion: string;
+}
+
+const AMD_GPU_PRESETS: AmdGpuPreset[] = [
+    // RX 8000 (RDNA 4)
+    { id: "rx8800xt", name: "AMD Radeon RX 8800 XT (16 GB RDNA 4)", vramGb: 16, series: "RX 8000", fp16Tflops: 120, memBandwidthGbps: 640, tbpWatts: 250, gfxVersion: "12.0.0" },
+    { id: "rx8600", name: "AMD Radeon RX 8600 (12 GB RDNA 4)", vramGb: 12, series: "RX 8000", fp16Tflops: 75, memBandwidthGbps: 432, tbpWatts: 175, gfxVersion: "12.0.0" },
+
+    // RX 7000 (RDNA 3)
+    { id: "rx7900xtx", name: "AMD Radeon RX 7900 XTX (24 GB)", vramGb: 24, series: "RX 7000", fp16Tflops: 123, memBandwidthGbps: 960, tbpWatts: 355, gfxVersion: "11.0.0" },
+    { id: "rx7900xt", name: "AMD Radeon RX 7900 XT (20 GB)", vramGb: 20, series: "RX 7000", fp16Tflops: 103, memBandwidthGbps: 800, tbpWatts: 315, gfxVersion: "11.0.0" },
+    { id: "rx7900gre", name: "AMD Radeon RX 7900 GRE (16 GB)", vramGb: 16, series: "RX 7000", fp16Tflops: 92, memBandwidthGbps: 576, tbpWatts: 260, gfxVersion: "11.0.0" },
+    { id: "rx7800xt", name: "AMD Radeon RX 7800 XT (16 GB)", vramGb: 16, series: "RX 7000", fp16Tflops: 74, memBandwidthGbps: 624, tbpWatts: 263, gfxVersion: "11.0.0" },
+    { id: "rx7700xt", name: "AMD Radeon RX 7700 XT (12 GB)", vramGb: 12, series: "RX 7000", fp16Tflops: 70, memBandwidthGbps: 432, tbpWatts: 245, gfxVersion: "11.0.0" },
+    { id: "rx7600xt", name: "AMD Radeon RX 7600 XT (16 GB)", vramGb: 16, series: "RX 7000", fp16Tflops: 43, memBandwidthGbps: 288, tbpWatts: 190, gfxVersion: "11.0.2" },
+    { id: "rx7600", name: "AMD Radeon RX 7600 (8 GB)", vramGb: 8, series: "RX 7000", fp16Tflops: 43, memBandwidthGbps: 288, tbpWatts: 165, gfxVersion: "11.0.2" },
+    { id: "rx7700s_laptop", name: "AMD Radeon RX 7700S Laptop (8 GB - TUF A16)", vramGb: 8, series: "RX 7000", fp16Tflops: 64, memBandwidthGbps: 288, tbpWatts: 120, gfxVersion: "11.0.2" },
+    { id: "rx7600s_laptop", name: "AMD Radeon RX 7600S Laptop (8 GB - TUF A16)", vramGb: 8, series: "RX 7000", fp16Tflops: 56, memBandwidthGbps: 256, tbpWatts: 95, gfxVersion: "11.0.2" },
+
+    // RX 6000 (RDNA 2)
+    { id: "rx6950xt", name: "AMD Radeon RX 6950 XT (16 GB)", vramGb: 16, series: "RX 6000", fp16Tflops: 47, memBandwidthGbps: 576, tbpWatts: 335, gfxVersion: "10.3.0" },
+    { id: "rx6900xt", name: "AMD Radeon RX 6900 XT (16 GB)", vramGb: 16, series: "RX 6000", fp16Tflops: 46, memBandwidthGbps: 512, tbpWatts: 300, gfxVersion: "10.3.0" },
+    { id: "rx6800xt", name: "AMD Radeon RX 6800 XT (16 GB)", vramGb: 16, series: "RX 6000", fp16Tflops: 41, memBandwidthGbps: 512, tbpWatts: 300, gfxVersion: "10.3.0" },
+    { id: "rx6800", name: "AMD Radeon RX 6800 (16 GB)", vramGb: 16, series: "RX 6000", fp16Tflops: 32, memBandwidthGbps: 512, tbpWatts: 250, gfxVersion: "10.3.0" },
+    { id: "rx6750xt", name: "AMD Radeon RX 6750 XT (12 GB)", vramGb: 12, series: "RX 6000", fp16Tflops: 26, memBandwidthGbps: 432, tbpWatts: 250, gfxVersion: "10.3.1" },
+    { id: "rx6700xt", name: "AMD Radeon RX 6700 XT (12 GB)", vramGb: 12, series: "RX 6000", fp16Tflops: 26, memBandwidthGbps: 384, tbpWatts: 230, gfxVersion: "10.3.1" },
+    { id: "rx6650xt", name: "AMD Radeon RX 6650 XT (8 GB)", vramGb: 8, series: "RX 6000", fp16Tflops: 21, memBandwidthGbps: 280, tbpWatts: 180, gfxVersion: "10.3.2" },
+    { id: "rx6600xt", name: "AMD Radeon RX 6600 XT (8 GB)", vramGb: 8, series: "RX 6000", fp16Tflops: 21, memBandwidthGbps: 256, tbpWatts: 160, gfxVersion: "10.3.2" },
+    { id: "rx6600", name: "AMD Radeon RX 6600 (8 GB)", vramGb: 8, series: "RX 6000", fp16Tflops: 18, memBandwidthGbps: 224, tbpWatts: 132, gfxVersion: "10.3.2" },
+];
+
+// Apple Silicon Mac Presets (Metal MPS / MLX)
+export interface AppleMacPreset {
+    id: string;
+    name: string;
+    chipSeries: "M1 / M2" | "M3" | "M4";
+    unifiedRamGb: number;
+    gpuCores: number;
+    fp16Tflops: number;
+    socTdpWatts: number;
+}
+
+const APPLE_MAC_PRESETS: AppleMacPreset[] = [
+    // M4 Series
+    { id: "m4_max_128", name: "Apple M4 Max (128 GB Unified Memory, 40-core GPU)", chipSeries: "M4", unifiedRamGb: 128, gpuCores: 40, fp16Tflops: 36, socTdpWatts: 65 },
+    { id: "m4_max_64", name: "Apple M4 Max (64 GB Unified Memory, 32-core GPU)", chipSeries: "M4", unifiedRamGb: 64, gpuCores: 32, fp16Tflops: 29, socTdpWatts: 55 },
+    { id: "m4_pro_48", name: "Apple M4 Pro (48 GB Unified Memory, 20-core GPU)", chipSeries: "M4", unifiedRamGb: 48, gpuCores: 20, fp16Tflops: 18, socTdpWatts: 42 },
+    { id: "m4_pro_24", name: "Apple M4 Pro (24 GB Unified Memory, 16-core GPU)", chipSeries: "M4", unifiedRamGb: 24, gpuCores: 16, fp16Tflops: 15, socTdpWatts: 35 },
+    { id: "m4_base_32", name: "Apple M4 (32 GB Unified Memory, 10-core GPU)", chipSeries: "M4", unifiedRamGb: 32, gpuCores: 10, fp16Tflops: 9.5, socTdpWatts: 22 },
+    { id: "m4_base_24", name: "Apple M4 (24 GB Unified Memory, 10-core GPU)", chipSeries: "M4", unifiedRamGb: 24, gpuCores: 10, fp16Tflops: 9.5, socTdpWatts: 22 },
+    { id: "m4_base_16", name: "Apple M4 (16 GB Unified Memory, 10-core GPU)", chipSeries: "M4", unifiedRamGb: 16, gpuCores: 10, fp16Tflops: 9.5, socTdpWatts: 20 },
+
+    // M3 Series
+    { id: "m3_max_128", name: "Apple M3 Max (128 GB Unified Memory, 40-core GPU)", chipSeries: "M3", unifiedRamGb: 128, gpuCores: 40, fp16Tflops: 32, socTdpWatts: 65 },
+    { id: "m3_max_64", name: "Apple M3 Max (64 GB Unified Memory, 30-core GPU)", chipSeries: "M3", unifiedRamGb: 64, gpuCores: 30, fp16Tflops: 25, socTdpWatts: 55 },
+    { id: "m3_pro_36", name: "Apple M3 Pro (36 GB Unified Memory, 18-core GPU)", chipSeries: "M3", unifiedRamGb: 36, gpuCores: 18, fp16Tflops: 15, socTdpWatts: 38 },
+    { id: "m3_pro_18", name: "Apple M3 Pro (18 GB Unified Memory, 14-core GPU)", chipSeries: "M3", unifiedRamGb: 18, gpuCores: 14, fp16Tflops: 12, socTdpWatts: 32 },
+    { id: "m3_base_24", name: "Apple M3 (24 GB Unified Memory, 10-core GPU)", chipSeries: "M3", unifiedRamGb: 24, gpuCores: 10, fp16Tflops: 8.5, socTdpWatts: 22 },
+    { id: "m3_base_16", name: "Apple M3 (16 GB Unified Memory, 10-core GPU)", chipSeries: "M3", unifiedRamGb: 16, gpuCores: 10, fp16Tflops: 8.5, socTdpWatts: 20 },
+    { id: "m3_base_8", name: "Apple M3 (8 GB Unified Memory, 8-core GPU)", chipSeries: "M3", unifiedRamGb: 8, gpuCores: 8, fp16Tflops: 7.0, socTdpWatts: 18 },
+
+    // M1 / M2 Series
+    { id: "m2_ultra_192", name: "Apple M2 Ultra (192 GB Unified Memory, 76-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 192, gpuCores: 76, fp16Tflops: 55, socTdpWatts: 100 },
+    { id: "m2_ultra_64", name: "Apple M2 Ultra (64 GB Unified Memory, 60-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 64, gpuCores: 60, fp16Tflops: 45, socTdpWatts: 90 },
+    { id: "m2_max_96", name: "Apple M2 Max (96 GB Unified Memory, 38-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 96, gpuCores: 38, fp16Tflops: 27, socTdpWatts: 55 },
+    { id: "m2_max_32", name: "Apple M2 Max (32 GB Unified Memory, 30-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 32, gpuCores: 30, fp16Tflops: 22, socTdpWatts: 50 },
+    { id: "m2_pro_32", name: "Apple M2 Pro (32 GB Unified Memory, 19-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 32, gpuCores: 19, fp16Tflops: 14, socTdpWatts: 35 },
+    { id: "m2_pro_16", name: "Apple M2 Pro (16 GB Unified Memory, 16-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 16, gpuCores: 16, fp16Tflops: 12, socTdpWatts: 30 },
+    { id: "m2_base_16", name: "Apple M2 (16 GB Unified Memory, 10-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 16, gpuCores: 10, fp16Tflops: 7.2, socTdpWatts: 20 },
+    { id: "m2_base_8", name: "Apple M2 (8 GB Unified Memory, 8-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 8, gpuCores: 8, fp16Tflops: 6.0, socTdpWatts: 18 },
+    { id: "m1_max_64", name: "Apple M1 Max (64 GB Unified Memory, 32-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 64, gpuCores: 32, fp16Tflops: 21, socTdpWatts: 50 },
+    { id: "m1_pro_16", name: "Apple M1 Pro (16 GB Unified Memory, 16-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 16, gpuCores: 16, fp16Tflops: 10, socTdpWatts: 30 },
+    { id: "m1_base_8", name: "Apple M1 (8 GB Unified Memory, 8-core GPU)", chipSeries: "M1 / M2", unifiedRamGb: 8, gpuCores: 8, fp16Tflops: 5.2, socTdpWatts: 15 },
+];
 
 interface ResPreset {
     label: string;
@@ -307,6 +380,9 @@ const RESOLUTION_PRESETS: ResPreset[] = [
 export default function VramProfiler() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+
+    // 0. Primary Platform Navigation Tab (NVIDIA vs AMD Radeon vs Apple Silicon Mac)
+    const [platformTab, setPlatformTab] = useState<"nvidia" | "amd" | "apple">("nvidia");
 
     // 1. Model Configuration State
     const [modelKey, setModelKey] = useState<string>(() => {
@@ -351,7 +427,7 @@ export default function VramProfiler() {
     const [useTiledVae, setUseTiledVae] = useState<boolean>(true);
     const [useMedvramChunking, setUseMedvramChunking] = useState<boolean>(false);
 
-    // Active Hardware Profile from LocalStorage (persisted device spec)
+    // Active Hardware Profile from LocalStorage
     const [activeProfile, setActiveProfile] = useState<HardwareProfile>(() => getActiveHardwareProfile());
     const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -363,51 +439,50 @@ export default function VramProfiler() {
         }, 3000);
     }, []);
 
-    // 7. GPU Target (initialized from active hardware profile)
+    // 7. NVIDIA Target GPU
     const [gpuPresetId, setGpuPresetId] = useState<string>(() => activeProfile.gpuPresetId || "rtx4060_laptop");
     const [customGpuVram, setCustomGpuVram] = useState<number>(() => activeProfile.customGpuVram || 8);
-    const [copiedFlags, setCopiedFlags] = useState<boolean>(false);
     const [copiedComfy, setCopiedComfy] = useState<boolean>(false);
 
-    // 8. Windows Desktop & Multi-Monitor VRAM Deduction
+    // 8. AMD Radeon Target GPU & Backend
+    const [amdGpuId, setAmdGpuId] = useState<string>("rx7800xt");
+    const [amdBackend, setAmdBackend] = useState<"directml" | "rocm">("directml");
+
+    // 9. Apple Silicon Mac Target Unified Memory & Backend
+    const [macPresetId, setMacPresetId] = useState<string>("m3_pro_36");
+    const [macBackend, setMacBackend] = useState<"mps" | "mlx">("mps");
+
+    // 10. Windows Desktop & Multi-Monitor VRAM Deduction
     const [displayDeductionMode, setDisplayDeductionMode] = useState<"primary_single" | "primary_multi" | "headless">(
         () => activeProfile.displayDeductionMode || "primary_single"
     );
 
-    // 9. System RAM Target (DDR4/DDR5) for Host CPU Offloading
+    // 11. System RAM Target (DDR4/DDR5) for Host CPU Offloading
     const [systemRamGb, setSystemRamGb] = useState<number>(() => activeProfile.systemRamGb || 32);
 
-    // 10. Hi-Res Fix & Workflow Post-Processing Simulator
+    // 12. Hi-Res Fix & Workflow Post-Processing Simulator
     const [enableHiresFix, setEnableHiresFix] = useState<boolean>(false);
     const [hiresScale, setHiresScale] = useState<number>(1.5);
     const [upscaleMethod, setUpscaleMethod] = useState<"latent" | "ultimate_sd" | "model_upscale">("latent");
     const [enableFaceDetailer, setEnableFaceDetailer] = useState<boolean>(false);
     const [enableRefiner, setEnableRefiner] = useState<boolean>(false);
 
-    // 11. Throughput & Generation Speed Estimator
+    // 13. Throughput & Generation Speed Estimator
     const [samplingSteps, setSamplingSteps] = useState<number>(() => {
         const s = searchParams.get("steps");
         if (s && !isNaN(Number(s)) && Number(s) > 0) return Number(s);
         return modelKey === "flux" ? 20 : 25;
     });
 
-    // 12. 1-Click Launch Config & Generator Tab
-    const [genPreviewTab, setGenPreviewTab] = useState<"bat" | "comfy" | "webui">("bat");
-
-    // 13. Power & Electricity Cost Estimator (Full System & Token PLN)
+    // 14. Power & Electricity Cost Estimator
     const [plnTarifPerKwh, setPlnTarifPerKwh] = useState<number>(() => activeProfile.plnTarifPerKwh || 1444);
     const [batchImageCount, setBatchImageCount] = useState<number>(100);
     const [laptopTgpWatts, setLaptopTgpWatts] = useState<number>(() => activeProfile.laptopTgpWatts || 140);
     const [tufProfile, setTufProfile] = useState<"turbo" | "perf" | "silent" | "overnight" | "custom">(() => activeProfile.tufProfile || "perf");
-    const [cpuWatts, setCpuWatts] = useState<number>(() => activeProfile.cpuWatts || 35); // AMD Ryzen HS / Intel Core
-    const [screenMode, setScreenMode] = useState<"off" | "med" | "high">("med"); // Layar Laptop 16" IPS (0W, 9W, 15W)
-    const [externalMonitorMode, setExternalMonitorMode] = useState<"none" | "fhd" | "4k">("none"); // Monitor Eksternal (0W, 25W, 42W)
-    const [coolingFanMode, setCoolingFanMode] = useState<"silent" | "balanced" | "turbo">("balanced"); // Dual Arc-Flow Fans (8W, 14W, 20W)
-    const [includeChargerLoss, setIncludeChargerLoss] = useState<boolean>(true); // Efisiensi Adaptor AC/DC Charger 240W (~89% Wall Draw)
+    const [cpuWatts, setCpuWatts] = useState<number>(() => activeProfile.cpuWatts || 35);
 
-    // Token Listrik Prabayar (Pulsa Listrik) vs Pascabayar
     const [billingType, setBillingType] = useState<"token" | "pascabayar">("token");
-    const [tokenNominal, setTokenNominal] = useState<number>(50000); // Rp 20.000, 50.000, 100.000, 200.000, 500.000
+    const [tokenNominal, setTokenNominal] = useState<number>(50000);
 
     // Update defaults if model changes
     const handleSelectModel = (key: string) => {
@@ -428,7 +503,7 @@ export default function VramProfiler() {
         }
     };
 
-    // Active GPU Metadata & Compute Specifications
+    // Active GPU Metadata (NVIDIA)
     const activeGpu = useMemo(() => {
         if (gpuPresetId === "custom") {
             return {
@@ -445,67 +520,84 @@ export default function VramProfiler() {
         return GPU_PRESETS.find((g) => g.id === gpuPresetId) || GPU_PRESETS.find((g) => g.id === "rtx4060") || GPU_PRESETS[0];
     }, [gpuPresetId, customGpuVram]);
 
-    // Sync laptop TGP when GPU preset changes
-    useEffect(() => {
-        if (activeGpu.isLaptop && activeGpu.tdpWatts) {
-            setLaptopTgpWatts(activeGpu.tdpWatts);
-        }
-    }, [activeGpu]);
+    // Active AMD Radeon GPU
+    const activeAmdGpu = useMemo(() => {
+        return AMD_GPU_PRESETS.find((g) => g.id === amdGpuId) || AMD_GPU_PRESETS[0];
+    }, [amdGpuId]);
 
-    // Active GPU VRAM
-    const targetGpuVram = useMemo(() => {
-        return activeGpu.vramGb;
-    }, [activeGpu]);
+    // Active Apple Silicon Mac
+    const activeMac = useMemo(() => {
+        return APPLE_MAC_PRESETS.find((m) => m.id === macPresetId) || APPLE_MAC_PRESETS[0];
+    }, [macPresetId]);
 
     // Windows Desktop / Multi-Monitor Overhead Deduction
     const desktopDeductionGb = useMemo(() => {
-        if (displayDeductionMode === "primary_single") return 0.8; // ~800 MB standard single display + browser
-        if (displayDeductionMode === "primary_multi") return 1.4; // ~1400 MB dual display / 4K
-        return 0.0; // Headless / pure compute secondary GPU
+        if (displayDeductionMode === "primary_single") return 0.8;
+        if (displayDeductionMode === "primary_multi") return 1.4;
+        return 0.0;
     }, [displayDeductionMode]);
 
+    // Platform-Aware Target VRAM & Effective VRAM Calculation
+    const targetGpuVram = useMemo(() => {
+        if (platformTab === "nvidia") return activeGpu.vramGb;
+        if (platformTab === "amd") return activeAmdGpu.vramGb;
+        return activeMac.unifiedRamGb;
+    }, [platformTab, activeGpu, activeAmdGpu, activeMac]);
+
+    // DirectML swap/buffer overhead (~+600 MB) on Windows DirectML
+    const directMlOverheadGb = useMemo(() => {
+        if (platformTab === "amd" && amdBackend === "directml") return 0.60;
+        return 0.0;
+    }, [platformTab, amdBackend]);
+
+    // macOS 75% Safe MPS Unified Memory Limit Rule
+    const macSafeMpsLimitGb = useMemo(() => {
+        return activeMac.unifiedRamGb * 0.75;
+    }, [activeMac]);
+
     const effectiveAiVram = useMemo(() => {
-        return Math.max(1.0, targetGpuVram - desktopDeductionGb);
-    }, [targetGpuVram, desktopDeductionGb]);
+        if (platformTab === "apple") {
+            return macSafeMpsLimitGb;
+        }
+        const baseVram = platformTab === "nvidia" ? activeGpu.vramGb : activeAmdGpu.vramGb;
+        return Math.max(1.0, baseVram - desktopDeductionGb - directMlOverheadGb);
+    }, [platformTab, activeGpu, activeAmdGpu, desktopDeductionGb, directMlOverheadGb, macSafeMpsLimitGb]);
 
     // MATHEMATICAL VRAM ALLOCATION ENGINE
     const telemetry = useMemo(() => {
         const qDef = QUANTIZATIONS[quantKey] || QUANTIZATIONS.fp16;
         const teDef = TEXT_ENCODERS[teKey] || TEXT_ENCODERS.dual_clip_fp16;
 
-        // 1. Model Weights (Base DiT / U-Net)
+        // 1. Model Weights
         const weightsGb = activeModel.paramCountB * qDef.bytesPerParam;
 
         // 2. Text Encoder VRAM
         const teGb = teDef.vramGb;
 
-        // 3. Latent Memory & Sequence Buffers
+        // 3. Latent Memory
         const isVideo = !!activeModel.isTextToVideo;
         const frames = isVideo ? Math.max(1, videoFrames) : 1;
         const latentChannels = activeModel.vaeChannelCount;
         const latentW = width / 8;
         const latentH = height / 8;
         const latentElements = batchSize * latentChannels * latentW * latentH * (isVideo ? Math.ceil(frames / 4) : 1);
-        // FP16/BF16 latent elements (2 bytes) + activation buffers (x4 for gradient/sampling tensors)
         const latentGb = (latentElements * 2 * 4) / (1024 * 1024 * 1024);
 
-        // 4. Context KV Cache & Attention Matrix
-        // SDP (Scaled Dot Product Attention) scales with sequence length O(N)
-        // Vanilla attention explodes with O(N^2)
+        // 4. Attention & KV Cache
         const sequenceLength = (latentW * latentH) / (activeModel.id === "flux" ? 4 : 1);
         let kvGb = (sequenceLength * 32 * 64 * 2 * 2 * batchSize) / (1024 * 1024 * 1024);
         if (isVideo) {
-            kvGb += (sequenceLength * frames * 0.0003); // 3D spatiotemporal self-attention
+            kvGb += (sequenceLength * frames * 0.0003);
         }
         if (!useSdpAttention) {
-            kvGb *= 2.8; // Quadratic attention overhead without SDP/FlashAttention
+            kvGb *= 2.8;
         }
         if (useMedvramChunking) {
-            kvGb *= 0.55; // --medvram splits attention into chunks
+            kvGb *= 0.55;
         }
         kvGb = Math.max(0.25, Math.min(18.0, kvGb));
 
-        // 5. VAE Peak Decode Memory
+        // 5. VAE Peak Memory
         let vaeGb = 0.5;
         if (activeModel.id === "sd15") {
             vaeGb = useTiledVae ? 0.35 : Math.max(0.6, (width * height * 4 * 4) / (1024 * 1024 * 1024) * 0.8);
@@ -514,7 +606,6 @@ export default function VramProfiler() {
         } else if (isVideo) {
             vaeGb = useTiledVae ? 1.8 : 4.5;
         } else {
-            // SDXL standard
             vaeGb = useTiledVae ? 0.45 : Math.max(0.9, (width * height * 4 * 4) / (1024 * 1024 * 1024) * 1.1);
         }
 
@@ -525,37 +616,71 @@ export default function VramProfiler() {
         const cnPerUnit = activeModel.id === "flux" ? 3.2 : activeModel.id === "sd15" ? 1.15 : 2.35;
         const controlnetsGb = controlnetCount * cnPerUnit;
 
-        // 7. PyTorch CUDA context / Driver runtime overhead
-        const cudaOverheadGb = 0.65;
+        // 7. Backend runtime overhead (CUDA, DirectML swap, or Metal Context)
+        const runtimeOverheadGb = platformTab === "amd" && amdBackend === "directml" ? 0.85 + directMlOverheadGb : 0.65;
 
-        // Total VRAM Required
-        const totalVramGb = weightsGb + teGb + latentGb + kvGb + vaeGb + lorasGb + controlnetsGb + cudaOverheadGb;
-
-        // Ratio vs Effective AI VRAM (Deducing Windows DWM & Desktop)
+        // Total Memory Required
+        const totalVramGb = weightsGb + teGb + latentGb + kvGb + vaeGb + lorasGb + controlnetsGb + runtimeOverheadGb;
         const ratio = totalVramGb / effectiveAiVram;
         const headroomGb = effectiveAiVram - totalVramGb;
 
-        // Status Determination
         let status: "safe" | "warn" | "offload" | "danger" = "safe";
         let statusBadge = "Lancar Tanpa Offload";
-        let statusMessage = "Throughput maksimal tanpa overhead paging. Model dan tensor muat 100% di VRAM.";
+        let statusMessage = "Throughput optimal. Model dan tensor muat 100% di memori hardware target.";
 
-        if (ratio <= 0.85) {
-            status = "safe";
-            statusBadge = "Lancar Tanpa Offload";
-            statusMessage = "Kecepatan maksimal. VRAM cukup dengan headroom sisa untuk display OS.";
-        } else if (ratio <= 1.05) {
-            status = "warn";
-            statusBadge = "Butuh --medvram / FP8";
-            statusMessage = "Mendekati kapasitas fisik VRAM. Rekomendasikan aktifkan flag --medvram atau Text Encoder FP8.";
-        } else if (ratio <= 1.55) {
-            status = "offload";
-            statusBadge = "Wajib ComfyUI Offloading / GGUF Q4";
-            statusMessage = "Total memori melebihi VRAM fisik. Wajib gunakan ComfyUI CPU offload atau model kuantisasi Q4/NF4.";
+        if (platformTab === "apple") {
+            if (totalVramGb <= effectiveAiVram * 0.85) {
+                status = "safe";
+                statusBadge = "Safe MPS Unified Allocation";
+                statusMessage = `Model muat dalam batas aman 75% MPS macOS (${effectiveAiVram.toFixed(1)} GB dari ${activeMac.unifiedRamGb} GB Unified). Sistem macOS berjalan mulus tanpa paging.`;
+            } else if (totalVramGb <= effectiveAiVram) {
+                status = "warn";
+                statusBadge = "Mendekati Limit MPS (75%)";
+                statusMessage = `Memori mendekati ambang batas aman MPS. Disarankan tutup aplikasi berat lain di macOS.`;
+            } else {
+                status = "danger";
+                statusBadge = "Overhead MPS (SSD Swap Risk)";
+                statusMessage = `Alokasi (${totalVramGb.toFixed(2)} GB) melebihi batas safe MPS macOS (${effectiveAiVram.toFixed(1)} GB). Mac akan menukar tensor ke swap SSD (beachballing / lag) atau crash 'MPS backend out of memory'. Gunakan model GGUF Q4 atau MLX.`;
+            }
+        } else if (platformTab === "amd") {
+            if (ratio <= 0.85) {
+                status = "safe";
+                statusBadge = amdBackend === "rocm" ? "ROCm Native Lancar" : "DirectML Aman";
+                statusMessage = amdBackend === "rocm"
+                    ? "Throughput native ROCm optimal via PyTorch HIP tanpa DirectML translation overhead."
+                    : "DirectML berjalan stabil dengan buffer memori cukup.";
+            } else if (ratio <= 1.0) {
+                status = "warn";
+                statusBadge = "Mendekati VRAM Fisik";
+                statusMessage = "Mendekati kapasitas fisik VRAM Radeon. Aktifkan --medvram atau Text Encoder FP8.";
+            } else if (ratio <= 1.45) {
+                status = "offload";
+                statusBadge = "Wajib CPU Offload";
+                statusMessage = "Melebihi VRAM Radeon fisik. Wajib gunakan ComfyUI lowvram atau kuantisasi GGUF Q4.";
+            } else {
+                status = "danger";
+                statusBadge = "Resiko Fatal OOM (DirectML Crash)";
+                statusMessage = "Defisit VRAM kritis. DirectML pada Windows akan melempar error E_OUTOFMEMORY. Turunkan resolusi atau gunakan Tiled VAE.";
+            }
         } else {
-            status = "danger";
-            statusBadge = "Resiko Fatal OOM (CUDA Out Of Memory)";
-            statusMessage = "Defisit VRAM kritis (>50%). WebUI standar akan langsung crash OOM. Turunkan resolusi atau gunakan Tiled VAE + ComfyUI lowvram.";
+            // NVIDIA
+            if (ratio <= 0.85) {
+                status = "safe";
+                statusBadge = "Lancar Tanpa Offload";
+                statusMessage = "Kecepatan maksimal. VRAM cukup dengan headroom sisa untuk display OS.";
+            } else if (ratio <= 1.05) {
+                status = "warn";
+                statusBadge = "Butuh --medvram / FP8";
+                statusMessage = "Mendekati kapasitas fisik VRAM. Rekomendasikan aktifkan flag --medvram atau Text Encoder FP8.";
+            } else if (ratio <= 1.55) {
+                status = "offload";
+                statusBadge = "Wajib ComfyUI Offload / Q4";
+                statusMessage = "Total memori melebihi VRAM fisik. Wajib gunakan ComfyUI CPU offload atau model kuantisasi Q4/NF4.";
+            } else {
+                status = "danger";
+                statusBadge = "Resiko Fatal CUDA OOM";
+                statusMessage = "Defisit VRAM kritis (>50%). WebUI standar akan langsung crash OOM. Turunkan resolusi atau gunakan Tiled VAE + ComfyUI lowvram.";
+            }
         }
 
         return {
@@ -566,7 +691,7 @@ export default function VramProfiler() {
             vaeGb,
             lorasGb,
             controlnetsGb,
-            cudaOverheadGb,
+            runtimeOverheadGb,
             totalVramGb,
             headroomGb,
             ratio,
@@ -588,53 +713,55 @@ export default function VramProfiler() {
         useTiledVae,
         useMedvramChunking,
         effectiveAiVram,
+        platformTab,
+        amdBackend,
+        directMlOverheadGb,
+        activeMac,
     ]);
 
-    // SYSTEM RAM (DDR4/DDR5) ALLOCATION ENGINE FOR CPU OFFLOADING
+    // SYSTEM RAM ALLOCATION ENGINE FOR CPU OFFLOADING
     const ramTelemetry = useMemo(() => {
-        const osBaselineGb = 4.5;
+        const osBaselineGb = platformTab === "apple" ? activeMac.unifiedRamGb * 0.25 : 4.5;
         const pythonHostGb = 2.5;
 
         let offloadedWeightsGb = 0;
-        // Text Encoder offloaded
         if (teKey === "none") {
             if (activeModel.id === "flux" || activeModel.id.startsWith("sd35")) {
-                offloadedWeightsGb += 4.9; // T5-XXL FP8
+                offloadedWeightsGb += 4.9;
             } else if (activeModel.isTextToVideo) {
-                offloadedWeightsGb += 4.8; // UMT5 FP8
+                offloadedWeightsGb += 4.8;
             } else if (activeModel.id === "sdxl" || activeModel.id === "pony" || activeModel.id === "illustrious") {
-                offloadedWeightsGb += 1.64; // Dual CLIP
+                offloadedWeightsGb += 1.64;
             } else {
-                offloadedWeightsGb += 0.24; // CLIP-L
+                offloadedWeightsGb += 0.24;
             }
         }
 
-        // When VRAM is insufficient and ComfyUI / lowvram caches weights in RAM
         if (telemetry.status === "offload" || telemetry.status === "danger") {
             offloadedWeightsGb += telemetry.weightsGb;
         }
 
-        // 2-Pass Refiner model cached in RAM
         if (enableRefiner) {
             offloadedWeightsGb += 4.6;
         }
 
+        const effectiveSysRam = platformTab === "apple" ? activeMac.unifiedRamGb : systemRamGb;
         const totalRamNeededGb = osBaselineGb + pythonHostGb + offloadedWeightsGb;
-        const ramRatio = totalRamNeededGb / systemRamGb;
-        const ramHeadroomGb = systemRamGb - totalRamNeededGb;
+        const ramRatio = totalRamNeededGb / effectiveSysRam;
+        const ramHeadroomGb = effectiveSysRam - totalRamNeededGb;
 
         let ramStatus: "ram-safe" | "ram-warn" | "ram-danger" = "ram-safe";
-        let ramBadge = "RAM Aman (Tanpa Paging)";
-        let ramMessage = `Kapasitas RAM PC ${systemRamGb} GB mencukupi untuk offload tanpa swap ke SSD.`;
+        let ramBadge = "RAM Aman";
+        let ramMessage = `Kapasitas RAM ${effectiveSysRam} GB mencukupi untuk operasional tanpa swap ke disk.`;
 
         if (ramRatio > 0.95) {
             ramStatus = "ram-danger";
             ramBadge = "Bahaya Disk-Thrashing";
-            ramMessage = `RAM PC (${systemRamGb} GB) kurang! Windows akan mem-paging tensor ke SSD/Pagefile, membuat generasi melambat 50x–100x lipat. Disarankan upgrade ke ${systemRamGb < 32 ? "32 GB" : "64 GB"} RAM.`;
+            ramMessage = `RAM sistem (${effectiveSysRam} GB) kurang! Sistem akan mem-paging tensor ke swap SSD.`;
         } else if (ramRatio > 0.8) {
             ramStatus = "ram-warn";
             ramBadge = "RAM Ketat (>80%)";
-            ramMessage = `Penggunaan RAM sistem mencapai ${(ramRatio * 100).toFixed(0)}%. Tutup aplikasi background berat agar terhindar dari paging memori.`;
+            ramMessage = `Penggunaan RAM sistem mencapai ${(ramRatio * 100).toFixed(0)}%. Tutup aplikasi background berat.`;
         }
 
         return {
@@ -648,7 +775,7 @@ export default function VramProfiler() {
             ramBadge,
             ramMessage,
         };
-    }, [teKey, activeModel, telemetry.status, telemetry.weightsGb, enableRefiner, systemRamGb]);
+    }, [teKey, activeModel, telemetry.status, telemetry.weightsGb, enableRefiner, systemRamGb, platformTab, activeMac]);
 
     // MULTI-PASS & HI-RES WORKFLOW TELEMETRY
     const multiPassTelemetry = useMemo(() => {
@@ -660,21 +787,21 @@ export default function VramProfiler() {
         const pass2H = Math.round(height * hiresScale);
         const pass2ScaleFactor = hiresScale * hiresScale;
 
-        let pass2Vram = pass1Vram;
+        let pass2Vram = 0;
         let pass2Note = "Hi-Res Fix tidak aktif.";
 
         if (enableHiresFix) {
             if (upscaleMethod === "latent") {
                 const scaledLatentKv = (telemetry.kvGb + telemetry.latentGb) * (useSdpAttention ? hiresScale : pass2ScaleFactor);
                 const pass2Vae = useTiledVae ? telemetry.vaeGb : telemetry.vaeGb * pass2ScaleFactor;
-                pass2Vram = telemetry.weightsGb + telemetry.teGb + scaledLatentKv + pass2Vae + telemetry.lorasGb + telemetry.controlnetsGb + telemetry.cudaOverheadGb;
-                pass2Note = `Full Latent Denoising @ ${pass2W}×${pass2H}. Perhatian memori melonjak tajam!`;
+                pass2Vram = telemetry.weightsGb + telemetry.teGb + scaledLatentKv + pass2Vae + telemetry.lorasGb + telemetry.controlnetsGb + telemetry.runtimeOverheadGb;
+                pass2Note = `Full Latent Denoising @ ${pass2W}×${pass2H}. Lonjakan memori tajam!`;
             } else if (upscaleMethod === "ultimate_sd") {
                 pass2Vram = pass1Vram + 0.65;
-                pass2Note = `Ultimate SD Upscale: Memproses ubin bersekat (tiled). Memori dibatasi dan aman dari OOM!`;
+                pass2Note = `Ultimate SD Upscale: Memproses ubin bersekat (tiled), alokasi aman terkendali.`;
             } else {
                 pass2Vram = pass1Vram + 0.85;
-                pass2Note = `Model Upscale (ESRGAN): Upscale spasial via neural filter CNN ringan (~850 MB VRAM).`;
+                pass2Note = `Model Upscale (ESRGAN): Filter spasial CNN ringan (~850 MB).`;
             }
         }
 
@@ -686,7 +813,8 @@ export default function VramProfiler() {
             postProcessVram += 2.2;
         }
 
-        const isPass2Risk = pass2Vram > effectiveAiVram;
+        const isPass1Risk = pass1Vram > effectiveAiVram;
+        const isPass2Risk = enableHiresFix && pass2Vram > effectiveAiVram;
         const isPostProcessRisk = postProcessVram > effectiveAiVram;
 
         return {
@@ -698,6 +826,7 @@ export default function VramProfiler() {
             pass2Vram,
             pass2Note,
             postProcessVram,
+            isPass1Risk,
             isPass2Risk,
             isPostProcessRisk,
         };
@@ -715,7 +844,7 @@ export default function VramProfiler() {
         effectiveAiVram,
     ]);
 
-    // THROUGHPUT & SPEED (IT/S) TELEMETRY ENGINE
+    // THROUGHPUT & SPEED TELEMETRY ENGINE
     const throughputTelemetry = useMemo(() => {
         const paramCountB = activeModel.paramCountB;
         const resPixels = width * height;
@@ -724,39 +853,51 @@ export default function VramProfiler() {
         const batchFactor = batchSize;
         const videoFactor = activeModel.isTextToVideo ? Math.pow(Math.max(1, videoFrames) / 16, 0.9) : 1;
 
-        // Base computation load per step in effective TFLOPs
         const baseTflopsPerStep = (paramCountB * 0.08) * resFactor * batchFactor * videoFactor;
 
-        // Raw compute seconds per step based on GPU compute
-        const rawSecs = baseTflopsPerStep / (activeGpu.fp16Tflops * 0.007);
+        // Platform-specific compute capabilities
+        let computeTflops = activeGpu.fp16Tflops;
+        let backendSpeedMod = 1.0;
 
-        // Precision factor
+        if (platformTab === "amd") {
+            computeTflops = activeAmdGpu.fp16Tflops;
+            if (amdBackend === "directml") {
+                backendSpeedMod = 1.45; // ~45% slower on Windows DirectML translation
+            }
+        } else if (platformTab === "apple") {
+            computeTflops = activeMac.fp16Tflops;
+            if (macBackend === "mlx") {
+                backendSpeedMod = 0.85; // MLX native optimization
+            } else {
+                backendSpeedMod = 1.25; // PyTorch MPS overhead
+            }
+        }
+
+        const rawSecs = baseTflopsPerStep / (computeTflops * 0.007);
+
         let quantMod = 1.0;
         if (quantKey.includes("fp8")) quantMod = 0.85;
         else if (quantKey.includes("q4") || quantKey === "nf4") quantMod = 0.9;
         else if (quantKey === "fp32") quantMod = 2.0;
 
-        // Attention factor
-        const sdpMod = useSdpAttention ? 1.0 : 0.55; // 1.8x slower without SDP
+        const sdpMod = useSdpAttention ? 1.0 : 0.55;
 
-        // Memory transfer & offloading penalty
         let offloadPenalty = 1.0;
         if (ramTelemetry.ramStatus === "ram-danger") {
-            offloadPenalty = 25.0; // Disk thrashing to SSD pagefile
+            offloadPenalty = 25.0;
         } else if (telemetry.status === "danger") {
             offloadPenalty = 4.5;
         } else if (telemetry.status === "offload") {
-            offloadPenalty = 2.8; // PCIe weight swapping to system RAM
+            offloadPenalty = 2.8;
         } else if (telemetry.status === "warn") {
             offloadPenalty = 1.15;
         }
 
-        const secondsPerStep = Math.max(0.015, (rawSecs * quantMod * offloadPenalty) / sdpMod);
+        const secondsPerStep = Math.max(0.015, ((rawSecs * quantMod * offloadPenalty) / sdpMod) * backendSpeedMod);
         const itPerSec = 1 / secondsPerStep;
 
-        // Pre/Post durations
         let textEncodeSec = 0.3;
-        if (teKey === "none") textEncodeSec = 2.8; // Offloaded to host CPU
+        if (teKey === "none") textEncodeSec = 2.8;
         else if (teKey === "t5_fp16") textEncodeSec = 1.5;
         else if (teKey === "t5_fp8") textEncodeSec = 1.0;
         else if (teKey.startsWith("dual_clip")) textEncodeSec = 0.5;
@@ -768,40 +909,39 @@ export default function VramProfiler() {
 
         const denoiseSec = samplingSteps * secondsPerStep;
 
-        // Hi-Res Fix additional time
         let hiresSec = 0;
         if (enableHiresFix) {
             const hiresPixels = (width * hiresScale) * (height * hiresScale);
             const hiresResFactor = Math.pow(hiresPixels / basePixels, 0.85);
             const hiresBaseTflops = (paramCountB * 0.08) * hiresResFactor * batchFactor;
-            const hiresRawSecs = hiresBaseTflops / (activeGpu.fp16Tflops * 0.007);
-            const hiresSecPerStep = Math.max(0.02, (hiresRawSecs * quantMod * offloadPenalty) / sdpMod);
-            hiresSec = 15 * hiresSecPerStep + 0.8; // 15 steps denoising + VAE decode
+            const hiresRawSecs = hiresBaseTflops / (computeTflops * 0.007);
+            const hiresSecPerStep = Math.max(0.02, ((hiresRawSecs * quantMod * offloadPenalty) / sdpMod) * backendSpeedMod);
+            hiresSec = 15 * hiresSecPerStep + 0.8;
         }
 
         let detailerSec = 0;
         if (enableFaceDetailer) {
-            detailerSec = 1.8; // YOLO face detection + inpaint
+            detailerSec = 1.8;
         }
 
         const totalDurationSec = textEncodeSec + denoiseSec + hiresSec + detailerSec + vaeDecodeSec;
 
         let speedBadge = "Sangat Cepat";
         let speedClass: "speed-fast" | "speed-normal" | "speed-slow" | "speed-critical" = "speed-fast";
-        let speedNote = "Throughput maksimal! Generasi instan berkat eksekusi native di VRAM Tensor Core.";
+        let speedNote = "Throughput optimal. Eksekusi native di hardware target.";
 
         if (ramTelemetry.ramStatus === "ram-danger") {
             speedBadge = "Kritis (Disk-Thrashing)";
             speedClass = "speed-critical";
-            speedNote = "Generasi melambat hingga 25×–50× lipat karena Windows menukar tensor ke SSD/Pagefile.";
+            speedNote = "Generasi melambat drastis karena sistem menukar tensor ke swap disk/SSD.";
         } else if (telemetry.status === "offload" || telemetry.status === "danger") {
-            speedBadge = "Lambat (PCIe Offload)";
+            speedBadge = "Lambat (Memory Swapping)";
             speedClass = "speed-slow";
-            speedNote = "Model di-swap bolak-balik antara RAM dan GPU via bus PCIe, menambah latency per step.";
+            speedNote = "Model di-swap bolak-balik antara RAM dan akselerator.";
         } else if (itPerSec < 1.5) {
             speedBadge = "Sedang / Normal";
             speedClass = "speed-normal";
-            speedNote = "Throughput normal untuk resolusi atau arsitektur model besar ini.";
+            speedNote = "Throughput wajar untuk resolusi atau arsitektur model ini.";
         }
 
         return {
@@ -824,6 +964,11 @@ export default function VramProfiler() {
         batchSize,
         videoFrames,
         activeGpu,
+        activeAmdGpu,
+        activeMac,
+        platformTab,
+        amdBackend,
+        macBackend,
         quantKey,
         useSdpAttention,
         ramTelemetry.ramStatus,
@@ -836,10 +981,72 @@ export default function VramProfiler() {
         enableFaceDetailer,
     ]);
 
-    // Command-line flag generator
-    const recommendedCliFlags = useMemo(() => {
-        const flags: string[] = ["--opt-sdp-attention", "--pin-shared-memory"];
+    // Command-line / Launch Config Generator
+    const platformLaunchScript = useMemo(() => {
+        if (platformTab === "amd") {
+            if (amdBackend === "rocm") {
+                return `#!/bin/bash
+# ========================================================
+# Antigravity AI - AMD ROCm 6.x PyTorch HIP Launch Script
+# Target GPU: ${activeAmdGpu.name} (${activeAmdGpu.vramGb} GB VRAM)
+# Target Model: ${activeModel.name}
+# ========================================================
 
+export HSA_OVERRIDE_GFX_VERSION=${activeAmdGpu.gfxVersion}
+export PYTORCH_CUDA_ALLOC_CONF=garbage_collection_threshold:0.8,max_split_size_mb:512
+export HIP_VISIBLE_DEVICES=0
+
+# Jalankan ComfyUI / SD-WebUI
+python main.py --opt-sdp-attention --preview-method auto
+`;
+            } else {
+                return `@echo off
+REM ========================================================
+REM Antigravity AI - AMD DirectML Windows Config
+REM Target GPU: ${activeAmdGpu.name} (DirectML Backend)
+REM DirectML Swap Overhead: ~0.60 GB
+REM ========================================================
+
+set PYTHON=
+set GIT=
+set VENV_DIR=
+set COMMANDLINE_ARGS=--use-directml --opt-sub-quad-attention --disable-nan-check --pin-shared-memory
+
+call webui.bat
+`;
+            }
+        }
+
+        if (platformTab === "apple") {
+            if (macBackend === "mlx") {
+                return `#!/bin/bash
+# ========================================================
+# Antigravity AI - Apple Silicon Native MLX Script
+# Target: ${activeMac.name}
+# Safe MPS Limit: ${macSafeMpsLimitGb.toFixed(1)} GB
+# ========================================================
+
+# Install MLX-Flux jika belum ada: pip install mlx-flux
+python -m mlx_flux --model flux-schnell-4bit --prompt "a beautiful cinematic landscape" --width ${width} --height ${height} --steps ${samplingSteps}
+`;
+            } else {
+                return `#!/bin/bash
+# ========================================================
+# Antigravity AI - Apple Silicon PyTorch MPS Script
+# Target: ${activeMac.name} (${activeMac.unifiedRamGb} GB Unified Memory)
+# Safe MPS Limit (75%): ${macSafeMpsLimitGb.toFixed(1)} GB
+# ========================================================
+
+export PYTORCH_ENABLE_MPS_FALLBACK=1
+export MPS_HIGH_WATERMARK_RATIO=0.0
+
+python main.py --force-fp16 --use-split-cross-attention --preview-method auto
+`;
+            }
+        }
+
+        // NVIDIA Default (webui-user.bat)
+        const flags: string[] = ["--opt-sdp-attention", "--pin-shared-memory"];
         if (telemetry.status === "warn") {
             if (activeModel.id === "sdxl" || activeModel.id === "pony" || activeModel.id === "illustrious") {
                 flags.push("--medvram-sdxl");
@@ -853,176 +1060,104 @@ export default function VramProfiler() {
                 flags.push("--tiled-vae");
             }
         }
-
         if (quantKey.includes("fp8")) {
             flags.push("--fp8-storage");
         }
 
-        return flags.join(" ");
-    }, [telemetry.status, activeModel.id, quantKey, useTiledVae]);
-
-    // 1-Click ComfyUI Command generator
-    const comfyUiCommand = useMemo(() => {
-        const args: string[] = ["python", "main.py"];
-
-        if (effectiveAiVram >= 16) {
-            args.push("--highvram");
-            args.push("--gpu-only");
-        } else if (effectiveAiVram >= 10) {
-            args.push("--normalvram");
-        } else if (effectiveAiVram >= 6) {
-            args.push("--lowvram");
-            args.push("--pin-shared-memory");
-        } else {
-            args.push("--novram");
-            args.push("--cpu-vae");
-        }
-
-        if (useTiledVae) {
-            args.push("--fast");
-        }
-
-        args.push("--preview-method", "auto");
-
-        if (quantKey.includes("fp8")) {
-            args.push("--fp8_e4m3fn-text-enc");
-        }
-
-        return args.join(" ");
-    }, [effectiveAiVram, useTiledVae, quantKey]);
-
-    // 1-Click webui-user.bat file generator
-    const webuiBatContent = useMemo(() => {
         return `@echo off
 REM ========================================================
 REM Antigravity AI - webui-user.bat Auto-Generated Config
 REM Target GPU: ${activeGpu.name}
 REM Usable AI VRAM: ${effectiveAiVram.toFixed(1)} GB (Physical: ${targetGpuVram} GB)
 REM Target Model: ${activeModel.name} (${QUANTIZATIONS[quantKey]?.name || quantKey})
-REM Throughput Estimasi: ~${throughputTelemetry.itPerSec >= 1 ? `${throughputTelemetry.itPerSec.toFixed(2)} it/s` : `${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`}
 REM ========================================================
 
 set PYTHON=
 set GIT=
 set VENV_DIR=
-set COMMANDLINE_ARGS=${recommendedCliFlags}
+set COMMANDLINE_ARGS=${flags.join(" ")}
 
 call webui.bat
 `;
-    }, [activeGpu.name, effectiveAiVram, targetGpuVram, activeModel.name, quantKey, throughputTelemetry, recommendedCliFlags]);
+    }, [
+        platformTab,
+        amdBackend,
+        macBackend,
+        activeAmdGpu,
+        activeMac,
+        activeGpu,
+        activeModel.name,
+        activeModel.id,
+        effectiveAiVram,
+        targetGpuVram,
+        quantKey,
+        telemetry.status,
+        useTiledVae,
+        width,
+        height,
+        samplingSteps,
+        macSafeMpsLimitGb,
+    ]);
 
-    const handleDownloadBat = () => {
-        const blob = new Blob([webuiBatContent], { type: "text/plain;charset=utf-8" });
+    const handleDownloadScript = () => {
+        const isBat = platformTab === "nvidia" || (platformTab === "amd" && amdBackend === "directml");
+        const filename = isBat ? "webui-user.bat" : platformTab === "amd" ? "start_rocm.sh" : "run_mac.sh";
+        const blob = new Blob([platformLaunchScript], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.download = "webui-user.bat";
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
 
-    const handleCopyComfy = () => {
-        navigator.clipboard.writeText(comfyUiCommand);
+    const handleCopyScript = () => {
+        navigator.clipboard.writeText(platformLaunchScript);
         setCopiedComfy(true);
         setTimeout(() => setCopiedComfy(false), 2000);
     };
 
-    const handleApplyTufProfile = (profile: "turbo" | "perf" | "silent" | "overnight") => {
-        setTufProfile(profile);
-        if (profile === "turbo") {
-            const maxW = activeGpu.isLaptop ? (activeGpu.tgpMaxWatts || 140) : activeGpu.tdpWatts;
-            setLaptopTgpWatts(maxW);
-            setCpuWatts(50);
-            setScreenMode("high");
-            setCoolingFanMode("turbo");
-        } else if (profile === "perf") {
-            const perfW = activeGpu.isLaptop ? Math.round((activeGpu.tgpMaxWatts || 140) * 0.75) : Math.round(activeGpu.tdpWatts * 0.85);
-            setLaptopTgpWatts(perfW);
-            setCpuWatts(35);
-            setScreenMode("med");
-            setCoolingFanMode("balanced");
-        } else if (profile === "silent") {
-            const minW = activeGpu.isLaptop ? (activeGpu.tgpMinWatts || 55) : Math.round(activeGpu.tdpWatts * 0.55);
-            setLaptopTgpWatts(minW);
-            setCpuWatts(22);
-            setScreenMode("med");
-            setCoolingFanMode("silent");
-        } else if (profile === "overnight") {
-            const nightW = activeGpu.isLaptop ? Math.round((activeGpu.tgpMaxWatts || 140) * 0.7) : Math.round(activeGpu.tdpWatts * 0.8);
-            setLaptopTgpWatts(nightW);
-            setCpuWatts(30);
-            setScreenMode("off"); // Layar Laptop Mati 0W!
-            setCoolingFanMode("balanced");
-        }
-    };
-
-    // POWER & ELECTRICITY COST (TDP / KWH & TOKEN PLN) TELEMETRY ENGINE
+    // POWER & ELECTRICITY COST TELEMETRY ENGINE
     const powerTelemetry = useMemo(() => {
-        const isLaptop = !!activeGpu.isLaptop;
-        const gpuWatts = isLaptop
-            ? Math.max(activeGpu.tgpMinWatts || 35, Math.min(activeGpu.tgpMaxWatts || 175, laptopTgpWatts))
-            : activeGpu.tdpWatts;
+        let hardwareWatts = activeGpu.tdpWatts;
+        if (platformTab === "amd") {
+            hardwareWatts = activeAmdGpu.tbpWatts;
+        } else if (platformTab === "apple") {
+            hardwareWatts = activeMac.socTdpWatts; // Apple Silicon M-series low SoC power!
+        } else if (activeGpu.isLaptop) {
+            hardwareWatts = Math.max(activeGpu.tgpMinWatts || 35, Math.min(activeGpu.tgpMaxWatts || 175, laptopTgpWatts));
+        }
 
-        // 1. CPU Power (AMD Ryzen / Intel)
         let activeCpuWatts = cpuWatts;
-        if (teKey === "none") {
-            activeCpuWatts = Math.min(65, activeCpuWatts + 15); // Host CPU text encode load
-        }
-        if (ramTelemetry.ramStatus === "ram-danger") {
-            activeCpuWatts = Math.min(65, activeCpuWatts + 12); // Paging thrashing CPU overhead
+        if (platformTab === "apple") {
+            activeCpuWatts = 0; // SoC unified chip
         }
 
-        // 2. Layar Laptop ASUS TUF (16" IPS 165Hz)
-        const screenWatts = screenMode === "off" ? 0 : screenMode === "high" ? 15 : 9;
+        const screenWatts = 9;
+        const extMonitorWatts = 0;
+        const systemInternalWatts = platformTab === "apple" ? 5 : 14;
 
-        // 3. Monitor Eksternal Tambahan (HDMI / DisplayPort)
-        const extMonitorWatts = externalMonitorMode === "none" ? 0 : externalMonitorMode === "4k" ? 42 : 25;
-
-        // 4. Kipas Pendingin Dual Arc-Flow + Motherboard VRM + RAM DDR5 + SSD NVMe
-        const systemInternalWatts = coolingFanMode === "turbo" ? 20 : coolingFanMode === "silent" ? 8 : 14;
-
-        // Total DC Component Power Draw
-        const totalDcWatts = gpuWatts + activeCpuWatts + screenWatts + extMonitorWatts + systemInternalWatts;
-
-        // Wall Draw from AC Power Outlet (Stopkontak PLN / Meteran Token)
-        // Adaptor Charger ASUS TUF 240W/280W has ~89% AC-to-DC conversion efficiency
-        const chargerEfficiency = includeChargerLoss ? 0.89 : 1.0;
-        const totalPcWatts = Math.round(totalDcWatts / chargerEfficiency);
+        const totalDcWatts = hardwareWatts + activeCpuWatts + screenWatts + extMonitorWatts + systemInternalWatts;
+        const totalPcWatts = Math.round(totalDcWatts / 0.89);
         const chargerLossWatts = totalPcWatts - totalDcWatts;
 
-        // Energy per single image in Watt-hours and kiloWatt-hours
         const durationHoursPerImage = throughputTelemetry.totalDurationSec / 3600;
         const wattHoursPerImage = totalPcWatts * durationHoursPerImage;
         const kwhPerImage = wattHoursPerImage / 1000;
-
-        // Cost per single image in IDR
         const costPerImageIdr = kwhPerImage * plnTarifPerKwh;
 
-        // Total Batch calculation
         const batchTotalKwh = kwhPerImage * batchImageCount;
         const batchTotalCostIdr = batchTotalKwh * plnTarifPerKwh;
         const batchTotalHours = (throughputTelemetry.totalDurationSec * batchImageCount) / 3600;
 
-        // Token Listrik Prabayar (Pulsa Listrik) Specific Metrics
-        const totalTokenKwh = tokenNominal / plnTarifPerKwh; // misal Rp 50.000 / 1444 = 34.62 kWh
+        const totalTokenKwh = tokenNominal / plnTarifPerKwh;
         const imagesPerFullToken = kwhPerImage > 0 ? Math.floor(totalTokenKwh / kwhPerImage) : 0;
         const tokenPercentUsed = totalTokenKwh > 0 ? (batchTotalKwh / totalTokenKwh) * 100 : 0;
         const tokenRemainingRp = Math.max(0, tokenNominal - batchTotalCostIdr);
         const tokenRemainingKwh = Math.max(0, totalTokenKwh - batchTotalKwh);
 
-        // Laptop TGP throttling evaluation
-        let isTgpThrottled = false;
-        let tgpThrottlePercent = 0;
-        if (isLaptop && activeGpu.tgpMaxWatts && activeGpu.tgpMaxWatts > 75) {
-            if (gpuWatts < activeGpu.tgpMaxWatts * 0.65) {
-                isTgpThrottled = true;
-                tgpThrottlePercent = Math.round((1 - gpuWatts / activeGpu.tgpMaxWatts) * 45); // up to ~30-40% clock penalty
-            }
-        }
-
-        // Efficiency tier badge
         let effBadge = "Efisiensi Tinggi";
         let effClass: "eff-high" | "eff-normal" | "eff-heavy" = "eff-high";
         if (totalPcWatts >= 350 || costPerImageIdr > 8) {
@@ -1034,7 +1169,7 @@ call webui.bat
         }
 
         return {
-            gpuWatts,
+            hardwareWatts,
             activeCpuWatts,
             screenWatts,
             extMonitorWatts,
@@ -1053,32 +1188,21 @@ call webui.bat
             tokenPercentUsed,
             tokenRemainingRp,
             tokenRemainingKwh,
-            isTgpThrottled,
-            tgpThrottlePercent,
             effBadge,
             effClass,
         };
     }, [
+        platformTab,
         activeGpu,
+        activeAmdGpu,
+        activeMac,
         laptopTgpWatts,
         cpuWatts,
-        teKey,
-        ramTelemetry.ramStatus,
-        screenMode,
-        externalMonitorMode,
-        coolingFanMode,
-        includeChargerLoss,
         throughputTelemetry.totalDurationSec,
         plnTarifPerKwh,
         batchImageCount,
         tokenNominal,
     ]);
-
-    const handleCopyFlags = () => {
-        navigator.clipboard.writeText(recommendedCliFlags);
-        setCopiedFlags(true);
-        setTimeout(() => setCopiedFlags(false), 2000);
-    };
 
     const handleApplyProfile = useCallback((prof: HardwareProfile) => {
         setActiveProfile(prof);
@@ -1106,29 +1230,16 @@ call webui.bat
         setUseSdpAttention(true);
         setUseTiledVae(true);
         setUseMedvramChunking(false);
-        setGpuPresetId(prof.gpuPresetId);
-        if (prof.customGpuVram) setCustomGpuVram(prof.customGpuVram);
-        setDisplayDeductionMode(prof.displayDeductionMode);
-        setSystemRamGb(prof.systemRamGb);
         setEnableHiresFix(false);
         setHiresScale(1.5);
         setUpscaleMethod("latent");
         setEnableFaceDetailer(false);
         setEnableRefiner(false);
-        setSamplingSteps(20);
-        setGenPreviewTab("bat");
-        setPlnTarifPerKwh(prof.plnTarifPerKwh || 1444);
-        setBatchImageCount(100);
-        setLaptopTgpWatts(prof.laptopTgpWatts || 140);
-        setTufProfile(prof.tufProfile || "perf");
-        setCpuWatts(prof.cpuWatts || 35);
-        setScreenMode("med");
-        setExternalMonitorMode("none");
-        setCoolingFanMode("balanced");
-        setIncludeChargerLoss(true);
-        setBillingType("token");
-        setTokenNominal(50000);
-        showToast("Parameter direset kembali ke profil hardware default!");
+        setSamplingSteps(25);
+        setGpuPresetId(prof.gpuPresetId || "rtx4060_laptop");
+        setAmdGpuId("rx7800xt");
+        setMacPresetId("m3_pro_36");
+        showToast("Parameter direset kembali ke profil default!");
     };
 
     // Workflow Bridge Handler
@@ -1159,16 +1270,18 @@ call webui.bat
                 <div className="vram-header-top">
                     <div className="vram-title-group">
                         <div className="vram-header-icon" aria-hidden="true">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="4" />
+                                <path d="M6 18h12" />
+                                <path d="M6 14h12" />
+                                <path d="M6 10h12" />
+                                <path d="M6 6h12" />
                             </svg>
                         </div>
                         <div>
                             <h2 className="vram-title">Interactive VRAM &amp; Hardware Profiler</h2>
                             <p className="vram-subtitle">
-                                Kalkulator alokasi memori real-time untuk Stable Diffusion, Flux, SD 3.5 &amp; Wan 2.1 Video. Cegah CUDA OOM sebelum generate.
+                                Profiler alokasi memori real-time untuk NVIDIA RTX (CUDA), AMD Radeon (DirectML/ROCm) &amp; Apple Silicon Mac (Metal MPS/MLX).
                             </p>
                         </div>
                     </div>
@@ -1178,9 +1291,9 @@ call webui.bat
                             type="button"
                             className="vram-profile-header-btn"
                             onClick={() => setIsProfileModalOpen(true)}
-                            title="Kelola &amp; simpan profil spek laptop / PC bawaan Anda"
+                            title="Kelola profil hardware perangkat"
                         >
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
                                 <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
                                 <line x1="6" y1="6" x2="6.01" y2="6" />
@@ -1200,8 +1313,7 @@ call webui.bat
                                 steps: samplingSteps,
                                 timestamp: Date.now()
                             })}
-                            title="Bawa resolusi &amp; steps ini ke Prompt Lab"
-                            style={{ borderColor: "#2563eb", color: "#60a5fa" }}
+                            title="Bawa parameter ke Prompt Lab"
                         >
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M12 20h9" />
@@ -1228,31 +1340,356 @@ call webui.bat
                             </svg>
                             <span>Kalkulator</span>
                         </button>
-                        <button type="button" className="vram-reset-btn" onClick={handleReset}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <button type="button" className="vram-reset-btn" onClick={handleReset} title="Reset parameter ke default">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                                 <path d="M3 3v5h5" />
                             </svg>
-                            <span>Reset Default</span>
+                            <span>Reset</span>
                         </button>
                     </div>
                 </div>
             </header>
 
+            {/* PLATFORM NAVIGATION TABS (DEDICATED TABS - SEPARATED FROM NVIDIA!) */}
+            <div className="vram-platform-tabs">
+                <button
+                    type="button"
+                    className={`vram-platform-tab ${platformTab === "nvidia" ? "active" : ""}`}
+                    onClick={() => setPlatformTab("nvidia")}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="4" />
+                        <path d="M6 18h12" />
+                        <path d="M6 14h12" />
+                        <path d="M6 10h12" />
+                        <path d="M6 6h12" />
+                    </svg>
+                    <span>NVIDIA GeForce &amp; RTX (CUDA)</span>
+                </button>
+
+                <button
+                    type="button"
+                    className={`vram-platform-tab ${platformTab === "amd" ? "active" : ""}`}
+                    onClick={() => setPlatformTab("amd")}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    <span>AMD Radeon (DirectML / ROCm)</span>
+                </button>
+
+                <button
+                    type="button"
+                    className={`vram-platform-tab ${platformTab === "apple" ? "active" : ""}`}
+                    onClick={() => setPlatformTab("apple")}
+                >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z" />
+                        <path d="M10 2c1 .5 2 2 2 5" />
+                    </svg>
+                    <span>Apple Silicon Mac (Metal MPS / MLX)</span>
+                </button>
+            </div>
+
             {/* Main Interactive Grid */}
             <div className="vram-main-grid">
-                {/* Left Column: Interactive Inputs */}
+                {/* Left Column: Interactive Inputs & Platform Hardware */}
                 <div className="vram-inputs-col">
-                    {/* SECTION 1: BASE MODEL SELECTOR */}
+                    {/* SECTION: PLATFORM TARGET HARDWARE CONFIGURATION */}
                     <div className="vram-section-card">
                         <div className="vram-section-header">
                             <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                                    <line x1="6" y1="6" x2="6.01" y2="6" />
+                                    <line x1="6" y1="18" x2="6.01" y2="18" />
+                                </svg>
+                                <span>
+                                    {platformTab === "nvidia" && "Konfigurasi Target NVIDIA (CUDA)"}
+                                    {platformTab === "amd" && "Konfigurasi Target AMD Radeon"}
+                                    {platformTab === "apple" && "Konfigurasi Target Apple Silicon Mac"}
+                                </span>
+                            </div>
+                            <span className="vram-section-badge">
+                                {platformTab === "nvidia" && "NVIDIA Architecture"}
+                                {platformTab === "amd" && `AMD ${activeAmdGpu.series}`}
+                                {platformTab === "apple" && `Apple ${activeMac.chipSeries}`}
+                            </span>
+                        </div>
+
+                        {/* NVIDIA SPECIFIC HARDWARE SELECTOR */}
+                        {platformTab === "nvidia" && (
+                            <>
+                                <div className="vram-hardware-field">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Target GPU &amp; Kapasitas VRAM:</span>
+                                        <span className="vram-hardware-field-val">
+                                            {targetGpuVram} GB Fisik &bull; <strong style={{ color: "#60a5fa" }}>{effectiveAiVram.toFixed(1)} GB VRAM Efektif AI</strong>
+                                        </span>
+                                    </div>
+                                    <select
+                                        className="vram-gpu-select"
+                                        value={gpuPresetId}
+                                        onChange={(e) => setGpuPresetId(e.target.value)}
+                                    >
+                                        {Object.entries(GROUPED_GPU_PRESETS).map(([groupName, gpus]) => (
+                                            <optgroup key={groupName} label={groupName}>
+                                                {gpus.map((g) => (
+                                                    <option key={g.id} value={g.id}>
+                                                        {g.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                    {gpuPresetId === "custom" && (
+                                        <div className="vram-gpu-custom-slider">
+                                            <input
+                                                type="range"
+                                                min={2}
+                                                max={96}
+                                                step={1}
+                                                className="vram-range-input"
+                                                value={customGpuVram}
+                                                onChange={(e) => setCustomGpuVram(parseInt(e.target.value) || 8)}
+                                            />
+                                            <span style={{ fontWeight: 700, fontFamily: "monospace", width: "45px", textAlign: "right" }}>
+                                                {customGpuVram} GB
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="vram-hardware-field">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Alokasi Display OS &amp; Desktop:</span>
+                                        <span className="vram-hardware-field-val" style={{ color: desktopDeductionGb > 0 ? "#fbbf24" : "#34d399", fontFamily: "monospace" }}>
+                                            {desktopDeductionGb > 0 ? `-${desktopDeductionGb} GB Desktop` : "0 GB (100% Dedicated AI)"}
+                                        </span>
+                                    </div>
+                                    <div className="vram-display-chips-row">
+                                        <button
+                                            type="button"
+                                            className={`vram-display-mode-chip ${displayDeductionMode === "primary_single" ? "active" : ""}`}
+                                            onClick={() => setDisplayDeductionMode("primary_single")}
+                                        >
+                                            <span className="vram-display-mode-title">1 Layar (GPU Utama)</span>
+                                            <span className="vram-display-mode-sub">-0.8 GB (DWM &amp; Browser)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-display-mode-chip ${displayDeductionMode === "primary_multi" ? "active" : ""}`}
+                                            onClick={() => setDisplayDeductionMode("primary_multi")}
+                                        >
+                                            <span className="vram-display-mode-title">Multi-Display / 4K</span>
+                                            <span className="vram-display-mode-sub">-1.4 GB (Dual Mon / 4K)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-display-mode-chip ${displayDeductionMode === "headless" ? "active" : ""}`}
+                                            onClick={() => setDisplayDeductionMode("headless")}
+                                        >
+                                            <span className="vram-display-mode-title">Headless / Sekunder</span>
+                                            <span className="vram-display-mode-sub">0 GB (100% Dedicated AI)</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* AMD RADEON SPECIFIC HARDWARE SELECTOR */}
+                        {platformTab === "amd" && (
+                            <>
+                                <div className="vram-hardware-field">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Pilih Kartu Grafis AMD Radeon:</span>
+                                        <span className="vram-hardware-field-val">
+                                            {activeAmdGpu.vramGb} GB VRAM &bull; <strong style={{ color: "#60a5fa" }}>{effectiveAiVram.toFixed(1)} GB Bersih AI</strong>
+                                        </span>
+                                    </div>
+                                    <select
+                                        className="vram-gpu-select"
+                                        value={amdGpuId}
+                                        onChange={(e) => setAmdGpuId(e.target.value)}
+                                    >
+                                        {["RX 8000", "RX 7000", "RX 6000"].map((series) => (
+                                            <optgroup key={series} label={`AMD Radeon ${series} Series`}>
+                                                {AMD_GPU_PRESETS.filter((g) => g.series === series).map((g) => (
+                                                    <option key={g.id} value={g.id}>
+                                                        {g.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Backend Switcher: Windows DirectML vs Linux ROCm */}
+                                <div className="vram-backend-toggle-group">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Backend Eksekusi AI AMD:</span>
+                                        <span className="vram-hardware-field-val" style={{ color: amdBackend === "directml" ? "#fbbf24" : "#34d399", fontFamily: "monospace" }}>
+                                            {amdBackend === "directml" ? "+600 MB Swap Buffer Overhead" : "ROCm Native HIP"}
+                                        </span>
+                                    </div>
+                                    <div className="vram-backend-tabs">
+                                        <button
+                                            type="button"
+                                            className={`vram-backend-tab-btn ${amdBackend === "directml" ? "active" : ""}`}
+                                            onClick={() => setAmdBackend("directml")}
+                                        >
+                                            <span>Windows DirectML</span>
+                                            <span className="vram-backend-badge">DirectX 12 API (+600MB swap)</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-backend-tab-btn ${amdBackend === "rocm" ? "active" : ""}`}
+                                            onClick={() => setAmdBackend("rocm")}
+                                        >
+                                            <span>Linux ROCm 6.x</span>
+                                            <span className="vram-backend-badge">Native PyTorch HIP (Full Speed)</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* ROCm Environment Variable Guidance Box */}
+                                {amdBackend === "rocm" ? (
+                                    <div className="vram-callout-box">
+                                        <div className="vram-callout-header">
+                                            <span>Flag Lingkungan ROCm (Wajib Di-export):</span>
+                                            <span style={{ color: "#34d399", fontSize: "10.5px" }}>GFX: {activeAmdGpu.gfxVersion}</span>
+                                        </div>
+                                        <div className="vram-env-code">
+                                            export HSA_OVERRIDE_GFX_VERSION={activeAmdGpu.gfxVersion}{"\n"}
+                                            export PYTORCH_CUDA_ALLOC_CONF=garbage_collection_threshold:0.8,max_split_size_mb:512{"\n"}
+                                            export HIP_VISIBLE_DEVICES=0
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="vram-callout-box" style={{ borderColor: "#f59e0b" }}>
+                                        <div className="vram-callout-header" style={{ color: "#fbbf24" }}>
+                                            <span>DirectML Memory Overhead:</span>
+                                            <span>+600 MB swap overhead</span>
+                                        </div>
+                                        <span style={{ color: "#d4d4d8", fontSize: "11px" }}>
+                                            Backend Windows DirectML memerlukan alokasi swap buffer tambahan ~+600 MB dibandingkan CUDA native. Throughput per step sekitar 1.3×–1.5× lebih lambat dari Linux ROCm.
+                                        </span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+
+                        {/* APPLE SILICON MAC SPECIFIC HARDWARE SELECTOR */}
+                        {platformTab === "apple" && (
+                            <>
+                                <div className="vram-hardware-field">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Pilih Model MacBook / Mac:</span>
+                                        <span className="vram-hardware-field-val">
+                                            {activeMac.unifiedRamGb} GB Unified &bull; <strong style={{ color: "#34d399" }}>Safe MPS: {macSafeMpsLimitGb.toFixed(1)} GB</strong>
+                                        </span>
+                                    </div>
+                                    <select
+                                        className="vram-gpu-select"
+                                        value={macPresetId}
+                                        onChange={(e) => setMacPresetId(e.target.value)}
+                                    >
+                                        {["M4", "M3", "M1 / M2"].map((series) => (
+                                            <optgroup key={series} label={`Apple Silicon ${series} Series`}>
+                                                {APPLE_MAC_PRESETS.filter((m) => m.chipSeries === series).map((m) => (
+                                                    <option key={m.id} value={m.id}>
+                                                        {m.name}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Framework Switcher: PyTorch MPS vs Apple Native MLX */}
+                                <div className="vram-backend-toggle-group">
+                                    <div className="vram-hardware-field-header">
+                                        <span className="vram-hardware-field-label">Framework Eksekusi macOS:</span>
+                                        <span className="vram-hardware-field-val" style={{ color: macBackend === "mlx" ? "#34d399" : "#60a5fa", fontFamily: "monospace" }}>
+                                            {macBackend === "mlx" ? "Apple MLX (Native Apple Silicon)" : "PyTorch MPS (Metal Shaders)"}
+                                        </span>
+                                    </div>
+                                    <div className="vram-backend-tabs">
+                                        <button
+                                            type="button"
+                                            className={`vram-backend-tab-btn ${macBackend === "mps" ? "active" : ""}`}
+                                            onClick={() => setMacBackend("mps")}
+                                        >
+                                            <span>PyTorch MPS</span>
+                                            <span className="vram-backend-badge">Metal Performance Shaders</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-backend-tab-btn ${macBackend === "mlx" ? "active" : ""}`}
+                                            onClick={() => setMacBackend("mlx")}
+                                        >
+                                            <span>Apple MLX Native</span>
+                                            <span className="vram-backend-badge">Optimasi Khusus M-Series</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* macOS Unified Memory 75% Safe MPS Limit Callout Box */}
+                                <div className="vram-callout-box" style={{ borderColor: "#2563eb" }}>
+                                    <div className="vram-callout-header">
+                                        <span style={{ color: "#60a5fa" }}>Aturan Limit Memori macOS (75% Safe MPS Rule):</span>
+                                        <span style={{ fontFamily: "monospace", color: "#34d399" }}>
+                                            {macSafeMpsLimitGb.toFixed(1)} GB Max Safe
+                                        </span>
+                                    </div>
+                                    <span style={{ color: "#d4d4d8", fontSize: "11px" }}>
+                                        macOS membatasi alokasi single-process PyTorch MPS ke $\approx 75\%$ dari total Unified Memory ({activeMac.unifiedRamGb} GB). Sisa $25\%$ ({((activeMac.unifiedRamGb) * 0.25).toFixed(1)} GB) diproteksi untuk WindowServer, Safari, dan aplikasi macOS.
+                                    </span>
+                                    <div className="vram-env-code">
+                                        export PYTORCH_ENABLE_MPS_FALLBACK=1{"\n"}
+                                        export MPS_HIGH_WATERMARK_RATIO=0.0
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {/* System RAM Row (For Non-Mac) */}
+                        {platformTab !== "apple" && (
+                            <div className="vram-hardware-field">
+                                <div className="vram-hardware-field-header">
+                                    <span className="vram-hardware-field-label">Kapasitas RAM Sistem PC (DDR4/DDR5):</span>
+                                    <span className="vram-hardware-field-val" style={{ fontFamily: "monospace", color: "#e4e4e7" }}>
+                                        {systemRamGb} GB RAM
+                                    </span>
+                                </div>
+                                <div className="vram-ram-chips-row">
+                                    {[16, 32, 64, 128].map((gb) => (
+                                        <button
+                                            key={gb}
+                                            type="button"
+                                            className={`vram-ram-chip ${systemRamGb === gb ? "active" : ""}`}
+                                            onClick={() => setSystemRamGb(gb)}
+                                        >
+                                            {gb} GB
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* SECTION B: BASE MODEL ARCHITECTURE */}
+                    <div className="vram-section-card">
+                        <div className="vram-section-header">
+                            <div className="vram-section-title-wrap">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polygon points="12 2 2 7 12 12 22 7 12 2" />
                                     <polyline points="2 17 12 22 22 17" />
                                     <polyline points="2 12 12 17 22 12" />
                                 </svg>
-                                <span>1. Base Model Architecture</span>
+                                <span>Base Model Architecture</span>
                             </div>
                             <span className="vram-section-badge">{activeModel.archLabel}</span>
                         </div>
@@ -1275,52 +1712,58 @@ call webui.bat
                         </div>
                     </div>
 
-                    {/* SECTION 2: PRECISION & QUANTIZATION */}
+                    {/* SECTION C: PRECISION / KUANTISASI MODEL */}
                     <div className="vram-section-card">
                         <div className="vram-section-header">
                             <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="12" cy="12" r="10" />
                                     <line x1="12" y1="8" x2="12" y2="12" />
                                     <line x1="12" y1="16" x2="12.01" y2="16" />
                                 </svg>
-                                <span>2. Precision / Kuantisasi Model</span>
+                                <span>Precision / Kuantisasi Model</span>
                             </div>
                             <span className="vram-section-badge">
                                 {QUANTIZATIONS[quantKey]?.bytesPerParam} Bytes/Param
                             </span>
                         </div>
 
-                        <div className="vram-quant-grid">
+                        <div className="vram-quant-grid-7">
                             {Object.values(QUANTIZATIONS).map((q) => {
                                 const isSupported = activeModel.supportedQuantizations.includes(q.id);
                                 const isActive = quantKey === q.id;
+                                const shortName = q.id === "fp8_e4m3" ? "FP8" : q.id === "gguf_q8" ? "GGUF Q8" : q.id === "gguf_q4" ? "GGUF Q4" : q.name.split(" ")[0];
                                 return (
                                     <button
                                         key={q.id}
                                         type="button"
-                                        className={`vram-quant-btn ${isActive ? "active" : ""}`}
+                                        className={`vram-quant-pill-btn ${isActive ? "active" : ""}`}
                                         onClick={() => setQuantKey(q.id)}
                                         style={{ opacity: isSupported ? 1 : 0.45 }}
                                         title={q.desc}
                                     >
-                                        <span className="vram-quant-name">{q.name}</span>
-                                        <span className="vram-quant-desc">{q.desc.slice(0, 28)}...</span>
+                                        <span className="vram-quant-pill-name">{shortName}</span>
+                                        <span className="vram-quant-pill-ratio">{q.bytesPerParam} B/P</span>
                                     </button>
                                 );
                             })}
                         </div>
+
+                        <div className="vram-quant-info-bar">
+                            <span className="vram-quant-info-badge">{QUANTIZATIONS[quantKey]?.name || quantKey}:</span>
+                            <span className="vram-quant-info-text">{QUANTIZATIONS[quantKey]?.desc}</span>
+                        </div>
                     </div>
 
-                    {/* SECTION 3: TEXT ENCODER */}
+                    {/* SECTION D: TEXT ENCODER (T5 / CLIP) */}
                     <div className="vram-section-card">
                         <div className="vram-section-header">
                             <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M4 7V4h16v3" />
                                     <line x1="12" y1="4" x2="12" y2="20" />
                                 </svg>
-                                <span>3. Text Encoder (T5 / CLIP)</span>
+                                <span>Text Encoder (T5 / CLIP)</span>
                             </div>
                             <span className="vram-section-badge">
                                 {TEXT_ENCODERS[teKey]?.vramGb || 0} GB VRAM
@@ -1348,23 +1791,22 @@ call webui.bat
                         </div>
                     </div>
 
-                    {/* SECTION 4: RESOLUTION, BATCH SIZE & VIDEO FRAMES */}
+                    {/* SECTION E: TARGET RESOLUSI & BATCH SIZE */}
                     <div className="vram-section-card">
                         <div className="vram-section-header">
                             <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <rect width="18" height="18" x="3" y="3" rx="2" />
                                     <line x1="3" y1="9" x2="21" y2="9" />
                                     <line x1="9" y1="21" x2="9" y2="9" />
                                 </svg>
-                                <span>4. Target Resolusi &amp; Batch Size</span>
+                                <span>Target Resolusi &amp; Batch Size</span>
                             </div>
                             <span className="vram-section-badge">
                                 {((width * height) / 1000000).toFixed(2)} MP
                             </span>
                         </div>
 
-                        {/* Presets Row */}
                         <div className="vram-res-presets-row">
                             {RESOLUTION_PRESETS.map((rp) => {
                                 const isActive = width === rp.w && height === rp.h;
@@ -1441,208 +1883,284 @@ call webui.bat
                         </div>
                     </div>
 
-                    {/* SECTION 5: LORAS, CONTROLNET & ATTENTION SETTINGS */}
+                    {/* SECTION F: LORA, CONTROLNET, OPTIMASI VAE & WORKFLOW PIPELINE */}
                     <div className="vram-section-card">
                         <div className="vram-section-header">
                             <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="12" cy="12" r="3" />
                                     <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
                                 </svg>
-                                <span>5. LoRA, ControlNet &amp; Optimasi VAE</span>
-                            </div>
-                        </div>
-
-                        {/* LoRA Slider */}
-                        <div className="vram-slider-row">
-                            <div className="vram-slider-top">
-                                <span>Jumlah LoRA Aktif:</span>
-                                <span className="vram-slider-val">{loraCount} Unit (~{telemetry.lorasGb.toFixed(2)} GB)</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={8}
-                                step={1}
-                                className="vram-range-input"
-                                value={loraCount}
-                                onChange={(e) => setLoraCount(parseInt(e.target.value) || 0)}
-                            />
-                        </div>
-
-                        {/* ControlNet Slider */}
-                        <div className="vram-slider-row">
-                            <div className="vram-slider-top">
-                                <span>Jumlah ControlNet / Preprocessor:</span>
-                                <span className="vram-slider-val">{controlnetCount} Unit (~{telemetry.controlnetsGb.toFixed(2)} GB)</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={4}
-                                step={1}
-                                className="vram-range-input"
-                                value={controlnetCount}
-                                onChange={(e) => setControlnetCount(parseInt(e.target.value) || 0)}
-                            />
-                        </div>
-
-                        {/* Tiled VAE Toggle */}
-                        <div
-                            className="vram-toggle-row"
-                            onClick={() => setUseTiledVae(!useTiledVae)}
-                        >
-                            <div className="vram-toggle-info">
-                                <span className="vram-toggle-title">Tiled VAE Decode (--tiled-vae)</span>
-                                <span className="vram-toggle-desc">Mencegah lonjakan VAE decode di resolusi tinggi (menghemat ~1.5 - 3.0 GB VRAM)</span>
-                            </div>
-                            <div className={`vram-switch ${useTiledVae ? "active" : ""}`}>
-                                <div className="vram-switch-handle" />
-                            </div>
-                        </div>
-
-                        {/* SDP Attention Toggle */}
-                        <div
-                            className="vram-toggle-row"
-                            onClick={() => setUseSdpAttention(!useSdpAttention)}
-                        >
-                            <div className="vram-toggle-info">
-                                <span className="vram-toggle-title">Scaled Dot Product Attention (PyTorch 2.x SDP)</span>
-                                <span className="vram-toggle-desc">FlashAttention memory-efficient attention (wajib aktif untuk GPU modern)</span>
-                            </div>
-                            <div className={`vram-switch ${useSdpAttention ? "active" : ""}`}>
-                                <div className="vram-switch-handle" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* SECTION 6: WORKFLOW & MULTI-PASS UPSCALER SIMULATOR */}
-                    <div className="vram-section-card">
-                        <div className="vram-section-header">
-                            <div className="vram-section-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="15 3 21 3 21 9" />
-                                    <polyline points="9 21 3 21 3 15" />
-                                    <line x1="21" y1="3" x2="14" y2="10" />
-                                    <line x1="3" y1="21" x2="10" y2="14" />
-                                </svg>
-                                <span>6. Workflow Post-Processing &amp; Hi-Res Fix Simulator</span>
+                                <span>LoRA, ControlNet, Optimasi VAE &amp; Workflow</span>
                             </div>
                             <span className="vram-section-badge">
-                                {enableHiresFix ? `${hiresScale}x Upscale` : "Single Pass"}
+                                {enableHiresFix ? `${hiresScale}x Hi-Res` : "Pipeline Standar"}
                             </span>
                         </div>
 
-                        {/* Hi-Res Fix Toggle */}
-                        <div
-                            className="vram-toggle-row"
-                            onClick={() => setEnableHiresFix(!enableHiresFix)}
-                        >
-                            <div className="vram-toggle-info">
-                                <span className="vram-toggle-title">Simulasi Hi-Res Fix (2-Pass Denoising)</span>
-                                <span className="vram-toggle-desc">Penyebab utama OOM di WebUI. Menguji lonjakan VRAM saat Pass 2 latent upscaling.</span>
-                            </div>
-                            <div className={`vram-switch ${enableHiresFix ? "active" : ""}`}>
-                                <div className="vram-switch-handle" />
-                            </div>
-                        </div>
-
-                        {enableHiresFix && (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "4px" }}>
-                                {/* Scale Selector */}
+                        <div className="vram-merged-group">
+                            {/* Part 1: LoRA & ControlNet Sliders */}
+                            <div className="vram-merged-row">
                                 <div className="vram-slider-row">
                                     <div className="vram-slider-top">
-                                        <span>Skala Pembesaran (Hi-Res Scale):</span>
-                                        <span className="vram-slider-val">{hiresScale}x ({multiPassTelemetry.pass2W}×{multiPassTelemetry.pass2H} px)</span>
+                                        <span style={{ color: "#d4d4d8" }}>Jumlah LoRA Aktif:</span>
+                                        <span className="vram-slider-val">{loraCount} Unit (~{telemetry.lorasGb.toFixed(2)} GB)</span>
                                     </div>
-                                    <div className="vram-upscaler-chips">
-                                        {[1.25, 1.5, 1.75, 2.0].map((s) => (
-                                            <button
-                                                key={s}
-                                                type="button"
-                                                className={`vram-res-preset-chip ${hiresScale === s ? "active" : ""}`}
-                                                onClick={() => setHiresScale(s)}
-                                            >
-                                                {s}x {s === 2.0 ? "(4K Mode)" : ""}
-                                            </button>
-                                        ))}
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={8}
+                                        step={1}
+                                        className="vram-range-input"
+                                        value={loraCount}
+                                        onChange={(e) => setLoraCount(parseInt(e.target.value) || 0)}
+                                    />
+                                </div>
+                                <div className="vram-slider-row">
+                                    <div className="vram-slider-top">
+                                        <span style={{ color: "#d4d4d8" }}>Jumlah ControlNet:</span>
+                                        <span className="vram-slider-val">{controlnetCount} Unit (~{telemetry.controlnetsGb.toFixed(2)} GB)</span>
                                     </div>
-                                </div>
-
-                                {/* Upscaling Algorithm */}
-                                <div className="vram-input-field">
-                                    <label className="vram-input-label">Metode Upscaling di Workflow:</label>
-                                    <div className="vram-quant-grid">
-                                        <button
-                                            type="button"
-                                            className={`vram-quant-btn ${upscaleMethod === "latent" ? "active" : ""}`}
-                                            onClick={() => setUpscaleMethod("latent")}
-                                            title="Latent upscale: memproses seluruh tensor resolusi tinggi (resiko OOM tinggi)"
-                                        >
-                                            <span className="vram-quant-name">Latent (Full Denoise)</span>
-                                            <span className="vram-quant-desc">Memori O(N²) lonjak drastis</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`vram-quant-btn ${upscaleMethod === "ultimate_sd" ? "active" : ""}`}
-                                            onClick={() => setUpscaleMethod("ultimate_sd")}
-                                            title="Ultimate SD Upscale: memotong canvas jadi ubin berurutan (hemat memori)"
-                                        >
-                                            <span className="vram-quant-name">Ultimate SD Upscale</span>
-                                            <span className="vram-quant-desc">Tiled 2K/4K hemat VRAM</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`vram-quant-btn ${upscaleMethod === "model_upscale" ? "active" : ""}`}
-                                            onClick={() => setUpscaleMethod("model_upscale")}
-                                            title="Neural model upscale: 4x-UltraSharp / ESRGAN"
-                                        >
-                                            <span className="vram-quant-name">ESRGAN / UltraSharp</span>
-                                            <span className="vram-quant-desc">Filter CNN ringan ~850MB</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Workflow Modules: FaceDetailer & Refiner */}
-                        <div className="vram-workflow-toggle-grid">
-                            <div
-                                className="vram-toggle-row"
-                                onClick={() => setEnableFaceDetailer(!enableFaceDetailer)}
-                            >
-                                <div className="vram-toggle-info">
-                                    <span className="vram-toggle-title">FaceDetailer / ADetailer Pass</span>
-                                    <span className="vram-toggle-desc">YOLOv8 face detection + localized inpaint KSampler (~+0.95 GB VRAM)</span>
-                                </div>
-                                <div className={`vram-switch ${enableFaceDetailer ? "active" : ""}`}>
-                                    <div className="vram-switch-handle" />
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={4}
+                                        step={1}
+                                        className="vram-range-input"
+                                        value={controlnetCount}
+                                        onChange={(e) => setControlnetCount(parseInt(e.target.value) || 0)}
+                                    />
                                 </div>
                             </div>
 
-                            <div
-                                className="vram-toggle-row"
-                                onClick={() => setEnableRefiner(!enableRefiner)}
-                            >
-                                <div className="vram-toggle-info">
-                                    <span className="vram-toggle-title">2-Pass Refiner (SDXL 2nd KSampler)</span>
-                                    <span className="vram-toggle-desc">Peralihan base model ke refiner model di tahap akhir sampling</span>
+                            {/* Part 2: Attention & VAE Toggles */}
+                            <div className="vram-merged-divider" />
+                            <div className="vram-merged-toggles">
+                                <div
+                                    className="vram-toggle-row"
+                                    onClick={() => setUseTiledVae(!useTiledVae)}
+                                >
+                                    <div className="vram-toggle-info">
+                                        <span className="vram-toggle-title">Tiled VAE Decode (--tiled-vae)</span>
+                                        <span className="vram-toggle-desc">Mencegah lonjakan VAE decode resolusi tinggi (hemat ~1.5 - 3.0 GB VRAM)</span>
+                                    </div>
+                                    <div className={`vram-switch ${useTiledVae ? "active" : ""}`}>
+                                        <div className="vram-switch-handle" />
+                                    </div>
                                 </div>
-                                <div className={`vram-switch ${enableRefiner ? "active" : ""}`}>
-                                    <div className="vram-switch-handle" />
+
+                                <div
+                                    className="vram-toggle-row"
+                                    onClick={() => setUseSdpAttention(!useSdpAttention)}
+                                >
+                                    <div className="vram-toggle-info">
+                                        <span className="vram-toggle-title">Scaled Dot Product Attention (PyTorch 2.x SDP)</span>
+                                        <span className="vram-toggle-desc">FlashAttention memory-efficient attention (wajib aktif untuk GPU modern)</span>
+                                    </div>
+                                    <div className={`vram-switch ${useSdpAttention ? "active" : ""}`}>
+                                        <div className="vram-switch-handle" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Part 3: Hi-Res Fix Simulator */}
+                            <div className="vram-merged-divider" />
+                            <div className="vram-hires-group">
+                                <div
+                                    className="vram-toggle-row"
+                                    onClick={() => setEnableHiresFix(!enableHiresFix)}
+                                >
+                                    <div className="vram-toggle-info">
+                                        <span className="vram-toggle-title">Simulasi Hi-Res Fix (2-Pass Denoising)</span>
+                                        <span className="vram-toggle-desc">Uji lonjakan alokasi VRAM saat upscaling latent di pass kedua</span>
+                                    </div>
+                                    <div className={`vram-switch ${enableHiresFix ? "active" : ""}`}>
+                                        <div className="vram-switch-handle" />
+                                    </div>
+                                </div>
+
+                                {enableHiresFix && (
+                                    <div className="vram-hires-subcontrols">
+                                        <div className="vram-slider-row">
+                                            <div className="vram-slider-top">
+                                                <span style={{ color: "#d4d4d8" }}>Skala Pembesaran (Hi-Res Scale):</span>
+                                                <span className="vram-slider-val">{hiresScale}x ({multiPassTelemetry.pass2W}×{multiPassTelemetry.pass2H} px)</span>
+                                            </div>
+                                            <div className="vram-upscaler-chips">
+                                                {[1.25, 1.5, 1.75, 2.0].map((s) => (
+                                                    <button
+                                                        key={s}
+                                                        type="button"
+                                                        className={`vram-res-preset-chip ${hiresScale === s ? "active" : ""}`}
+                                                        onClick={() => setHiresScale(s)}
+                                                    >
+                                                        {s}x {s === 2.0 ? "(4K Mode)" : ""}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="vram-input-field">
+                                            <label className="vram-input-label">Metode Upscaling:</label>
+                                            <div className="vram-upscale-method-grid">
+                                                <button
+                                                    type="button"
+                                                    className={`vram-method-btn ${upscaleMethod === "latent" ? "active" : ""}`}
+                                                    onClick={() => setUpscaleMethod("latent")}
+                                                >
+                                                    <span className="vram-method-name">Latent (Full Denoise)</span>
+                                                    <span className="vram-method-desc">Full tensor O(N²)</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`vram-method-btn ${upscaleMethod === "ultimate_sd" ? "active" : ""}`}
+                                                    onClick={() => setUpscaleMethod("ultimate_sd")}
+                                                >
+                                                    <span className="vram-method-name">Ultimate SD Upscale</span>
+                                                    <span className="vram-method-desc">Tiled 2K/4K hemat VRAM</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`vram-method-btn ${upscaleMethod === "model_upscale" ? "active" : ""}`}
+                                                    onClick={() => setUpscaleMethod("model_upscale")}
+                                                >
+                                                    <span className="vram-method-name">ESRGAN / UltraSharp</span>
+                                                    <span className="vram-method-desc">Filter CNN ~850MB</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Part 4: Post-Processing Modules */}
+                            <div className="vram-merged-divider" />
+                            <div className="vram-workflow-toggle-grid">
+                                <div
+                                    className="vram-toggle-row"
+                                    onClick={() => setEnableFaceDetailer(!enableFaceDetailer)}
+                                >
+                                    <div className="vram-toggle-info">
+                                        <span className="vram-toggle-title">FaceDetailer / ADetailer Pass</span>
+                                        <span className="vram-toggle-desc">YOLOv8 face detection + localized inpaint (~+0.95 GB VRAM)</span>
+                                    </div>
+                                    <div className={`vram-switch ${enableFaceDetailer ? "active" : ""}`}>
+                                        <div className="vram-switch-handle" />
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="vram-toggle-row"
+                                    onClick={() => setEnableRefiner(!enableRefiner)}
+                                >
+                                    <div className="vram-toggle-info">
+                                        <span className="vram-toggle-title">2-Pass Refiner (SDXL 2nd KSampler)</span>
+                                        <span className="vram-toggle-desc">Peralihan base model ke refiner model di tahap sampling akhir</span>
+                                    </div>
+                                    <div className={`vram-switch ${enableRefiner ? "active" : ""}`}>
+                                        <div className="vram-switch-handle" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    {/* SECTION G: 1-CLICK LAUNCH CONFIG & GENERATOR */}
+                    <div className="vram-section-card">
+                        <div className="vram-section-header">
+                            <div className="vram-section-title-wrap">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <span>
+                                    {platformTab === "nvidia" && "1-Click Launch Config & Generator"}
+                                    {platformTab === "amd" && (amdBackend === "rocm" ? "1-Click ROCm Linux Script" : "1-Click DirectML Batch Script")}
+                                    {platformTab === "apple" && (macBackend === "mlx" ? "1-Click Apple MLX Command" : "1-Click Apple Silicon MPS Script")}
+                                </span>
+                            </div>
+
+                            <div className="vram-gen-header-actions">
+                                <button
+                                    type="button"
+                                    className="vram-btn-download-bat"
+                                    onClick={handleDownloadScript}
+                                    title="Unduh script peluncuran siap pakai"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" y1="15" x2="12" y2="3" />
+                                    </svg>
+                                    <span>
+                                        {platformTab === "nvidia" || (platformTab === "amd" && amdBackend === "directml")
+                                            ? "Unduh webui-user.bat"
+                                            : platformTab === "amd"
+                                            ? "Unduh start_rocm.sh"
+                                            : "Unduh run_mac.sh"}
+                                    </span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="vram-btn-copy-mono"
+                                    onClick={handleCopyScript}
+                                    title="Salin seluruh isi konfigurasi"
+                                >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                    </svg>
+                                    <span>{copiedComfy ? "Tersalin!" : "Salin Script"}</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Code Preview Block */}
+                        <div className="vram-flags-code">
+                            {platformLaunchScript}
+                        </div>
+
+                        <ul className="vram-tips-list">
+                            {platformTab === "amd" ? (
+                                <>
+                                    <li>
+                                        <strong>ROCm vs DirectML:</strong> Gunakan Linux ROCm untuk throughput maksimal (hampir menyamai CUDA native). Pada Windows DirectML, driver mengalokasikan buffer swap tambahan ~+600 MB.
+                                    </li>
+                                    <li>
+                                        <strong>HSA_OVERRIDE_GFX_VERSION:</strong> Flag lingkungan ini wajib di-export pada kartu RDNA 2/3 (seperti RX 6700 XT atau RX 7800 XT) agar PyTorch mengenali arsitektur GPU AMD Anda.
+                                    </li>
+                                </>
+                            ) : platformTab === "apple" ? (
+                                <>
+                                    <li>
+                                        <strong>Batas Safe MPS 75%:</strong> macOS memproteksi 25% Unified Memory untuk sistem. Jika generasi melebihi batas safe, macOS akan menggunakan swap SSD atau menampilkan error 'MPS backend out of memory'.
+                                    </li>
+                                    <li>
+                                        <strong>MLX Framework:</strong> Apple MLX mengeksekusi model 4-bit secara native pada chip M-series dengan latensi memori terpadu yang sangat rendah.
+                                    </li>
+                                </>
+                            ) : (
+                                <>
+                                    <li>
+                                        <strong>WebUI (.bat):</strong> Tempatkan file <code>webui-user.bat</code> hasil unduhan langsung ke dalam direktori instalasi Automatic1111 atau SD.Next Anda.
+                                    </li>
+                                    <li>
+                                        <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver Windows NVIDIA memindahkan tensor secara lambat ke RAM sistem saat mendekati ambang batas VRAM fisik.
+                                    </li>
+                                </>
+                            )}
+                        </ul>
+                    </div>
                 </div>
 
-                {/* Right Column: Real-Time Output & Telemetry */}
+                {/* Right Column: Unified Memory Telemetry, Throughput & Power */}
                 <div className="vram-output-col">
-                    {/* MASTER VERDICT CARD */}
+                    {/* PANEL TELEMETRI MEMORI TERPADU */}
                     <div className={`vram-verdict-card status-${telemetry.status}`}>
                         <div className="vram-verdict-header">
                             <span className="vram-verdict-badge">{telemetry.statusBadge}</span>
-                            <span style={{ fontSize: "12px", color: "#a1a1aa" }}>
+                            <span className="vram-headroom-badge" style={{ color: telemetry.ratio <= 1.0 ? "#34d399" : "#fb7185" }}>
                                 {telemetry.ratio <= 1.0
                                     ? `Headroom: +${telemetry.headroomGb.toFixed(2)} GB`
                                     : `Defisit: ${Math.abs(telemetry.headroomGb).toFixed(2)} GB`}
@@ -1654,7 +2172,15 @@ call webui.bat
                                 ~{telemetry.totalVramGb.toFixed(2)} GB
                             </span>
                             <span className="vram-total-vs">
-                                dari <strong>{effectiveAiVram.toFixed(1)} GB VRAM Efektif</strong> ({targetGpuVram} GB Fisik{desktopDeductionGb > 0 ? ` - ${desktopDeductionGb} GB Desktop` : ""}) &bull; {Math.round(telemetry.ratio * 100)}% Kapasitas
+                                {platformTab === "apple" ? (
+                                    <>
+                                        dari <strong>{effectiveAiVram.toFixed(1)} GB Safe MPS Limit</strong> ({activeMac.unifiedRamGb} GB Unified Memory &bull; 75% macOS Max)
+                                    </>
+                                ) : (
+                                    <>
+                                        dari <strong>{effectiveAiVram.toFixed(1)} GB VRAM Efektif</strong> ({targetGpuVram} GB Fisik{desktopDeductionGb > 0 ? ` - ${desktopDeductionGb} GB Desktop` : ""}{directMlOverheadGb > 0 ? ` - ${directMlOverheadGb} GB DirectML Swap` : ""}) &bull; {Math.round(telemetry.ratio * 100)}% Kapasitas
+                                    </>
+                                )}
                             </span>
                         </div>
 
@@ -1688,8 +2214,8 @@ call webui.bat
                                 />
                                 <div
                                     className="vram-comp-segment cuda"
-                                    style={{ width: `${(telemetry.cudaOverheadGb / telemetry.totalVramGb) * 100}%` }}
-                                    title={`CUDA Context: ${telemetry.cudaOverheadGb.toFixed(2)} GB`}
+                                    style={{ width: `${(telemetry.runtimeOverheadGb / telemetry.totalVramGb) * 100}%` }}
+                                    title={`Runtime Overhead: ${telemetry.runtimeOverheadGb.toFixed(2)} GB`}
                                 />
                             </div>
 
@@ -1714,7 +2240,7 @@ call webui.bat
                                 <div className="vram-legend-item">
                                     <div className="vram-legend-left">
                                         <div className="vram-legend-dot kv" />
-                                        <span>KV Cache &amp; Latents:</span>
+                                        <span>KV &amp; Latents:</span>
                                     </div>
                                     <span className="vram-legend-val">{(telemetry.kvGb + telemetry.latentGb).toFixed(2)} GB</span>
                                 </div>
@@ -1738,23 +2264,155 @@ call webui.bat
                                 <div className="vram-legend-item">
                                     <div className="vram-legend-left">
                                         <div className="vram-legend-dot cuda" />
-                                        <span>CUDA Overhead:</span>
+                                        <span>Runtime Overhead:</span>
                                     </div>
-                                    <span className="vram-legend-val">{telemetry.cudaOverheadGb.toFixed(2)} GB</span>
+                                    <span className="vram-legend-val">{telemetry.runtimeOverheadGb.toFixed(2)} GB</span>
                                 </div>
                             </div>
                         </div>
 
-                        <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#d4d4d8", lineHeight: 1.5 }}>
-                            {telemetry.statusMessage}
-                        </p>
+                        {/* Multi-Pass Workflow Telemetry (Pass 1, Pass 2 Hi-Res, Post-Process) */}
+                        <div className="vram-multipass-grid">
+                            <div className={`vram-pass-box ${multiPassTelemetry.isPass1Risk ? "active-risk" : "pass-safe"}`}>
+                                <div className="vram-pass-top">
+                                    <span className="vram-pass-badge p1">Pass 1: Base</span>
+                                    <span className="vram-pass-res">{multiPassTelemetry.pass1W}×{multiPassTelemetry.pass1H}</span>
+                                </div>
+                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPass1Risk ? "#fb7185" : "#f4f4f5" }}>
+                                    ~{multiPassTelemetry.pass1Vram.toFixed(1)} GB
+                                </div>
+                                <span className="vram-pass-note">
+                                    Generasi awal native model.
+                                </span>
+                            </div>
+
+                            <div className={`vram-pass-box ${!enableHiresFix ? "pass-off" : multiPassTelemetry.isPass2Risk ? "active-risk" : "pass-safe"}`}>
+                                <div className="vram-pass-top">
+                                    <span className={`vram-pass-badge p2 ${enableHiresFix ? "active" : ""}`}>Pass 2: Hi-Res</span>
+                                    <span className="vram-pass-res">
+                                        {enableHiresFix ? `${multiPassTelemetry.pass2W}×${multiPassTelemetry.pass2H}` : "Off"}
+                                    </span>
+                                </div>
+                                <div
+                                    className="vram-pass-vram-num"
+                                    style={{
+                                        color: !enableHiresFix ? "#71717a" : multiPassTelemetry.isPass2Risk ? "#fb7185" : "#f4f4f5"
+                                    }}
+                                >
+                                    {enableHiresFix ? `~${multiPassTelemetry.pass2Vram.toFixed(1)} GB` : "— (Off)"}
+                                </div>
+                                <span className="vram-pass-note">
+                                    {enableHiresFix ? multiPassTelemetry.pass2Note : "Hi-Res Fix tidak aktif."}
+                                </span>
+                            </div>
+
+                            <div className={`vram-pass-box ${multiPassTelemetry.isPostProcessRisk ? "active-risk" : "pass-safe"}`}>
+                                <div className="vram-pass-top">
+                                    <span className="vram-pass-badge p3">Post-Process</span>
+                                    <span className="vram-pass-res">
+                                        {enableFaceDetailer ? "ADetailer" : enableRefiner ? "Refiner" : "Clean"}
+                                    </span>
+                                </div>
+                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPostProcessRisk ? "#fb7185" : "#f4f4f5" }}>
+                                    ~{multiPassTelemetry.postProcessVram.toFixed(1)} GB
+                                </div>
+                                <span className="vram-pass-note">
+                                    {enableFaceDetailer ? "ADetailer inpainting aktif." : "Final output render."}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Dynamic Alert Message */}
+                        {multiPassTelemetry.isPass1Risk ? (
+                            <div className="vram-telemetry-alert alert-danger">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span>
+                                    <strong>Defisit Fatal Memori (Pass 1 Base Generation):</strong> Beban dasar model (~{multiPassTelemetry.pass1Vram.toFixed(2)} GB) melebihi batas {effectiveAiVram.toFixed(1)} GB hardware target. {platformTab === "apple" ? "macOS akan mengalami beachballing keras atau crash MPS." : "Sistem akan langsung melempar error Out Of Memory."} Turunkan resolusi dasar atau gunakan kuantisasi FP8 / GGUF Q4.
+                                </span>
+                            </div>
+                        ) : multiPassTelemetry.isPass2Risk ? (
+                            <div className="vram-telemetry-alert alert-danger">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span>
+                                    <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat, namun Pass 2 (Hi-Res Fix @ {multiPassTelemetry.pass2W}×{multiPassTelemetry.pass2H}) melonjak ke ~{multiPassTelemetry.pass2Vram.toFixed(1)} GB dan melebihi batas aman {effectiveAiVram.toFixed(1)} GB! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong>.
+                                </span>
+                            </div>
+                        ) : multiPassTelemetry.isPostProcessRisk ? (
+                            <div className="vram-telemetry-alert alert-warn">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="8" x2="12" y2="12" />
+                                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                                </svg>
+                                <span>
+                                    <strong>Peringatan Tahap Post-Processing:</strong> Beban tahap akhir (~{multiPassTelemetry.postProcessVram.toFixed(1)} GB) melebihi batas aman {effectiveAiVram.toFixed(1)} GB.
+                                </span>
+                            </div>
+                        ) : (
+                            <div className="vram-telemetry-alert alert-safe">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                                <span>{telemetry.statusMessage}</span>
+                            </div>
+                        )}
+
+                        {/* System RAM or Apple Unified Memory Track */}
+                        <div className="vram-ram-section">
+                            <div className="vram-ram-header">
+                                <span className="vram-ram-title">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                                        <line x1="6" y1="6" x2="6.01" y2="6" />
+                                        <line x1="6" y1="18" x2="6.01" y2="18" />
+                                    </svg>
+                                    <span>
+                                        {platformTab === "apple"
+                                            ? `Apple Unified Memory (${activeMac.unifiedRamGb} GB Pool)`
+                                            : "Kebutuhan RAM Sistem (DDR4/DDR5)"}
+                                    </span>
+                                </span>
+                                <span className={`vram-ram-badge ${ramTelemetry.ramStatus}`}>
+                                    {ramTelemetry.ramBadge}
+                                </span>
+                            </div>
+
+                            <div className="vram-ram-track">
+                                <div
+                                    className={`vram-ram-fill ${ramTelemetry.ramStatus}`}
+                                    style={{ width: `${Math.min(100, Math.round(ramTelemetry.ramRatio * 100))}%` }}
+                                />
+                            </div>
+
+                            <div className="vram-ram-stats-row">
+                                <span>
+                                    Terpakai: <strong>~{ramTelemetry.totalRamNeededGb.toFixed(1)} GB</strong> ({Math.round(ramTelemetry.ramRatio * 100)}%)
+                                </span>
+                                <span>
+                                    Kapasitas: <strong>{platformTab === "apple" ? activeMac.unifiedRamGb : systemRamGb} GB</strong>
+                                </span>
+                            </div>
+
+                            <div className={`vram-ram-alert-msg ${ramTelemetry.ramStatus}`}>
+                                {ramTelemetry.ramMessage}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* ESTIMATOR THROUGHPUT: SPEED (IT/S) & WAKTU GENERATE */}
+                    {/* ESTIMATOR THROUGHPUT & WAKTU GENERATE */}
                     <div className="vram-throughput-card">
                         <div className="vram-throughput-header">
                             <div className="vram-throughput-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#3b82f6" }}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
                                 </svg>
                                 <span>Estimasi Throughput &amp; Waktu Generate</span>
@@ -1793,882 +2451,256 @@ call webui.bat
                             </div>
                         </div>
 
-                        {/* Big Speed Hero Metrics */}
-                        <div className="vram-throughput-hero">
-                            <div className="vram-hero-time-box">
-                                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
-                                    <span className="vram-hero-time-val">
-                                        ~{throughputTelemetry.totalDurationSec.toFixed(1)}s
-                                    </span>
+                        {/* Single Sharp Monochrome Metric Strip (font-mono) */}
+                        <div className="vram-throughput-strip font-mono">
+                            <div className="vram-strip-item">
+                                <span className="vram-strip-label">Total Durasi per Gambar</span>
+                                <div className="vram-strip-val-wrap">
+                                    <span className="vram-strip-num">~{throughputTelemetry.totalDurationSec.toFixed(1)}s</span>
                                     {throughputTelemetry.totalDurationSec >= 60 && (
-                                        <span style={{ fontSize: "14px", fontWeight: 700, color: "#38bdf8" }}>
+                                        <span className="vram-strip-sub" style={{ color: "#60a5fa" }}>
                                             (~{Math.floor(throughputTelemetry.totalDurationSec / 60)}m {(throughputTelemetry.totalDurationSec % 60).toFixed(0)}s)
                                         </span>
                                     )}
                                 </div>
-                                <span className="vram-hero-time-label">
-                                    Total Durasi per Gambar ({samplingSteps} steps &bull; {throughputTelemetry.secondsPerStep.toFixed(2)}s/step)
+                                <span className="vram-strip-caption">
+                                    {samplingSteps} steps &bull; {throughputTelemetry.secondsPerStep.toFixed(2)}s/step
                                 </span>
                             </div>
-                            <div className="vram-hero-speed-box">
-                                <span className="vram-hero-speed-val">
-                                    {throughputTelemetry.itPerSec >= 1.0
-                                        ? `${throughputTelemetry.itPerSec.toFixed(2)} it/s`
-                                        : `${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`}
-                                </span>
-                                <span className="vram-hero-speed-label">
-                                    {throughputTelemetry.itPerSec >= 1.0
-                                        ? `~${throughputTelemetry.secondsPerStep.toFixed(2)}s per step`
-                                        : `~${throughputTelemetry.itPerSec.toFixed(2)} it/s`} ({activeGpu.name.split("/")[0].trim()})
+
+                            <div className="vram-strip-divider" />
+
+                            <div className="vram-strip-item">
+                                <span className="vram-strip-label">Kecepatan Denoising</span>
+                                <div className="vram-strip-val-wrap">
+                                    <span className="vram-strip-num" style={{ color: "#60a5fa" }}>
+                                        {throughputTelemetry.itPerSec >= 1.0
+                                            ? `${throughputTelemetry.itPerSec.toFixed(2)} it/s`
+                                            : `${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`}
+                                    </span>
+                                    <span className="vram-strip-sub" style={{ color: "#a1a1aa" }}>
+                                        ({throughputTelemetry.itPerSec >= 1.0
+                                            ? `~${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`
+                                            : `~${throughputTelemetry.itPerSec.toFixed(2)} it/s`})
+                                    </span>
+                                </div>
+                                <span className="vram-strip-caption">
+                                    {platformTab === "nvidia" && activeGpu.name.split("/")[0].trim()}
+                                    {platformTab === "amd" && activeAmdGpu.name.split("(")[0].trim()}
+                                    {platformTab === "apple" && activeMac.name.split("(")[0].trim()}
                                 </span>
                             </div>
                         </div>
 
-                        {/* Timeline Latency Breakdown Stack */}
-                        <div className="vram-timeline-wrap">
-                            <div className="vram-timeline-track">
-                                <div
-                                    className="vram-timeline-segment te"
-                                    style={{ width: `${(throughputTelemetry.textEncodeSec / throughputTelemetry.totalDurationSec) * 100}%` }}
-                                    title={`Text Encoding: ${throughputTelemetry.textEncodeSec.toFixed(1)}s`}
-                                />
-                                <div
-                                    className="vram-timeline-segment denoise"
-                                    style={{ width: `${(throughputTelemetry.denoiseSec / throughputTelemetry.totalDurationSec) * 100}%` }}
-                                    title={`Denoising: ${throughputTelemetry.denoiseSec.toFixed(1)}s`}
-                                />
-                                {enableHiresFix && (
-                                    <div
-                                        className="vram-timeline-segment hires"
-                                        style={{ width: `${(throughputTelemetry.hiresSec / throughputTelemetry.totalDurationSec) * 100}%` }}
-                                        title={`Hi-Res Pass 2: ${throughputTelemetry.hiresSec.toFixed(1)}s`}
-                                    />
-                                )}
-                                {enableFaceDetailer && (
-                                    <div
-                                        className="vram-timeline-segment post"
-                                        style={{ width: `${(throughputTelemetry.detailerSec / throughputTelemetry.totalDurationSec) * 100}%` }}
-                                        title={`ADetailer Inpainting: ${throughputTelemetry.detailerSec.toFixed(1)}s`}
-                                    />
-                                )}
-                                <div
-                                    className="vram-timeline-segment vae"
-                                    style={{ width: `${(throughputTelemetry.vaeDecodeSec / throughputTelemetry.totalDurationSec) * 100}%` }}
-                                    title={`VAE Decode: ${throughputTelemetry.vaeDecodeSec.toFixed(1)}s`}
-                                />
-                            </div>
-
-                            <div className="vram-timeline-legend">
-                                <div className="vram-timeline-legend-item">
-                                    <div className="vram-timeline-dot te" />
-                                    <span>CLIP/T5: <strong>{throughputTelemetry.textEncodeSec.toFixed(1)}s</strong></span>
-                                </div>
-                                <div className="vram-timeline-legend-item">
-                                    <div className="vram-timeline-dot denoise" />
-                                    <span>Sampling: <strong>{throughputTelemetry.denoiseSec.toFixed(1)}s</strong></span>
-                                </div>
-                                {enableHiresFix && (
-                                    <div className="vram-timeline-legend-item">
-                                        <div className="vram-timeline-dot hires" />
-                                        <span>Hi-Res: <strong>{throughputTelemetry.hiresSec.toFixed(1)}s</strong></span>
-                                    </div>
-                                )}
-                                {enableFaceDetailer && (
-                                    <div className="vram-timeline-legend-item">
-                                        <div className="vram-timeline-dot post" />
-                                        <span>Face: <strong>{throughputTelemetry.detailerSec.toFixed(1)}s</strong></span>
-                                    </div>
-                                )}
-                                <div className="vram-timeline-legend-item">
-                                    <div className="vram-timeline-dot vae" />
-                                    <span>VAE: <strong>{throughputTelemetry.vaeDecodeSec.toFixed(1)}s</strong></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Note & Alert */}
+                        {/* Status Note */}
                         <div className={`vram-throughput-alert-box ${throughputTelemetry.speedClass}`}>
-                            {throughputTelemetry.speedClass === "speed-critical" ? (
-                                <>
-                                    🛑 <strong>Peringatan Paging Disk-Thrashing:</strong> {throughputTelemetry.speedNote}
-                                </>
-                            ) : throughputTelemetry.speedClass === "speed-slow" ? (
-                                <>
-                                    🐢 <strong>Overhead CPU Offload:</strong> {throughputTelemetry.speedNote}
-                                </>
-                            ) : (
-                                <>
-                                    🚀 <strong>Efisiensi Tinggi:</strong> {throughputTelemetry.speedNote}
-                                </>
-                            )}
+                            <strong>Status Kecepatan ({throughputTelemetry.speedBadge}):</strong> {throughputTelemetry.speedNote}
                         </div>
                     </div>
 
-                    {/* ESTIMATOR KONSUMSI DAYA LISTRIK (TDP, KWH & BIAYA TOKEN PLN) */}
+                    {/* KALKULATOR DAYA SISTEM & TOKEN PLN */}
                     <div className="vram-power-card">
                         <div className="vram-power-header">
                             <div className="vram-power-title-wrap">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
                                 </svg>
-                                <div>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                        <span>Konsumsi Daya Sistem &amp; Biaya Listrik Token PLN</span>
-                                        <span className={`vram-power-badge ${powerTelemetry.effClass}`}>
-                                            {powerTelemetry.effBadge}
-                                        </span>
-                                    </div>
-                                    <span style={{ fontSize: "11px", color: "#a1a1aa", fontWeight: 400 }}>
-                                        Kalkulasi menyeluruh: GPU, CPU Ryzen, Layar 16", Monitor Eksternal, Kipas Turbo &amp; Rugi Daya Adaptor Stopkontak
-                                    </span>
+                                <span>Kalkulator Daya Sistem &amp; Token Listrik PLN</span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span className={`vram-power-badge ${powerTelemetry.effClass}`}>
+                                    {powerTelemetry.effBadge}
+                                </span>
+                                <div className="vram-power-tab-bar">
+                                    <button
+                                        type="button"
+                                        className={`vram-power-tab-btn ${billingType === "token" ? "active" : ""}`}
+                                        onClick={() => setBillingType("token")}
+                                    >
+                                        Token Listrik
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`vram-power-tab-btn ${billingType === "pascabayar" ? "active" : ""}`}
+                                        onClick={() => setBillingType("pascabayar")}
+                                    >
+                                        Pascabayar
+                                    </button>
                                 </div>
                             </div>
-
-                            {/* Billing Switcher (Token vs Pascabayar) */}
-                            <div className="vram-power-tab-bar">
-                                <button
-                                    type="button"
-                                    className={`vram-power-tab-btn ${billingType === "token" ? "active" : ""}`}
-                                    onClick={() => setBillingType("token")}
-                                >
-                                    🪙 Token Listrik (Prabayar)
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-power-tab-btn ${billingType === "pascabayar" ? "active" : ""}`}
-                                    onClick={() => setBillingType("pascabayar")}
-                                >
-                                    📋 Pascabayar Bulanan
-                                </button>
-                            </div>
                         </div>
 
-                        {/* Quick Profiles for ASUS TUF A16 & Gaming Laptops */}
-                        <div className="vram-tuf-profile-box">
-                            <div className="vram-tuf-profile-label">
-                                <span>⚡ Profil Cepat ASUS TUF Gaming A16 / Gaming Laptop:</span>
-                                <span className="vram-tuf-badge">Armoury Crate / G-Helper Presets</span>
+                        {/* 3-Column Solid Stat Cards */}
+                        <div className="vram-power-metrics-grid">
+                            <div className="vram-metric-solid-box">
+                                <span className="vram-metric-solid-label">Biaya {batchImageCount} Gambar</span>
+                                <span className="vram-metric-solid-val" style={{ color: "#34d399" }}>
+                                    Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}
+                                </span>
+                                <span className="vram-metric-solid-sub">
+                                    @ Rp {powerTelemetry.costPerImageIdr >= 10 ? powerTelemetry.costPerImageIdr.toFixed(1) : powerTelemetry.costPerImageIdr.toFixed(2)} / img
+                                </span>
                             </div>
-                            <div className="vram-tuf-btn-group">
-                                <button
-                                    type="button"
-                                    className={`vram-tuf-btn ${tufProfile === "turbo" ? "active" : ""}`}
-                                    onClick={() => handleApplyTufProfile("turbo")}
-                                    title="TUF Turbo: GPU Boost 140W Max, CPU 50W, Kipas 100% 5000+ RPM, Layar 100%"
-                                >
-                                    🚀 Mode Turbo (Max 140W)
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-tuf-btn ${tufProfile === "perf" ? "active" : ""}`}
-                                    onClick={() => handleApplyTufProfile("perf")}
-                                    title="TUF Performance: GPU ~105W, CPU 35W, Kipas Balanced, Layar 50%"
-                                >
-                                    ⚖️ Mode Performance (Std)
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-tuf-btn ${tufProfile === "silent" ? "active" : ""}`}
-                                    onClick={() => handleApplyTufProfile("silent")}
-                                    title="TUF Silent/Eco: GPU ~65W, CPU 22W, Kipas Silent, Layar 50%"
-                                >
-                                    🍃 Mode Silent / Eco
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-tuf-btn ${tufProfile === "overnight" ? "active" : ""}`}
-                                    onClick={() => handleApplyTufProfile("overnight")}
-                                    title="Batch Render Semalaman: GPU Optimal, CPU 30W, Layar Laptop MATI (0W)"
-                                >
-                                    🌙 Render Semalaman (Layar Mati)
-                                </button>
-                            </div>
-                        </div>
 
-                        {/* Hero Stats */}
-                        <div className="vram-power-hero">
                             {billingType === "token" ? (
                                 <>
-                                    <div className="vram-power-cost-box">
-                                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
-                                            <span className="vram-power-cost-val">
-                                                Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}
-                                            </span>
-                                            <span style={{ fontSize: "12px", color: "#6ee7b7", fontWeight: 700 }}>
-                                                ({powerTelemetry.tokenPercentUsed.toFixed(2)}% dari Token Rp {tokenNominal.toLocaleString("id-ID")})
-                                            </span>
-                                        </div>
-                                        <span className="vram-power-cost-label">
-                                            Pemotongan Token untuk {batchImageCount} Gambar (@ Rp {powerTelemetry.costPerImageIdr >= 10 ? powerTelemetry.costPerImageIdr.toFixed(1) : powerTelemetry.costPerImageIdr.toFixed(2)}/img)
+                                    <div className="vram-metric-solid-box">
+                                        <span className="vram-metric-solid-label">Kapasitas Token Rp {tokenNominal.toLocaleString("id-ID")}</span>
+                                        <span className="vram-metric-solid-val" style={{ color: "#60a5fa" }}>
+                                            ~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} Gambar
+                                        </span>
+                                        <span className="vram-metric-solid-sub">
+                                            Kuota {powerTelemetry.totalTokenKwh.toFixed(1)} kWh PLN
                                         </span>
                                     </div>
 
-                                    <div className="vram-token-capacity-box">
-                                        <span className="vram-token-capacity-title">Kapasitas 1 Token Rp {tokenNominal.toLocaleString("id-ID")}:</span>
-                                        <span className="vram-token-capacity-val">
-                                            ~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} Gambar
+                                    <div className="vram-metric-solid-box">
+                                        <span className="vram-metric-solid-label">Sisa Kuota Token</span>
+                                        <span className="vram-metric-solid-val" style={{ color: "#f4f4f5" }}>
+                                            Rp {Math.round(powerTelemetry.tokenRemainingRp).toLocaleString("id-ID")}
                                         </span>
-                                        <span className="vram-token-capacity-sub">
-                                            Total {powerTelemetry.totalTokenKwh.toFixed(1)} kWh kuota token PLN
+                                        <span className="vram-metric-solid-sub">
+                                            Sisa ~{powerTelemetry.tokenRemainingKwh.toFixed(2)} kWh ({powerTelemetry.tokenPercentUsed.toFixed(1)}% terpakai)
                                         </span>
                                     </div>
                                 </>
                             ) : (
                                 <>
-                                    <div className="vram-power-cost-box">
-                                        <span className="vram-power-cost-val">
-                                            Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}
-                                        </span>
-                                        <span className="vram-power-cost-label">
-                                            Estimasi Biaya untuk {batchImageCount} Gambar (@ Rp {powerTelemetry.costPerImageIdr >= 10 ? powerTelemetry.costPerImageIdr.toFixed(1) : powerTelemetry.costPerImageIdr.toFixed(2)}/img)
-                                        </span>
-                                    </div>
-                                    <div className="vram-power-metric-box">
-                                        <span className="vram-power-metric-val">
+                                    <div className="vram-metric-solid-box">
+                                        <span className="vram-metric-solid-label">Total Energi PC</span>
+                                        <span className="vram-metric-solid-val" style={{ color: "#fbbf24" }}>
                                             {powerTelemetry.batchTotalKwh < 0.01 ? (powerTelemetry.batchTotalKwh * 1000).toFixed(1) + " Wh" : powerTelemetry.batchTotalKwh.toFixed(3) + " kWh"}
                                         </span>
-                                        <span className="vram-power-metric-label">
-                                            Total Energi PC (~{powerTelemetry.totalPcWatts}W Wall Draw &bull; ~{(powerTelemetry.batchTotalHours * 60).toFixed(0)} menit)
+                                        <span className="vram-metric-solid-sub">
+                                            Durasi ~{(powerTelemetry.batchTotalHours * 60).toFixed(0)} menit total
+                                        </span>
+                                    </div>
+
+                                    <div className="vram-metric-solid-box">
+                                        <span className="vram-metric-solid-label">Stopkontak Wall Draw</span>
+                                        <span className="vram-metric-solid-val" style={{ color: "#f4f4f5" }}>
+                                            ~{powerTelemetry.totalPcWatts}W
+                                        </span>
+                                        <span className="vram-metric-solid-sub">
+                                            DC {powerTelemetry.totalDcWatts}W + Adaptor {powerTelemetry.chargerLossWatts}W
                                         </span>
                                     </div>
                                 </>
                             )}
                         </div>
 
-                        {/* Token Consumption Meter Bar (when Token mode active) */}
-                        {billingType === "token" && (
-                            <div className="vram-token-progress-wrap">
-                                <div className="vram-token-progress-top">
-                                    <span>Porsi Pemakaian Token Listrik:</span>
-                                    <span style={{ color: "#10b981", fontWeight: 700 }}>
-                                        Sisa Token: Rp {Math.round(powerTelemetry.tokenRemainingRp).toLocaleString("id-ID")} (~{powerTelemetry.tokenRemainingKwh.toFixed(2)} kWh)
+                        {/* Hardware Power Configuration Table */}
+                        <div className="vram-power-compact-table">
+                            <div className="vram-table-row">
+                                <div className="vram-table-label-col">
+                                    <span className="vram-table-row-title">
+                                        {platformTab === "apple" ? "Apple Silicon SoC" : "Konsumsi Daya Akselerator"}
+                                    </span>
+                                    <span className="vram-table-val" style={{ color: "#60a5fa" }}>
+                                        {powerTelemetry.hardwareWatts}W
                                     </span>
                                 </div>
-                                <div className="vram-token-bar-track">
-                                    <div
-                                        className="vram-token-bar-fill"
-                                        style={{ width: `${Math.min(100, Math.max(0.5, powerTelemetry.tokenPercentUsed))}%` }}
-                                        title={`Terpakai: Rp ${Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (${powerTelemetry.tokenPercentUsed.toFixed(2)}%)`}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
-                        {/* FULL SYSTEM HARDWARE BREAKDOWN CONTROLS (GPU, CPU, Screen, Ext Monitor, Fans, Charger) */}
-                        <div className="vram-hardware-power-grid">
-                            {/* 1. GPU dGPU Power */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>GPU (TGP / dGPU):</span>
-                                    <span style={{ color: powerTelemetry.isTgpThrottled ? "#f59e0b" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
-                                        {powerTelemetry.gpuWatts}W
+                                <div className="vram-table-ctrl-col">
+                                    <span style={{ fontSize: "11px", color: "#a1a1aa" }}>
+                                        {platformTab === "apple"
+                                            ? `Daya efisiensi tinggi chip ${activeMac.name.split("(")[0].trim()}`
+                                            : platformTab === "amd"
+                                            ? `TBP default ${activeAmdGpu.name.split("(")[0].trim()}`
+                                            : `TDP aktif ${activeGpu.name.split("(")[0].trim()}`}
                                     </span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[55, 80, 105, 120, 140].map((w) => (
-                                        <button
-                                            key={w}
-                                            type="button"
-                                            className={`vram-power-chip ${laptopTgpWatts === w ? "active" : ""}`}
-                                            onClick={() => {
-                                                setLaptopTgpWatts(w);
-                                                setTufProfile("custom");
-                                            }}
-                                        >
-                                            {w === 140 ? "140W (Max TUF)" : w === 105 ? "105W (Std)" : `${w}W`}
-                                        </button>
-                                    ))}
-                                </div>
-                                {activeGpu.isLaptop && (
-                                    <input
-                                        type="range"
-                                        min={activeGpu.tgpMinWatts || 35}
-                                        max={activeGpu.tgpMaxWatts || 140}
-                                        step={5}
-                                        className="vram-range-input"
-                                        value={laptopTgpWatts}
-                                        onChange={(e) => {
-                                            setLaptopTgpWatts(parseInt(e.target.value) || 75);
-                                            setTufProfile("custom");
-                                        }}
-                                        style={{ marginTop: "4px" }}
-                                    />
-                                )}
-                            </div>
-
-                            {/* 2. CPU AMD Ryzen / Intel */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>CPU (AMD Ryzen / Intel):</span>
-                                    <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
-                                        {powerTelemetry.activeCpuWatts}W
-                                    </span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[
-                                        { label: "Eco (20W)", val: 20 },
-                                        { label: "Standard (35W)", val: 35 },
-                                        { label: "Turbo (50W)", val: 50 },
-                                    ].map((c) => (
-                                        <button
-                                            key={c.val}
-                                            type="button"
-                                            className={`vram-power-chip ${cpuWatts === c.val ? "active" : ""}`}
-                                            onClick={() => {
-                                                setCpuWatts(c.val);
-                                                setTufProfile("custom");
-                                            }}
-                                        >
-                                            {c.label}
-                                        </button>
-                                    ))}
-                                </div>
-                                {teKey === "none" && (
-                                    <span style={{ fontSize: "10px", color: "#f59e0b" }}>
-                                        +15W beban CPU offloading Text Encoder
-                                    </span>
-                                )}
-                            </div>
-
-                            {/* 3. Layar Laptop (16" IPS TUF A16) */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Layar Laptop (16" IPS 165Hz):</span>
-                                    <span style={{ color: screenMode === "off" ? "#10b981" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
-                                        {powerTelemetry.screenWatts}W
-                                    </span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[
-                                        { label: "Layar Mati (0W)", val: "off" as const },
-                                        { label: "50% Brightness (9W)", val: "med" as const },
-                                        { label: "100% Brightness (15W)", val: "high" as const },
-                                    ].map((s) => (
-                                        <button
-                                            key={s.val}
-                                            type="button"
-                                            className={`vram-power-chip ${screenMode === s.val ? "active" : ""}`}
-                                            onClick={() => {
-                                                setScreenMode(s.val);
-                                                setTufProfile("custom");
-                                            }}
-                                        >
-                                            {s.label}
-                                        </button>
-                                    ))}
                                 </div>
                             </div>
 
-                            {/* 4. Monitor Eksternal Tambahan */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Monitor Eksternal Tambahan:</span>
-                                    <span style={{ color: externalMonitorMode === "none" ? "#a1a1aa" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
-                                        {powerTelemetry.extMonitorWatts}W
-                                    </span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[
-                                        { label: "Tidak Ada (0W)", val: "none" as const },
-                                        { label: "24-27\" FHD/2K (25W)", val: "fhd" as const },
-                                        { label: "27-32\" 4K (42W)", val: "4k" as const },
-                                    ].map((m) => (
-                                        <button
-                                            key={m.val}
-                                            type="button"
-                                            className={`vram-power-chip ${externalMonitorMode === m.val ? "active" : ""}`}
-                                            onClick={() => setExternalMonitorMode(m.val)}
-                                        >
-                                            {m.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 5. Kipas Dual Arc-Flow & Komponen Sistem */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Kipas Turbo, DDR5 &amp; SSD NVMe:</span>
-                                    <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
-                                        {powerTelemetry.systemInternalWatts}W
-                                    </span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[
-                                        { label: "Silent (8W)", val: "silent" as const },
-                                        { label: "Balanced (14W)", val: "balanced" as const },
-                                        { label: "Turbo Fan (20W)", val: "turbo" as const },
-                                    ].map((f) => (
-                                        <button
-                                            key={f.val}
-                                            type="button"
-                                            className={`vram-power-chip ${coolingFanMode === f.val ? "active" : ""}`}
-                                            onClick={() => {
-                                                setCoolingFanMode(f.val);
-                                                setTufProfile("custom");
-                                            }}
-                                        >
-                                            {f.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* 6. Efisiensi Adaptor Charger AC/DC Stopkontak PLN */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Rugi Daya Adaptor 240W:</span>
-                                    <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "monospace" }}>
-                                        +{powerTelemetry.chargerLossWatts}W AC Loss
-                                    </span>
-                                </div>
-                                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#d4d4d8", cursor: "pointer", marginTop: "2px" }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={includeChargerLoss}
-                                        onChange={(e) => setIncludeChargerLoss(e.target.checked)}
-                                        style={{ accentColor: "#10b981", width: "14px", height: "14px" }}
-                                    />
-                                    <span>Hitung Efisiensi Charger AC/DC (~89% Wall Draw Stopkontak PLN)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        {/* Interactive Token & Batch Controls Grid */}
-                        <div className="vram-power-controls-grid">
-                            {/* Pilihan Nominal Token PLN (Saat mode token aktif) */}
                             {billingType === "token" && (
-                                <div className="vram-power-ctrl-box">
-                                    <div className="vram-power-ctrl-label">
-                                        <span>Beli Nominal Token PLN:</span>
-                                        <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "monospace" }}>Rp {tokenNominal.toLocaleString("id-ID")}</span>
+                                <div className="vram-table-row">
+                                    <div className="vram-table-label-col">
+                                        <span className="vram-table-row-title">Nominal Token PLN</span>
+                                        <span className="vram-table-val" style={{ color: "#34d399" }}>
+                                            Rp {tokenNominal.toLocaleString("id-ID")}
+                                        </span>
                                     </div>
+                                    <div className="vram-table-ctrl-col">
+                                        <div className="vram-power-chips">
+                                            {[20000, 50000, 100000, 200000, 500000].map((t) => (
+                                                <button
+                                                    key={t}
+                                                    type="button"
+                                                    className={`vram-power-chip ${tokenNominal === t ? "active" : ""}`}
+                                                    onClick={() => setTokenNominal(t)}
+                                                >
+                                                    Rp {(t / 1000).toFixed(0)}k
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="vram-table-row">
+                                <div className="vram-table-label-col">
+                                    <span className="vram-table-row-title">Tarif Listrik PLN</span>
+                                    <span className="vram-table-val" style={{ color: "#34d399" }}>
+                                        Rp {plnTarifPerKwh}/kWh
+                                    </span>
+                                </div>
+                                <div className="vram-table-ctrl-col">
                                     <div className="vram-power-chips">
-                                        {[20000, 50000, 100000, 200000, 500000].map((t) => (
+                                        {[
+                                            { label: "1.300–2.200 VA (Rp 1.444)", val: 1444 },
+                                            { label: "3.500+ VA (Rp 1.700)", val: 1700 },
+                                            { label: "900 VA (Rp 1.352)", val: 1352 },
+                                        ].map((t) => (
                                             <button
-                                                key={t}
+                                                key={t.val}
                                                 type="button"
-                                                className={`vram-power-chip ${tokenNominal === t ? "active" : ""}`}
-                                                onClick={() => setTokenNominal(t)}
+                                                className={`vram-power-chip ${plnTarifPerKwh === t.val ? "active" : ""}`}
+                                                onClick={() => setPlnTarifPerKwh(t.val)}
                                             >
-                                                Rp {(t / 1000).toFixed(0)}k
+                                                {t.label}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
-                            )}
-
-                            {/* Tarif Listrik PLN */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Tarif Listrik PLN (per kWh):</span>
-                                    <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "monospace" }}>Rp {plnTarifPerKwh}</span>
-                                </div>
-                                <div className="vram-power-chips">
-                                    {[
-                                        { label: "1.300–2.200 VA (Rp 1.444)", val: 1444 },
-                                        { label: "3.500+ VA (Rp 1.700)", val: 1700 },
-                                        { label: "900 VA (Rp 1.352)", val: 1352 },
-                                    ].map((t) => (
-                                        <button
-                                            key={t.val}
-                                            type="button"
-                                            className={`vram-power-chip ${plnTarifPerKwh === t.val ? "active" : ""}`}
-                                            onClick={() => setPlnTarifPerKwh(t.val)}
-                                        >
-                                            {t.label}
-                                        </button>
-                                    ))}
-                                </div>
                             </div>
 
-                            {/* Target Batch Count */}
-                            <div className="vram-power-ctrl-box">
-                                <div className="vram-power-ctrl-label">
-                                    <span>Target Jumlah Generate:</span>
-                                    <span style={{ color: "#3b82f6", fontWeight: 700, fontFamily: "monospace" }}>{batchImageCount} Gambar</span>
+                            <div className="vram-table-row">
+                                <div className="vram-table-label-col">
+                                    <span className="vram-table-row-title">Target Jumlah Batch</span>
+                                    <span className="vram-table-val" style={{ color: "#60a5fa" }}>
+                                        {batchImageCount} Gambar
+                                    </span>
                                 </div>
-                                <div className="vram-power-chips">
-                                    {[1, 10, 50, 100, 500, 1000].map((count) => (
-                                        <button
-                                            key={count}
-                                            type="button"
-                                            className={`vram-power-chip ${batchImageCount === count ? "active" : ""}`}
-                                            onClick={() => setBatchImageCount(count)}
-                                        >
-                                            {count === 1 ? "1 Img" : count === 100 ? "100 (Std)" : count === 500 ? "500 (Batch)" : `${count}`}
-                                        </button>
-                                    ))}
+                                <div className="vram-table-ctrl-col">
+                                    <div className="vram-power-chips">
+                                        {[1, 10, 50, 100, 500, 1000].map((count) => (
+                                            <button
+                                                key={count}
+                                                type="button"
+                                                className={`vram-power-chip ${batchImageCount === count ? "active" : ""}`}
+                                                onClick={() => setBatchImageCount(count)}
+                                            >
+                                                {count === 1 ? "1 Img" : count === 100 ? "100 Std" : count === 500 ? "500 Batch" : `${count}`}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Laptop TGP Throttling Alert */}
-                        {powerTelemetry.isTgpThrottled && (
-                            <div className="vram-tgp-alert">
-                                ⚠️ <strong>Peringatan Limit TGP Laptop:</strong> Daya GPU di-set pada {powerTelemetry.gpuWatts}W (jauh di bawah batas full-power {activeGpu.tgpMaxWatts}W). Clock speed Tensor Core terpotong hingga ~{powerTelemetry.tgpThrottlePercent}%, waktu generate melambat. Disarankan pilih mode <strong>Performance / Turbo</strong> di Armoury Crate atau G-Helper.
-                            </div>
-                        )}
-
-                        {/* Power Breakdown Flow Table */}
-                        <div className="vram-power-breakdown-row">
-                            <span>GPU: <strong>{powerTelemetry.gpuWatts}W</strong></span>
-                            <span>CPU: <strong>{powerTelemetry.activeCpuWatts}W</strong></span>
-                            <span>Layar 16": <strong>{powerTelemetry.screenWatts}W</strong></span>
-                            {powerTelemetry.extMonitorWatts > 0 && <span>Monitor Ext: <strong>{powerTelemetry.extMonitorWatts}W</strong></span>}
-                            <span>Kipas/Sistem: <strong>{powerTelemetry.systemInternalWatts}W</strong></span>
-                            <span>Total DC: <strong>{powerTelemetry.totalDcWatts}W</strong></span>
-                            <span style={{ color: "#10b981", fontWeight: 700 }}>
-                                Stopkontak PLN: <strong>~{powerTelemetry.totalPcWatts}W Wall Draw</strong>
-                            </span>
-                        </div>
-
-                        {/* Key Insight Box tailored for Token & ASUS TUF A16 */}
+                        {/* Summary Insight Box */}
                         <div className="vram-power-insight-box">
-                            💡 <strong>Insight Token Listrik &amp; ASUS TUF A16:</strong> Total daya riil yang disedot laptop dari stopkontak Token PLN adalah <strong>~{powerTelemetry.totalPcWatts}W</strong> (Komponen DC {powerTelemetry.totalDcWatts}W + Rugi Konversi Adaptor {powerTelemetry.chargerLossWatts}W).
+                            <strong>Ringkasan Daya Stopkontak:</strong> Total penarikan daya riil sistem adalah <strong>~{powerTelemetry.totalPcWatts}W</strong>.
                             {billingType === "token" ? (
                                 <>
-                                    {" "}Untuk generate <strong>{batchImageCount} gambar</strong>, token PLN Anda hanya berkurang <strong>{powerTelemetry.batchTotalKwh.toFixed(3)} kWh</strong> atau setara <strong>Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}</strong> (hanya <strong>{powerTelemetry.tokenPercentUsed.toFixed(2)}%</strong> dari token Rp {tokenNominal.toLocaleString("id-ID")}).
-                                    {" "}Dengan membeli 1 Token Rp {tokenNominal.toLocaleString("id-ID")}, laptop Anda dapat menghasilkan hingga <strong>~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} gambar</strong>!
+                                    {" "}Untuk generate <strong>{batchImageCount} gambar</strong>, token PLN berkurang <strong>{powerTelemetry.batchTotalKwh.toFixed(3)} kWh</strong> (Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}), setara <strong>{powerTelemetry.tokenPercentUsed.toFixed(2)}%</strong> dari token Rp {tokenNominal.toLocaleString("id-ID")}. Satu token Rp {tokenNominal.toLocaleString("id-ID")} memadai untuk <strong>~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} gambar</strong>.
                                 </>
                             ) : (
                                 <>
-                                    {" "}Generate {batchImageCount} gambar {activeModel.name} memakan total {powerTelemetry.batchTotalKwh.toFixed(3)} kWh dengan perkiraan biaya listrik Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (~Rp {powerTelemetry.costPerImageIdr.toFixed(2)}/gambar).
+                                    {" "}Generate {batchImageCount} gambar {activeModel.name} memerlukan {powerTelemetry.batchTotalKwh.toFixed(3)} kWh dengan perkiraan biaya listrik Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (~Rp {powerTelemetry.costPerImageIdr.toFixed(2)}/gambar).
                                 </>
                             )}
-                            {screenMode === "off" && " Mematikan layar laptop saat render semalaman berhasil menghemat daya ~15W terus-menerus!"}
                         </div>
-                    </div>
-
-                    {/* DUAL METER 2: SYSTEM RAM & CPU OFFLOAD METER */}
-                    <div className="vram-ram-card">
-                        <div className="vram-ram-header">
-                            <div className="vram-ram-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-                                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-                                    <line x1="6" y1="6" x2="6.01" y2="6" />
-                                    <line x1="6" y1="18" x2="6.01" y2="18" />
-                                </svg>
-                                <span>Kebutuhan RAM Sistem (DDR4/DDR5)</span>
-                            </div>
-                            <span className={`vram-ram-badge ${ramTelemetry.ramStatus}`}>
-                                {ramTelemetry.ramBadge}
-                            </span>
-                        </div>
-
-                        {/* Progress Bar RAM */}
-                        <div className="vram-ram-track">
-                            <div
-                                className={`vram-ram-fill ${ramTelemetry.ramStatus}`}
-                                style={{ width: `${Math.min(100, Math.round(ramTelemetry.ramRatio * 100))}%` }}
-                            />
-                        </div>
-
-                        <div className="vram-ram-stats-row">
-                            <span>
-                                Terpakai: <strong>~{ramTelemetry.totalRamNeededGb.toFixed(1)} GB</strong> ({Math.round(ramTelemetry.ramRatio * 100)}%)
-                            </span>
-                            <span>
-                                Kapasitas: <strong>{systemRamGb} GB RAM</strong>
-                            </span>
-                        </div>
-
-                        {/* RAM Selector Chips */}
-                        <div className="vram-ram-selector-row">
-                            <span style={{ fontSize: "11px", color: "#71717a" }}>Pilih RAM PC Anda:</span>
-                            {[16, 32, 64, 128].map((gb) => (
-                                <button
-                                    key={gb}
-                                    type="button"
-                                    className={`vram-ram-chip ${systemRamGb === gb ? "active" : ""}`}
-                                    onClick={() => setSystemRamGb(gb)}
-                                >
-                                    {gb} GB
-                                </button>
-                            ))}
-                        </div>
-
-                        <div className={`vram-ram-alert-msg ${ramTelemetry.ramStatus}`}>
-                            {ramTelemetry.ramMessage}
-                        </div>
-                    </div>
-
-                    {/* MULTI-PASS WORKFLOW COMPARISON TELEMETRY */}
-                    <div className="vram-section-card" style={{ padding: "16px 18px" }}>
-                        <div className="vram-section-header" style={{ paddingBottom: "10px" }}>
-                            <div className="vram-section-title-wrap">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                    <path d="M3 9h18" />
-                                    <path d="M9 21V9" />
-                                </svg>
-                                <span>Multi-Pass Workflow Telemetry</span>
-                            </div>
-                            <span className="vram-section-badge">
-                                {multiPassTelemetry.isPass2Risk ? "⚠️ Resiko OOM Pass 2" : "3-Pass Aman"}
-                            </span>
-                        </div>
-
-                        <div className="vram-multipass-grid">
-                            {/* Pass 1 Box */}
-                            <div className="vram-pass-box pass-safe">
-                                <div className="vram-pass-top">
-                                    <span className="vram-pass-badge p1">Pass 1: Base</span>
-                                    <span className="vram-pass-res">{multiPassTelemetry.pass1W}×{multiPassTelemetry.pass1H}</span>
-                                </div>
-                                <div className="vram-pass-vram-num">
-                                    ~{multiPassTelemetry.pass1Vram.toFixed(1)} GB
-                                </div>
-                                <span className="vram-pass-note">
-                                    Generasi awal native model.
-                                </span>
-                            </div>
-
-                            {/* Pass 2 Box */}
-                            <div className={`vram-pass-box ${multiPassTelemetry.isPass2Risk ? "active-risk" : "pass-safe"}`}>
-                                <div className="vram-pass-top">
-                                    <span className="vram-pass-badge p2">Pass 2: Hi-Res</span>
-                                    <span className="vram-pass-res">
-                                        {enableHiresFix ? `${multiPassTelemetry.pass2W}×${multiPassTelemetry.pass2H}` : "Nonaktif"}
-                                    </span>
-                                </div>
-                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPass2Risk ? "#f87171" : "#f4f4f5" }}>
-                                    ~{multiPassTelemetry.pass2Vram.toFixed(1)} GB
-                                </div>
-                                <span className="vram-pass-note">
-                                    {multiPassTelemetry.pass2Note}
-                                </span>
-                            </div>
-
-                            {/* Post-Process Box */}
-                            <div className={`vram-pass-box ${multiPassTelemetry.isPostProcessRisk ? "active-risk" : "pass-safe"}`}>
-                                <div className="vram-pass-top">
-                                    <span className="vram-pass-badge p3">Post-Process</span>
-                                    <span className="vram-pass-res">
-                                        {enableFaceDetailer ? "ADetailer" : enableRefiner ? "Refiner" : "Clean"}
-                                    </span>
-                                </div>
-                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPostProcessRisk ? "#f87171" : "#f4f4f5" }}>
-                                    ~{multiPassTelemetry.postProcessVram.toFixed(1)} GB
-                                </div>
-                                <span className="vram-pass-note">
-                                    {enableFaceDetailer ? "YOLOv8 Face Inpainting aktif." : "Final output render."}
-                                </span>
-                            </div>
-                        </div>
-
-                        {multiPassTelemetry.isPass2Risk && (
-                            <div style={{ marginTop: "10px", padding: "8px 12px", background: "#18181b", border: "1px solid #ef4444", borderRadius: "6px", fontSize: "12px", color: "#fca5a5", lineHeight: "1.4" }}>
-                                ⚠️ <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat di GPU, namun Pass 2 (Hi-Res Fix) melebihi VRAM {effectiveAiVram.toFixed(1)} GB Efektif GPU Anda{desktopDeductionGb > 0 ? ` (${targetGpuVram} GB fisik - ${desktopDeductionGb} GB desktop)` : ""}! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong> untuk mencegah crash OOM.
-                            </div>
-                        )}
-                    </div>
-
-                    {/* TARGET GPU SELECTOR */}
-                    <div className="vram-gpu-box">
-                        <div className="vram-gpu-profile-sync-row">
-                            <span style={{ color: "#a1a1aa" }}>
-                                Profil Hardware: <strong style={{ color: "#f4f4f5" }}>{activeProfile.name}</strong>
-                            </span>
-                            <button
-                                type="button"
-                                onClick={() => setIsProfileModalOpen(true)}
-                                style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    color: "#60a5fa",
-                                    fontSize: "11px",
-                                    fontWeight: 600,
-                                    cursor: "pointer",
-                                    padding: "0",
-                                }}
-                            >
-                                Ganti / Edit Profil ⚙
-                            </button>
-                        </div>
-
-                        <div className="vram-gpu-title-row">
-                            <span>Komparasi GPU Anda:</span>
-                            <span style={{ color: "#3b82f6" }}>
-                                {targetGpuVram} GB Fisik {desktopDeductionGb > 0 ? `(~${effectiveAiVram.toFixed(1)} GB Efektif AI)` : ""}
-                            </span>
-                        </div>
-
-                        <select
-                            className="vram-gpu-select"
-                            value={gpuPresetId}
-                            onChange={(e) => setGpuPresetId(e.target.value)}
-                        >
-                            {Object.entries(GROUPED_GPU_PRESETS).map(([groupName, gpus]) => (
-                                <optgroup key={groupName} label={groupName}>
-                                    {gpus.map((g) => (
-                                        <option key={g.id} value={g.id}>
-                                            {g.name}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                            ))}
-                        </select>
-
-                        {gpuPresetId === "custom" && (
-                            <div className="vram-gpu-custom-slider">
-                                <input
-                                    type="range"
-                                    min={2}
-                                    max={96}
-                                    step={1}
-                                    className="vram-range-input"
-                                    value={customGpuVram}
-                                    onChange={(e) => setCustomGpuVram(parseInt(e.target.value) || 8)}
-                                />
-                                <span style={{ fontWeight: 700, fontFamily: "monospace", width: "50px" }}>
-                                    {customGpuVram} GB
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Windows Desktop & Multi-Monitor VRAM Deduction */}
-                        <div className="vram-display-deduct-box">
-                            <div className="vram-display-deduct-top">
-                                <span>🖥️ Alokasi Display & OS Desktop:</span>
-                                <span style={{ color: desktopDeductionGb > 0 ? "#f59e0b" : "#10b981", fontFamily: "monospace", fontWeight: 700 }}>
-                                    {desktopDeductionGb > 0 ? `-${desktopDeductionGb} GB Desktop` : "0 GB (100% AI)"}
-                                </span>
-                            </div>
-
-                            <div className="vram-display-chips-row">
-                                <button
-                                    type="button"
-                                    className={`vram-display-mode-chip ${displayDeductionMode === "primary_single" ? "active" : ""}`}
-                                    onClick={() => setDisplayDeductionMode("primary_single")}
-                                >
-                                    <span className="vram-display-mode-title">🖥️ GPU Utama (1 Layar)</span>
-                                    <span className="vram-display-mode-sub">Potong ~0.8 GB (DWM & Browser)</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-display-mode-chip ${displayDeductionMode === "primary_multi" ? "active" : ""}`}
-                                    onClick={() => setDisplayDeductionMode("primary_multi")}
-                                >
-                                    <span className="vram-display-mode-title">🖥️🖥️ Multi-Display / 4K</span>
-                                    <span className="vram-display-mode-sub">Potong ~1.4 GB (Dual Mon/4K)</span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`vram-display-mode-chip ${displayDeductionMode === "headless" ? "active" : ""}`}
-                                    onClick={() => setDisplayDeductionMode("headless")}
-                                >
-                                    <span className="vram-display-mode-title">⚡ Headless / Secondary</span>
-                                    <span className="vram-display-mode-sub">Bebas Display (100% AI VRAM)</span>
-                                </button>
-                            </div>
-
-                            <div className="vram-display-deduct-alert">
-                                {displayDeductionMode === "primary_single" ? (
-                                    <>
-                                        ℹ️ <strong>GPU Utama (1 Layar):</strong> Windows DWM (Desktop Window Manager), Browser Chrome/Edge Hardware Acceleration, dan Discord memakan ~800 MB VRAM. VRAM Bersih untuk AI: <strong>{effectiveAiVram.toFixed(1)} GB</strong> (dari {targetGpuVram} GB fisik).
-                                    </>
-                                ) : displayDeductionMode === "primary_multi" ? (
-                                    <>
-                                        ℹ️ <strong>Multi-Monitor / 4K:</strong> Framebuffer ganda resolusi tinggi & streaming browser memotong ~1.4 GB VRAM. VRAM Bersih untuk AI: <strong>{effectiveAiVram.toFixed(1)} GB</strong> (dari {targetGpuVram} GB fisik).
-                                    </>
-                                ) : (
-                                    <>
-                                        ✨ <strong>Headless / Secondary GPU:</strong> GPU komputasi murni tanpa monitor terpasang. <strong>100% ({targetGpuVram} GB)</strong> VRAM fisik dialokasikan penuh untuk PyTorch / ComfyUI / WebUI.
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 1-CLICK WEBUI-USER.BAT & COMFYUI COMMAND GENERATOR */}
-                    <div className="vram-flags-card">
-                        <div className="vram-flags-header">
-                            <div className="vram-throughput-title-wrap">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                <span className="vram-flags-title">1-Click Launch Config &amp; Generator</span>
-                            </div>
-
-                            <div className="vram-gen-header-actions">
-                                <button
-                                    type="button"
-                                    className="vram-btn-download-bat"
-                                    onClick={handleDownloadBat}
-                                    title="Unduh file batch siap pakai untuk folder WebUI"
-                                >
-                                    💾 Unduh webui-user.bat
-                                </button>
-                                <button
-                                    type="button"
-                                    className="vram-btn-copy-comfy"
-                                    onClick={handleCopyComfy}
-                                    title="Salin argument start ComfyUI (python main.py ...)"
-                                >
-                                    {copiedComfy ? "Tersalin!" : "📋 Salin ComfyUI"}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="vram-flags-copy-btn"
-                                    onClick={handleCopyFlags}
-                                    title="Salin string COMMANDLINE_ARGS saja"
-                                >
-                                    {copiedFlags ? "Tersalin!" : "📋 Salin Args"}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Preview Tabs */}
-                        <div className="vram-gen-tab-bar">
-                            <button
-                                type="button"
-                                className={`vram-gen-tab-btn ${genPreviewTab === "bat" ? "active" : ""}`}
-                                onClick={() => setGenPreviewTab("bat")}
-                            >
-                                webui-user.bat (A1111/Forge)
-                            </button>
-                            <button
-                                type="button"
-                                className={`vram-gen-tab-btn ${genPreviewTab === "comfy" ? "active" : ""}`}
-                                onClick={() => setGenPreviewTab("comfy")}
-                            >
-                                ComfyUI Command
-                            </button>
-                            <button
-                                type="button"
-                                className={`vram-gen-tab-btn ${genPreviewTab === "webui" ? "active" : ""}`}
-                                onClick={() => setGenPreviewTab("webui")}
-                            >
-                                COMMANDLINE_ARGS
-                            </button>
-                        </div>
-
-                        {/* Dynamic Code Preview Block */}
-                        <div className="vram-flags-code">
-                            {genPreviewTab === "bat" ? (
-                                webuiBatContent
-                            ) : genPreviewTab === "comfy" ? (
-                                comfyUiCommand
-                            ) : (
-                                `COMMANDLINE_ARGS=${recommendedCliFlags}`
-                            )}
-                        </div>
-
-                        <ul className="vram-tips-list">
-                            <li>
-                                <strong>WebUI (.bat) Panduan:</strong> Tempatkan file <code>webui-user.bat</code> hasil unduhan langsung ke dalam direktori instalasi Automatic1111 atau SD.Next Anda untuk menggantikan file lama.
-                            </li>
-                            <li>
-                                <strong>ComfyUI Argument:</strong> Jalankan command terminal <code>{comfyUiCommand}</code> di direktori ComfyUI Anda. Flag memori otomatis disesuaikan dengan VRAM bersih GPU ({effectiveAiVram.toFixed(1)} GB).
-                            </li>
-                            <li>
-                                <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver NVIDIA Windows memindahkan tensor secara lambat ke RAM sistem saat mendekati ambang batas VRAM.
-                            </li>
-                        </ul>
                     </div>
                 </div>
             </div>
@@ -2714,7 +2746,9 @@ call webui.bat
                         gap: "8px",
                     }}
                 >
-                    <span style={{ color: "#38bdf8" }}>✓</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
                     <span>{toastMessage}</span>
                 </div>
             )}
