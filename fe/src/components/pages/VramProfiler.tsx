@@ -377,12 +377,65 @@ const RESOLUTION_PRESETS: ResPreset[] = [
     { label: "1280×720 @ 81f (Wan 2.1 720p)", w: 1280, h: 720, frames: 81 },
 ];
 
+// ============================================================================
+// Kernel Acceleration & Compiler Engine Definitions
+// ============================================================================
+
+export type KernelAcceleratorId = "sdpa" | "sage_attention" | "tensorrt" | "torch_compile";
+
+interface KernelAcceleratorDef {
+    id: KernelAcceleratorId;
+    name: string;
+    shortLabel: string;
+    badge: string;
+    targetSpeedup: string;
+    description: string;
+}
+
+const KERNEL_ACCELERATORS: Record<KernelAcceleratorId, KernelAcceleratorDef> = {
+    sdpa: {
+        id: "sdpa",
+        name: "PyTorch 2.x SDPA",
+        shortLabel: "PyTorch SDP",
+        badge: "1.0× Baseline",
+        targetSpeedup: "Baseline 1.0×",
+        description: "Scaled Dot Product Attention standar bawaan PyTorch 2.x / xFormers tanpa kompilasi.",
+    },
+    sage_attention: {
+        id: "sage_attention",
+        name: "SageAttention / FA-3",
+        shortLabel: "SageAttention",
+        badge: "KV -40% | DiT 1.3×",
+        targetSpeedup: "1.30× (DiT) / 1.15× (UNet)",
+        description: "INT8/FP8 Quantized Attention. Pangkas 40% KV Cache pada resolusi tinggi & percepat DiT.",
+    },
+    tensorrt: {
+        id: "tensorrt",
+        name: "NVIDIA TensorRT",
+        shortLabel: "TensorRT AOT",
+        badge: "1.6×–2.2× Speedup",
+        targetSpeedup: "1.6×–2.2× Faster",
+        description: "AOT Graph Fusion & cuBLAS/Tensor Core tuning. Wajib GPU RTX 30/40/50 series.",
+    },
+    torch_compile: {
+        id: "torch_compile",
+        name: "Torch.compile (Inductor)",
+        shortLabel: "Inductor AOT",
+        badge: "Zero Dispatch",
+        targetSpeedup: "1.25×–1.40× Faster",
+        description: "OpenAI Triton C++ fused kernels. Menghilangkan overhead dispatch Python host runtime.",
+    },
+};
+
 export default function VramProfiler() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     // 0. Primary Platform Navigation Tab (NVIDIA vs AMD Radeon vs Apple Silicon Mac)
     const [platformTab, setPlatformTab] = useState<"nvidia" | "amd" | "apple">("nvidia");
+
+    // 0b. Kernel Acceleration Engine
+    const [kernelMode, setKernelMode] = useState<KernelAcceleratorId>("sdpa");
 
     // 1. Model Configuration State
     const [modelKey, setModelKey] = useState<string>(() => {
@@ -585,17 +638,33 @@ export default function VramProfiler() {
 
         // 4. Attention & KV Cache
         const sequenceLength = (latentW * latentH) / (activeModel.id === "flux" ? 4 : 1);
-        let kvGb = (sequenceLength * 32 * 64 * 2 * 2 * batchSize) / (1024 * 1024 * 1024);
+        let baseKvGb = (sequenceLength * 32 * 64 * 2 * 2 * batchSize) / (1024 * 1024 * 1024);
         if (isVideo) {
-            kvGb += (sequenceLength * frames * 0.0003);
+            baseKvGb += (sequenceLength * frames * 0.0003);
         }
         if (!useSdpAttention) {
-            kvGb *= 2.8;
+            baseKvGb *= 2.8;
         }
+
+        // SageAttention / FlashAttention-3 KV Cache reduction:
+        // Mengurangi pemakaian memori KV Cache sebesar 40% pada resolusi tinggi (>= 1536x1536) dan video Wan 2.1
+        const isHighRes = (width * height) >= (1536 * 1536);
+        let kvReductionFactor = 1.0;
+        if (kernelMode === "sage_attention") {
+            kvReductionFactor = (isHighRes || isVideo) ? 0.60 : 0.80; // 40% reduction for >= 1536x1536 or video Wan 2.1
+        }
+        let kvGb = baseKvGb * kvReductionFactor;
+        const savedKvGb = baseKvGb - kvGb;
+
         if (useMedvramChunking) {
             kvGb *= 0.55;
         }
-        kvGb = Math.max(0.25, Math.min(18.0, kvGb));
+        kvGb = Math.max(0.20, Math.min(18.0, kvGb));
+
+        // TensorRT Compilation & Workspace Overhead
+        const trtWorkspaceGb = activeModel.id === "sd15" ? 2.0 : activeModel.id === "flux" ? 4.8 : 3.5;
+        const trtCompilationPeakVramGb = weightsGb + trtWorkspaceGb + 0.8;
+        const isTrtBuildOom = kernelMode === "tensorrt" && platformTab === "nvidia" && (trtCompilationPeakVramGb > targetGpuVram);
 
         // 5. VAE Peak Memory
         let vaeGb = 0.5;
@@ -688,6 +757,12 @@ export default function VramProfiler() {
             teGb,
             latentGb,
             kvGb,
+            baseKvGb,
+            savedKvGb,
+            isHighRes,
+            trtWorkspaceGb,
+            trtCompilationPeakVramGb,
+            isTrtBuildOom,
             vaeGb,
             lorasGb,
             controlnetsGb,
@@ -712,7 +787,9 @@ export default function VramProfiler() {
         useSdpAttention,
         useTiledVae,
         useMedvramChunking,
+        kernelMode,
         effectiveAiVram,
+        targetGpuVram,
         platformTab,
         amdBackend,
         directMlOverheadGb,
@@ -893,7 +970,38 @@ export default function VramProfiler() {
             offloadPenalty = 1.15;
         }
 
-        const secondsPerStep = Math.max(0.015, ((rawSecs * quantMod * offloadPenalty) / sdpMod) * backendSpeedMod);
+        // Simulator Akselerasi Kernel (TensorRT, SageAttention, Torch.compile)
+        let kernelSpeedMultiplier = 1.0;
+        let hostDispatchSavedMs = 0;
+
+        if (kernelMode === "tensorrt") {
+            // TensorRT Engine Accelerator: 1.6x - 2.2x lebih cepat untuk SD 1.5 dan SDXL pada GPU RTX 30/40/50 series
+            const isRtxModern = platformTab === "nvidia" && (
+                activeGpu.id.includes("rtx40") || activeGpu.id.includes("rtx30") || activeGpu.id.includes("rtx50")
+            );
+            if (activeModel.id === "sd15") {
+                kernelSpeedMultiplier = isRtxModern ? 2.15 : 1.7; // SD 1.5 reaches 2.15x
+            } else if (activeModel.id === "sdxl" || activeModel.id === "pony" || activeModel.id === "illustrious") {
+                kernelSpeedMultiplier = isRtxModern ? 1.85 : 1.6; // SDXL reaches 1.85x
+            } else if (activeModel.id === "flux") {
+                kernelSpeedMultiplier = isRtxModern ? 1.65 : 1.45; // Flux reaches 1.65x
+            } else {
+                kernelSpeedMultiplier = isRtxModern ? 1.75 : 1.5;
+            }
+        } else if (kernelMode === "sage_attention") {
+            // SageAttention / FlashAttention-3: simulasi percepatan 1.3x untuk arsitektur DiT (Flux / SD 3.5 / Wan 2.1)
+            const isDiT = activeModel.id === "flux" || activeModel.id.startsWith("sd35") || activeModel.isTextToVideo;
+            kernelSpeedMultiplier = isDiT ? 1.30 : 1.15;
+        } else if (kernelMode === "torch_compile") {
+            // Torch.compile (PyTorch 2.x Inductor): peniadaan overhead Python host kernel dispatch
+            kernelSpeedMultiplier = 1.30;
+            hostDispatchSavedMs = samplingSteps * 15; // ~15 ms saved per sampling step
+        } else {
+            kernelSpeedMultiplier = 1.0;
+        }
+
+        const effectiveSpeedup = sdpMod * kernelSpeedMultiplier;
+        const secondsPerStep = Math.max(0.015, ((rawSecs * quantMod * offloadPenalty) / effectiveSpeedup) * backendSpeedMod);
         const itPerSec = 1 / secondsPerStep;
 
         let textEncodeSec = 0.3;
@@ -956,6 +1064,9 @@ export default function VramProfiler() {
             speedBadge,
             speedClass,
             speedNote,
+            kernelSpeedMultiplier,
+            hostDispatchSavedMs,
+            kernelLabel: KERNEL_ACCELERATORS[kernelMode].shortLabel,
         };
     }, [
         activeModel,
@@ -971,6 +1082,7 @@ export default function VramProfiler() {
         macBackend,
         quantKey,
         useSdpAttention,
+        kernelMode,
         ramTelemetry.ramStatus,
         telemetry.status,
         teKey,
@@ -1046,7 +1158,19 @@ python main.py --force-fp16 --use-split-cross-attention --preview-method auto
         }
 
         // NVIDIA Default (webui-user.bat)
-        const flags: string[] = ["--opt-sdp-attention", "--pin-shared-memory"];
+        const flags: string[] = ["--pin-shared-memory"];
+        if (kernelMode === "tensorrt") {
+            flags.push("--tensorrt");
+            flags.push("--tensorrt-builder-optimization-level 3");
+        } else if (kernelMode === "sage_attention") {
+            flags.push("--enable-sageattention");
+        } else if (kernelMode === "torch_compile") {
+            flags.push("--torch-compile");
+            flags.push("--torch-compile-mode max-autotune");
+        } else {
+            flags.push("--opt-sdp-attention");
+        }
+
         if (telemetry.status === "warn") {
             if (activeModel.id === "sdxl" || activeModel.id === "pony" || activeModel.id === "illustrious") {
                 flags.push("--medvram-sdxl");
@@ -1070,6 +1194,7 @@ REM Antigravity AI - webui-user.bat Auto-Generated Config
 REM Target GPU: ${activeGpu.name}
 REM Usable AI VRAM: ${effectiveAiVram.toFixed(1)} GB (Physical: ${targetGpuVram} GB)
 REM Target Model: ${activeModel.name} (${QUANTIZATIONS[quantKey]?.name || quantKey})
+REM Kernel Accelerator: ${KERNEL_ACCELERATORS[kernelMode].name} (${KERNEL_ACCELERATORS[kernelMode].targetSpeedup})
 REM ========================================================
 
 set PYTHON=
@@ -1091,6 +1216,7 @@ call webui.bat
         effectiveAiVram,
         targetGpuVram,
         quantKey,
+        kernelMode,
         telemetry.status,
         useTiledVae,
         width,
@@ -1933,7 +2059,7 @@ call webui.bat
                                 </div>
                             </div>
 
-                            {/* Part 2: Attention & VAE Toggles */}
+                            {/* Part 2: Optimasi VAE */}
                             <div className="vram-merged-divider" />
                             <div className="vram-merged-toggles">
                                 <div
@@ -1948,18 +2074,112 @@ call webui.bat
                                         <div className="vram-switch-handle" />
                                     </div>
                                 </div>
+                            </div>
 
-                                <div
-                                    className="vram-toggle-row"
-                                    onClick={() => setUseSdpAttention(!useSdpAttention)}
-                                >
-                                    <div className="vram-toggle-info">
-                                        <span className="vram-toggle-title">Scaled Dot Product Attention (PyTorch 2.x SDP)</span>
-                                        <span className="vram-toggle-desc">FlashAttention memory-efficient attention (wajib aktif untuk GPU modern)</span>
+                            {/* Part 2b: Simulator Akselerasi Kernel (TensorRT, SageAttention, Torch.compile) */}
+                            <div className="vram-merged-divider" />
+                            <div className="vram-kernel-section">
+                                <div className="vram-kernel-header">
+                                    <span className="vram-kernel-title">Simulator Akselerasi Kernel &amp; Kompilasi</span>
+                                    <span className="vram-kernel-badge" style={{ color: "#60a5fa" }}>
+                                        {KERNEL_ACCELERATORS[kernelMode].badge}
+                                    </span>
+                                </div>
+
+                                <div className="vram-kernel-grid">
+                                    {Object.values(KERNEL_ACCELERATORS).map((k) => (
+                                        <div
+                                            key={k.id}
+                                            className={`vram-kernel-card ${kernelMode === k.id ? "active" : ""}`}
+                                            onClick={() => {
+                                                setKernelMode(k.id);
+                                                if (k.id === "sdpa") setUseSdpAttention(true);
+                                            }}
+                                        >
+                                            <div className="vram-kernel-card-top">
+                                                <span className="vram-kernel-name">{k.shortLabel}</span>
+                                                <span className="vram-kernel-badge">{k.badge.split("|")[0].trim()}</span>
+                                            </div>
+                                            <span className="vram-kernel-speed">{k.targetSpeedup}</span>
+                                            <span className="vram-kernel-card-desc">{k.description}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Dynamic Deep Metrics & Compilation Telemetry */}
+                                <div className="vram-kernel-metrics-box">
+                                    <div className="vram-kernel-metrics-grid">
+                                        <div className="vram-kernel-metric-item">
+                                            <span className="vram-km-label">Estimasi Percepatan</span>
+                                            <span className="vram-km-val" style={{ color: "#60a5fa" }}>
+                                                {throughputTelemetry.kernelSpeedMultiplier.toFixed(2)}× Throughput
+                                            </span>
+                                            <span className="vram-km-sub">
+                                                {kernelMode === "tensorrt"
+                                                    ? "AOT fused Tensor Core execution"
+                                                    : kernelMode === "sage_attention"
+                                                    ? (activeModel.id === "flux" || activeModel.id.startsWith("sd35") ? "1.30× akselerasi DiT self-attention" : "1.15× akselerasi UNet attention")
+                                                    : kernelMode === "torch_compile"
+                                                    ? "Bebas overhead GIL dispatch Python"
+                                                    : "Baseline PyTorch standard SDP"}
+                                            </span>
+                                        </div>
+
+                                        <div className="vram-kernel-metric-item">
+                                            <span className="vram-km-label">KV Cache / Attention RAM</span>
+                                            <span className="vram-km-val" style={{ color: kernelMode === "sage_attention" ? "#34d399" : "#f4f4f5" }}>
+                                                {kernelMode === "sage_attention"
+                                                    ? (telemetry.isHighRes || activeModel.isTextToVideo ? "-40% (Hemat " + telemetry.savedKvGb.toFixed(2) + " GB)" : "-20% (Hemat " + telemetry.savedKvGb.toFixed(2) + " GB)")
+                                                    : `${telemetry.kvGb.toFixed(2)} GB (Baseline)`}
+                                            </span>
+                                            <span className="vram-km-sub">
+                                                {kernelMode === "sage_attention"
+                                                    ? (telemetry.isHighRes ? "Resolusi >= 1536px: KV INT8/FP8 aktif" : "Kuantisasi INT8/FP8 matrix QK^T")
+                                                    : "Alokasi FP16/BF16 memory buffer standar"}
+                                            </span>
+                                        </div>
+
+                                        <div className="vram-kernel-metric-item">
+                                            <span className="vram-km-label">
+                                                {kernelMode === "tensorrt" ? "VRAM Saat Build Engine" : "VRAM Kompilasi Awal"}
+                                            </span>
+                                            <span className="vram-km-val" style={{ color: telemetry.isTrtBuildOom ? "#fb7185" : kernelMode === "tensorrt" ? "#fbbf24" : "#a1a1aa" }}>
+                                                {kernelMode === "tensorrt"
+                                                    ? `~${telemetry.trtCompilationPeakVramGb.toFixed(1)} GB Peak`
+                                                    : "0 MB (In-Memory JIT)"}
+                                            </span>
+                                            <span className="vram-km-sub">
+                                                {kernelMode === "tensorrt"
+                                                    ? `Model + ${telemetry.trtWorkspaceGb.toFixed(1)} GB builder workspace`
+                                                    : "Tidak memerlukan proses offline compilation"}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className={`vram-switch ${useSdpAttention ? "active" : ""}`}>
-                                        <div className="vram-switch-handle" />
-                                    </div>
+
+                                    {/* Warnings and specific technical notes */}
+                                    {kernelMode === "tensorrt" && telemetry.isTrtBuildOom && (
+                                        <div className="vram-kernel-callout alert-amber">
+                                            <strong>Peringatan Lonjakan VRAM Kompilasi TRT:</strong> Kebutuhan VRAM saat kompilasi awal (~{telemetry.trtCompilationPeakVramGb.toFixed(1)} GB) melebihi VRAM fisik GPU target ({targetGpuVram} GB). Proses compile engine berisiko OOM di tengah jalan kecuali Anda membatasi alokasi workspace dengan parameter <code>--workspace 2048</code> atau mengompilasi model di RAM Host CPU.
+                                        </div>
+                                    )}
+
+                                    {kernelMode === "tensorrt" && platformTab !== "nvidia" && (
+                                        <div className="vram-kernel-callout alert-blue">
+                                            <strong>Catatan Kompatibilitas Hardware:</strong> NVIDIA TensorRT khusus untuk kartu grafis GeForce RTX (Ampere/Ada Lovelace/Blackwell). Pada platform {platformTab === "amd" ? "AMD Radeon disarankan menggunakan ROCm AOTriton / torch.compile" : "Apple Mac disarankan menggunakan Apple MLX Framework"}.
+                                        </div>
+                                    )}
+
+                                    {kernelMode === "torch_compile" && (
+                                        <div className="vram-kernel-callout alert-blue">
+                                            <strong>Peniadaan Overhead Python Host:</strong> PyTorch 2.x Inductor menyatukan (fused) puluhan kernel terpisah ke dalam kode biner C++ Triton. Menghilangkan ~15 ms per sampling step latency dispatch Python (menghemat total ~{Math.round(samplingSteps * 15)} ms per gambar). Waktu generasi gambar pertama akan memakan 1-2 menit warmup untuk kompilasi C++.
+                                        </div>
+                                    )}
+
+                                    {kernelMode === "sage_attention" && telemetry.isHighRes && (
+                                        <div className="vram-kernel-callout alert-blue">
+                                            <strong>Resolusi Tinggi Terdeteksi ({width}x{height}):</strong> SageAttention / FlashAttention-3 secara aktif memangkas 40% alokasi memori KV Cache (hemat ~{telemetry.savedKvGb.toFixed(2)} GB VRAM) tanpa degradasi kualitas visual denoise.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -2064,94 +2284,6 @@ call webui.bat
                             </div>
                         </div>
                     </div>
-
-                    {/* SECTION G: 1-CLICK LAUNCH CONFIG & GENERATOR */}
-                    <div className="vram-section-card">
-                        <div className="vram-section-header">
-                            <div className="vram-section-title-wrap">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                    <polyline points="7 10 12 15 17 10" />
-                                    <line x1="12" y1="15" x2="12" y2="3" />
-                                </svg>
-                                <span>
-                                    {platformTab === "nvidia" && "1-Click Launch Config & Generator"}
-                                    {platformTab === "amd" && (amdBackend === "rocm" ? "1-Click ROCm Linux Script" : "1-Click DirectML Batch Script")}
-                                    {platformTab === "apple" && (macBackend === "mlx" ? "1-Click Apple MLX Command" : "1-Click Apple Silicon MPS Script")}
-                                </span>
-                            </div>
-
-                            <div className="vram-gen-header-actions">
-                                <button
-                                    type="button"
-                                    className="vram-btn-download-bat"
-                                    onClick={handleDownloadScript}
-                                    title="Unduh script peluncuran siap pakai"
-                                >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                                        <polyline points="7 10 12 15 17 10" />
-                                        <line x1="12" y1="15" x2="12" y2="3" />
-                                    </svg>
-                                    <span>
-                                        {platformTab === "nvidia" || (platformTab === "amd" && amdBackend === "directml")
-                                            ? "Unduh webui-user.bat"
-                                            : platformTab === "amd"
-                                            ? "Unduh start_rocm.sh"
-                                            : "Unduh run_mac.sh"}
-                                    </span>
-                                </button>
-                                <button
-                                    type="button"
-                                    className="vram-btn-copy-mono"
-                                    onClick={handleCopyScript}
-                                    title="Salin seluruh isi konfigurasi"
-                                >
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                                    </svg>
-                                    <span>{copiedComfy ? "Tersalin!" : "Salin Script"}</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Dynamic Code Preview Block */}
-                        <div className="vram-flags-code">
-                            {platformLaunchScript}
-                        </div>
-
-                        <ul className="vram-tips-list">
-                            {platformTab === "amd" ? (
-                                <>
-                                    <li>
-                                        <strong>ROCm vs DirectML:</strong> Gunakan Linux ROCm untuk throughput maksimal (hampir menyamai CUDA native). Pada Windows DirectML, driver mengalokasikan buffer swap tambahan ~+600 MB.
-                                    </li>
-                                    <li>
-                                        <strong>HSA_OVERRIDE_GFX_VERSION:</strong> Flag lingkungan ini wajib di-export pada kartu RDNA 2/3 (seperti RX 6700 XT atau RX 7800 XT) agar PyTorch mengenali arsitektur GPU AMD Anda.
-                                    </li>
-                                </>
-                            ) : platformTab === "apple" ? (
-                                <>
-                                    <li>
-                                        <strong>Batas Safe MPS 75%:</strong> macOS memproteksi 25% Unified Memory untuk sistem. Jika generasi melebihi batas safe, macOS akan menggunakan swap SSD atau menampilkan error 'MPS backend out of memory'.
-                                    </li>
-                                    <li>
-                                        <strong>MLX Framework:</strong> Apple MLX mengeksekusi model 4-bit secara native pada chip M-series dengan latensi memori terpadu yang sangat rendah.
-                                    </li>
-                                </>
-                            ) : (
-                                <>
-                                    <li>
-                                        <strong>WebUI (.bat):</strong> Tempatkan file <code>webui-user.bat</code> hasil unduhan langsung ke dalam direktori instalasi Automatic1111 atau SD.Next Anda.
-                                    </li>
-                                    <li>
-                                        <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver Windows NVIDIA memindahkan tensor secara lambat ke RAM sistem saat mendekati ambang batas VRAM fisik.
-                                    </li>
-                                </>
-                            )}
-                        </ul>
-                    </div>
                 </div>
 
                 {/* Right Column: Unified Memory Telemetry, Throughput & Power */}
@@ -2242,7 +2374,14 @@ call webui.bat
                                         <div className="vram-legend-dot kv" />
                                         <span>KV &amp; Latents:</span>
                                     </div>
-                                    <span className="vram-legend-val">{(telemetry.kvGb + telemetry.latentGb).toFixed(2)} GB</span>
+                                    <span className="vram-legend-val">
+                                        {(telemetry.kvGb + telemetry.latentGb).toFixed(2)} GB
+                                        {kernelMode === "sage_attention" && (
+                                            <span style={{ color: "#34d399", fontSize: "10px", marginLeft: "4px" }}>
+                                                (-40% Sage)
+                                            </span>
+                                        )}
+                                    </span>
                                 </div>
 
                                 <div className="vram-legend-item">
@@ -2464,7 +2603,7 @@ call webui.bat
                                     )}
                                 </div>
                                 <span className="vram-strip-caption">
-                                    {samplingSteps} steps &bull; {throughputTelemetry.secondsPerStep.toFixed(2)}s/step
+                                    {samplingSteps} steps &bull; {throughputTelemetry.secondsPerStep.toFixed(2)}s/step &bull; {throughputTelemetry.kernelSpeedMultiplier > 1.0 ? `${throughputTelemetry.kernelLabel} (${throughputTelemetry.kernelSpeedMultiplier.toFixed(2)}×)` : throughputTelemetry.kernelLabel}
                                 </span>
                             </div>
 
@@ -2700,6 +2839,119 @@ call webui.bat
                                     {" "}Generate {batchImageCount} gambar {activeModel.name} memerlukan {powerTelemetry.batchTotalKwh.toFixed(3)} kWh dengan perkiraan biaya listrik Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (~Rp {powerTelemetry.costPerImageIdr.toFixed(2)}/gambar).
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* FULL-WIDTH BOTTOM DASHBOARD: 1-CLICK LAUNCH CONFIG & GENERATOR */}
+            <div className="vram-bottom-fullwidth">
+                <div className="vram-launch-card">
+                    <div className="vram-section-header">
+                        <div className="vram-section-title-wrap">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="4 17 10 11 4 5" />
+                                <line x1="12" y1="19" x2="20" y2="19" />
+                            </svg>
+                            <span>1-Click Launch Config &amp; Script Generator</span>
+                            <span className="vram-badge-sub">
+                                {platformTab === "nvidia" && `NVIDIA CUDA • ${KERNEL_ACCELERATORS[kernelMode].shortLabel}`}
+                                {platformTab === "amd" && (amdBackend === "rocm" ? "AMD ROCm Linux HIP" : "AMD DirectML Windows")}
+                                {platformTab === "apple" && (macBackend === "mlx" ? "Apple Silicon MLX Native" : "Apple PyTorch MPS")}
+                            </span>
+                        </div>
+
+                        <div className="vram-gen-header-actions">
+                            <button
+                                type="button"
+                                className="vram-btn-download-bat"
+                                onClick={handleDownloadScript}
+                                title="Unduh script peluncuran siap pakai"
+                            >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <span>
+                                    {platformTab === "nvidia" || (platformTab === "amd" && amdBackend === "directml")
+                                        ? "Unduh webui-user.bat"
+                                        : platformTab === "amd"
+                                        ? "Unduh start_rocm.sh"
+                                        : "Unduh run_mac.sh"}
+                                </span>
+                            </button>
+                            <button
+                                type="button"
+                                className="vram-btn-copy-mono"
+                                onClick={handleCopyScript}
+                                title="Salin seluruh isi konfigurasi"
+                            >
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                                </svg>
+                                <span>{copiedComfy ? "Tersalin!" : "Salin Script"}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="vram-launch-split-grid">
+                        <div className="vram-launch-code-col">
+                            <div className="vram-flags-code">
+                                {platformLaunchScript}
+                            </div>
+                        </div>
+
+                        <div className="vram-launch-guide-col">
+                            <div className="vram-guide-title">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="12" y1="16" x2="12" y2="12" />
+                                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                                </svg>
+                                <span>Petunjuk Eksekusi &amp; Optimalisasi Driver</span>
+                            </div>
+                            <ul className="vram-tips-list">
+                                {platformTab === "amd" ? (
+                                    <>
+                                        <li>
+                                            <strong>ROCm vs DirectML:</strong> Gunakan Linux ROCm untuk throughput maksimal (hampir menyamai CUDA native). Pada Windows DirectML, driver mengalokasikan buffer swap tambahan ~+600 MB.
+                                        </li>
+                                        <li>
+                                            <strong>HSA_OVERRIDE_GFX_VERSION:</strong> Flag lingkungan ini wajib di-export pada kartu RDNA 2/3 (seperti RX 6700 XT atau RX 7800 XT) agar PyTorch mengenali arsitektur GPU AMD Anda.
+                                        </li>
+                                    </>
+                                ) : platformTab === "apple" ? (
+                                    <>
+                                        <li>
+                                            <strong>Batas Safe MPS 75%:</strong> macOS memproteksi 25% Unified Memory untuk sistem. Jika generasi melebihi batas safe, macOS akan menggunakan swap SSD atau menampilkan error 'MPS backend out of memory'.
+                                        </li>
+                                        <li>
+                                            <strong>MLX Framework:</strong> Apple MLX mengeksekusi model 4-bit secara native pada chip M-series dengan latensi memori terpadu yang sangat rendah.
+                                        </li>
+                                    </>
+                                ) : (
+                                    <>
+                                        <li>
+                                            <strong>WebUI (.bat):</strong> Tempatkan file <code>webui-user.bat</code> hasil unduhan langsung ke dalam direktori instalasi Automatic1111 atau SD.Next Anda.
+                                        </li>
+                                        <li>
+                                            <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver Windows NVIDIA memindahkan tensor secara lambat ke RAM sistem saat mendekati ambang batas VRAM fisik.
+                                        </li>
+                                        {kernelMode === "tensorrt" && (
+                                            <li>
+                                                <strong>TensorRT Engine:</strong> Eksekusi engine AOT terkompilasi via ekstensi ComfyUI TensorRT node untuk akselerasi optimal.
+                                            </li>
+                                        )}
+                                        {kernelMode === "sage_attention" && (
+                                            <li>
+                                                <strong>SageAttention:</strong> Pastikan Anda telah menjalankan <code>pip install sageattention</code> di virtual environment PyTorch Anda.
+                                            </li>
+                                        )}
+                                    </>
+                                )}
+                            </ul>
                         </div>
                     </div>
                 </div>

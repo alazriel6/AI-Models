@@ -542,8 +542,9 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     // Active Checkpoint Selection for LoRA Compatibility
     const [selectedCheckpointId, setSelectedCheckpointId] = useState<string>("");
 
-    // Active mode in positive prompt: text editor vs interactive tokenizer vs matrix
-    const [viewMode, setViewMode] = useState<"editor" | "tokenizer" | "matrix">("editor");
+    // Active mode in positive prompt: text editor vs interactive tokenizer vs 77-token chunks vs matrix
+    const [viewMode, setViewMode] = useState<"editor" | "tokenizer" | "chunks" | "matrix">("editor");
+    const [showLiveChunkInline, setShowLiveChunkInline] = useState(false);
 
     // Negative prompt insertion mode: replace or append
     const [negativeInsertMode, setNegativeInsertMode] = useState<"replace" | "append">("replace");
@@ -777,10 +778,12 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         setTimeout(() => setCopiedKey(null), 2000);
     };
 
-    // Real CLIP & BPE Token count estimation
-    const posTokenCount = useMemo(() => {
-        return tokenizeClipPrompt(positivePrompt).totalTextTokens;
+    // Real CLIP & BPE Token count estimation and chunk profiling
+    const posTokenResult = useMemo(() => {
+        return tokenizeClipPrompt(positivePrompt);
     }, [positivePrompt]);
+
+    const posTokenCount = posTokenResult.totalTextTokens;
 
     const negTokenCount = useMemo(() => {
         return tokenizeClipPrompt(negativePrompt).totalTextTokens;
@@ -2181,16 +2184,31 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                 <button
                                     type="button"
                                     className={`prompt-token-pill ${posTokenCount > 75 ? "over-chunk" : ""}`}
-                                    onClick={() => handleSelectTab("tokenizer")}
-                                    style={{ cursor: "pointer", border: "1px solid rgba(59, 130, 246, 0.4)", background: "rgba(37, 99, 235, 0.12)" }}
-                                    title="Klik untuk membuka visualisasi 77-Token Chunk Boundary"
+                                    onClick={() => setViewMode(viewMode === "chunks" ? "editor" : "chunks")}
+                                    style={{ cursor: "pointer", border: "1px solid rgba(6, 182, 212, 0.4)", background: "rgba(6, 182, 212, 0.12)" }}
+                                    title="Klik untuk membuka Live CLIP 77-Token Chunk Boundary Profiler"
                                 >
                                     ⚡ {posTokenCount} CLIP tok · {Math.ceil(posTokenCount / 75) || 1} Chunk
                                 </button>
+                                <div className="canvas-header-chunk-zones">
+                                    <span className="canvas-chunk-tag zone-cyan" title="Chunk 1: Zona Prioritas Utama (Tokens 1–75, 100% Retained Attention)">
+                                        C1: {Math.min(75, posTokenCount)}/75
+                                    </span>
+                                    {posTokenCount > 75 && (
+                                        <span className="canvas-chunk-tag zone-amber" title="Chunk 2: Zona Sekunder (Tokens 76–150, perhatian model menurun ~15-20%)">
+                                            C2: {Math.min(75, posTokenCount - 75)}/75
+                                        </span>
+                                    )}
+                                    {posTokenCount > 150 && (
+                                        <span className="canvas-chunk-tag zone-red" title="Chunk 3+: Zona Resiko Token Bleeding atau Kata Kunci Terabaikan (Tokens 151+)">
+                                            C3+: {posTokenCount - 150} tok
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             <div className="prompt-canvas-actions">
-                                {/* Mode Switcher (Editor / Tokenizer / Matrix) */}
+                                {/* Mode Switcher (Editor / Tokenizer / Chunks / Matrix) */}
                                 <div className="prompt-view-switcher">
                                     <button
                                         type="button"
@@ -2212,12 +2230,12 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                     </button>
                                     <button
                                         type="button"
-                                        className="prompt-view-btn"
-                                        onClick={() => handleSelectTab("tokenizer")}
-                                        title="Buka CLIP 77-Token Chunk Boundary Visualizer"
+                                        className={`prompt-view-btn ${viewMode === "chunks" ? "active" : ""}`}
+                                        onClick={() => setViewMode("chunks")}
+                                        title="Buka Live CLIP 77-Token Chunk Boundary Profiler"
                                     >
                                         <Icons.Eye />
-                                        <span>77-Tok Chunks</span>
+                                        <span>Chunks ({Math.ceil(posTokenCount / 75) || 1})</span>
                                     </button>
                                     {matrixVariations.length > 0 && (
                                         <button
@@ -2368,7 +2386,112 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                             </div>
                                         )}
                                     </div>
+
+                                    {/* Live Chunk Boundary Ribbon & Quick Highlighter */}
+                                    <div className="canvas-chunk-ribbon">
+                                        <div className="chunk-ribbon-left">
+                                            <span className="chunk-ribbon-title">CLIP 77-Token Boundaries:</span>
+                                            <span className="chunk-ribbon-pill c1">
+                                                C1: {Math.min(75, posTokenCount)}/75 tok (Prioritas Utama)
+                                            </span>
+                                            {posTokenCount > 75 && (
+                                                <span className="chunk-ribbon-pill c2">
+                                                    C2: {Math.min(75, posTokenCount - 75)}/75 tok (Zona Sekunder -18%)
+                                                </span>
+                                            )}
+                                            {posTokenCount > 150 && (
+                                                <span className="chunk-ribbon-pill c3">
+                                                    C3+: {posTokenCount - 150} tok (Resiko Bleeding)
+                                                </span>
+                                            )}
+                                            {posTokenResult.hazards.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    className="chunk-ribbon-hazard-btn"
+                                                    onClick={() => setViewMode("chunks")}
+                                                    title="Terdeteksi frasa yang terpotong di batas 75-token. Klik untuk melihat dan merapikan."
+                                                >
+                                                    ⚠️ {posTokenResult.hazards.length} Boundary Hazard!
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="chunk-ribbon-right">
+                                            <button
+                                                type="button"
+                                                className={`chunk-toggle-btn ${showLiveChunkInline ? "active" : ""}`}
+                                                onClick={() => setShowLiveChunkInline(!showLiveChunkInline)}
+                                            >
+                                                {showLiveChunkInline ? "Tutup Highlight ▲" : "Live Chunk Highlight ▼"}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="chunk-profiler-btn"
+                                                onClick={() => setViewMode("chunks")}
+                                                title="Buka Live CLIP 77-Token Chunk Boundary Profiler"
+                                            >
+                                                Profiler Chunks →
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Collapsible Live Highlight Stream */}
+                                    {showLiveChunkInline && (
+                                        <div className="canvas-inline-highlight-box">
+                                            <div className="inline-highlight-legend">
+                                                <span className="dot dot-c1" /> <span>Chunk 1 (1–75): Cyan (Prioritas Utama)</span>
+                                                <span className="dot dot-c2" /> <span>Chunk 2 (76–150): Amber (Zona Sekunder)</span>
+                                                <span className="dot dot-c3" /> <span>Chunk 3+ (151+): Red/Orange (Resiko Bleeding)</span>
+                                            </div>
+                                            <div className="inline-highlight-tags">
+                                                {posTokenResult.tagSpans.map((span) => {
+                                                    const isSplit = span.isSplitAcrossChunks;
+                                                    const cls = isSplit
+                                                        ? "split-hazard"
+                                                        : span.primaryChunk === 1
+                                                        ? "c1"
+                                                        : span.primaryChunk === 2
+                                                        ? "c2"
+                                                        : "c3";
+                                                    return (
+                                                        <span
+                                                            key={span.tagIndex}
+                                                            className={`inline-tag-pill ${cls}`}
+                                                            title={`"${span.tagText}" • Tok #${span.startGlobalIndex}-#${span.endGlobalIndex} • Chunk ${span.startChunk}${isSplit ? ` ➜ C${span.endChunk}` : ""}`}
+                                                        >
+                                                            <span className="idx">C{isSplit ? `${span.startChunk}➜${span.endChunk}` : span.primaryChunk}</span>
+                                                            <span>{span.cleanText}</span>
+                                                            {span.weight !== 1.0 && <span className="wt">{span.weight.toFixed(2)}x</span>}
+                                                            {isSplit && <span className="cut" title="Tag terpotong di batas 75 token!">✂️</span>}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
+                            )}
+
+                            {/* VIEW: INLINE CLIP 77-TOKEN CHUNKS & LIVE HIGHLIGHTER */}
+                            {viewMode === "chunks" && (
+                                <div className="canvas-inline-chunks">
+                                    <ClipChunkVisualizer
+                                        prompt={positivePrompt}
+                                        onChangePrompt={(newPrompt) => {
+                                            setPositivePrompt(newPrompt);
+                                            const { buckets, lora } = deconstructPromptText(newPrompt);
+                                            setCategoryInputs(buckets);
+                                            if (lora) {
+                                                setLoraName(lora.name);
+                                                setLoraWeight(lora.weight);
+                                                setLoraEnabled(true);
+                                            }
+                                        }}
+                                        onCopy={(text) => triggerCopy(text, "chunk-copy", "Chunk prompt disalin!")}
+                                        defaultArch={activeCheckpoint?.base_model?.toLowerCase().includes("sd 1.5") ? "sd15" : activeCheckpoint?.base_model?.toLowerCase().includes("flux") ? "flux" : "sdxl"}
+                                        activeCheckpointName={activeCheckpoint?.name}
+                                    />
+                                </div>
                             )}
 
                             {/* VIEW 2: INTERACTIVE TOKENIZER CHIPS */}

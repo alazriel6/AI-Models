@@ -1,6 +1,9 @@
 /* ==========================================================================
    CLIP Tokenizer & 77-Token Chunk Boundary Visualizer Styles
-   Deep High-Contrast Technical Cyber/Studio Theme
+   Deep High-Contrast Technical Studio Theme
+   Zone 1: Cyan/Blue (Tokens 1-75, Zona Prioritas Utama)
+   Zone 2: Yellow/Amber (Tokens 76-150, Zona Sekunder, perhatian model menurun ~15-20%)
+   Zone 3+: Orange/Red (Tokens 151+, Zona resiko token bleeding & diabaikan)
    ========================================================================== */
 
 .clip-visualizer-container {
@@ -16,11 +19,12 @@
 .clip-telemetry-card {
     background: #09090b;
     border: 1px solid #27272a;
-    border-radius: 10px;
-    padding: 18px 22px;
+    border-radius: 12px;
+    padding: 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 
 .clip-telemetry-top {
@@ -28,47 +32,74 @@
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
-    gap: 14px;
+    gap: 16px;
 }
 
 .clip-telemetry-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
 }
 
 .clip-telemetry-icon {
-    width: 38px;
-    height: 38px;
-    border-radius: 8px;
-    background: rgba(37, 99, 235, 0.15);
-    border: 1px solid rgba(59, 130, 246, 0.4);
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.4);
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #60a5fa;
+    color: #38bdf8;
     flex-shrink: 0;
+    box-shadow: 0 0 16px rgba(6, 182, 212, 0.15);
 }
 
-.clip-telemetry-title-group h3 {
+.clip-telemetry-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.clip-telemetry-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clip-telemetry-badge-row h3 {
     margin: 0;
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
     color: #f4f4f5;
     letter-spacing: -0.01em;
 }
 
+.clip-badge-version {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    color: #38bdf8;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
 .clip-telemetry-title-group p {
-    margin: 3px 0 0 0;
+    margin: 0;
     font-size: 12px;
     color: #a1a1aa;
+    line-height: 1.4;
 }
 
 .clip-arch-selector {
     display: flex;
     align-items: center;
     gap: 6px;
-    background: #18181b;
+    background: #141418;
     padding: 4px;
     border-radius: 8px;
     border: 1px solid #27272a;
@@ -88,18 +119,24 @@
 
 .clip-arch-btn:hover {
     color: #f4f4f5;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .clip-arch-btn.active {
-    background: #2563eb;
+    background: #0284c7;
     color: #ffffff;
+    box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
 }
 
 /* Meter Progress Bar */
 .clip-gauge-bar {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
+    background: #111115;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border: 1px solid #202025;
 }
 
 .clip-gauge-info {
@@ -108,15 +145,81 @@
     justify-content: space-between;
     font-size: 12px;
     font-weight: 600;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.clip-gauge-left-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
 .clip-gauge-count {
-    color: #60a5fa;
+    color: #38bdf8;
+    font-size: 14px;
     font-feature-settings: "tnum";
 }
 
+.clip-gauge-chunk-indicators {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.gauge-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-family: monospace;
+}
+
+.gauge-pill.zone-cyan {
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.5);
+    color: #38bdf8;
+}
+
+.gauge-pill.zone-amber {
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+}
+
+.gauge-pill.zone-red {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    color: #f87171;
+}
+
+.gauge-pill.zone-idle {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #71717a;
+}
+
+.status-chunk-text {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-chunk-text.chunk-count-1 {
+    color: #38bdf8;
+}
+
+.status-chunk-text.chunk-count-2 {
+    color: #fbbf24;
+}
+
+.status-chunk-text.chunk-count-3,
+.status-chunk-text.chunk-count-4 {
+    color: #f87171;
+}
+
 .clip-gauge-track {
-    height: 8px;
+    height: 10px;
     background: #18181b;
     border-radius: 999px;
     overflow: hidden;
@@ -131,27 +234,502 @@
 }
 
 .clip-gauge-fill.chunk-1 {
-    background: #3b82f6;
+    background: linear-gradient(90deg, #06b6d4, #3b82f6);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.5);
 }
 
 .clip-gauge-fill.chunk-2 {
-    background: #10b981;
+    background: linear-gradient(90deg, #3b82f6, #f59e0b);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.5);
 }
 
 .clip-gauge-fill.chunk-3 {
-    background: #f59e0b;
+    background: linear-gradient(90deg, #f59e0b, #f97316);
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.5);
 }
 
 .clip-gauge-fill.chunk-4 {
-    background: #ef4444;
+    background: linear-gradient(90deg, #f97316, #ef4444);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+}
+
+/* Cross-Attention Degradation Segmented Bar */
+.clip-attention-curve-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 6px;
+    border-top: 1px solid #1e1e24;
+}
+
+.clip-attention-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.clip-curve-title {
+    color: #e4e4e7;
+    font-weight: 700;
+}
+
+.clip-explainer-toggle {
+    background: transparent;
+    border: none;
+    color: #38bdf8;
+    font-size: 11px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: color 0.15s ease;
+    padding: 0;
+}
+
+.clip-explainer-toggle:hover {
+    color: #7dd3fc;
+    text-decoration: underline;
+}
+
+.clip-attention-segmented-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+.attention-bar-segment {
+    padding: 10px 12px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.attention-bar-segment .seg-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.attention-bar-segment .seg-tag-label {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+/* Segments Color Profiles */
+.attention-bar-segment.seg-c1 {
+    background: rgba(6, 182, 212, 0.12);
+    border-color: rgba(6, 182, 212, 0.4);
+    color: #a5f3fc;
+}
+.attention-bar-segment.seg-c1 .seg-rate {
+    color: #38bdf8;
+}
+
+.attention-bar-segment.seg-c2.active {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fde68a;
+}
+.attention-bar-segment.seg-c2.inactive {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #27272a;
+    color: #71717a;
+}
+.attention-bar-segment.seg-c2.active .seg-rate {
+    color: #fbbf24;
+}
+
+.attention-bar-segment.seg-c3.active {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.45);
+    color: #fed7aa;
+}
+.attention-bar-segment.seg-c3.inactive {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #27272a;
+    color: #71717a;
+}
+.attention-bar-segment.seg-c3.active .seg-rate {
+    color: #f97316;
+}
+
+.attention-bar-segment.seg-c4.active {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fecaca;
+}
+.attention-bar-segment.seg-c4.inactive {
+    background: rgba(255, 255, 255, 0.02);
+    border-color: #27272a;
+    color: #71717a;
+}
+.attention-bar-segment.seg-c4.active .seg-rate {
+    color: #ef4444;
+}
+
+.clip-explainer-card {
+    background: #111115;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    font-size: 12px;
+    color: #d4d4d8;
+    line-height: 1.6;
+    animation: hazardFade 0.2s ease;
+}
+
+.clip-explainer-card h4 {
+    margin: 0 0 8px 0;
+    color: #38bdf8;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.clip-explainer-card ul {
+    margin: 0;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.clip-explainer-card code {
+    background: #1e1e24;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #f4f4f5;
+    font-size: 11px;
+}
+
+/* Prompt Playground Section */
+.clip-editor-section {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.clip-editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.clip-editor-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.clip-editor-badge {
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    text-transform: uppercase;
+}
+
+.clip-editor-sub {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.clip-preset-pills {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.preset-label {
+    font-size: 11px;
+    color: #71717a;
+    font-weight: 600;
+}
+
+.clip-preset-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #d4d4d8;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clip-preset-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.clip-input-wrap {
+    width: 100%;
+}
+
+.clip-textarea-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: #040406;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #f4f4f5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clip-textarea-input:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+/* ==========================================================================
+   LIVE CHUNK HIGHLIGHTER: STREAM PREVIEW CARD
+   ========================================================================== */
+
+.clip-live-highlighter-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.clip-highlighter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid #1e1e24;
+    padding-bottom: 12px;
+}
+
+.clip-highlighter-title-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.clip-highlighter-title-group h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.highlighter-pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+
+@keyframes pulseGlow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.highlighter-desc {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.clip-zone-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 11px;
+}
+
+.zone-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.zone-color-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+.zone-legend-item.legend-cyan {
+    color: #a5f3fc;
+}
+.zone-legend-item.legend-cyan .zone-color-dot {
+    background: #06b6d4;
+    box-shadow: 0 0 6px #06b6d4;
+}
+
+.zone-legend-item.legend-amber {
+    color: #fde68a;
+}
+.zone-legend-item.legend-amber .zone-color-dot {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
+}
+
+.zone-legend-item.legend-orange {
+    color: #fed7aa;
+}
+.zone-legend-item.legend-orange .zone-color-dot {
+    background: #f97316;
+    box-shadow: 0 0 6px #f97316;
+}
+
+.clip-highlighter-empty {
+    padding: 24px;
+    text-align: center;
+    color: #71717a;
+    font-size: 13px;
+    background: #0d0d10;
+    border-radius: 8px;
+    border: 1px dashed #27272a;
+}
+
+.clip-live-tag-stream {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    line-height: 1.8;
+}
+
+.clip-live-tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.clip-live-tag-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.clip-live-tag-pill.selected {
+    box-shadow: 0 0 0 2px #ffffff, 0 0 16px rgba(255, 255, 255, 0.3);
+}
+
+/* Zone Colors for Live Stream */
+.clip-live-tag-pill.zone-cyan {
+    background: rgba(6, 182, 212, 0.12);
+    border-color: rgba(6, 182, 212, 0.45);
+    color: #a5f3fc;
+}
+.clip-live-tag-pill.zone-cyan:hover {
+    border-color: #06b6d4;
+    background: rgba(6, 182, 212, 0.2);
+}
+
+.clip-live-tag-pill.zone-amber {
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.45);
+    color: #fde68a;
+}
+.clip-live-tag-pill.zone-amber:hover {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.2);
+}
+
+.clip-live-tag-pill.zone-orange {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.45);
+    color: #fed7aa;
+}
+.clip-live-tag-pill.zone-orange:hover {
+    border-color: #f97316;
+    background: rgba(249, 115, 22, 0.2);
+}
+
+.clip-live-tag-pill.zone-red {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.45);
+    color: #fecaca;
+}
+.clip-live-tag-pill.zone-red:hover {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.clip-live-tag-pill.zone-split-hazard {
+    background: linear-gradient(90deg, rgba(6, 182, 212, 0.15), rgba(245, 158, 11, 0.2));
+    border: 1px dashed #f59e0b;
+    color: #ffffff;
+    animation: hazardBorderPulse 1.8s infinite;
+}
+
+@keyframes hazardBorderPulse {
+    0%, 100% { border-color: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4); }
+    50% { border-color: #f59e0b; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); }
+}
+
+.tag-chunk-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.tag-weight-bubble {
+    font-size: 10px;
+    font-weight: 700;
+    background: #0284c7;
+    color: #ffffff;
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.tag-cut-alert-icon {
+    font-size: 12px;
 }
 
 /* Hazard Alert Box */
 .clip-hazard-card {
     background: rgba(245, 158, 11, 0.08);
     border: 1px solid rgba(245, 158, 11, 0.4);
-    border-radius: 10px;
-    padding: 16px 20px;
+    border-radius: 12px;
+    padding: 18px 22px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -197,6 +775,19 @@
 }
 
 .clip-hazard-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.clip-hazard-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.clip-hazard-exp {
+    margin: 0;
     font-size: 13px;
     color: #e4e4e7;
     line-height: 1.5;
@@ -207,7 +798,13 @@
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    margin-top: 6px;
+    margin-top: 2px;
+}
+
+.clip-hazard-stage-label {
+    font-size: 12px;
+    color: #a1a1aa;
+    font-weight: 600;
 }
 
 .clip-hazard-split-pill {
@@ -218,50 +815,106 @@
 }
 
 .clip-hazard-split-pill.p1 {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid #3b82f6;
-    color: #93c5fd;
+    background: rgba(6, 182, 212, 0.2);
+    border: 1px solid #06b6d4;
+    color: #a5f3fc;
+}
+
+.clip-hazard-separator {
+    font-size: 11px;
+    font-weight: 700;
+    color: #ef4444;
+    padding: 2px 6px;
+    background: rgba(239, 68, 68, 0.15);
+    border-radius: 4px;
 }
 
 .clip-hazard-split-pill.p2 {
-    background: rgba(239, 68, 68, 0.2);
-    border: 1px solid #ef4444;
-    color: #fca5a5;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid #f59e0b;
+    color: #fde68a;
+}
+
+.clip-hazard-saran {
+    margin: 0;
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 1.4;
 }
 
 /* Chunk Cards Stack */
 .clip-chunks-stack {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 18px;
+}
+
+.clip-stack-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.clip-stack-title-row h4 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.clip-stack-count {
+    font-size: 12px;
+    color: #71717a;
+    font-weight: 600;
 }
 
 .clip-chunk-box {
     background: #0c0c0e;
     border: 1px solid #27272a;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
-    transition: border-color 0.15s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
+/* Chunk 1: Cyan/Blue (Zona Prioritas Utama) */
 .clip-chunk-box.c1 {
-    border-color: rgba(59, 130, 246, 0.4);
+    border-color: rgba(6, 182, 212, 0.45);
+}
+.clip-chunk-box.c1:hover {
+    border-color: #06b6d4;
+    box-shadow: 0 0 20px rgba(6, 182, 212, 0.2);
 }
 
+/* Chunk 2: Yellow/Amber (Zona Sekunder, perhatian menurun ~15-20%) */
 .clip-chunk-box.c2 {
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: rgba(245, 158, 11, 0.45);
+}
+.clip-chunk-box.c2:hover {
+    border-color: #f59e0b;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
 }
 
+/* Chunk 3: Orange (Zona Resiko Bleeding) */
 .clip-chunk-box.c3 {
-    border-color: rgba(245, 158, 11, 0.4);
+    border-color: rgba(249, 115, 22, 0.45);
+}
+.clip-chunk-box.c3:hover {
+    border-color: #f97316;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.2);
 }
 
+/* Chunk 4+: Red (Zona Kritis / Terabaikan) */
 .clip-chunk-box.c4 {
-    border-color: rgba(239, 68, 68, 0.4);
+    border-color: rgba(239, 68, 68, 0.45);
+}
+.clip-chunk-box.c4:hover {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
 }
 
 .clip-chunk-header {
-    background: #121215;
+    background: #121216;
     padding: 12px 18px;
     display: flex;
     align-items: center;
@@ -275,6 +928,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .clip-chunk-num-badge {
@@ -286,28 +940,42 @@
     letter-spacing: 0.04em;
 }
 
+/* C1 Num Badge */
 .clip-chunk-box.c1 .clip-chunk-num-badge {
-    background: #1e3a8a;
-    color: #bfdbfe;
-    border: 1px solid #3b82f6;
+    background: #083344;
+    color: #67e8f9;
+    border: 1px solid #06b6d4;
 }
 
+/* C2 Num Badge */
 .clip-chunk-box.c2 .clip-chunk-num-badge {
-    background: #064e3b;
-    color: #a7f3d0;
-    border: 1px solid #10b981;
-}
-
-.clip-chunk-box.c3 .clip-chunk-num-badge {
-    background: #78350f;
+    background: #451a03;
     color: #fde68a;
     border: 1px solid #f59e0b;
 }
 
+/* C3 Num Badge */
+.clip-chunk-box.c3 .clip-chunk-num-badge {
+    background: #431407;
+    color: #fed7aa;
+    border: 1px solid #f97316;
+}
+
+/* C4 Num Badge */
 .clip-chunk-box.c4 .clip-chunk-num-badge {
-    background: #7f1d1d;
+    background: #450a0a;
     color: #fecaca;
     border: 1px solid #ef4444;
+}
+
+.clip-chunk-zone-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f4f4f5;
 }
 
 .clip-chunk-desc {
@@ -323,7 +991,10 @@
 }
 
 .clip-chunk-cap {
-    font-weight: 700;
+    color: #a1a1aa;
+}
+
+.clip-chunk-cap strong {
     color: #f4f4f5;
 }
 
@@ -331,8 +1002,8 @@
     background: #18181b;
     border: 1px solid #27272a;
     color: #d4d4d8;
-    padding: 4px 10px;
-    border-radius: 5px;
+    padding: 5px 12px;
+    border-radius: 6px;
     font-size: 11px;
     font-weight: 600;
     cursor: pointer;
@@ -342,11 +1013,12 @@
 .clip-chunk-copy-btn:hover {
     background: #27272a;
     color: #ffffff;
+    border-color: #3b82f6;
 }
 
 /* Tokens Board Stream */
 .clip-token-stream {
-    padding: 16px 18px;
+    padding: 18px 20px;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
@@ -372,21 +1044,22 @@
 
 .clip-token-pill:hover {
     background: #27272a;
-    border-color: #3b82f6;
+    border-color: #06b6d4;
     color: #ffffff;
     transform: translateY(-1px);
 }
 
 .clip-token-pill.active {
-    background: #1e3a8a;
-    border-color: #60a5fa;
+    background: #0284c7;
+    border-color: #38bdf8;
     color: #ffffff;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
 }
 
 .clip-token-pill.special-token {
-    background: rgba(59, 130, 246, 0.12);
-    border: 1px dashed rgba(59, 130, 246, 0.5);
-    color: #93c5fd;
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px dashed rgba(6, 182, 212, 0.4);
+    color: #38bdf8;
     font-weight: 600;
 }
 
@@ -418,7 +1091,7 @@
 
 .clip-token-weight {
     font-size: 10px;
-    background: #2563eb;
+    background: #0284c7;
     color: #ffffff;
     padding: 1px 4px;
     border-radius: 3px;
@@ -460,21 +1133,27 @@
 .clip-barrier-desc {
     font-size: 11px;
     color: #a1a1aa;
-    max-width: 600px;
+    max-width: 650px;
     line-height: 1.4;
+}
+
+.clip-barrier-desc strong {
+    color: #fbbf24;
 }
 
 /* Token Inspector Bottom Sheet */
 .clip-token-inspector {
     background: #09090b;
     border: 1px solid #27272a;
-    border-radius: 8px;
-    padding: 14px 18px;
+    border-radius: 10px;
+    padding: 16px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 14px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    border-left: 3px solid #06b6d4;
 }
 
 .clip-inspector-info {

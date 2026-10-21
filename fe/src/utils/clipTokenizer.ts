@@ -43,9 +43,95 @@ export interface TokenizerChunk {
     isOverLimit: boolean;
 }
 
+export interface TagChunkSpan {
+    tagIndex: number;
+    tagText: string;
+    cleanText: string;
+    weight: number;
+    tokens: TokenItem[];
+    startGlobalIndex: number;
+    endGlobalIndex: number;
+    startChunk: number; // 1-based (1, 2, 3...)
+    endChunk: number;   // 1-based (1, 2, 3...)
+    isSplitAcrossChunks: boolean;
+    primaryChunk: number;
+    isLora?: boolean;
+}
+
+export interface ChunkZoneInfo {
+    chunkNumber: number;
+    zoneName: string;
+    zoneSubtitle: string;
+    accentColor: "cyan" | "amber" | "orange" | "red";
+    tokenRange: string;
+    attentionRetainedPercent: number;
+    attentionDropPercent: number;
+    riskLevel: "safe" | "moderate" | "high" | "critical";
+    description: string;
+}
+
+/**
+ * Returns technical metadata and cross-attention drop-off for CLIP 77-token chunks:
+ * - Chunk 1 (Tokens 1–75): Cyan/Blue (Zona Prioritas Utama, 100% full cross-attention)
+ * - Chunk 2 (Tokens 76–150): Yellow/Amber (Zona Sekunder, model attention drops ~15-20%)
+ * - Chunk 3+ (Tokens 151+): Orange/Red (High risk zone for token bleeding and ignored keywords)
+ */
+export function getChunkZoneInfo(chunkNumber: number): ChunkZoneInfo {
+    if (chunkNumber === 1) {
+        return {
+            chunkNumber: 1,
+            zoneName: "Zona Prioritas Utama",
+            zoneSubtitle: "Tokens 1–75 • 100% Full Cross-Attention",
+            accentColor: "cyan",
+            tokenRange: "Token 1–75",
+            attentionRetainedPercent: 100,
+            attentionDropPercent: 0,
+            riskLevel: "safe",
+            description: "Zona prioritas tertinggi CLIP. Semua kata kunci di chunk ini di-encode dengan perhatian model 100% penuh.",
+        };
+    } else if (chunkNumber === 2) {
+        return {
+            chunkNumber: 2,
+            zoneName: "Zona Sekunder",
+            zoneSubtitle: "Tokens 76–150 • Perhatian Menurun ~15-20%",
+            accentColor: "amber",
+            tokenRange: "Token 76–150",
+            attentionRetainedPercent: 82,
+            attentionDropPercent: 18,
+            riskLevel: "moderate",
+            description: "Zona sekunder. Perhatian model menurun sekitar 15-20%. Letakkan detail pelengkap atau latar belakang di sini.",
+        };
+    } else if (chunkNumber === 3) {
+        return {
+            chunkNumber: 3,
+            zoneName: "Zona Resiko Bleeding",
+            zoneSubtitle: "Tokens 151–225 • Perhatian Menurun ~45%",
+            accentColor: "orange",
+            tokenRange: "Token 151–225",
+            attentionRetainedPercent: 55,
+            attentionDropPercent: 45,
+            riskLevel: "high",
+            description: "Zona resiko tinggi token bleeding atau kata kunci terabaikan. Karakteristik subjek dapat bercampur atau terdistorsi.",
+        };
+    } else {
+        return {
+            chunkNumber,
+            zoneName: `Zona Kritis (Chunk ${chunkNumber})`,
+            zoneSubtitle: `Tokens ${(chunkNumber - 1) * 75 + 1}+ • Resiko Diabaikan Sangat Tinggi`,
+            accentColor: "red",
+            tokenRange: `Token ${(chunkNumber - 1) * 75 + 1}–${chunkNumber * 75}`,
+            attentionRetainedPercent: Math.max(15, 40 - (chunkNumber - 3) * 15),
+            attentionDropPercent: Math.min(85, 60 + (chunkNumber - 3) * 15),
+            riskLevel: "critical",
+            description: "Zona resiko kritis. Sebagian besar token di chunk ini akan diabaikan oleh UNet atau gagal memicu aktivasi visual.",
+        };
+    }
+}
+
 export interface TokenizerResult {
     tokens: TokenItem[];
     chunks: TokenizerChunk[];
+    tagSpans: TagChunkSpan[];
     totalTextTokens: number;
     totalChunks: number;
     hazards: ChunkBoundaryHazard[];
@@ -218,6 +304,7 @@ export function tokenizeClipPrompt(rawPrompt: string): TokenizerResult {
                     isOverLimit: false,
                 },
             ],
+            tagSpans: [],
             totalTextTokens: 0,
             totalChunks: 1,
             hazards: [],
@@ -265,6 +352,7 @@ export function tokenizeClipPrompt(rawPrompt: string): TokenizerResult {
 
     const tokens: TokenItem[] = [];
     const hazards: ChunkBoundaryHazard[] = [];
+    const tagSpans: TagChunkSpan[] = [];
     let globalTokenCount = 0;
 
     // Process each tag
@@ -357,15 +445,31 @@ export function tokenizeClipPrompt(rawPrompt: string): TokenizerResult {
             });
         }
 
-        // Check if this tag crossed a 75-token boundary!
-        if (tagTokensList.length > 1) {
-            const firstChunk = tagTokensList[0].chunkIndex;
-            const lastChunk = tagTokensList[tagTokensList.length - 1].chunkIndex;
+        // Record tag chunk span
+        if (tagTokensList.length > 0) {
+            const firstChunk = tagTokensList[0].chunkIndex + 1;
+            const lastChunk = tagTokensList[tagTokensList.length - 1].chunkIndex + 1;
+            const isSplit = firstChunk !== lastChunk;
 
-            if (firstChunk !== lastChunk) {
+            tagSpans.push({
+                tagIndex,
+                tagText: tagStr,
+                cleanText: cleanTag,
+                weight,
+                tokens: tagTokensList,
+                startGlobalIndex: tagTokensStartGlobal,
+                endGlobalIndex: tagTokensStartGlobal + tagTokensList.length - 1,
+                startChunk: firstChunk,
+                endChunk: lastChunk,
+                isSplitAcrossChunks: isSplit,
+                primaryChunk: firstChunk,
+            });
+
+            // Check if this tag crossed a 75-token boundary!
+            if (isSplit) {
                 // Boundary Cut Hazard Detected!
-                const firstChunkTokens = tagTokensList.filter((t) => t.chunkIndex === firstChunk).map((t) => t.text);
-                const secondChunkTokens = tagTokensList.filter((t) => t.chunkIndex === lastChunk).map((t) => t.text);
+                const firstChunkTokens = tagTokensList.filter((t) => t.chunkIndex === firstChunk - 1).map((t) => t.text);
+                const secondChunkTokens = tagTokensList.filter((t) => t.chunkIndex === lastChunk - 1).map((t) => t.text);
 
                 // Mark these tokens with hazard flag
                 tagTokensList.forEach((t) => {
@@ -375,13 +479,13 @@ export function tokenizeClipPrompt(rawPrompt: string): TokenizerResult {
                 hazards.push({
                     tagIndex,
                     tagText: tagStr,
-                    cutBetweenChunk: firstChunk + 1,
+                    cutBetweenChunk: firstChunk,
                     startTokenIndex: tagTokensStartGlobal,
                     endTokenIndex: tagTokensStartGlobal + tagTokensList.length - 1,
                     tokensInFirstChunk: firstChunkTokens,
                     tokensInSecondChunk: secondChunkTokens,
-                    explanation: `Tag "${tagStr}" terbelah tepat pada batas 75-token antara Chunk ${firstChunk + 1} dan Chunk ${lastChunk + 1}.`,
-                    recommendation: `CLIP menghitung self-attention secara independen per-chunk 77 token. Token di Chunk ${lastChunk + 1} tidak dapat meng-attend token di Chunk ${firstChunk + 1}. Pindahkan tag ini ke awal Chunk ${lastChunk + 1} atau perpendek tag sebelumnya agar frasa tetap utuh.`,
+                    explanation: `Tag "${tagStr}" terbelah tepat pada batas 75-token antara Chunk ${firstChunk} dan Chunk ${lastChunk}.`,
+                    recommendation: `CLIP menghitung self-attention secara independen per-chunk 77 token. Token di Chunk ${lastChunk} tidak dapat meng-attend token di Chunk ${firstChunk}. Pindahkan tag ini ke awal Chunk ${lastChunk} atau perpendek tag sebelumnya agar frasa tetap utuh.`,
                 });
             }
         }
@@ -407,6 +511,7 @@ export function tokenizeClipPrompt(rawPrompt: string): TokenizerResult {
     return {
         tokens,
         chunks,
+        tagSpans,
         totalTextTokens: tokens.length,
         totalChunks,
         hazards,
