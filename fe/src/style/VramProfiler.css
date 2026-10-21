@@ -689,6 +689,238 @@
     color: #f4f4f5;
 }
 
+/* System RAM & CPU Offloading Meter Card */
+.vram-ram-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vram-ram-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vram-ram-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-ram-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.vram-ram-badge.ram-safe {
+    background: #064e3b;
+    color: #6ee7b7;
+    border: 1px solid #10b981;
+}
+
+.vram-ram-badge.ram-warn {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+}
+
+.vram-ram-badge.ram-danger {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: 1px solid #ef4444;
+}
+
+.vram-ram-track {
+    height: 10px;
+    background: #18181b;
+    border-radius: 5px;
+    overflow: hidden;
+    border: 1px solid #27272a;
+}
+
+.vram-ram-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 5px;
+}
+
+.vram-ram-fill.ram-safe {
+    background: #10b981;
+}
+
+.vram-ram-fill.ram-warn {
+    background: #f59e0b;
+}
+
+.vram-ram-fill.ram-danger {
+    background: #ef4444;
+}
+
+.vram-ram-stats-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.vram-ram-selector-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.vram-ram-chip {
+    background: #121215;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-ram-chip:hover {
+    color: #f4f4f5;
+    border-color: #3b82f6;
+}
+
+.vram-ram-chip.active {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.vram-ram-alert-msg {
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #121215;
+    border: 1px solid #27272a;
+}
+
+.vram-ram-alert-msg.ram-safe {
+    border-left: 3px solid #10b981;
+    color: #a7f3d0;
+}
+
+.vram-ram-alert-msg.ram-warn {
+    border-left: 3px solid #f59e0b;
+    color: #fde68a;
+}
+
+.vram-ram-alert-msg.ram-danger {
+    border-left: 3px solid #ef4444;
+    color: #fecaca;
+}
+
+/* Hi-Res Fix & 2-Pass Workflow Simulator Styles */
+.vram-multipass-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.vram-pass-box {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: all 0.2s ease;
+}
+
+.vram-pass-box.active-risk {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.vram-pass-box.pass-safe {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.vram-pass-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vram-pass-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.vram-pass-badge.p1 {
+    background: #1e3a8a;
+    color: #bfdbfe;
+}
+
+.vram-pass-badge.p2 {
+    background: #78350f;
+    color: #fde68a;
+}
+
+.vram-pass-badge.p3 {
+    background: #4c1d95;
+    color: #ddd6fe;
+}
+
+.vram-pass-res {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-family: monospace;
+}
+
+.vram-pass-vram-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: #f4f4f5;
+    letter-spacing: -0.02em;
+}
+
+.vram-pass-note {
+    font-size: 11px;
+    color: #71717a;
+    line-height: 1.4;
+}
+
+.vram-upscaler-chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.vram-workflow-toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 10px;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
     .vram-main-grid {

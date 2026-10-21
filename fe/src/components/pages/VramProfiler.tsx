@@ -224,6 +224,16 @@ export default function VramProfiler() {
     const [customGpuVram, setCustomGpuVram] = useState<number>(8);
     const [copiedFlags, setCopiedFlags] = useState<boolean>(false);
 
+    // 8. System RAM Target (DDR4/DDR5) for Host CPU Offloading
+    const [systemRamGb, setSystemRamGb] = useState<number>(32);
+
+    // 9. Hi-Res Fix & Workflow Post-Processing Simulator
+    const [enableHiresFix, setEnableHiresFix] = useState<boolean>(false);
+    const [hiresScale, setHiresScale] = useState<number>(1.5);
+    const [upscaleMethod, setUpscaleMethod] = useState<"latent" | "ultimate_sd" | "model_upscale">("latent");
+    const [enableFaceDetailer, setEnableFaceDetailer] = useState<boolean>(false);
+    const [enableRefiner, setEnableRefiner] = useState<boolean>(false);
+
     // Update defaults if model changes
     const handleSelectModel = (key: string) => {
         setModelKey(key);
@@ -369,6 +379,131 @@ export default function VramProfiler() {
         targetGpuVram,
     ]);
 
+    // SYSTEM RAM (DDR4/DDR5) ALLOCATION ENGINE FOR CPU OFFLOADING
+    const ramTelemetry = useMemo(() => {
+        const osBaselineGb = 4.5;
+        const pythonHostGb = 2.5;
+
+        let offloadedWeightsGb = 0;
+        // Text Encoder offloaded
+        if (teKey === "none") {
+            if (activeModel.id === "flux" || activeModel.id.startsWith("sd35")) {
+                offloadedWeightsGb += 4.9; // T5-XXL FP8
+            } else if (activeModel.isTextToVideo) {
+                offloadedWeightsGb += 4.8; // UMT5 FP8
+            } else if (activeModel.id === "sdxl" || activeModel.id === "pony" || activeModel.id === "illustrious") {
+                offloadedWeightsGb += 1.64; // Dual CLIP
+            } else {
+                offloadedWeightsGb += 0.24; // CLIP-L
+            }
+        }
+
+        // When VRAM is insufficient and ComfyUI / lowvram caches weights in RAM
+        if (telemetry.status === "offload" || telemetry.status === "danger") {
+            offloadedWeightsGb += telemetry.weightsGb;
+        }
+
+        // 2-Pass Refiner model cached in RAM
+        if (enableRefiner) {
+            offloadedWeightsGb += 4.6;
+        }
+
+        const totalRamNeededGb = osBaselineGb + pythonHostGb + offloadedWeightsGb;
+        const ramRatio = totalRamNeededGb / systemRamGb;
+        const ramHeadroomGb = systemRamGb - totalRamNeededGb;
+
+        let ramStatus: "ram-safe" | "ram-warn" | "ram-danger" = "ram-safe";
+        let ramBadge = "RAM Aman (Tanpa Paging)";
+        let ramMessage = `Kapasitas RAM PC ${systemRamGb} GB mencukupi untuk offload tanpa swap ke SSD.`;
+
+        if (ramRatio > 0.95) {
+            ramStatus = "ram-danger";
+            ramBadge = "Bahaya Disk-Thrashing";
+            ramMessage = `RAM PC (${systemRamGb} GB) kurang! Windows akan mem-paging tensor ke SSD/Pagefile, membuat generasi melambat 50x–100x lipat. Disarankan upgrade ke ${systemRamGb < 32 ? "32 GB" : "64 GB"} RAM.`;
+        } else if (ramRatio > 0.8) {
+            ramStatus = "ram-warn";
+            ramBadge = "RAM Ketat (>80%)";
+            ramMessage = `Penggunaan RAM sistem mencapai ${(ramRatio * 100).toFixed(0)}%. Tutup aplikasi background berat agar terhindar dari paging memori.`;
+        }
+
+        return {
+            osBaselineGb,
+            pythonHostGb,
+            offloadedWeightsGb,
+            totalRamNeededGb,
+            ramRatio,
+            ramHeadroomGb,
+            ramStatus,
+            ramBadge,
+            ramMessage,
+        };
+    }, [teKey, activeModel, telemetry.status, telemetry.weightsGb, enableRefiner, systemRamGb]);
+
+    // MULTI-PASS & HI-RES WORKFLOW TELEMETRY
+    const multiPassTelemetry = useMemo(() => {
+        const pass1Vram = telemetry.totalVramGb;
+        const pass1W = width;
+        const pass1H = height;
+
+        const pass2W = Math.round(width * hiresScale);
+        const pass2H = Math.round(height * hiresScale);
+        const pass2ScaleFactor = hiresScale * hiresScale;
+
+        let pass2Vram = pass1Vram;
+        let pass2Note = "Hi-Res Fix tidak aktif.";
+
+        if (enableHiresFix) {
+            if (upscaleMethod === "latent") {
+                const scaledLatentKv = (telemetry.kvGb + telemetry.latentGb) * (useSdpAttention ? hiresScale : pass2ScaleFactor);
+                const pass2Vae = useTiledVae ? telemetry.vaeGb : telemetry.vaeGb * pass2ScaleFactor;
+                pass2Vram = telemetry.weightsGb + telemetry.teGb + scaledLatentKv + pass2Vae + telemetry.lorasGb + telemetry.controlnetsGb + telemetry.cudaOverheadGb;
+                pass2Note = `Full Latent Denoising @ ${pass2W}×${pass2H}. Perhatian memori melonjak tajam!`;
+            } else if (upscaleMethod === "ultimate_sd") {
+                pass2Vram = pass1Vram + 0.65;
+                pass2Note = `Ultimate SD Upscale: Memproses ubin bersekat (tiled). Memori dibatasi dan aman dari OOM!`;
+            } else {
+                pass2Vram = pass1Vram + 0.85;
+                pass2Note = `Model Upscale (ESRGAN): Upscale spasial via neural filter CNN ringan (~850 MB VRAM).`;
+            }
+        }
+
+        let postProcessVram = enableHiresFix ? pass2Vram : pass1Vram;
+        if (enableFaceDetailer) {
+            postProcessVram += 0.95;
+        }
+        if (enableRefiner && !enableHiresFix) {
+            postProcessVram += 2.2;
+        }
+
+        const isPass2Risk = pass2Vram > targetGpuVram;
+        const isPostProcessRisk = postProcessVram > targetGpuVram;
+
+        return {
+            pass1Vram,
+            pass1W,
+            pass1H,
+            pass2W,
+            pass2H,
+            pass2Vram,
+            pass2Note,
+            postProcessVram,
+            isPass2Risk,
+            isPostProcessRisk,
+        };
+    }, [
+        telemetry,
+        width,
+        height,
+        hiresScale,
+        enableHiresFix,
+        upscaleMethod,
+        useSdpAttention,
+        useTiledVae,
+        enableFaceDetailer,
+        enableRefiner,
+        targetGpuVram,
+    ]);
+
     // Command-line flag generator
     const recommendedCliFlags = useMemo(() => {
         const flags: string[] = ["--opt-sdp-attention", "--pin-shared-memory"];
@@ -413,6 +548,12 @@ export default function VramProfiler() {
         setUseTiledVae(true);
         setUseMedvramChunking(false);
         setGpuPresetId("rtx4060");
+        setSystemRamGb(32);
+        setEnableHiresFix(false);
+        setHiresScale(1.5);
+        setUpscaleMethod("latent");
+        setEnableFaceDetailer(false);
+        setEnableRefiner(false);
     };
 
     return (
@@ -727,6 +868,125 @@ export default function VramProfiler() {
                             </div>
                         </div>
                     </div>
+
+                    {/* SECTION 6: WORKFLOW & MULTI-PASS UPSCALER SIMULATOR */}
+                    <div className="vram-section-card">
+                        <div className="vram-section-header">
+                            <div className="vram-section-title-wrap">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="15 3 21 3 21 9" />
+                                    <polyline points="9 21 3 21 3 15" />
+                                    <line x1="21" y1="3" x2="14" y2="10" />
+                                    <line x1="3" y1="21" x2="10" y2="14" />
+                                </svg>
+                                <span>6. Workflow Post-Processing &amp; Hi-Res Fix Simulator</span>
+                            </div>
+                            <span className="vram-section-badge">
+                                {enableHiresFix ? `${hiresScale}x Upscale` : "Single Pass"}
+                            </span>
+                        </div>
+
+                        {/* Hi-Res Fix Toggle */}
+                        <div
+                            className="vram-toggle-row"
+                            onClick={() => setEnableHiresFix(!enableHiresFix)}
+                        >
+                            <div className="vram-toggle-info">
+                                <span className="vram-toggle-title">Simulasi Hi-Res Fix (2-Pass Denoising)</span>
+                                <span className="vram-toggle-desc">Penyebab utama OOM di WebUI. Menguji lonjakan VRAM saat Pass 2 latent upscaling.</span>
+                            </div>
+                            <div className={`vram-switch ${enableHiresFix ? "active" : ""}`}>
+                                <div className="vram-switch-handle" />
+                            </div>
+                        </div>
+
+                        {enableHiresFix && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "4px" }}>
+                                {/* Scale Selector */}
+                                <div className="vram-slider-row">
+                                    <div className="vram-slider-top">
+                                        <span>Skala Pembesaran (Hi-Res Scale):</span>
+                                        <span className="vram-slider-val">{hiresScale}x ({multiPassTelemetry.pass2W}×{multiPassTelemetry.pass2H} px)</span>
+                                    </div>
+                                    <div className="vram-upscaler-chips">
+                                        {[1.25, 1.5, 1.75, 2.0].map((s) => (
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                className={`vram-res-preset-chip ${hiresScale === s ? "active" : ""}`}
+                                                onClick={() => setHiresScale(s)}
+                                            >
+                                                {s}x {s === 2.0 ? "(4K Mode)" : ""}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Upscaling Algorithm */}
+                                <div className="vram-input-field">
+                                    <label className="vram-input-label">Metode Upscaling di Workflow:</label>
+                                    <div className="vram-quant-grid">
+                                        <button
+                                            type="button"
+                                            className={`vram-quant-btn ${upscaleMethod === "latent" ? "active" : ""}`}
+                                            onClick={() => setUpscaleMethod("latent")}
+                                            title="Latent upscale: memproses seluruh tensor resolusi tinggi (resiko OOM tinggi)"
+                                        >
+                                            <span className="vram-quant-name">Latent (Full Denoise)</span>
+                                            <span className="vram-quant-desc">Memori O(N²) lonjak drastis</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-quant-btn ${upscaleMethod === "ultimate_sd" ? "active" : ""}`}
+                                            onClick={() => setUpscaleMethod("ultimate_sd")}
+                                            title="Ultimate SD Upscale: memotong canvas jadi ubin berurutan (hemat memori)"
+                                        >
+                                            <span className="vram-quant-name">Ultimate SD Upscale</span>
+                                            <span className="vram-quant-desc">Tiled 2K/4K hemat VRAM</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`vram-quant-btn ${upscaleMethod === "model_upscale" ? "active" : ""}`}
+                                            onClick={() => setUpscaleMethod("model_upscale")}
+                                            title="Neural model upscale: 4x-UltraSharp / ESRGAN"
+                                        >
+                                            <span className="vram-quant-name">ESRGAN / UltraSharp</span>
+                                            <span className="vram-quant-desc">Filter CNN ringan ~850MB</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Workflow Modules: FaceDetailer & Refiner */}
+                        <div className="vram-workflow-toggle-grid">
+                            <div
+                                className="vram-toggle-row"
+                                onClick={() => setEnableFaceDetailer(!enableFaceDetailer)}
+                            >
+                                <div className="vram-toggle-info">
+                                    <span className="vram-toggle-title">FaceDetailer / ADetailer Pass</span>
+                                    <span className="vram-toggle-desc">YOLOv8 face detection + localized inpaint KSampler (~+0.95 GB VRAM)</span>
+                                </div>
+                                <div className={`vram-switch ${enableFaceDetailer ? "active" : ""}`}>
+                                    <div className="vram-switch-handle" />
+                                </div>
+                            </div>
+
+                            <div
+                                className="vram-toggle-row"
+                                onClick={() => setEnableRefiner(!enableRefiner)}
+                            >
+                                <div className="vram-toggle-info">
+                                    <span className="vram-toggle-title">2-Pass Refiner (SDXL 2nd KSampler)</span>
+                                    <span className="vram-toggle-desc">Peralihan base model ke refiner model di tahap akhir sampling</span>
+                                </div>
+                                <div className={`vram-switch ${enableRefiner ? "active" : ""}`}>
+                                    <div className="vram-switch-handle" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Right Column: Real-Time Output & Telemetry */}
@@ -841,6 +1101,131 @@ export default function VramProfiler() {
                         <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#d4d4d8", lineHeight: 1.5 }}>
                             {telemetry.statusMessage}
                         </p>
+                    </div>
+
+                    {/* DUAL METER 2: SYSTEM RAM & CPU OFFLOAD METER */}
+                    <div className="vram-ram-card">
+                        <div className="vram-ram-header">
+                            <div className="vram-ram-title-wrap">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                                    <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                                    <line x1="6" y1="6" x2="6.01" y2="6" />
+                                    <line x1="6" y1="18" x2="6.01" y2="18" />
+                                </svg>
+                                <span>Kebutuhan RAM Sistem (DDR4/DDR5)</span>
+                            </div>
+                            <span className={`vram-ram-badge ${ramTelemetry.ramStatus}`}>
+                                {ramTelemetry.ramBadge}
+                            </span>
+                        </div>
+
+                        {/* Progress Bar RAM */}
+                        <div className="vram-ram-track">
+                            <div
+                                className={`vram-ram-fill ${ramTelemetry.ramStatus}`}
+                                style={{ width: `${Math.min(100, Math.round(ramTelemetry.ramRatio * 100))}%` }}
+                            />
+                        </div>
+
+                        <div className="vram-ram-stats-row">
+                            <span>
+                                Terpakai: <strong>~{ramTelemetry.totalRamNeededGb.toFixed(1)} GB</strong> ({Math.round(ramTelemetry.ramRatio * 100)}%)
+                            </span>
+                            <span>
+                                Kapasitas: <strong>{systemRamGb} GB RAM</strong>
+                            </span>
+                        </div>
+
+                        {/* RAM Selector Chips */}
+                        <div className="vram-ram-selector-row">
+                            <span style={{ fontSize: "11px", color: "#71717a" }}>Pilih RAM PC Anda:</span>
+                            {[16, 32, 64, 128].map((gb) => (
+                                <button
+                                    key={gb}
+                                    type="button"
+                                    className={`vram-ram-chip ${systemRamGb === gb ? "active" : ""}`}
+                                    onClick={() => setSystemRamGb(gb)}
+                                >
+                                    {gb} GB
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className={`vram-ram-alert-msg ${ramTelemetry.ramStatus}`}>
+                            {ramTelemetry.ramMessage}
+                        </div>
+                    </div>
+
+                    {/* MULTI-PASS WORKFLOW COMPARISON TELEMETRY */}
+                    <div className="vram-section-card" style={{ padding: "16px 18px" }}>
+                        <div className="vram-section-header" style={{ paddingBottom: "10px" }}>
+                            <div className="vram-section-title-wrap">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                                    <path d="M3 9h18" />
+                                    <path d="M9 21V9" />
+                                </svg>
+                                <span>Multi-Pass Workflow Telemetry</span>
+                            </div>
+                            <span className="vram-section-badge">
+                                {multiPassTelemetry.isPass2Risk ? "⚠️ Resiko OOM Pass 2" : "3-Pass Aman"}
+                            </span>
+                        </div>
+
+                        <div className="vram-multipass-grid">
+                            {/* Pass 1 Box */}
+                            <div className="vram-pass-box pass-safe">
+                                <div className="vram-pass-top">
+                                    <span className="vram-pass-badge p1">Pass 1: Base</span>
+                                    <span className="vram-pass-res">{multiPassTelemetry.pass1W}×{multiPassTelemetry.pass1H}</span>
+                                </div>
+                                <div className="vram-pass-vram-num">
+                                    ~{multiPassTelemetry.pass1Vram.toFixed(1)} GB
+                                </div>
+                                <span className="vram-pass-note">
+                                    Generasi awal native model.
+                                </span>
+                            </div>
+
+                            {/* Pass 2 Box */}
+                            <div className={`vram-pass-box ${multiPassTelemetry.isPass2Risk ? "active-risk" : "pass-safe"}`}>
+                                <div className="vram-pass-top">
+                                    <span className="vram-pass-badge p2">Pass 2: Hi-Res</span>
+                                    <span className="vram-pass-res">
+                                        {enableHiresFix ? `${multiPassTelemetry.pass2W}×${multiPassTelemetry.pass2H}` : "Nonaktif"}
+                                    </span>
+                                </div>
+                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPass2Risk ? "#f87171" : "#f4f4f5" }}>
+                                    ~{multiPassTelemetry.pass2Vram.toFixed(1)} GB
+                                </div>
+                                <span className="vram-pass-note">
+                                    {multiPassTelemetry.pass2Note}
+                                </span>
+                            </div>
+
+                            {/* Post-Process Box */}
+                            <div className={`vram-pass-box ${multiPassTelemetry.isPostProcessRisk ? "active-risk" : "pass-safe"}`}>
+                                <div className="vram-pass-top">
+                                    <span className="vram-pass-badge p3">Post-Process</span>
+                                    <span className="vram-pass-res">
+                                        {enableFaceDetailer ? "ADetailer" : enableRefiner ? "Refiner" : "Clean"}
+                                    </span>
+                                </div>
+                                <div className="vram-pass-vram-num" style={{ color: multiPassTelemetry.isPostProcessRisk ? "#f87171" : "#f4f4f5" }}>
+                                    ~{multiPassTelemetry.postProcessVram.toFixed(1)} GB
+                                </div>
+                                <span className="vram-pass-note">
+                                    {enableFaceDetailer ? "YOLOv8 Face Inpainting aktif." : "Final output render."}
+                                </span>
+                            </div>
+                        </div>
+
+                        {multiPassTelemetry.isPass2Risk && (
+                            <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", borderRadius: "6px", fontSize: "12px", color: "#fca5a5", lineHeight: "1.4" }}>
+                                ⚠️ <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat di GPU, namun Pass 2 (Hi-Res Fix) melebihi VRAM {targetGpuVram} GB GPU Anda! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong> untuk mencegah crash OOM.
+                            </div>
+                        )}
                     </div>
 
                     {/* TARGET GPU SELECTOR */}
