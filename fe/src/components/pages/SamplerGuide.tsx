@@ -412,7 +412,7 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     name: "Simple",
     formula: "t_i = t_max * (1 - i / N)",
     category: "uniform",
-    color: "#8b5cf6", // Solid Purple
+    color: "#38bdf8", // Solid Sky Blue
     description: "Jadwal linier diskrit langsung menuju nol pada ruang timesteps model. Merupakan scheduler default dan baseline resmi FLUX.1 di ComfyUI.",
     focusPhase: "Linier / Seragam",
     bestFor: "FLUX.1 [dev] dan FLUX.1 [schnell], baseline ComfyUI.",
@@ -754,9 +754,29 @@ export default function SamplerGuide() {
   // Toast State
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Copy to clipboard state & collapsible drawer state
+  const [copiedSamplerId, setCopiedSamplerId] = useState<string | null>(null);
+  const [expandedDrawers, setExpandedDrawers] = useState<Record<string, boolean>>({});
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 2500);
+  };
+
+  const handleCopyComfyName = (samplerId: string, comfyName: string) => {
+    navigator.clipboard.writeText(comfyName);
+    setCopiedSamplerId(samplerId);
+    triggerToast(`ComfyUI Node ID "${comfyName}" berhasil disalin!`);
+    setTimeout(() => {
+      setCopiedSamplerId((prev) => (prev === samplerId ? null : prev));
+    }, 2000);
+  };
+
+  const toggleDrawer = (id: string) => {
+    setExpandedDrawers((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
   };
 
   // Workflow Bridge Apply Handler
@@ -891,49 +911,46 @@ export default function SamplerGuide() {
         </div>
       )}
 
-      {/* Header Section */}
+      {/* Header Section (Ringkas & Solid) */}
       <header className="sg-header">
         <div className="sg-header-left">
           <div className="sg-title-row">
             <h1 className="sg-title">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg className="sg-title-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="20" x2="18" y2="10" />
                 <line x1="12" y1="20" x2="12" y2="4" />
                 <line x1="6" y1="20" x2="6" y2="14" />
               </svg>
-              Visual Sampler &amp; Scheduler Guide
+              Panduan Visual Sampler &amp; Scheduler
             </h1>
-            <span className="sg-badge">Diffusion Mathematics</span>
           </div>
           <p className="sg-subtitle">
-            Kamus komprehensif algoritma sampling (Euler, DPM++, DDIM, UniPC, FLUX) dan visualisasi kurva peluruhan noise (Karras, SGM Uniform, Exponential, AYS) untuk ComfyUI, Auto1111, dan Forge.
+            Referensi teknis algoritma sampling dan kurva peluruhan noise matematis untuk ComfyUI, WebUI, dan Forge.
           </p>
         </div>
 
-        <div className="sg-header-stats">
-          <div className="sg-stat-chip">
-            <span>Algoritma:</span>
-            <strong>{SAMPLER_DIRECTORY.length} Sampler</strong>
-          </div>
-          <div className="sg-stat-chip">
-            <span>Kurva Sigma:</span>
-            <strong>{SCHEDULER_DIRECTORY.length} Scheduler</strong>
-          </div>
-          <div className="sg-stat-chip">
-            <span>Dasar:</span>
-            <strong style={{ color: "#10b981" }}>Dokumentasi &amp; Source Code</strong>
-          </div>
+        <div className="sg-header-stats-bar">
+          <strong>{SAMPLER_DIRECTORY.length} Sampler</strong>
+          <span className="sg-stats-dot">·</span>
+          <strong>{SCHEDULER_DIRECTORY.length} Scheduler</strong>
+          <span className="sg-stats-dot">·</span>
+          <span>Referensi Numerik</span>
         </div>
       </header>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs (Satu Baris, Bebas Emoji, SVG Lucide Monokrom) */}
       <div className="sg-nav-tabs" role="tablist">
         <button
           type="button"
           className={`sg-tab-btn ${activeTab === "directory" ? "active" : ""}`}
           onClick={() => setActiveTab("directory")}
         >
-          <span>📚 Direktori &amp; Arsitektur Sampler</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/>
+            <path d="M6 6h10"/>
+            <path d="M6 10h10"/>
+          </svg>
+          <span>Direktori &amp; Arsitektur Sampler</span>
           <span className="sg-tab-count">{filteredSamplers.length}</span>
         </button>
 
@@ -942,7 +959,11 @@ export default function SamplerGuide() {
           className={`sg-tab-btn ${activeTab === "plotter" ? "active" : ""}`}
           onClick={() => setActiveTab("plotter")}
         >
-          <span>📈 Plotter Kurva Sigma (Scheduler)</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="m19 9-5 5-4-4-3 3"/>
+          </svg>
+          <span>Plotter Kurva Sigma (Scheduler)</span>
           <span className="sg-tab-count">Interactive SVG</span>
         </button>
 
@@ -951,7 +972,18 @@ export default function SamplerGuide() {
           className={`sg-tab-btn ${activeTab === "recipes" ? "active" : ""}`}
           onClick={() => setActiveTab("recipes")}
         >
-          <span>🎯 Resep &amp; Matriks Rekomendasi</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="4" x2="4" y1="21" y2="14"/>
+            <line x1="4" x2="4" y1="10" y2="3"/>
+            <line x1="12" x2="12" y1="21" y2="12"/>
+            <line x1="12" x2="12" y1="8" y2="3"/>
+            <line x1="20" x2="20" y1="21" y2="16"/>
+            <line x1="20" x2="20" y1="12" y2="3"/>
+            <line x1="1" x2="7" y1="14" y2="14"/>
+            <line x1="9" x2="15" y1="8" y2="8"/>
+            <line x1="17" x2="23" y1="16" y2="16"/>
+          </svg>
+          <span>Resep &amp; Matriks Rekomendasi</span>
           <span className="sg-tab-count">{CURATED_RECIPES.length}</span>
         </button>
 
@@ -960,7 +992,13 @@ export default function SamplerGuide() {
           className={`sg-tab-btn ${activeTab === "battle" ? "active" : ""}`}
           onClick={() => setActiveTab("battle")}
         >
-          <span>⚔️ Head-to-Head Battle</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="18" r="3"/>
+            <circle cx="6" cy="6" r="3"/>
+            <path d="M13 6h3a2 2 0 0 1 2 2v7"/>
+            <path d="M11 18H8a2 2 0 0 1-2-2V9"/>
+          </svg>
+          <span>Head-to-Head Battle</span>
         </button>
 
         <button
@@ -968,7 +1006,19 @@ export default function SamplerGuide() {
           className={`sg-tab-btn ${activeTab === "wizard" ? "active" : ""}`}
           onClick={() => setActiveTab("wizard")}
         >
-          <span>🧙 Simulator Rekomendasi Pintar</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="16" height="16" x="4" y="4" rx="2"/>
+            <rect width="6" height="6" x="9" y="9" rx="1"/>
+            <path d="M15 2v2"/>
+            <path d="M15 20v2"/>
+            <path d="M2 15h2"/>
+            <path d="M2 9h2"/>
+            <path d="M20 15h2"/>
+            <path d="M20 9h2"/>
+            <path d="M9 2v2"/>
+            <path d="M9 20v2"/>
+          </svg>
+          <span>Simulator Rekomendasi Pintar</span>
         </button>
       </div>
 
@@ -977,140 +1027,206 @@ export default function SamplerGuide() {
          ===================================================================== */}
       {activeTab === "directory" && (
         <section>
-          {/* Controls Bar */}
+          {/* Controls Bar (Search Input & Dropdowns in One Compact Row) */}
           <div className="sg-controls-bar">
-            <div className="sg-controls-left">
-              <div className="sg-search-wrap">
-                <span className="sg-search-icon">🔍</span>
-                <input
-                  type="text"
-                  placeholder="Cari sampler (e.g. DPM++, Euler, FLUX)..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="sg-search-input"
-                />
-              </div>
-
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="sg-filter-select"
-              >
-                <option value="all">Semua Tipe Algoritma</option>
-                <option value="deterministic">Deterministik (Konvergen)</option>
-                <option value="stochastic">Stokastik (Ancestral / SDE)</option>
-                <option value="flow_matching">Flow Matching (FLUX)</option>
-                <option value="accelerated">Accelerated (LCM / Turbo)</option>
-              </select>
-
-              <select
-                value={archFilter}
-                onChange={(e) => setArchFilter(e.target.value)}
-                className="sg-filter-select"
-              >
-                <option value="all">Semua Model</option>
-                <option value="SDXL">SDXL</option>
-                <option value="Pony">Pony Diffusion</option>
-                <option value="Illustrious">Illustrious XL</option>
-                <option value="Flux">FLUX.1</option>
-                <option value="SD 1.5">SD 1.5</option>
-              </select>
+            <div className="sg-search-wrap">
+              <svg className="sg-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Cari sampler: dpmpp_2m, euler, unipc..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="sg-search-input"
+              />
             </div>
 
-            <div style={{ fontSize: "12px", color: "#a1a1aa" }}>
-              Menampilkan <strong>{filteredSamplers.length}</strong> algoritma
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="sg-filter-select"
+            >
+              <option value="all">Semua Sifat (Deterministik / Stokastik)</option>
+              <option value="deterministic">Deterministik</option>
+              <option value="stochastic">Stokastik</option>
+              <option value="flow_matching">Flow Matching</option>
+              <option value="accelerated">Accelerated</option>
+            </select>
+
+            <select
+              value={archFilter}
+              onChange={(e) => setArchFilter(e.target.value)}
+              className="sg-filter-select"
+            >
+              <option value="all">Semua Arsitektur Model</option>
+              <option value="SDXL">SDXL</option>
+              <option value="Pony">Pony Diffusion</option>
+              <option value="Illustrious">Illustrious XL</option>
+              <option value="Flux">FLUX.1</option>
+              <option value="SD 1.5">SD 1.5</option>
+            </select>
+
+            <div className="sg-controls-count">
+              Menampilkan <strong>{filteredSamplers.length}</strong> sampler
             </div>
           </div>
 
-          {/* Sampler Cards Grid */}
+          {/* Sampler Cards Grid (Zero Nested Boxes, Clear 3-Col Specs, Vertical Characteristics) */}
           <div className="sg-grid">
             {filteredSamplers.map((sampler) => (
               <div key={sampler.id} className="sg-card">
-                <div className="sg-card-header">
-                  <div className="sg-card-title-group">
+                {/* 1. Header Kartu & ID Teknis */}
+                <div className="sg-card-top">
+                  <div className="sg-card-header-row">
                     <h3 className="sg-card-title">{sampler.name}</h3>
-                    <span className="sg-card-subtitle">
-                      ComfyUI: <code>{sampler.comfyName}</code> • WebUI: <code>{sampler.webuiName}</code>
+                    <span className={`sg-nature-badge ${sampler.category}`}>
+                      {sampler.category === "deterministic" && "DETERMINISTIK"}
+                      {sampler.category === "stochastic" && "STOKASTIK"}
+                      {sampler.category === "flow_matching" && "FLOW MATCHING"}
+                      {sampler.category === "accelerated" && "ACCELERATED"}
                     </span>
                   </div>
-                  <span className={`sg-type-pill ${sampler.category}`}>
-                    {sampler.category === "deterministic" && "Deterministik"}
-                    {sampler.category === "stochastic" && "Stokastik"}
-                    {sampler.category === "flow_matching" && "Flow Matching"}
-                    {sampler.category === "accelerated" && "Accelerated"}
-                  </span>
-                </div>
 
-                <div className="sg-specs-row">
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">Orde &amp; NFE</span>
-                    <span className="sg-spec-val">
-                      {sampler.order}nd / {sampler.nfePerStep} NFE
+                  <div className="sg-card-id-row">
+                    <button
+                      type="button"
+                      className="sg-id-chip comfy"
+                      onClick={() => handleCopyComfyName(sampler.id, sampler.comfyName)}
+                      title="Klik untuk salin nama node ComfyUI"
+                    >
+                      <span className="sg-id-chip-label">ComfyUI:</span>
+                      <code className="sg-id-code">{sampler.comfyName}</code>
+                      {copiedSamplerId === sampler.id ? (
+                        <svg className="sg-copy-icon copied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      ) : (
+                        <svg className="sg-copy-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+                          <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
+                        </svg>
+                      )}
+                    </button>
+                    <span className="sg-id-divider">·</span>
+                    <span className="sg-id-chip webui">
+                      <span className="sg-id-chip-label">WebUI:</span>
+                      <code className="sg-id-code">{sampler.webuiName}</code>
                     </span>
                   </div>
-                  <div className="sg-spec-col" title="Titik awal eksperimen; bukan nilai universal">
-                    <span className="sg-spec-label">Titik Awal Steps</span>
-                    <span className="sg-spec-val">{sampler.optimalSteps}</span>
+                </div>
+
+                {/* 2. Bar Spesifikasi Utama (3 Kolom Saja - Tanpa Duplikasi Sifat Aliran) */}
+                <div className="sg-specs-strip">
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">ORDE / NFE</span>
+                    <span className="sg-specs-strip-val">{sampler.order}nd / {sampler.nfePerStep} NFE</span>
                   </div>
-                  <div className="sg-spec-col" title="Titik awal eksperimen; bukan nilai mutlak">
-                    <span className="sg-spec-label">Titik Awal CFG</span>
-                    <span className="sg-spec-val">{sampler.optimalCfg}</span>
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">RENTANG STEPS</span>
+                    <span className="sg-specs-strip-val steps">{sampler.optimalSteps}</span>
                   </div>
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">Sifat Aliran</span>
-                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#cbd5e1" : sampler.category === "flow_matching" ? "#38bdf8" : "#f59e0b" }}>
-                      {sampler.category === "deterministic" ? "Deterministik" : sampler.category === "flow_matching" ? "Flow Match" : "Stokastik"}
-                    </span>
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">RENTANG CFG</span>
+                    <span className="sg-specs-strip-val">{sampler.optimalCfg}</span>
                   </div>
                 </div>
 
-                <p className="sg-card-desc">{sampler.summary}</p>
+                {/* 3. Ringkasan & Karakteristik Vertikal (Bebas Kotak Bertumpuk) */}
+                <p className="sg-card-summary">{sampler.summary}</p>
 
-                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#18181b", padding: "8px 10px", borderRadius: "6px", border: "1px solid #27272a" }}>
-                  <strong style={{ color: "#d4d4d8" }}>Prinsip Numerik: </strong>
-                  {sampler.mechanism}
+                <div className="sg-vertical-characteristics">
+                  <div className="sg-char-group">
+                    <div className="sg-char-heading pros">
+                      <span className="sg-char-sign">+</span>
+                      <span>Karakteristik Utama (Kelebihan)</span>
+                    </div>
+                    <ul className="sg-char-list">
+                      {sampler.pros.map((pro, idx) => (
+                        <li key={idx} className="sg-char-item">
+                          <span className="sg-bullet pros">✓</span>
+                          <span className="sg-char-text pros">{pro}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="sg-char-group">
+                    <div className="sg-char-heading cons">
+                      <span className="sg-char-sign">–</span>
+                      <span>Batasan Teknis (Kelemahan)</span>
+                    </div>
+                    <ul className="sg-char-list">
+                      {sampler.cons.map((con, idx) => (
+                        <li key={idx} className="sg-char-item">
+                          <span className="sg-bullet cons">–</span>
+                          <span className="sg-char-text cons">{con}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
 
-                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#121215", padding: "7px 10px", borderRadius: "6px", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
-                  <span>
-                    <strong style={{ color: "#d4d4d8" }}>Rujukan Ilmiah: </strong>
-                    {sampler.paperTitle}
-                  </span>
-                  <a
-                    href={sampler.paperUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "11px", fontWeight: 600 }}
+                {/* 4. Collapsible Drawer / Baris Mikro: Prinsip Numerik & Rujukan Ilmiah */}
+                <div className="sg-drawer-wrap">
+                  <button
+                    type="button"
+                    className={`sg-drawer-trigger ${expandedDrawers[sampler.id] ? "expanded" : ""}`}
+                    onClick={() => toggleDrawer(sampler.id)}
                   >
-                    Buka Paper / Source ↗
-                  </a>
+                    <span className="sg-drawer-trigger-text">
+                      Lihat Prinsip Numerik &amp; Paper ({sampler.paperTitle.split(" - ")[0] || sampler.paperTitle})
+                    </span>
+                    <svg
+                      className={`sg-drawer-arrow ${expandedDrawers[sampler.id] ? "rotated" : ""}`}
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+
+                  {expandedDrawers[sampler.id] && (
+                    <div className="sg-drawer-content">
+                      <div className="sg-drawer-section">
+                        <strong className="sg-drawer-label">Prinsip Numerik:</strong>
+                        <p className="sg-drawer-body">{sampler.mechanism}</p>
+                      </div>
+                      <div className="sg-drawer-section">
+                        <strong className="sg-drawer-label">Rujukan Ilmiah:</strong>
+                        <div className="sg-drawer-paper-link-row">
+                          <span className="sg-drawer-paper-title">{sampler.paperTitle}</span>
+                          <a
+                            href={sampler.paperUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="sg-drawer-paper-link"
+                          >
+                            <span>Paper</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                              <polyline points="15 3 21 3 21 9" />
+                              <line x1="10" y1="14" x2="21" y2="3" />
+                            </svg>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="sg-pros-cons">
-                  <div className="sg-pros-list">
-                    <span className="sg-list-label pros">Kelebihan</span>
-                    {sampler.pros.map((pro, idx) => (
-                      <div key={idx} className="sg-list-item">
-                        <span style={{ color: "#10b981" }}>✓</span>
-                        <span>{pro}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="sg-cons-list">
-                    <span className="sg-list-label cons">Kelemahan</span>
-                    {sampler.cons.map((con, idx) => (
-                      <div key={idx} className="sg-list-item">
-                        <span style={{ color: "#f59e0b" }}>✕</span>
-                        <span>{con}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+                {/* 5. Footer Kartu */}
                 <div className="sg-card-footer">
-                  <div className="sg-model-support">
+                  <div className="sg-arch-pills">
                     {sampler.architectures.map((arch) => (
-                      <span key={arch} className="sg-model-chip">
+                      <span key={arch} className="sg-arch-pill">
                         {arch}
                       </span>
                     ))}
@@ -1118,7 +1234,7 @@ export default function SamplerGuide() {
 
                   <button
                     type="button"
-                    className="sg-card-action-btn"
+                    className="sg-studio-btn"
                     onClick={() => {
                       bridgeToPromptLab(navigate, {
                         source: "sampler-guide",
@@ -1147,7 +1263,11 @@ export default function SamplerGuide() {
           <div className="sg-plotter-header">
             <div className="sg-plotter-title-wrap">
               <h2 className="sg-plotter-title">
-                <span>📈 Kurva Peluruhan Noise Matematis (Sigma Plotter)</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 3v18h18" />
+                  <path d="m19 9-5 5-4-4-3 3" />
+                </svg>
+                <span>Kurva Peluruhan Noise Matematis (Sigma Plotter)</span>
               </h2>
               <p className="sg-plotter-desc">
                 Grafik peluruhan nilai sigma (σ) dari noise acak murni (σ ≈ 14.6) hingga latents gambar jernih (σ ≈ 0.02) per langkah iterasi.
@@ -1309,7 +1429,7 @@ export default function SamplerGuide() {
           <div className="sg-phase-guides">
             <div className="sg-phase-box">
               <span className="sg-phase-title high">
-                <span>🔴</span>
+                <span className="sg-phase-dot high" />
                 <span>Fase Awal: High Noise (σ &gt; 5.0)</span>
               </span>
               <p className="sg-phase-desc">
@@ -1319,7 +1439,7 @@ export default function SamplerGuide() {
 
             <div className="sg-phase-box">
               <span className="sg-phase-title mid">
-                <span>🟡</span>
+                <span className="sg-phase-dot mid" />
                 <span>Fase Tengah: Mid Noise (1.0 &lt; σ &lt; 5.0)</span>
               </span>
               <p className="sg-phase-desc">
@@ -1329,7 +1449,7 @@ export default function SamplerGuide() {
 
             <div className="sg-phase-box">
               <span className="sg-phase-title low">
-                <span>🟢</span>
+                <span className="sg-phase-dot low" />
                 <span>Fase Akhir: Low Noise (σ &lt; 1.0)</span>
               </span>
               <p className="sg-phase-desc">
@@ -1366,31 +1486,27 @@ export default function SamplerGuide() {
                       {recipe.title}
                     </h3>
                   </div>
-                  <span className="sg-model-chip" style={{ fontSize: "11px", padding: "4px 8px" }}>
+                  <span className="sg-arch-pill" style={{ fontSize: "11px", padding: "4px 8px" }}>
                     {recipe.architecture}
                   </span>
                 </div>
 
-                <div className="sg-specs-row">
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">Sampler</span>
-                    <span className="sg-spec-val">
+                <div className="sg-specs-strip">
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">Sampler</span>
+                    <span className="sg-specs-strip-val">
                       {recipe.samplerName}
                     </span>
                   </div>
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">Scheduler</span>
-                    <span className="sg-spec-val" style={{ color: "#34d399" }}>
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">Scheduler</span>
+                    <span className="sg-specs-strip-val" style={{ color: "#34d399" }}>
                       {recipe.schedulerName}
                     </span>
                   </div>
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">Steps</span>
-                    <span className="sg-spec-val">{recipe.steps}</span>
-                  </div>
-                  <div className="sg-spec-col">
-                    <span className="sg-spec-label">CFG Scale</span>
-                    <span className="sg-spec-val">{recipe.cfg.toFixed(1)}</span>
+                  <div className="sg-specs-strip-col">
+                    <span className="sg-specs-strip-label">Steps / CFG</span>
+                    <span className="sg-specs-strip-val steps">{recipe.steps} / {recipe.cfg.toFixed(1)}</span>
                   </div>
                 </div>
 
@@ -1399,17 +1515,17 @@ export default function SamplerGuide() {
                   <span style={{ color: "#d4d4d8" }}>{recipe.useCase}</span>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#18181b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "2px" }}>
-                  <span><strong style={{ color: "#a1a1aa" }}>CLIP Skip: </strong><code style={{ color: "#fbbf24", background: "rgba(245, 158, 11, 0.1)", padding: "1px 5px", borderRadius: "3px" }}>{recipe.clipSkip}</code></span>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#09090b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "2px" }}>
+                  <span><strong style={{ color: "#a1a1aa" }}>CLIP Skip: </strong><code style={{ color: "#fbbf24", background: "#18181b", border: "1px solid #27272a", padding: "1px 6px", borderRadius: "3px" }}>{recipe.clipSkip}</code></span>
                   <span>
                     <strong style={{ color: "#a1a1aa" }}>Model Card: </strong>
-                    <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontWeight: 600 }}>
+                    <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "underline", textUnderlineOffset: "3px", fontWeight: 600 }}>
                       {recipe.sourceName} ↗
                     </a>
                   </span>
                 </div>
 
-                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#18181b", padding: "8px 12px", borderRadius: "4px", border: "1px solid #27272a", borderLeft: "3px solid #52525b", marginTop: "2px", fontStyle: "italic", lineHeight: 1.45 }}>
+                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#09090b", padding: "8px 12px", borderRadius: "4px", border: "1px solid #27272a", borderLeft: "3px solid #52525b", marginTop: "2px", fontStyle: "italic", lineHeight: 1.45 }}>
                   "{recipe.officialNotes}"
                 </div>
 
@@ -1507,10 +1623,10 @@ export default function SamplerGuide() {
               <tr>
                 <td className="metric-col">Tipe Matematika</td>
                 <td>
-                  <span className={`sg-type-pill ${itemA.category}`}>{itemA.category}</span>
+                  <span className={`sg-nature-badge ${itemA.category}`}>{itemA.category}</span>
                 </td>
                 <td>
-                  <span className={`sg-type-pill ${itemB.category}`}>{itemB.category}</span>
+                  <span className={`sg-nature-badge ${itemB.category}`}>{itemB.category}</span>
                 </td>
               </tr>
               <tr>
@@ -1557,7 +1673,7 @@ export default function SamplerGuide() {
                     href={itemA.paperUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: "#cbd5e1", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "12px", fontWeight: 600 }}
+                    style={{ color: "#60a5fa", textDecoration: "underline", textUnderlineOffset: "3px", fontSize: "12px", fontWeight: 600 }}
                   >
                     {itemA.paperTitle} ↗
                   </a>
@@ -1594,7 +1710,21 @@ export default function SamplerGuide() {
       {activeTab === "wizard" && (
         <section className="sg-wizard-panel">
           <div className="sg-wizard-header">
-            <h2 className="sg-wizard-title">🧙 Simulator Rekomendasi Pintar</h2>
+            <h2 className="sg-wizard-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect width="16" height="16" x="4" y="4" rx="2" />
+                <rect width="6" height="6" x="9" y="9" rx="1" />
+                <path d="M15 2v2" />
+                <path d="M15 20v2" />
+                <path d="M2 15h2" />
+                <path d="M2 9h2" />
+                <path d="M20 15h2" />
+                <path d="M20 9h2" />
+                <path d="M9 2v2" />
+                <path d="M9 20v2" />
+              </svg>
+              <span>Simulator Rekomendasi Pintar</span>
+            </h2>
             <p className="sg-wizard-desc">
               Pilih kriteria teknis berikut untuk mendapatkan rekomendasi titik awal racikan Sampler, Scheduler, Steps, dan CFG.
             </p>
@@ -1718,7 +1848,7 @@ export default function SamplerGuide() {
               <strong>Analisis Teknis: </strong>
               {wizardResult.summary}
               <div style={{ marginTop: "6px", color: "#a1a1aa" }}>
-                💡 <em>Tips:</em> {wizardResult.tip}
+                <strong>Tips:</strong> {wizardResult.tip}
               </div>
             </div>
 
@@ -1760,7 +1890,12 @@ export default function SamplerGuide() {
       {/* Footnote Disclaimers: Technical Accuracy Principles */}
       <footer style={{ marginTop: "32px", padding: "16px 20px", background: "#121215", border: "1px solid #27272a", borderRadius: "8px", fontSize: "12px", color: "#a1a1aa", lineHeight: 1.6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
-          <span style={{ color: "#d4d4d8", fontWeight: 700 }}>ℹ️ Prinsip Akurasi Teknis:</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+          <span style={{ color: "#d4d4d8", fontWeight: 700 }}>Prinsip Akurasi Teknis:</span>
         </div>
         <p style={{ margin: 0 }}>
           Nilai steps dan CFG yang tercantum pada seluruh panduan ini adalah <strong>titik awal eksperimen praktis</strong>, bukan nilai universal atau spesifikasi mutlak. Hasil akhir difusi sangat dipengaruhi oleh arsitektur checkpoint (SD 1.5, SDXL, Illustrious, NoobAI, FLUX.1), VAE, LoRA stack, CLIP Skip, resolusi gambar, scheduler yang dipasangkan, dan seed. Pengujian perbandingan antar konfigurasi yang valid menuntut kontrol variabel ketat (checkpoint, prompt, negative prompt, seed, dan resolusi harus identik).

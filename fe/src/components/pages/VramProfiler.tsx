@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
 import "../../style/VramProfiler.css";
@@ -151,18 +151,130 @@ interface GpuPreset {
     name: string;
     vramGb: number;
     tier: string;
+    fp16Tflops: number;
+    memBandwidthGbps: number;
+    category: string;
+    tdpWatts: number;
+    isLaptop?: boolean;
+    tgpMinWatts?: number;
+    tgpMaxWatts?: number;
 }
 
 const GPU_PRESETS: GpuPreset[] = [
-    { id: "gtx1650", name: "GTX 1650 / RTX 3050 Laptop (4 GB)", vramGb: 4, tier: "Budget Entry" },
-    { id: "rtx2060", name: "RTX 2060 / GTX 1660 Ti (6 GB)", vramGb: 6, tier: "Entry VRAM" },
-    { id: "rtx4060", name: "RTX 3060 Ti / RTX 4060 / 4060 Ti (8 GB)", vramGb: 8, tier: "Mainstream Standard" },
-    { id: "rtx3060_12", name: "RTX 3060 12GB / RTX 4070 (12 GB)", vramGb: 12, tier: "Sweet Spot 12GB" },
-    { id: "rtx4070ti", name: "RTX 4070 Ti Super / RTX 4080 (16 GB)", vramGb: 16, tier: "Enthusiast 16GB" },
-    { id: "rtx4090", name: "RTX 3090 / RTX 4090 (24 GB)", vramGb: 24, tier: "Flagship Creator" },
-    { id: "a6000", name: "RTX 6000 Ada / A6000 (48 GB)", vramGb: 48, tier: "Workstation Pro" },
-    { id: "custom", name: "Kustom / Slider Bebas", vramGb: 12, tier: "Manual" },
+    // -------------------------------------------------------------
+    // RTX 50 SERIES (BLACKWELL ARCHITECTURE - GDDR7)
+    // -------------------------------------------------------------
+    { id: "rtx5090_desktop", name: "RTX 5090 Desktop (32 GB GDDR7)", vramGb: 32, tier: "Ultra Flagship", fp16Tflops: 700, memBandwidthGbps: 1792, category: "RTX 50 Series (Blackwell)", tdpWatts: 600 },
+    { id: "rtx5090_laptop", name: "RTX 5090 Laptop (24 GB GDDR7)", vramGb: 24, tier: "Flagship Mobile", fp16Tflops: 450, memBandwidthGbps: 1152, category: "RTX 50 Series (Blackwell)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 95, tgpMaxWatts: 175 },
+    { id: "rtx5080_desktop", name: "RTX 5080 Desktop (16 GB GDDR7)", vramGb: 16, tier: "High-End Enthusiast", fp16Tflops: 380, memBandwidthGbps: 1008, category: "RTX 50 Series (Blackwell)", tdpWatts: 400 },
+    { id: "rtx5080_laptop", name: "RTX 5080 Laptop (16 GB GDDR7)", vramGb: 16, tier: "Enthusiast Mobile", fp16Tflops: 260, memBandwidthGbps: 768, category: "RTX 50 Series (Blackwell)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 95, tgpMaxWatts: 175 },
+    { id: "rtx5070ti_desktop", name: "RTX 5070 Ti Desktop (16 GB GDDR7)", vramGb: 16, tier: "Upper Mid-Range", fp16Tflops: 250, memBandwidthGbps: 896, category: "RTX 50 Series (Blackwell)", tdpWatts: 300 },
+    { id: "rtx5070_desktop", name: "RTX 5070 Desktop (12 GB GDDR7)", vramGb: 12, tier: "Mid-Range Sweetspot", fp16Tflops: 180, memBandwidthGbps: 672, category: "RTX 50 Series (Blackwell)", tdpWatts: 250 },
+    { id: "rtx5070_laptop", name: "RTX 5070 Laptop (12 GB GDDR7)", vramGb: 12, tier: "Performance Mobile", fp16Tflops: 140, memBandwidthGbps: 512, category: "RTX 50 Series (Blackwell)", tdpWatts: 140, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 140 },
+    { id: "rtx5060ti_desktop", name: "RTX 5060 Ti Desktop (16 GB GDDR7)", vramGb: 16, tier: "Mainstream 16GB", fp16Tflops: 120, memBandwidthGbps: 448, category: "RTX 50 Series (Blackwell)", tdpWatts: 200 },
+    { id: "rtx5060_desktop", name: "RTX 5060 Desktop (12 GB GDDR7)", vramGb: 12, tier: "Mainstream 12GB", fp16Tflops: 90, memBandwidthGbps: 384, category: "RTX 50 Series (Blackwell)", tdpWatts: 170 },
+    { id: "rtx5060_laptop", name: "RTX 5060 Laptop (8 GB GDDR7)", vramGb: 8, tier: "Mainstream Mobile", fp16Tflops: 75, memBandwidthGbps: 320, category: "RTX 50 Series (Blackwell)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 45, tgpMaxWatts: 115 },
+    { id: "rtx5050_desktop", name: "RTX 5050 Desktop (8 GB GDDR7)", vramGb: 8, tier: "Budget Entry", fp16Tflops: 60, memBandwidthGbps: 288, category: "RTX 50 Series (Blackwell)", tdpWatts: 130 },
+    { id: "rtx5050_laptop", name: "RTX 5050 Laptop (8 GB GDDR7)", vramGb: 8, tier: "Entry Mobile", fp16Tflops: 55, memBandwidthGbps: 256, category: "RTX 50 Series (Blackwell)", tdpWatts: 85, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 85 },
+
+    // -------------------------------------------------------------
+    // RTX 40 SERIES (ADA LOVELACE ARCHITECTURE)
+    // -------------------------------------------------------------
+    { id: "rtx4090", name: "RTX 4090 Desktop (24 GB)", vramGb: 24, tier: "Flagship Creator", fp16Tflops: 330, memBandwidthGbps: 1008, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 450 },
+    { id: "rtx4090_laptop", name: "RTX 4090 Laptop (16 GB)", vramGb: 16, tier: "Flagship Mobile", fp16Tflops: 190, memBandwidthGbps: 576, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 175 },
+    { id: "rtx4080super_desktop", name: "RTX 4080 Super Desktop (16 GB)", vramGb: 16, tier: "High-End Enthusiast", fp16Tflops: 210, memBandwidthGbps: 736, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 320 },
+    { id: "rtx4080_desktop", name: "RTX 4080 Desktop (16 GB)", vramGb: 16, tier: "High-End Enthusiast", fp16Tflops: 195, memBandwidthGbps: 716, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 320 },
+    { id: "rtx4080_laptop", name: "RTX 4080 Laptop (12 GB)", vramGb: 12, tier: "Enthusiast Mobile", fp16Tflops: 140, memBandwidthGbps: 432, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 175 },
+    { id: "rtx4070ti", name: "RTX 4070 Ti Super Desktop (16 GB)", vramGb: 16, tier: "Enthusiast 16GB", fp16Tflops: 176, memBandwidthGbps: 672, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 285 },
+    { id: "rtx4070ti_12gb", name: "RTX 4070 Ti Desktop (12 GB)", vramGb: 12, tier: "Upper Mid-Range", fp16Tflops: 160, memBandwidthGbps: 504, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 285 },
+    { id: "rtx4070super_desktop", name: "RTX 4070 Super Desktop (12 GB)", vramGb: 12, tier: "Mid-Range Sweetspot", fp16Tflops: 140, memBandwidthGbps: 504, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 220 },
+    { id: "rtx4070_desktop", name: "RTX 4070 Desktop (12 GB)", vramGb: 12, tier: "Mid-Range Sweetspot", fp16Tflops: 118, memBandwidthGbps: 504, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 200 },
+    { id: "rtx4070_laptop", name: "RTX 4070 Laptop (8 GB - TUF A16 / Legion)", vramGb: 8, tier: "Performance Mobile 140W", fp16Tflops: 85, memBandwidthGbps: 256, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 140, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 140 },
+    { id: "rtx4060ti_16gb", name: "RTX 4060 Ti Desktop (16 GB)", vramGb: 16, tier: "AI Sweetspot 16GB", fp16Tflops: 88, memBandwidthGbps: 288, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 165 },
+    { id: "rtx4060ti_8gb", name: "RTX 4060 Ti Desktop (8 GB)", vramGb: 8, tier: "Mainstream 8GB", fp16Tflops: 88, memBandwidthGbps: 288, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 160 },
+    { id: "rtx4060", name: "RTX 4060 Desktop (8 GB)", vramGb: 8, tier: "Mainstream Standard", fp16Tflops: 60, memBandwidthGbps: 272, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 115 },
+    { id: "rtx4060_laptop", name: "RTX 4060 Laptop (8 GB - TUF A16 / Nitro)", vramGb: 8, tier: "Mainstream Mobile 140W", fp16Tflops: 50, memBandwidthGbps: 256, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 140, isLaptop: true, tgpMinWatts: 45, tgpMaxWatts: 140 },
+    { id: "rtx4050_laptop", name: "RTX 4050 Laptop (6 GB)", vramGb: 6, tier: "Budget Entry Mobile", fp16Tflops: 38, memBandwidthGbps: 192, category: "RTX 40 Series (Ada Lovelace)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 115 },
+
+    // -------------------------------------------------------------
+    // RTX 30 SERIES (AMPERE ARCHITECTURE)
+    // -------------------------------------------------------------
+    { id: "rtx3090ti_desktop", name: "RTX 3090 Ti Desktop (24 GB)", vramGb: 24, tier: "Titan Class", fp16Tflops: 160, memBandwidthGbps: 1008, category: "RTX 30 Series (Ampere)", tdpWatts: 450 },
+    { id: "rtx3090_desktop", name: "RTX 3090 Desktop (24 GB)", vramGb: 24, tier: "AI Creator 24GB", fp16Tflops: 142, memBandwidthGbps: 936, category: "RTX 30 Series (Ampere)", tdpWatts: 350 },
+    { id: "rtx3080ti_desktop", name: "RTX 3080 Ti Desktop (12 GB)", vramGb: 12, tier: "High-End", fp16Tflops: 136, memBandwidthGbps: 912, category: "RTX 30 Series (Ampere)", tdpWatts: 350 },
+    { id: "rtx3080ti_laptop", name: "RTX 3080 Ti Laptop (16 GB)", vramGb: 16, tier: "Flagship Mobile", fp16Tflops: 95, memBandwidthGbps: 512, category: "RTX 30 Series (Ampere)", tdpWatts: 175, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 175 },
+    { id: "rtx3080_12gb", name: "RTX 3080 Desktop (12 GB)", vramGb: 12, tier: "High-End", fp16Tflops: 122, memBandwidthGbps: 912, category: "RTX 30 Series (Ampere)", tdpWatts: 350 },
+    { id: "rtx3080_10gb", name: "RTX 3080 Desktop (10 GB)", vramGb: 10, tier: "High-End", fp16Tflops: 119, memBandwidthGbps: 760, category: "RTX 30 Series (Ampere)", tdpWatts: 320 },
+    { id: "rtx3080_laptop_16gb", name: "RTX 3080 Laptop (16 GB)", vramGb: 16, tier: "Enthusiast Mobile 16GB", fp16Tflops: 80, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 150, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 150 },
+    { id: "rtx3080_laptop_8gb", name: "RTX 3080 Laptop (8 GB)", vramGb: 8, tier: "Enthusiast Mobile 8GB", fp16Tflops: 75, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 150, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 150 },
+    { id: "rtx3070ti_desktop", name: "RTX 3070 Ti Desktop (8 GB)", vramGb: 8, tier: "Upper Mid-Range", fp16Tflops: 87, memBandwidthGbps: 608, category: "RTX 30 Series (Ampere)", tdpWatts: 290 },
+    { id: "rtx3070ti_laptop", name: "RTX 3070 Ti Laptop (8 GB)", vramGb: 8, tier: "Performance Mobile", fp16Tflops: 70, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 150, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 150 },
+    { id: "rtx3070_desktop", name: "RTX 3070 Desktop (8 GB)", vramGb: 8, tier: "Mid-Range", fp16Tflops: 81, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 220 },
+    { id: "rtx3070_laptop", name: "RTX 3070 Laptop (8 GB)", vramGb: 8, tier: "Performance Mobile", fp16Tflops: 62, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 140, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 140 },
+    { id: "rtx3060ti_desktop", name: "RTX 3060 Ti Desktop (8 GB)", vramGb: 8, tier: "Mainstream Performance", fp16Tflops: 65, memBandwidthGbps: 448, category: "RTX 30 Series (Ampere)", tdpWatts: 200 },
+    { id: "rtx3060_12", name: "RTX 3060 Desktop (12 GB)", vramGb: 12, tier: "Sweet Spot 12GB", fp16Tflops: 51, memBandwidthGbps: 360, category: "RTX 30 Series (Ampere)", tdpWatts: 170 },
+    { id: "rtx3060_8gb_desktop", name: "RTX 3060 Desktop (8 GB)", vramGb: 8, tier: "Mainstream", fp16Tflops: 45, memBandwidthGbps: 240, category: "RTX 30 Series (Ampere)", tdpWatts: 170 },
+    { id: "rtx3060_laptop", name: "RTX 3060 Laptop (6 GB)", vramGb: 6, tier: "Mainstream Mobile", fp16Tflops: 40, memBandwidthGbps: 336, category: "RTX 30 Series (Ampere)", tdpWatts: 130, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 130 },
+    { id: "rtx3050_8gb_desktop", name: "RTX 3050 Desktop (8 GB)", vramGb: 8, tier: "Budget Entry", fp16Tflops: 36, memBandwidthGbps: 224, category: "RTX 30 Series (Ampere)", tdpWatts: 130 },
+    { id: "rtx3050_6gb_desktop", name: "RTX 3050 Desktop (6 GB)", vramGb: 6, tier: "Budget Entry 6GB", fp16Tflops: 28, memBandwidthGbps: 168, category: "RTX 30 Series (Ampere)", tdpWatts: 70 },
+    { id: "rtx3050_laptop_6gb", name: "RTX 3050 Laptop (6 GB)", vramGb: 6, tier: "Entry Mobile 6GB", fp16Tflops: 28, memBandwidthGbps: 168, category: "RTX 30 Series (Ampere)", tdpWatts: 80, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 80 },
+    { id: "rtx3050_laptop_4gb", name: "RTX 3050 Laptop (4 GB)", vramGb: 4, tier: "Entry Mobile 4GB", fp16Tflops: 24, memBandwidthGbps: 192, category: "RTX 30 Series (Ampere)", tdpWatts: 80, isLaptop: true, tgpMinWatts: 35, tgpMaxWatts: 80 },
+
+    // -------------------------------------------------------------
+    // RTX 20 SERIES & GTX (TURING ARCHITECTURE)
+    // -------------------------------------------------------------
+    { id: "titan_rtx", name: "TITAN RTX Desktop (24 GB)", vramGb: 24, tier: "Turing Flagship", fp16Tflops: 65, memBandwidthGbps: 672, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 280 },
+    { id: "rtx2080ti_desktop", name: "RTX 2080 Ti Desktop (11 GB)", vramGb: 11, tier: "Enthusiast Turing", fp16Tflops: 54, memBandwidthGbps: 616, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 250 },
+    { id: "rtx2080super_desktop", name: "RTX 2080 Super Desktop (8 GB)", vramGb: 8, tier: "High-End Turing", fp16Tflops: 45, memBandwidthGbps: 496, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 250 },
+    { id: "rtx2080super_laptop", name: "RTX 2080 Super Laptop (8 GB)", vramGb: 8, tier: "Flagship Mobile Turing", fp16Tflops: 38, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 150, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 150 },
+    { id: "rtx2080_desktop", name: "RTX 2080 Desktop (8 GB)", vramGb: 8, tier: "High-End Turing", fp16Tflops: 40, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 215 },
+    { id: "rtx2080_laptop", name: "RTX 2080 Laptop (8 GB)", vramGb: 8, tier: "High-End Mobile Turing", fp16Tflops: 34, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 150, isLaptop: true, tgpMinWatts: 80, tgpMaxWatts: 150 },
+    { id: "rtx2070super_desktop", name: "RTX 2070 Super Desktop (8 GB)", vramGb: 8, tier: "Upper Mid Turing", fp16Tflops: 36, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 215 },
+    { id: "rtx2070super_laptop", name: "RTX 2070 Super Laptop (8 GB)", vramGb: 8, tier: "Upper Mid Mobile Turing", fp16Tflops: 30, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 115 },
+    { id: "rtx2070_desktop", name: "RTX 2070 Desktop (8 GB)", vramGb: 8, tier: "Mid-Range Turing", fp16Tflops: 30, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 175 },
+    { id: "rtx2070_laptop", name: "RTX 2070 Laptop (8 GB)", vramGb: 8, tier: "Mid-Range Mobile Turing", fp16Tflops: 26, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 115 },
+    { id: "rtx2060super_desktop", name: "RTX 2060 Super Desktop (8 GB)", vramGb: 8, tier: "Sweetspot Turing 8GB", fp16Tflops: 29, memBandwidthGbps: 448, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 175 },
+    { id: "rtx2060_12gb_desktop", name: "RTX 2060 Desktop (12 GB)", vramGb: 12, tier: "Turing 12GB", fp16Tflops: 26, memBandwidthGbps: 336, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 160 },
+    { id: "rtx2060", name: "RTX 2060 Desktop (6 GB)", vramGb: 6, tier: "Entry VRAM", fp16Tflops: 26, memBandwidthGbps: 336, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 160 },
+    { id: "rtx2060_laptop", name: "RTX 2060 Laptop (6 GB)", vramGb: 6, tier: "Entry Mobile Turing", fp16Tflops: 22, memBandwidthGbps: 336, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 115, isLaptop: true, tgpMinWatts: 60, tgpMaxWatts: 115 },
+    { id: "rtx2050_laptop", name: "RTX 2050 Laptop (4 GB)", vramGb: 4, tier: "Budget Laptop Ampere/Turing", fp16Tflops: 18, memBandwidthGbps: 112, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 45, isLaptop: true, tgpMinWatts: 30, tgpMaxWatts: 45 },
+    { id: "gtx1660ti", name: "GTX 1660 Ti / Super Desktop (6 GB)", vramGb: 6, tier: "Legacy GTX", fp16Tflops: 10, memBandwidthGbps: 288, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 125 },
+    { id: "gtx1650", name: "GTX 1650 Desktop / Laptop (4 GB)", vramGb: 4, tier: "Budget Entry", fp16Tflops: 6.5, memBandwidthGbps: 128, category: "RTX 20 Series & GTX (Turing)", tdpWatts: 75 },
+
+    // -------------------------------------------------------------
+    // AMD RADEON MOBILE (ASUS TUF A16 ADVANTAGE & ROCm)
+    // -------------------------------------------------------------
+    { id: "rx7700s_laptop", name: "AMD Radeon RX 7700S Laptop (8 GB - TUF A16)", vramGb: 8, tier: "TUF A16 Advantage", fp16Tflops: 64, memBandwidthGbps: 288, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 120, isLaptop: true, tgpMinWatts: 75, tgpMaxWatts: 120 },
+    { id: "rx7600s_laptop", name: "AMD Radeon RX 7600S Laptop (8 GB - TUF A16)", vramGb: 8, tier: "TUF A16 Advantage", fp16Tflops: 56, memBandwidthGbps: 256, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 95, isLaptop: true, tgpMinWatts: 50, tgpMaxWatts: 95 },
+    { id: "rx7600m_xt", name: "AMD Radeon RX 7600M XT Laptop (8 GB)", vramGb: 8, tier: "RDNA3 Mobile", fp16Tflops: 60, memBandwidthGbps: 288, category: "AMD Radeon Mobile (TUF A16 / ROCm)", tdpWatts: 130, isLaptop: true, tgpMinWatts: 75, tgpMaxWatts: 130 },
+
+    // -------------------------------------------------------------
+    // WORKSTATION & DATACENTER (ADA, AMPERE, HOPPER)
+    // -------------------------------------------------------------
+    { id: "h100", name: "NVIDIA H100 SXM5 / PCIe (80 GB)", vramGb: 80, tier: "Enterprise Hopper", fp16Tflops: 990, memBandwidthGbps: 3350, category: "Workstation & Datacenter", tdpWatts: 700 },
+    { id: "a100_80gb", name: "NVIDIA A100 PCIe (80 GB)", vramGb: 80, tier: "Enterprise Ampere", fp16Tflops: 312, memBandwidthGbps: 1935, category: "Workstation & Datacenter", tdpWatts: 250 },
+    { id: "a6000", name: "RTX 6000 Ada Generation (48 GB)", vramGb: 48, tier: "Workstation Pro", fp16Tflops: 365, memBandwidthGbps: 960, category: "Workstation & Datacenter", tdpWatts: 300 },
+    { id: "rtxa6000", name: "RTX A6000 Ampere (48 GB)", vramGb: 48, tier: "Pro Workstation Ampere", fp16Tflops: 150, memBandwidthGbps: 768, category: "Workstation & Datacenter", tdpWatts: 300 },
+    { id: "rtx5000_ada", name: "RTX 5000 Ada Generation (32 GB)", vramGb: 32, tier: "Pro Workstation Ada", fp16Tflops: 260, memBandwidthGbps: 576, category: "Workstation & Datacenter", tdpWatts: 250 },
+    { id: "rtx4000_ada", name: "RTX 4000 Ada Generation (20 GB)", vramGb: 20, tier: "Pro Workstation Ada", fp16Tflops: 150, memBandwidthGbps: 360, category: "Workstation & Datacenter", tdpWatts: 130 },
+    { id: "rtxa5000", name: "RTX A5000 Ampere (24 GB)", vramGb: 24, tier: "Pro Workstation", fp16Tflops: 110, memBandwidthGbps: 768, category: "Workstation & Datacenter", tdpWatts: 230 },
+    { id: "rtxa4000", name: "RTX A4000 Ampere (16 GB)", vramGb: 16, tier: "Pro Workstation", fp16Tflops: 75, memBandwidthGbps: 448, category: "Workstation & Datacenter", tdpWatts: 140 },
+    { id: "rtxa2000_12gb", name: "RTX A2000 (12 GB)", vramGb: 12, tier: "Compact Workstation", fp16Tflops: 32, memBandwidthGbps: 288, category: "Workstation & Datacenter", tdpWatts: 70 },
+
+    // -------------------------------------------------------------
+    // KUSTOM / MANUAL
+    // -------------------------------------------------------------
+    { id: "custom", name: "Kustom / Slider Bebas Manual", vramGb: 12, tier: "Manual", fp16Tflops: 70, memBandwidthGbps: 400, category: "Kustom / Manual", tdpWatts: 200 },
 ];
+
+const GROUPED_GPU_PRESETS: Record<string, GpuPreset[]> = GPU_PRESETS.reduce((acc, gpu) => {
+    const cat = gpu.category || "Lainnya";
+    if (!acc[cat]) {
+        acc[cat] = [];
+    }
+    acc[cat].push(gpu);
+    return acc;
+}, {} as Record<string, GpuPreset[]>);
 
 interface ResPreset {
     label: string;
@@ -223,16 +335,41 @@ export default function VramProfiler() {
     const [gpuPresetId, setGpuPresetId] = useState<string>("rtx4060");
     const [customGpuVram, setCustomGpuVram] = useState<number>(8);
     const [copiedFlags, setCopiedFlags] = useState<boolean>(false);
+    const [copiedComfy, setCopiedComfy] = useState<boolean>(false);
 
-    // 8. System RAM Target (DDR4/DDR5) for Host CPU Offloading
+    // 8. Windows Desktop & Multi-Monitor VRAM Deduction
+    const [displayDeductionMode, setDisplayDeductionMode] = useState<"primary_single" | "primary_multi" | "headless">("primary_single");
+
+    // 9. System RAM Target (DDR4/DDR5) for Host CPU Offloading
     const [systemRamGb, setSystemRamGb] = useState<number>(32);
 
-    // 9. Hi-Res Fix & Workflow Post-Processing Simulator
+    // 10. Hi-Res Fix & Workflow Post-Processing Simulator
     const [enableHiresFix, setEnableHiresFix] = useState<boolean>(false);
     const [hiresScale, setHiresScale] = useState<number>(1.5);
     const [upscaleMethod, setUpscaleMethod] = useState<"latent" | "ultimate_sd" | "model_upscale">("latent");
     const [enableFaceDetailer, setEnableFaceDetailer] = useState<boolean>(false);
     const [enableRefiner, setEnableRefiner] = useState<boolean>(false);
+
+    // 11. Throughput & Generation Speed Estimator
+    const [samplingSteps, setSamplingSteps] = useState<number>(() => (modelKey === "flux" ? 20 : 25));
+
+    // 12. 1-Click Launch Config & Generator Tab
+    const [genPreviewTab, setGenPreviewTab] = useState<"bat" | "comfy" | "webui">("bat");
+
+    // 13. Power & Electricity Cost Estimator (Full System & Token PLN)
+    const [plnTarifPerKwh, setPlnTarifPerKwh] = useState<number>(1444);
+    const [batchImageCount, setBatchImageCount] = useState<number>(100);
+    const [laptopTgpWatts, setLaptopTgpWatts] = useState<number>(100);
+    const [tufProfile, setTufProfile] = useState<"turbo" | "perf" | "silent" | "overnight" | "custom">("perf");
+    const [cpuWatts, setCpuWatts] = useState<number>(35); // AMD Ryzen HS / Intel Core
+    const [screenMode, setScreenMode] = useState<"off" | "med" | "high">("med"); // Layar Laptop 16" IPS (0W, 9W, 15W)
+    const [externalMonitorMode, setExternalMonitorMode] = useState<"none" | "fhd" | "4k">("none"); // Monitor Eksternal (0W, 25W, 42W)
+    const [coolingFanMode, setCoolingFanMode] = useState<"silent" | "balanced" | "turbo">("balanced"); // Dual Arc-Flow Fans (8W, 14W, 20W)
+    const [includeChargerLoss, setIncludeChargerLoss] = useState<boolean>(true); // Efisiensi Adaptor AC/DC Charger 240W (~89% Wall Draw)
+
+    // Token Listrik Prabayar (Pulsa Listrik) vs Pascabayar
+    const [billingType, setBillingType] = useState<"token" | "pascabayar">("token");
+    const [tokenNominal, setTokenNominal] = useState<number>(50000); // Rp 20.000, 50.000, 100.000, 200.000, 500.000
 
     // Update defaults if model changes
     const handleSelectModel = (key: string) => {
@@ -248,14 +385,50 @@ export default function VramProfiler() {
         if (!m.supportedQuantizations.includes(quantKey)) {
             setQuantKey(m.supportedQuantizations[0]);
         }
+        if (key === "flux") {
+            setSamplingSteps(20);
+        }
     };
+
+    // Active GPU Metadata & Compute Specifications
+    const activeGpu = useMemo(() => {
+        if (gpuPresetId === "custom") {
+            return {
+                id: "custom",
+                name: "Kustom / Slider Bebas Manual",
+                vramGb: customGpuVram,
+                tier: "Manual",
+                fp16Tflops: Math.min(350, Math.max(10, customGpuVram * 8.5)),
+                memBandwidthGbps: Math.min(1000, Math.max(128, customGpuVram * 45)),
+                category: "Kustom / Manual",
+                tdpWatts: Math.min(600, Math.max(75, customGpuVram * 22)),
+            };
+        }
+        return GPU_PRESETS.find((g) => g.id === gpuPresetId) || GPU_PRESETS.find((g) => g.id === "rtx4060") || GPU_PRESETS[0];
+    }, [gpuPresetId, customGpuVram]);
+
+    // Sync laptop TGP when GPU preset changes
+    useEffect(() => {
+        if (activeGpu.isLaptop && activeGpu.tdpWatts) {
+            setLaptopTgpWatts(activeGpu.tdpWatts);
+        }
+    }, [activeGpu]);
 
     // Active GPU VRAM
     const targetGpuVram = useMemo(() => {
-        if (gpuPresetId === "custom") return customGpuVram;
-        const p = GPU_PRESETS.find((g) => g.id === gpuPresetId);
-        return p ? p.vramGb : 8;
-    }, [gpuPresetId, customGpuVram]);
+        return activeGpu.vramGb;
+    }, [activeGpu]);
+
+    // Windows Desktop / Multi-Monitor Overhead Deduction
+    const desktopDeductionGb = useMemo(() => {
+        if (displayDeductionMode === "primary_single") return 0.8; // ~800 MB standard single display + browser
+        if (displayDeductionMode === "primary_multi") return 1.4; // ~1400 MB dual display / 4K
+        return 0.0; // Headless / pure compute secondary GPU
+    }, [displayDeductionMode]);
+
+    const effectiveAiVram = useMemo(() => {
+        return Math.max(1.0, targetGpuVram - desktopDeductionGb);
+    }, [targetGpuVram, desktopDeductionGb]);
 
     // MATHEMATICAL VRAM ALLOCATION ENGINE
     const telemetry = useMemo(() => {
@@ -320,9 +493,9 @@ export default function VramProfiler() {
         // Total VRAM Required
         const totalVramGb = weightsGb + teGb + latentGb + kvGb + vaeGb + lorasGb + controlnetsGb + cudaOverheadGb;
 
-        // Ratio vs GPU VRAM
-        const ratio = totalVramGb / targetGpuVram;
-        const headroomGb = targetGpuVram - totalVramGb;
+        // Ratio vs Effective AI VRAM (Deducing Windows DWM & Desktop)
+        const ratio = totalVramGb / effectiveAiVram;
+        const headroomGb = effectiveAiVram - totalVramGb;
 
         // Status Determination
         let status: "safe" | "warn" | "offload" | "danger" = "safe";
@@ -376,7 +549,7 @@ export default function VramProfiler() {
         useSdpAttention,
         useTiledVae,
         useMedvramChunking,
-        targetGpuVram,
+        effectiveAiVram,
     ]);
 
     // SYSTEM RAM (DDR4/DDR5) ALLOCATION ENGINE FOR CPU OFFLOADING
@@ -475,8 +648,8 @@ export default function VramProfiler() {
             postProcessVram += 2.2;
         }
 
-        const isPass2Risk = pass2Vram > targetGpuVram;
-        const isPostProcessRisk = postProcessVram > targetGpuVram;
+        const isPass2Risk = pass2Vram > effectiveAiVram;
+        const isPostProcessRisk = postProcessVram > effectiveAiVram;
 
         return {
             pass1Vram,
@@ -501,7 +674,128 @@ export default function VramProfiler() {
         useTiledVae,
         enableFaceDetailer,
         enableRefiner,
-        targetGpuVram,
+        effectiveAiVram,
+    ]);
+
+    // THROUGHPUT & SPEED (IT/S) TELEMETRY ENGINE
+    const throughputTelemetry = useMemo(() => {
+        const paramCountB = activeModel.paramCountB;
+        const resPixels = width * height;
+        const basePixels = 512 * 512;
+        const resFactor = Math.pow(resPixels / basePixels, 0.85);
+        const batchFactor = batchSize;
+        const videoFactor = activeModel.isTextToVideo ? Math.pow(Math.max(1, videoFrames) / 16, 0.9) : 1;
+
+        // Base computation load per step in effective TFLOPs
+        const baseTflopsPerStep = (paramCountB * 0.08) * resFactor * batchFactor * videoFactor;
+
+        // Raw compute seconds per step based on GPU compute
+        const rawSecs = baseTflopsPerStep / (activeGpu.fp16Tflops * 0.007);
+
+        // Precision factor
+        let quantMod = 1.0;
+        if (quantKey.includes("fp8")) quantMod = 0.85;
+        else if (quantKey.includes("q4") || quantKey === "nf4") quantMod = 0.9;
+        else if (quantKey === "fp32") quantMod = 2.0;
+
+        // Attention factor
+        const sdpMod = useSdpAttention ? 1.0 : 0.55; // 1.8x slower without SDP
+
+        // Memory transfer & offloading penalty
+        let offloadPenalty = 1.0;
+        if (ramTelemetry.ramStatus === "ram-danger") {
+            offloadPenalty = 25.0; // Disk thrashing to SSD pagefile
+        } else if (telemetry.status === "danger") {
+            offloadPenalty = 4.5;
+        } else if (telemetry.status === "offload") {
+            offloadPenalty = 2.8; // PCIe weight swapping to system RAM
+        } else if (telemetry.status === "warn") {
+            offloadPenalty = 1.15;
+        }
+
+        const secondsPerStep = Math.max(0.015, (rawSecs * quantMod * offloadPenalty) / sdpMod);
+        const itPerSec = 1 / secondsPerStep;
+
+        // Pre/Post durations
+        let textEncodeSec = 0.3;
+        if (teKey === "none") textEncodeSec = 2.8; // Offloaded to host CPU
+        else if (teKey === "t5_fp16") textEncodeSec = 1.5;
+        else if (teKey === "t5_fp8") textEncodeSec = 1.0;
+        else if (teKey.startsWith("dual_clip")) textEncodeSec = 0.5;
+
+        let vaeDecodeSec = useTiledVae ? 1.4 : 0.8;
+        if (activeModel.id === "sd15") vaeDecodeSec = 0.35;
+        else if (activeModel.id === "flux") vaeDecodeSec = 2.2;
+        else if (activeModel.isTextToVideo) vaeDecodeSec = 5.5;
+
+        const denoiseSec = samplingSteps * secondsPerStep;
+
+        // Hi-Res Fix additional time
+        let hiresSec = 0;
+        if (enableHiresFix) {
+            const hiresPixels = (width * hiresScale) * (height * hiresScale);
+            const hiresResFactor = Math.pow(hiresPixels / basePixels, 0.85);
+            const hiresBaseTflops = (paramCountB * 0.08) * hiresResFactor * batchFactor;
+            const hiresRawSecs = hiresBaseTflops / (activeGpu.fp16Tflops * 0.007);
+            const hiresSecPerStep = Math.max(0.02, (hiresRawSecs * quantMod * offloadPenalty) / sdpMod);
+            hiresSec = 15 * hiresSecPerStep + 0.8; // 15 steps denoising + VAE decode
+        }
+
+        let detailerSec = 0;
+        if (enableFaceDetailer) {
+            detailerSec = 1.8; // YOLO face detection + inpaint
+        }
+
+        const totalDurationSec = textEncodeSec + denoiseSec + hiresSec + detailerSec + vaeDecodeSec;
+
+        let speedBadge = "Sangat Cepat";
+        let speedClass: "speed-fast" | "speed-normal" | "speed-slow" | "speed-critical" = "speed-fast";
+        let speedNote = "Throughput maksimal! Generasi instan berkat eksekusi native di VRAM Tensor Core.";
+
+        if (ramTelemetry.ramStatus === "ram-danger") {
+            speedBadge = "Kritis (Disk-Thrashing)";
+            speedClass = "speed-critical";
+            speedNote = "Generasi melambat hingga 25×–50× lipat karena Windows menukar tensor ke SSD/Pagefile.";
+        } else if (telemetry.status === "offload" || telemetry.status === "danger") {
+            speedBadge = "Lambat (PCIe Offload)";
+            speedClass = "speed-slow";
+            speedNote = "Model di-swap bolak-balik antara RAM dan GPU via bus PCIe, menambah latency per step.";
+        } else if (itPerSec < 1.5) {
+            speedBadge = "Sedang / Normal";
+            speedClass = "speed-normal";
+            speedNote = "Throughput normal untuk resolusi atau arsitektur model besar ini.";
+        }
+
+        return {
+            secondsPerStep,
+            itPerSec,
+            textEncodeSec,
+            denoiseSec,
+            hiresSec,
+            detailerSec,
+            vaeDecodeSec,
+            totalDurationSec,
+            speedBadge,
+            speedClass,
+            speedNote,
+        };
+    }, [
+        activeModel,
+        width,
+        height,
+        batchSize,
+        videoFrames,
+        activeGpu,
+        quantKey,
+        useSdpAttention,
+        ramTelemetry.ramStatus,
+        telemetry.status,
+        teKey,
+        useTiledVae,
+        samplingSteps,
+        enableHiresFix,
+        hiresScale,
+        enableFaceDetailer,
     ]);
 
     // Command-line flag generator
@@ -529,6 +823,219 @@ export default function VramProfiler() {
         return flags.join(" ");
     }, [telemetry.status, activeModel.id, quantKey, useTiledVae]);
 
+    // 1-Click ComfyUI Command generator
+    const comfyUiCommand = useMemo(() => {
+        const args: string[] = ["python", "main.py"];
+
+        if (effectiveAiVram >= 16) {
+            args.push("--highvram");
+            args.push("--gpu-only");
+        } else if (effectiveAiVram >= 10) {
+            args.push("--normalvram");
+        } else if (effectiveAiVram >= 6) {
+            args.push("--lowvram");
+            args.push("--pin-shared-memory");
+        } else {
+            args.push("--novram");
+            args.push("--cpu-vae");
+        }
+
+        if (useTiledVae) {
+            args.push("--fast");
+        }
+
+        args.push("--preview-method", "auto");
+
+        if (quantKey.includes("fp8")) {
+            args.push("--fp8_e4m3fn-text-enc");
+        }
+
+        return args.join(" ");
+    }, [effectiveAiVram, useTiledVae, quantKey]);
+
+    // 1-Click webui-user.bat file generator
+    const webuiBatContent = useMemo(() => {
+        return `@echo off
+REM ========================================================
+REM Antigravity AI - webui-user.bat Auto-Generated Config
+REM Target GPU: ${activeGpu.name}
+REM Usable AI VRAM: ${effectiveAiVram.toFixed(1)} GB (Physical: ${targetGpuVram} GB)
+REM Target Model: ${activeModel.name} (${QUANTIZATIONS[quantKey]?.name || quantKey})
+REM Throughput Estimasi: ~${throughputTelemetry.itPerSec >= 1 ? `${throughputTelemetry.itPerSec.toFixed(2)} it/s` : `${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`}
+REM ========================================================
+
+set PYTHON=
+set GIT=
+set VENV_DIR=
+set COMMANDLINE_ARGS=${recommendedCliFlags}
+
+call webui.bat
+`;
+    }, [activeGpu.name, effectiveAiVram, targetGpuVram, activeModel.name, quantKey, throughputTelemetry, recommendedCliFlags]);
+
+    const handleDownloadBat = () => {
+        const blob = new Blob([webuiBatContent], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "webui-user.bat";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleCopyComfy = () => {
+        navigator.clipboard.writeText(comfyUiCommand);
+        setCopiedComfy(true);
+        setTimeout(() => setCopiedComfy(false), 2000);
+    };
+
+    const handleApplyTufProfile = (profile: "turbo" | "perf" | "silent" | "overnight") => {
+        setTufProfile(profile);
+        if (profile === "turbo") {
+            const maxW = activeGpu.isLaptop ? (activeGpu.tgpMaxWatts || 140) : activeGpu.tdpWatts;
+            setLaptopTgpWatts(maxW);
+            setCpuWatts(50);
+            setScreenMode("high");
+            setCoolingFanMode("turbo");
+        } else if (profile === "perf") {
+            const perfW = activeGpu.isLaptop ? Math.round((activeGpu.tgpMaxWatts || 140) * 0.75) : Math.round(activeGpu.tdpWatts * 0.85);
+            setLaptopTgpWatts(perfW);
+            setCpuWatts(35);
+            setScreenMode("med");
+            setCoolingFanMode("balanced");
+        } else if (profile === "silent") {
+            const minW = activeGpu.isLaptop ? (activeGpu.tgpMinWatts || 55) : Math.round(activeGpu.tdpWatts * 0.55);
+            setLaptopTgpWatts(minW);
+            setCpuWatts(22);
+            setScreenMode("med");
+            setCoolingFanMode("silent");
+        } else if (profile === "overnight") {
+            const nightW = activeGpu.isLaptop ? Math.round((activeGpu.tgpMaxWatts || 140) * 0.7) : Math.round(activeGpu.tdpWatts * 0.8);
+            setLaptopTgpWatts(nightW);
+            setCpuWatts(30);
+            setScreenMode("off"); // Layar Laptop Mati 0W!
+            setCoolingFanMode("balanced");
+        }
+    };
+
+    // POWER & ELECTRICITY COST (TDP / KWH & TOKEN PLN) TELEMETRY ENGINE
+    const powerTelemetry = useMemo(() => {
+        const isLaptop = !!activeGpu.isLaptop;
+        const gpuWatts = isLaptop
+            ? Math.max(activeGpu.tgpMinWatts || 35, Math.min(activeGpu.tgpMaxWatts || 175, laptopTgpWatts))
+            : activeGpu.tdpWatts;
+
+        // 1. CPU Power (AMD Ryzen / Intel)
+        let activeCpuWatts = cpuWatts;
+        if (teKey === "none") {
+            activeCpuWatts = Math.min(65, activeCpuWatts + 15); // Host CPU text encode load
+        }
+        if (ramTelemetry.ramStatus === "ram-danger") {
+            activeCpuWatts = Math.min(65, activeCpuWatts + 12); // Paging thrashing CPU overhead
+        }
+
+        // 2. Layar Laptop ASUS TUF (16" IPS 165Hz)
+        const screenWatts = screenMode === "off" ? 0 : screenMode === "high" ? 15 : 9;
+
+        // 3. Monitor Eksternal Tambahan (HDMI / DisplayPort)
+        const extMonitorWatts = externalMonitorMode === "none" ? 0 : externalMonitorMode === "4k" ? 42 : 25;
+
+        // 4. Kipas Pendingin Dual Arc-Flow + Motherboard VRM + RAM DDR5 + SSD NVMe
+        const systemInternalWatts = coolingFanMode === "turbo" ? 20 : coolingFanMode === "silent" ? 8 : 14;
+
+        // Total DC Component Power Draw
+        const totalDcWatts = gpuWatts + activeCpuWatts + screenWatts + extMonitorWatts + systemInternalWatts;
+
+        // Wall Draw from AC Power Outlet (Stopkontak PLN / Meteran Token)
+        // Adaptor Charger ASUS TUF 240W/280W has ~89% AC-to-DC conversion efficiency
+        const chargerEfficiency = includeChargerLoss ? 0.89 : 1.0;
+        const totalPcWatts = Math.round(totalDcWatts / chargerEfficiency);
+        const chargerLossWatts = totalPcWatts - totalDcWatts;
+
+        // Energy per single image in Watt-hours and kiloWatt-hours
+        const durationHoursPerImage = throughputTelemetry.totalDurationSec / 3600;
+        const wattHoursPerImage = totalPcWatts * durationHoursPerImage;
+        const kwhPerImage = wattHoursPerImage / 1000;
+
+        // Cost per single image in IDR
+        const costPerImageIdr = kwhPerImage * plnTarifPerKwh;
+
+        // Total Batch calculation
+        const batchTotalKwh = kwhPerImage * batchImageCount;
+        const batchTotalCostIdr = batchTotalKwh * plnTarifPerKwh;
+        const batchTotalHours = (throughputTelemetry.totalDurationSec * batchImageCount) / 3600;
+
+        // Token Listrik Prabayar (Pulsa Listrik) Specific Metrics
+        const totalTokenKwh = tokenNominal / plnTarifPerKwh; // misal Rp 50.000 / 1444 = 34.62 kWh
+        const imagesPerFullToken = kwhPerImage > 0 ? Math.floor(totalTokenKwh / kwhPerImage) : 0;
+        const tokenPercentUsed = totalTokenKwh > 0 ? (batchTotalKwh / totalTokenKwh) * 100 : 0;
+        const tokenRemainingRp = Math.max(0, tokenNominal - batchTotalCostIdr);
+        const tokenRemainingKwh = Math.max(0, totalTokenKwh - batchTotalKwh);
+
+        // Laptop TGP throttling evaluation
+        let isTgpThrottled = false;
+        let tgpThrottlePercent = 0;
+        if (isLaptop && activeGpu.tgpMaxWatts && activeGpu.tgpMaxWatts > 75) {
+            if (gpuWatts < activeGpu.tgpMaxWatts * 0.65) {
+                isTgpThrottled = true;
+                tgpThrottlePercent = Math.round((1 - gpuWatts / activeGpu.tgpMaxWatts) * 45); // up to ~30-40% clock penalty
+            }
+        }
+
+        // Efficiency tier badge
+        let effBadge = "Efisiensi Tinggi";
+        let effClass: "eff-high" | "eff-normal" | "eff-heavy" = "eff-high";
+        if (totalPcWatts >= 350 || costPerImageIdr > 8) {
+            effBadge = "Konsumsi Tinggi";
+            effClass = "eff-heavy";
+        } else if (totalPcWatts >= 180 || costPerImageIdr > 2) {
+            effBadge = "Efisiensi Standar";
+            effClass = "eff-normal";
+        }
+
+        return {
+            gpuWatts,
+            activeCpuWatts,
+            screenWatts,
+            extMonitorWatts,
+            systemInternalWatts,
+            totalDcWatts,
+            totalPcWatts,
+            chargerLossWatts,
+            wattHoursPerImage,
+            kwhPerImage,
+            costPerImageIdr,
+            batchTotalKwh,
+            batchTotalCostIdr,
+            batchTotalHours,
+            totalTokenKwh,
+            imagesPerFullToken,
+            tokenPercentUsed,
+            tokenRemainingRp,
+            tokenRemainingKwh,
+            isTgpThrottled,
+            tgpThrottlePercent,
+            effBadge,
+            effClass,
+        };
+    }, [
+        activeGpu,
+        laptopTgpWatts,
+        cpuWatts,
+        teKey,
+        ramTelemetry.ramStatus,
+        screenMode,
+        externalMonitorMode,
+        coolingFanMode,
+        includeChargerLoss,
+        throughputTelemetry.totalDurationSec,
+        plnTarifPerKwh,
+        batchImageCount,
+        tokenNominal,
+    ]);
+
     const handleCopyFlags = () => {
         navigator.clipboard.writeText(recommendedCliFlags);
         setCopiedFlags(true);
@@ -548,12 +1055,26 @@ export default function VramProfiler() {
         setUseTiledVae(true);
         setUseMedvramChunking(false);
         setGpuPresetId("rtx4060");
+        setDisplayDeductionMode("primary_single");
         setSystemRamGb(32);
         setEnableHiresFix(false);
         setHiresScale(1.5);
         setUpscaleMethod("latent");
         setEnableFaceDetailer(false);
         setEnableRefiner(false);
+        setSamplingSteps(20);
+        setGenPreviewTab("bat");
+        setPlnTarifPerKwh(1444);
+        setBatchImageCount(100);
+        setLaptopTgpWatts(100);
+        setTufProfile("perf");
+        setCpuWatts(35);
+        setScreenMode("med");
+        setExternalMonitorMode("none");
+        setCoolingFanMode("balanced");
+        setIncludeChargerLoss(true);
+        setBillingType("token");
+        setTokenNominal(50000);
     };
 
     return (
@@ -1007,7 +1528,7 @@ export default function VramProfiler() {
                                 ~{telemetry.totalVramGb.toFixed(2)} GB
                             </span>
                             <span className="vram-total-vs">
-                                dari <strong>{targetGpuVram} GB VRAM</strong> ({Math.round(telemetry.ratio * 100)}% Kapasitas)
+                                dari <strong>{effectiveAiVram.toFixed(1)} GB VRAM Efektif</strong> ({targetGpuVram} GB Fisik{desktopDeductionGb > 0 ? ` - ${desktopDeductionGb} GB Desktop` : ""}) &bull; {Math.round(telemetry.ratio * 100)}% Kapasitas
                             </span>
                         </div>
 
@@ -1101,6 +1622,596 @@ export default function VramProfiler() {
                         <p style={{ margin: "4px 0 0 0", fontSize: "13px", color: "#d4d4d8", lineHeight: 1.5 }}>
                             {telemetry.statusMessage}
                         </p>
+                    </div>
+
+                    {/* ESTIMATOR THROUGHPUT: SPEED (IT/S) & WAKTU GENERATE */}
+                    <div className="vram-throughput-card">
+                        <div className="vram-throughput-header">
+                            <div className="vram-throughput-title-wrap">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#3b82f6" }}>
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                                </svg>
+                                <span>Estimasi Throughput &amp; Waktu Generate</span>
+                            </div>
+                            <span className={`vram-throughput-badge ${throughputTelemetry.speedClass}`}>
+                                {throughputTelemetry.speedBadge}
+                            </span>
+                        </div>
+
+                        {/* Steps Setting with Quick Chips */}
+                        <div className="vram-steps-box">
+                            <div className="vram-steps-top">
+                                <span className="vram-steps-label">Denoising Steps Target:</span>
+                                <span className="vram-steps-val-badge">{samplingSteps} Steps</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={4}
+                                max={100}
+                                step={1}
+                                className="vram-range-input"
+                                value={samplingSteps}
+                                onChange={(e) => setSamplingSteps(parseInt(e.target.value) || 20)}
+                            />
+                            <div className="vram-steps-chips-row">
+                                {[4, 15, 20, 25, 30, 50].map((step) => (
+                                    <button
+                                        key={step}
+                                        type="button"
+                                        className={`vram-step-chip ${samplingSteps === step ? "active" : ""}`}
+                                        onClick={() => setSamplingSteps(step)}
+                                    >
+                                        {step === 4 ? "4 (Schnell)" : step === 20 ? "20 (Flux/SDXL)" : step === 25 ? "25 (Euler)" : `${step} Steps`}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Big Speed Hero Metrics */}
+                        <div className="vram-throughput-hero">
+                            <div className="vram-hero-time-box">
+                                <div style={{ display: "flex", alignItems: "baseline", gap: "8px", flexWrap: "wrap" }}>
+                                    <span className="vram-hero-time-val">
+                                        ~{throughputTelemetry.totalDurationSec.toFixed(1)}s
+                                    </span>
+                                    {throughputTelemetry.totalDurationSec >= 60 && (
+                                        <span style={{ fontSize: "14px", fontWeight: 700, color: "#38bdf8" }}>
+                                            (~{Math.floor(throughputTelemetry.totalDurationSec / 60)}m {(throughputTelemetry.totalDurationSec % 60).toFixed(0)}s)
+                                        </span>
+                                    )}
+                                </div>
+                                <span className="vram-hero-time-label">
+                                    Total Durasi per Gambar ({samplingSteps} steps &bull; {throughputTelemetry.secondsPerStep.toFixed(2)}s/step)
+                                </span>
+                            </div>
+                            <div className="vram-hero-speed-box">
+                                <span className="vram-hero-speed-val">
+                                    {throughputTelemetry.itPerSec >= 1.0
+                                        ? `${throughputTelemetry.itPerSec.toFixed(2)} it/s`
+                                        : `${throughputTelemetry.secondsPerStep.toFixed(2)} s/it`}
+                                </span>
+                                <span className="vram-hero-speed-label">
+                                    {throughputTelemetry.itPerSec >= 1.0
+                                        ? `~${throughputTelemetry.secondsPerStep.toFixed(2)}s per step`
+                                        : `~${throughputTelemetry.itPerSec.toFixed(2)} it/s`} ({activeGpu.name.split("/")[0].trim()})
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Timeline Latency Breakdown Stack */}
+                        <div className="vram-timeline-wrap">
+                            <div className="vram-timeline-track">
+                                <div
+                                    className="vram-timeline-segment te"
+                                    style={{ width: `${(throughputTelemetry.textEncodeSec / throughputTelemetry.totalDurationSec) * 100}%` }}
+                                    title={`Text Encoding: ${throughputTelemetry.textEncodeSec.toFixed(1)}s`}
+                                />
+                                <div
+                                    className="vram-timeline-segment denoise"
+                                    style={{ width: `${(throughputTelemetry.denoiseSec / throughputTelemetry.totalDurationSec) * 100}%` }}
+                                    title={`Denoising: ${throughputTelemetry.denoiseSec.toFixed(1)}s`}
+                                />
+                                {enableHiresFix && (
+                                    <div
+                                        className="vram-timeline-segment hires"
+                                        style={{ width: `${(throughputTelemetry.hiresSec / throughputTelemetry.totalDurationSec) * 100}%` }}
+                                        title={`Hi-Res Pass 2: ${throughputTelemetry.hiresSec.toFixed(1)}s`}
+                                    />
+                                )}
+                                {enableFaceDetailer && (
+                                    <div
+                                        className="vram-timeline-segment post"
+                                        style={{ width: `${(throughputTelemetry.detailerSec / throughputTelemetry.totalDurationSec) * 100}%` }}
+                                        title={`ADetailer Inpainting: ${throughputTelemetry.detailerSec.toFixed(1)}s`}
+                                    />
+                                )}
+                                <div
+                                    className="vram-timeline-segment vae"
+                                    style={{ width: `${(throughputTelemetry.vaeDecodeSec / throughputTelemetry.totalDurationSec) * 100}%` }}
+                                    title={`VAE Decode: ${throughputTelemetry.vaeDecodeSec.toFixed(1)}s`}
+                                />
+                            </div>
+
+                            <div className="vram-timeline-legend">
+                                <div className="vram-timeline-legend-item">
+                                    <div className="vram-timeline-dot te" />
+                                    <span>CLIP/T5: <strong>{throughputTelemetry.textEncodeSec.toFixed(1)}s</strong></span>
+                                </div>
+                                <div className="vram-timeline-legend-item">
+                                    <div className="vram-timeline-dot denoise" />
+                                    <span>Sampling: <strong>{throughputTelemetry.denoiseSec.toFixed(1)}s</strong></span>
+                                </div>
+                                {enableHiresFix && (
+                                    <div className="vram-timeline-legend-item">
+                                        <div className="vram-timeline-dot hires" />
+                                        <span>Hi-Res: <strong>{throughputTelemetry.hiresSec.toFixed(1)}s</strong></span>
+                                    </div>
+                                )}
+                                {enableFaceDetailer && (
+                                    <div className="vram-timeline-legend-item">
+                                        <div className="vram-timeline-dot post" />
+                                        <span>Face: <strong>{throughputTelemetry.detailerSec.toFixed(1)}s</strong></span>
+                                    </div>
+                                )}
+                                <div className="vram-timeline-legend-item">
+                                    <div className="vram-timeline-dot vae" />
+                                    <span>VAE: <strong>{throughputTelemetry.vaeDecodeSec.toFixed(1)}s</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Note & Alert */}
+                        <div className={`vram-throughput-alert-box ${throughputTelemetry.speedClass}`}>
+                            {throughputTelemetry.speedClass === "speed-critical" ? (
+                                <>
+                                    🛑 <strong>Peringatan Paging Disk-Thrashing:</strong> {throughputTelemetry.speedNote}
+                                </>
+                            ) : throughputTelemetry.speedClass === "speed-slow" ? (
+                                <>
+                                    🐢 <strong>Overhead CPU Offload:</strong> {throughputTelemetry.speedNote}
+                                </>
+                            ) : (
+                                <>
+                                    🚀 <strong>Efisiensi Tinggi:</strong> {throughputTelemetry.speedNote}
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* ESTIMATOR KONSUMSI DAYA LISTRIK (TDP, KWH & BIAYA TOKEN PLN) */}
+                    <div className="vram-power-card">
+                        <div className="vram-power-header">
+                            <div className="vram-power-title-wrap">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                                </svg>
+                                <div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                        <span>Konsumsi Daya Sistem &amp; Biaya Listrik Token PLN</span>
+                                        <span className={`vram-power-badge ${powerTelemetry.effClass}`}>
+                                            {powerTelemetry.effBadge}
+                                        </span>
+                                    </div>
+                                    <span style={{ fontSize: "11px", color: "#a1a1aa", fontWeight: 400 }}>
+                                        Kalkulasi menyeluruh: GPU, CPU Ryzen, Layar 16", Monitor Eksternal, Kipas Turbo &amp; Rugi Daya Adaptor Stopkontak
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Billing Switcher (Token vs Pascabayar) */}
+                            <div className="vram-power-tab-bar">
+                                <button
+                                    type="button"
+                                    className={`vram-power-tab-btn ${billingType === "token" ? "active" : ""}`}
+                                    onClick={() => setBillingType("token")}
+                                >
+                                    🪙 Token Listrik (Prabayar)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-power-tab-btn ${billingType === "pascabayar" ? "active" : ""}`}
+                                    onClick={() => setBillingType("pascabayar")}
+                                >
+                                    📋 Pascabayar Bulanan
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Quick Profiles for ASUS TUF A16 & Gaming Laptops */}
+                        <div className="vram-tuf-profile-box">
+                            <div className="vram-tuf-profile-label">
+                                <span>⚡ Profil Cepat ASUS TUF Gaming A16 / Gaming Laptop:</span>
+                                <span className="vram-tuf-badge">Armoury Crate / G-Helper Presets</span>
+                            </div>
+                            <div className="vram-tuf-btn-group">
+                                <button
+                                    type="button"
+                                    className={`vram-tuf-btn ${tufProfile === "turbo" ? "active" : ""}`}
+                                    onClick={() => handleApplyTufProfile("turbo")}
+                                    title="TUF Turbo: GPU Boost 140W Max, CPU 50W, Kipas 100% 5000+ RPM, Layar 100%"
+                                >
+                                    🚀 Mode Turbo (Max 140W)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-tuf-btn ${tufProfile === "perf" ? "active" : ""}`}
+                                    onClick={() => handleApplyTufProfile("perf")}
+                                    title="TUF Performance: GPU ~105W, CPU 35W, Kipas Balanced, Layar 50%"
+                                >
+                                    ⚖️ Mode Performance (Std)
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-tuf-btn ${tufProfile === "silent" ? "active" : ""}`}
+                                    onClick={() => handleApplyTufProfile("silent")}
+                                    title="TUF Silent/Eco: GPU ~65W, CPU 22W, Kipas Silent, Layar 50%"
+                                >
+                                    🍃 Mode Silent / Eco
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-tuf-btn ${tufProfile === "overnight" ? "active" : ""}`}
+                                    onClick={() => handleApplyTufProfile("overnight")}
+                                    title="Batch Render Semalaman: GPU Optimal, CPU 30W, Layar Laptop MATI (0W)"
+                                >
+                                    🌙 Render Semalaman (Layar Mati)
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Hero Stats */}
+                        <div className="vram-power-hero">
+                            {billingType === "token" ? (
+                                <>
+                                    <div className="vram-power-cost-box">
+                                        <div style={{ display: "flex", alignItems: "baseline", gap: "8px" }}>
+                                            <span className="vram-power-cost-val">
+                                                Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}
+                                            </span>
+                                            <span style={{ fontSize: "12px", color: "#6ee7b7", fontWeight: 700 }}>
+                                                ({powerTelemetry.tokenPercentUsed.toFixed(2)}% dari Token Rp {tokenNominal.toLocaleString("id-ID")})
+                                            </span>
+                                        </div>
+                                        <span className="vram-power-cost-label">
+                                            Pemotongan Token untuk {batchImageCount} Gambar (@ Rp {powerTelemetry.costPerImageIdr >= 10 ? powerTelemetry.costPerImageIdr.toFixed(1) : powerTelemetry.costPerImageIdr.toFixed(2)}/img)
+                                        </span>
+                                    </div>
+
+                                    <div className="vram-token-capacity-box">
+                                        <span className="vram-token-capacity-title">Kapasitas 1 Token Rp {tokenNominal.toLocaleString("id-ID")}:</span>
+                                        <span className="vram-token-capacity-val">
+                                            ~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} Gambar
+                                        </span>
+                                        <span className="vram-token-capacity-sub">
+                                            Total {powerTelemetry.totalTokenKwh.toFixed(1)} kWh kuota token PLN
+                                        </span>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="vram-power-cost-box">
+                                        <span className="vram-power-cost-val">
+                                            Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}
+                                        </span>
+                                        <span className="vram-power-cost-label">
+                                            Estimasi Biaya untuk {batchImageCount} Gambar (@ Rp {powerTelemetry.costPerImageIdr >= 10 ? powerTelemetry.costPerImageIdr.toFixed(1) : powerTelemetry.costPerImageIdr.toFixed(2)}/img)
+                                        </span>
+                                    </div>
+                                    <div className="vram-power-metric-box">
+                                        <span className="vram-power-metric-val">
+                                            {powerTelemetry.batchTotalKwh < 0.01 ? (powerTelemetry.batchTotalKwh * 1000).toFixed(1) + " Wh" : powerTelemetry.batchTotalKwh.toFixed(3) + " kWh"}
+                                        </span>
+                                        <span className="vram-power-metric-label">
+                                            Total Energi PC (~{powerTelemetry.totalPcWatts}W Wall Draw &bull; ~{(powerTelemetry.batchTotalHours * 60).toFixed(0)} menit)
+                                        </span>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Token Consumption Meter Bar (when Token mode active) */}
+                        {billingType === "token" && (
+                            <div className="vram-token-progress-wrap">
+                                <div className="vram-token-progress-top">
+                                    <span>Porsi Pemakaian Token Listrik:</span>
+                                    <span style={{ color: "#10b981", fontWeight: 700 }}>
+                                        Sisa Token: Rp {Math.round(powerTelemetry.tokenRemainingRp).toLocaleString("id-ID")} (~{powerTelemetry.tokenRemainingKwh.toFixed(2)} kWh)
+                                    </span>
+                                </div>
+                                <div className="vram-token-bar-track">
+                                    <div
+                                        className="vram-token-bar-fill"
+                                        style={{ width: `${Math.min(100, Math.max(0.5, powerTelemetry.tokenPercentUsed))}%` }}
+                                        title={`Terpakai: Rp ${Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (${powerTelemetry.tokenPercentUsed.toFixed(2)}%)`}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {/* FULL SYSTEM HARDWARE BREAKDOWN CONTROLS (GPU, CPU, Screen, Ext Monitor, Fans, Charger) */}
+                        <div className="vram-hardware-power-grid">
+                            {/* 1. GPU dGPU Power */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>💻 GPU (TGP / dGPU):</span>
+                                    <span style={{ color: powerTelemetry.isTgpThrottled ? "#f59e0b" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
+                                        {powerTelemetry.gpuWatts}W
+                                    </span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[55, 80, 105, 120, 140].map((w) => (
+                                        <button
+                                            key={w}
+                                            type="button"
+                                            className={`vram-power-chip ${laptopTgpWatts === w ? "active" : ""}`}
+                                            onClick={() => {
+                                                setLaptopTgpWatts(w);
+                                                setTufProfile("custom");
+                                            }}
+                                        >
+                                            {w === 140 ? "140W (Max TUF)" : w === 105 ? "105W (Std)" : `${w}W`}
+                                        </button>
+                                    ))}
+                                </div>
+                                {activeGpu.isLaptop && (
+                                    <input
+                                        type="range"
+                                        min={activeGpu.tgpMinWatts || 35}
+                                        max={activeGpu.tgpMaxWatts || 140}
+                                        step={5}
+                                        className="vram-range-input"
+                                        value={laptopTgpWatts}
+                                        onChange={(e) => {
+                                            setLaptopTgpWatts(parseInt(e.target.value) || 75);
+                                            setTufProfile("custom");
+                                        }}
+                                        style={{ marginTop: "4px" }}
+                                    />
+                                )}
+                            </div>
+
+                            {/* 2. CPU AMD Ryzen / Intel */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>🧠 CPU (AMD Ryzen / Intel):</span>
+                                    <span style={{ color: "#a78bfa", fontWeight: 700, fontFamily: "monospace" }}>
+                                        {powerTelemetry.activeCpuWatts}W
+                                    </span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[
+                                        { label: "Eco (20W)", val: 20 },
+                                        { label: "Standard (35W)", val: 35 },
+                                        { label: "Turbo (50W)", val: 50 },
+                                    ].map((c) => (
+                                        <button
+                                            key={c.val}
+                                            type="button"
+                                            className={`vram-power-chip ${cpuWatts === c.val ? "active" : ""}`}
+                                            onClick={() => {
+                                                setCpuWatts(c.val);
+                                                setTufProfile("custom");
+                                            }}
+                                        >
+                                            {c.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {teKey === "none" && (
+                                    <span style={{ fontSize: "10px", color: "#f59e0b" }}>
+                                        ⚠️ +15W beban CPU offloading Text Encoder
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* 3. Layar Laptop (16" IPS TUF A16) */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>🖥️ Layar Laptop (16" IPS 165Hz):</span>
+                                    <span style={{ color: screenMode === "off" ? "#10b981" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
+                                        {powerTelemetry.screenWatts}W
+                                    </span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[
+                                        { label: "Layar Mati (0W)", val: "off" as const },
+                                        { label: "50% Brightness (9W)", val: "med" as const },
+                                        { label: "100% Brightness (15W)", val: "high" as const },
+                                    ].map((s) => (
+                                        <button
+                                            key={s.val}
+                                            type="button"
+                                            className={`vram-power-chip ${screenMode === s.val ? "active" : ""}`}
+                                            onClick={() => {
+                                                setScreenMode(s.val);
+                                                setTufProfile("custom");
+                                            }}
+                                        >
+                                            {s.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 4. Monitor Eksternal Tambahan */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>🔌 Monitor Eksternal Tambahan:</span>
+                                    <span style={{ color: externalMonitorMode === "none" ? "#a1a1aa" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
+                                        {powerTelemetry.extMonitorWatts}W
+                                    </span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[
+                                        { label: "Tidak Ada (0W)", val: "none" as const },
+                                        { label: "24-27\" FHD/2K (25W)", val: "fhd" as const },
+                                        { label: "27-32\" 4K (42W)", val: "4k" as const },
+                                    ].map((m) => (
+                                        <button
+                                            key={m.val}
+                                            type="button"
+                                            className={`vram-power-chip ${externalMonitorMode === m.val ? "active" : ""}`}
+                                            onClick={() => setExternalMonitorMode(m.val)}
+                                        >
+                                            {m.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 5. Kipas Dual Arc-Flow & Komponen Sistem */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>🌪️ Kipas Turbo, DDR5 &amp; SSD NVMe:</span>
+                                    <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
+                                        {powerTelemetry.systemInternalWatts}W
+                                    </span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[
+                                        { label: "Silent (8W)", val: "silent" as const },
+                                        { label: "Balanced (14W)", val: "balanced" as const },
+                                        { label: "Turbo Fan (20W)", val: "turbo" as const },
+                                    ].map((f) => (
+                                        <button
+                                            key={f.val}
+                                            type="button"
+                                            className={`vram-power-chip ${coolingFanMode === f.val ? "active" : ""}`}
+                                            onClick={() => {
+                                                setCoolingFanMode(f.val);
+                                                setTufProfile("custom");
+                                            }}
+                                        >
+                                            {f.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* 6. Efisiensi Adaptor Charger AC/DC Stopkontak PLN */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>🔌 Rugi Daya Adaptor 240W:</span>
+                                    <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "monospace" }}>
+                                        +{powerTelemetry.chargerLossWatts}W AC Loss
+                                    </span>
+                                </div>
+                                <label style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "11px", color: "#d4d4d8", cursor: "pointer", marginTop: "2px" }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={includeChargerLoss}
+                                        onChange={(e) => setIncludeChargerLoss(e.target.checked)}
+                                        style={{ accentColor: "#10b981", width: "14px", height: "14px" }}
+                                    />
+                                    <span>Hitung Efisiensi Charger AC/DC (~89% Wall Draw Stopkontak PLN)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        {/* Interactive Token & Batch Controls Grid */}
+                        <div className="vram-power-controls-grid">
+                            {/* Pilihan Nominal Token PLN (Saat mode token aktif) */}
+                            {billingType === "token" && (
+                                <div className="vram-power-ctrl-box">
+                                    <div className="vram-power-ctrl-label">
+                                        <span>Beli Nominal Token PLN:</span>
+                                        <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "monospace" }}>Rp {tokenNominal.toLocaleString("id-ID")}</span>
+                                    </div>
+                                    <div className="vram-power-chips">
+                                        {[20000, 50000, 100000, 200000, 500000].map((t) => (
+                                            <button
+                                                key={t}
+                                                type="button"
+                                                className={`vram-power-chip ${tokenNominal === t ? "active" : ""}`}
+                                                onClick={() => setTokenNominal(t)}
+                                            >
+                                                Rp {(t / 1000).toFixed(0)}k
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Tarif Listrik PLN */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>Tarif Listrik PLN (per kWh):</span>
+                                    <span style={{ color: "#10b981", fontWeight: 700, fontFamily: "monospace" }}>Rp {plnTarifPerKwh}</span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[
+                                        { label: "1.300–2.200 VA (Rp 1.444)", val: 1444 },
+                                        { label: "3.500+ VA (Rp 1.700)", val: 1700 },
+                                        { label: "900 VA (Rp 1.352)", val: 1352 },
+                                    ].map((t) => (
+                                        <button
+                                            key={t.val}
+                                            type="button"
+                                            className={`vram-power-chip ${plnTarifPerKwh === t.val ? "active" : ""}`}
+                                            onClick={() => setPlnTarifPerKwh(t.val)}
+                                        >
+                                            {t.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Target Batch Count */}
+                            <div className="vram-power-ctrl-box">
+                                <div className="vram-power-ctrl-label">
+                                    <span>Target Jumlah Generate:</span>
+                                    <span style={{ color: "#3b82f6", fontWeight: 700, fontFamily: "monospace" }}>{batchImageCount} Gambar</span>
+                                </div>
+                                <div className="vram-power-chips">
+                                    {[1, 10, 50, 100, 500, 1000].map((count) => (
+                                        <button
+                                            key={count}
+                                            type="button"
+                                            className={`vram-power-chip ${batchImageCount === count ? "active" : ""}`}
+                                            onClick={() => setBatchImageCount(count)}
+                                        >
+                                            {count === 1 ? "1 Img" : count === 100 ? "100 (Std)" : count === 500 ? "500 (Batch)" : `${count}`}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Laptop TGP Throttling Alert */}
+                        {powerTelemetry.isTgpThrottled && (
+                            <div className="vram-tgp-alert">
+                                ⚠️ <strong>Peringatan Limit TGP Laptop:</strong> Daya GPU di-set pada {powerTelemetry.gpuWatts}W (jauh di bawah batas full-power {activeGpu.tgpMaxWatts}W). Clock speed Tensor Core terpotong hingga ~{powerTelemetry.tgpThrottlePercent}%, waktu generate melambat. Disarankan pilih mode <strong>Performance / Turbo</strong> di Armoury Crate atau G-Helper.
+                            </div>
+                        )}
+
+                        {/* Power Breakdown Flow Table */}
+                        <div className="vram-power-breakdown-row">
+                            <span>GPU: <strong>{powerTelemetry.gpuWatts}W</strong></span>
+                            <span>CPU: <strong>{powerTelemetry.activeCpuWatts}W</strong></span>
+                            <span>Layar 16": <strong>{powerTelemetry.screenWatts}W</strong></span>
+                            {powerTelemetry.extMonitorWatts > 0 && <span>Monitor Ext: <strong>{powerTelemetry.extMonitorWatts}W</strong></span>}
+                            <span>Kipas/Sistem: <strong>{powerTelemetry.systemInternalWatts}W</strong></span>
+                            <span>Total DC: <strong>{powerTelemetry.totalDcWatts}W</strong></span>
+                            <span style={{ color: "#10b981", fontWeight: 700 }}>
+                                Stopkontak PLN: <strong>~{powerTelemetry.totalPcWatts}W Wall Draw</strong>
+                            </span>
+                        </div>
+
+                        {/* Key Insight Box tailored for Token & ASUS TUF A16 */}
+                        <div className="vram-power-insight-box">
+                            💡 <strong>Insight Token Listrik &amp; ASUS TUF A16:</strong> Total daya riil yang disedot laptop dari stopkontak Token PLN adalah <strong>~{powerTelemetry.totalPcWatts}W</strong> (Komponen DC {powerTelemetry.totalDcWatts}W + Rugi Konversi Adaptor {powerTelemetry.chargerLossWatts}W).
+                            {billingType === "token" ? (
+                                <>
+                                    {" "}Untuk generate <strong>{batchImageCount} gambar</strong>, token PLN Anda hanya berkurang <strong>{powerTelemetry.batchTotalKwh.toFixed(3)} kWh</strong> atau setara <strong>Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")}</strong> (hanya <strong>{powerTelemetry.tokenPercentUsed.toFixed(2)}%</strong> dari token Rp {tokenNominal.toLocaleString("id-ID")}).
+                                    {" "}Dengan membeli 1 Token Rp {tokenNominal.toLocaleString("id-ID")}, laptop Anda dapat menghasilkan hingga <strong>~{powerTelemetry.imagesPerFullToken.toLocaleString("id-ID")} gambar</strong>!
+                                </>
+                            ) : (
+                                <>
+                                    {" "}Generate {batchImageCount} gambar {activeModel.name} memakan total {powerTelemetry.batchTotalKwh.toFixed(3)} kWh dengan perkiraan biaya listrik Rp {Math.round(powerTelemetry.batchTotalCostIdr).toLocaleString("id-ID")} (~Rp {powerTelemetry.costPerImageIdr.toFixed(2)}/gambar).
+                                </>
+                            )}
+                            {screenMode === "off" && " Mematikan layar laptop saat render semalaman berhasil menghemat daya ~15W terus-menerus!"}
+                        </div>
                     </div>
 
                     {/* DUAL METER 2: SYSTEM RAM & CPU OFFLOAD METER */}
@@ -1223,7 +2334,7 @@ export default function VramProfiler() {
 
                         {multiPassTelemetry.isPass2Risk && (
                             <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", borderRadius: "6px", fontSize: "12px", color: "#fca5a5", lineHeight: "1.4" }}>
-                                ⚠️ <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat di GPU, namun Pass 2 (Hi-Res Fix) melebihi VRAM {targetGpuVram} GB GPU Anda! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong> untuk mencegah crash OOM.
+                                ⚠️ <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat di GPU, namun Pass 2 (Hi-Res Fix) melebihi VRAM {effectiveAiVram.toFixed(1)} GB Efektif GPU Anda{desktopDeductionGb > 0 ? ` (${targetGpuVram} GB fisik - ${desktopDeductionGb} GB desktop)` : ""}! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong> untuk mencegah crash OOM.
                             </div>
                         )}
                     </div>
@@ -1232,7 +2343,9 @@ export default function VramProfiler() {
                     <div className="vram-gpu-box">
                         <div className="vram-gpu-title-row">
                             <span>Komparasi GPU Anda:</span>
-                            <span style={{ color: "#3b82f6" }}>{targetGpuVram} GB VRAM</span>
+                            <span style={{ color: "#3b82f6" }}>
+                                {targetGpuVram} GB Fisik {desktopDeductionGb > 0 ? `(~${effectiveAiVram.toFixed(1)} GB Efektif AI)` : ""}
+                            </span>
                         </div>
 
                         <select
@@ -1240,10 +2353,14 @@ export default function VramProfiler() {
                             value={gpuPresetId}
                             onChange={(e) => setGpuPresetId(e.target.value)}
                         >
-                            {GPU_PRESETS.map((g) => (
-                                <option key={g.id} value={g.id}>
-                                    {g.name}
-                                </option>
+                            {Object.entries(GROUPED_GPU_PRESETS).map(([groupName, gpus]) => (
+                                <optgroup key={groupName} label={groupName}>
+                                    {gpus.map((g) => (
+                                        <option key={g.id} value={g.id}>
+                                            {g.name}
+                                        </option>
+                                    ))}
+                                </optgroup>
                             ))}
                         </select>
 
@@ -1263,34 +2380,146 @@ export default function VramProfiler() {
                                 </span>
                             </div>
                         )}
+
+                        {/* Windows Desktop & Multi-Monitor VRAM Deduction */}
+                        <div className="vram-display-deduct-box">
+                            <div className="vram-display-deduct-top">
+                                <span>🖥️ Alokasi Display & OS Desktop:</span>
+                                <span style={{ color: desktopDeductionGb > 0 ? "#f59e0b" : "#10b981", fontFamily: "monospace", fontWeight: 700 }}>
+                                    {desktopDeductionGb > 0 ? `-${desktopDeductionGb} GB Desktop` : "0 GB (100% AI)"}
+                                </span>
+                            </div>
+
+                            <div className="vram-display-chips-row">
+                                <button
+                                    type="button"
+                                    className={`vram-display-mode-chip ${displayDeductionMode === "primary_single" ? "active" : ""}`}
+                                    onClick={() => setDisplayDeductionMode("primary_single")}
+                                >
+                                    <span className="vram-display-mode-title">🖥️ GPU Utama (1 Layar)</span>
+                                    <span className="vram-display-mode-sub">Potong ~0.8 GB (DWM & Browser)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-display-mode-chip ${displayDeductionMode === "primary_multi" ? "active" : ""}`}
+                                    onClick={() => setDisplayDeductionMode("primary_multi")}
+                                >
+                                    <span className="vram-display-mode-title">🖥️🖥️ Multi-Display / 4K</span>
+                                    <span className="vram-display-mode-sub">Potong ~1.4 GB (Dual Mon/4K)</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`vram-display-mode-chip ${displayDeductionMode === "headless" ? "active" : ""}`}
+                                    onClick={() => setDisplayDeductionMode("headless")}
+                                >
+                                    <span className="vram-display-mode-title">⚡ Headless / Secondary</span>
+                                    <span className="vram-display-mode-sub">Bebas Display (100% AI VRAM)</span>
+                                </button>
+                            </div>
+
+                            <div className="vram-display-deduct-alert">
+                                {displayDeductionMode === "primary_single" ? (
+                                    <>
+                                        ℹ️ <strong>GPU Utama (1 Layar):</strong> Windows DWM (Desktop Window Manager), Browser Chrome/Edge Hardware Acceleration, dan Discord memakan ~800 MB VRAM. VRAM Bersih untuk AI: <strong>{effectiveAiVram.toFixed(1)} GB</strong> (dari {targetGpuVram} GB fisik).
+                                    </>
+                                ) : displayDeductionMode === "primary_multi" ? (
+                                    <>
+                                        ℹ️ <strong>Multi-Monitor / 4K:</strong> Framebuffer ganda resolusi tinggi & streaming browser memotong ~1.4 GB VRAM. VRAM Bersih untuk AI: <strong>{effectiveAiVram.toFixed(1)} GB</strong> (dari {targetGpuVram} GB fisik).
+                                    </>
+                                ) : (
+                                    <>
+                                        ✨ <strong>Headless / Secondary GPU:</strong> GPU komputasi murni tanpa monitor terpasang. <strong>100% ({targetGpuVram} GB)</strong> VRAM fisik dialokasikan penuh untuk PyTorch / ComfyUI / WebUI.
+                                    </>
+                                )}
+                            </div>
+                        </div>
                     </div>
 
-                    {/* RECOMMENDED CLI FLAGS & OPTIMIZATION TIPS */}
+                    {/* 1-CLICK WEBUI-USER.BAT & COMFYUI COMMAND GENERATOR */}
                     <div className="vram-flags-card">
                         <div className="vram-flags-header">
-                            <span className="vram-flags-title">Rekomendasi Command-Line Flags</span>
+                            <div className="vram-throughput-title-wrap">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "#10b981" }}>
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                <span className="vram-flags-title">1-Click Launch Config &amp; Generator</span>
+                            </div>
+
+                            <div className="vram-gen-header-actions">
+                                <button
+                                    type="button"
+                                    className="vram-btn-download-bat"
+                                    onClick={handleDownloadBat}
+                                    title="Unduh file batch siap pakai untuk folder WebUI"
+                                >
+                                    💾 Unduh webui-user.bat
+                                </button>
+                                <button
+                                    type="button"
+                                    className="vram-btn-copy-comfy"
+                                    onClick={handleCopyComfy}
+                                    title="Salin argument start ComfyUI (python main.py ...)"
+                                >
+                                    {copiedComfy ? "Tersalin!" : "📋 Salin ComfyUI"}
+                                </button>
+                                <button
+                                    type="button"
+                                    className="vram-flags-copy-btn"
+                                    onClick={handleCopyFlags}
+                                    title="Salin string COMMANDLINE_ARGS saja"
+                                >
+                                    {copiedFlags ? "Tersalin!" : "📋 Salin Args"}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Preview Tabs */}
+                        <div className="vram-gen-tab-bar">
                             <button
                                 type="button"
-                                className="vram-flags-copy-btn"
-                                onClick={handleCopyFlags}
+                                className={`vram-gen-tab-btn ${genPreviewTab === "bat" ? "active" : ""}`}
+                                onClick={() => setGenPreviewTab("bat")}
                             >
-                                {copiedFlags ? "Tersalin!" : "Salin Flags"}
+                                webui-user.bat (A1111/Forge)
+                            </button>
+                            <button
+                                type="button"
+                                className={`vram-gen-tab-btn ${genPreviewTab === "comfy" ? "active" : ""}`}
+                                onClick={() => setGenPreviewTab("comfy")}
+                            >
+                                ComfyUI Command
+                            </button>
+                            <button
+                                type="button"
+                                className={`vram-gen-tab-btn ${genPreviewTab === "webui" ? "active" : ""}`}
+                                onClick={() => setGenPreviewTab("webui")}
+                            >
+                                COMMANDLINE_ARGS
                             </button>
                         </div>
 
+                        {/* Dynamic Code Preview Block */}
                         <div className="vram-flags-code">
-                            COMMANDLINE_ARGS={recommendedCliFlags}
+                            {genPreviewTab === "bat" ? (
+                                webuiBatContent
+                            ) : genPreviewTab === "comfy" ? (
+                                comfyUiCommand
+                            ) : (
+                                `COMMANDLINE_ARGS=${recommendedCliFlags}`
+                            )}
                         </div>
 
                         <ul className="vram-tips-list">
                             <li>
-                                <strong>ComfyUI Node Tip:</strong> Gunakan node <code>DualCLIPLoader (device: cpu)</code> untuk membebaskan VRAM Text Encoder langsung ke RAM sistem.
+                                <strong>WebUI (.bat) Panduan:</strong> Tempatkan file <code>webui-user.bat</code> hasil unduhan langsung ke dalam direktori instalasi Automatic1111 atau SD.Next Anda untuk menggantikan file lama.
                             </li>
                             <li>
-                                <strong>Tiled VAE:</strong> Mengaktifkan Tiled VAE mencegah lonjakan memori tak terduga saat proses akhir upscaling latents ke piksel RGB.
+                                <strong>ComfyUI Argument:</strong> Jalankan command terminal <code>{comfyUiCommand}</code> di direktori ComfyUI Anda. Flag memori otomatis disesuaikan dengan VRAM bersih GPU ({effectiveAiVram.toFixed(1)} GB).
                             </li>
                             <li>
-                                <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver NVIDIA Windows WDDM memindahkan tensor secara lambat ke RAM DDR4/DDR5 saat VRAM hampir penuh.
+                                <strong>Shared Memory Throttling:</strong> Flag <code>--pin-shared-memory</code> mencegah driver NVIDIA Windows memindahkan tensor secara lambat ke RAM sistem saat mendekati ambang batas VRAM.
                             </li>
                         </ul>
                     </div>

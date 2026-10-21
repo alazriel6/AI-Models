@@ -612,6 +612,23 @@
     font-weight: 600;
     outline: none;
     width: 100%;
+    cursor: pointer;
+}
+
+.vram-gpu-select optgroup {
+    background: #09090b;
+    color: #3b82f6;
+    font-weight: 800;
+    font-size: 12px;
+    padding: 6px 0;
+}
+
+.vram-gpu-select option {
+    background: #18181b;
+    color: #f4f4f5;
+    font-weight: 500;
+    font-size: 13px;
+    padding: 4px 6px;
 }
 
 .vram-gpu-custom-slider {
@@ -919,6 +936,772 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 10px;
+}
+
+/* Windows Desktop & Multi-Monitor VRAM Deduction */
+.vram-display-deduct-box {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.vram-display-deduct-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-display-chips-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 6px;
+}
+
+.vram-display-mode-chip {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vram-display-mode-chip:hover {
+    border-color: #3b82f6;
+    background: #1f1f23;
+}
+
+.vram-display-mode-chip.active {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+}
+
+.vram-display-mode-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-display-mode-sub {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+.vram-display-deduct-alert {
+    font-size: 11px;
+    color: #a1a1aa;
+    line-height: 1.4;
+    background: #121215;
+    padding: 6px 10px;
+    border-radius: 5px;
+    border: 1px dashed #27272a;
+}
+
+/* Throughput & Speed Estimator Card */
+.vram-throughput-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vram-throughput-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.vram-throughput-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-throughput-badge {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.vram-throughput-badge.speed-fast {
+    background: #064e3b;
+    color: #6ee7b7;
+    border: 1px solid #10b981;
+}
+
+.vram-throughput-badge.speed-normal {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border: 1px solid #3b82f6;
+}
+
+.vram-throughput-badge.speed-slow {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+}
+
+.vram-throughput-badge.speed-critical {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: 1px solid #ef4444;
+}
+
+/* Big Hero Speed Numbers */
+.vram-throughput-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.vram-hero-time-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vram-hero-time-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: #f4f4f5;
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum";
+}
+
+.vram-hero-time-label {
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+.vram-hero-speed-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.vram-hero-speed-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: #3b82f6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+.vram-hero-speed-label {
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+/* Steps Input & Chips */
+.vram-steps-box {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 10px 12px;
+}
+
+.vram-steps-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.vram-steps-label {
+    font-weight: 600;
+    color: #d4d4d8;
+}
+
+.vram-steps-val-badge {
+    font-family: monospace;
+    font-weight: 700;
+    color: #93c5fd;
+    background: #1e3a8a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+}
+
+.vram-steps-chips-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.vram-step-chip {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-step-chip:hover {
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.vram-step-chip.active {
+    background: #2563eb;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+/* Timeline Breakdown Bar */
+.vram-timeline-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vram-timeline-track {
+    height: 10px;
+    background: #18181b;
+    border-radius: 5px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid #27272a;
+}
+
+.vram-timeline-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.vram-timeline-segment.te { background: #8b5cf6; }
+.vram-timeline-segment.denoise { background: #3b82f6; }
+.vram-timeline-segment.hires { background: #f59e0b; }
+.vram-timeline-segment.post { background: #10b981; }
+.vram-timeline-segment.vae { background: #ec4899; }
+
+.vram-timeline-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+.vram-timeline-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.vram-timeline-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+}
+
+.vram-timeline-dot.te { background: #8b5cf6; }
+.vram-timeline-dot.denoise { background: #3b82f6; }
+.vram-timeline-dot.hires { background: #f59e0b; }
+.vram-timeline-dot.post { background: #10b981; }
+.vram-timeline-dot.vae { background: #ec4899; }
+
+.vram-throughput-alert-box {
+    font-size: 11px;
+    line-height: 1.45;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: #121215;
+    border: 1px solid #27272a;
+}
+
+.vram-throughput-alert-box.speed-fast {
+    border-left: 3px solid #10b981;
+    color: #a7f3d0;
+}
+
+.vram-throughput-alert-box.speed-normal {
+    border-left: 3px solid #3b82f6;
+    color: #bfdbfe;
+}
+
+.vram-throughput-alert-box.speed-slow {
+    border-left: 3px solid #f59e0b;
+    color: #fde68a;
+}
+
+.vram-throughput-alert-box.speed-critical {
+    border-left: 3px solid #ef4444;
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.08);
+}
+
+/* 1-Click BAT & Command Generator Upgrades */
+.vram-gen-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.vram-btn-download-bat {
+    background: #059669;
+    border: 1px solid #10b981;
+    color: #ffffff;
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.vram-btn-download-bat:hover {
+    background: #047857;
+    transform: translateY(-1px);
+}
+
+.vram-btn-copy-comfy {
+    background: #6366f1;
+    border: 1px solid #818cf8;
+    color: #ffffff;
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.15s ease;
+}
+
+.vram-btn-copy-comfy:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+}
+
+.vram-gen-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #121215;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    width: fit-content;
+}
+
+.vram-gen-tab-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-gen-tab-btn.active {
+    background: #27272a;
+    color: #f4f4f5;
+}
+
+.vram-gen-tab-btn:hover {
+    color: #ffffff;
+}
+
+/* Power & Electricity Cost Estimator Card */
+.vram-power-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vram-power-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.vram-power-title-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-power-badge {
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.vram-power-badge.eff-high {
+    background: #064e3b;
+    color: #6ee7b7;
+    border: 1px solid #10b981;
+}
+
+.vram-power-badge.eff-normal {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border: 1px solid #3b82f6;
+}
+
+.vram-power-badge.eff-heavy {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+}
+
+/* Billing Switcher Tab */
+.vram-power-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #121215;
+    padding: 3px;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+}
+
+.vram-power-tab-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-power-tab-btn:hover {
+    color: #ffffff;
+}
+
+.vram-power-tab-btn.active {
+    background: #10b981;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* ASUS TUF A16 Profiles Bar */
+.vram-tuf-profile-box {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vram-tuf-profile-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 700;
+    color: #e4e4e7;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vram-tuf-badge {
+    background: #27272a;
+    color: #93c5fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.vram-tuf-btn-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 8px;
+}
+
+.vram-tuf-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #d4d4d8;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.vram-tuf-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
+.vram-tuf-btn.active {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #bfdbfe;
+    font-weight: 700;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+/* Big Hero Stats */
+.vram-power-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 12px 16px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.vram-power-cost-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vram-power-cost-val {
+    font-size: 26px;
+    font-weight: 800;
+    color: #10b981;
+    letter-spacing: -0.02em;
+    font-feature-settings: "tnum";
+}
+
+.vram-power-cost-label {
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+.vram-token-capacity-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.vram-token-capacity-title {
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+.vram-token-capacity-val {
+    font-size: 22px;
+    font-weight: 800;
+    color: #38bdf8;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+.vram-token-capacity-sub {
+    font-size: 10px;
+    color: #71717a;
+}
+
+.vram-power-metric-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+.vram-power-metric-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: #f59e0b;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+}
+
+.vram-power-metric-label {
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+/* Token Progress Bar */
+.vram-token-progress-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.vram-token-progress-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #a1a1aa;
+}
+
+.vram-token-bar-track {
+    height: 8px;
+    background: #18181b;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #27272a;
+}
+
+.vram-token-bar-fill {
+    height: 100%;
+    background: #10b981;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+/* Full System Hardware Power Grid */
+.vram-hardware-power-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.vram-power-controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 10px;
+}
+
+.vram-power-ctrl-box {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vram-power-ctrl-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #d4d4d8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vram-power-chips {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.vram-power-chip {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 3px 7px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-power-chip:hover {
+    color: #ffffff;
+    border-color: #10b981;
+}
+
+.vram-power-chip.active {
+    background: #064e3b;
+    border-color: #10b981;
+    color: #6ee7b7;
+}
+
+.vram-tgp-alert {
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: #fde68a;
+    line-height: 1.45;
+}
+
+.vram-power-insight-box {
+    font-size: 11px;
+    line-height: 1.5;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #121215;
+    border-left: 3px solid #10b981;
+    color: #d4d4d8;
+}
+
+.vram-power-breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #a1a1aa;
+    padding-top: 6px;
+    border-top: 1px dashed #27272a;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 /* Responsive */
