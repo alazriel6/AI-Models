@@ -22,12 +22,10 @@ export interface SamplerItem {
   category: SamplerCategory;
   order: 1 | 2 | 3;
   nfePerStep: 1 | 2;
-  speedRating: number; // 1-5
-  detailRating: number; // 1-5
   minSteps: number;
   optimalSteps: string;
   optimalCfg: string;
-  convergence: "Konvergen (Gambar Mengunci)" | "Non-Konvergen (Stokastik/Kreatif)" | "Direct Flow";
+  convergence: "Konvergen (Deterministik)" | "Non-Konvergen (Stokastik / SDE)" | "Continuous Rectified Flow";
   architectures: Architecture[];
   summary: string;
   mechanism: string;
@@ -37,6 +35,8 @@ export interface SamplerItem {
   recommendedSchedulers: string[];
   comfyName: string;
   webuiName: string;
+  paperTitle: string;
+  paperUrl: string;
 }
 
 export interface SchedulerItem {
@@ -50,6 +50,8 @@ export interface SchedulerItem {
   bestFor: string;
   comfyName: string;
   webuiName: string;
+  sourceReference: string;
+  sourceUrl: string;
 }
 
 export interface RecipeItem {
@@ -63,13 +65,17 @@ export interface RecipeItem {
   schedulerName: string;
   steps: number;
   cfg: number;
+  clipSkip: number | string;
   speed: string;
   useCase: string;
+  sourceName: string;
+  sourceUrl: string;
+  officialNotes: string;
   whyItWorks: string;
 }
 
 // ============================================================================
-// Technical Datasets (100% Comprehensive AI Knowledge Base)
+// Technical Datasets (100% Verified AI Knowledge Base & Model Cards)
 // ============================================================================
 
 export const SAMPLER_DIRECTORY: SamplerItem[] = [
@@ -80,28 +86,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "deterministic",
     order: 2,
     nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 5,
     minSteps: 18,
     optimalSteps: "20 - 28",
     optimalCfg: "5.0 - 7.0",
-    convergence: "Konvergen (Gambar Mengunci)",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SDXL", "Pony", "Illustrious", "SD 1.5"],
-    summary: "Solver Runge-Kutta orde-2 multi-step yang efisien; umum dijadikan titik awal untuk model SDXL, anime, dan ilustrasi.",
-    mechanism: "Menggunakan metode integrasi numerik 2nd Order Multi-step yang memanfaatkan riwayat gradient dari step sebelumnya sehingga tidak memerlukan evaluasi fungsi ganda (1 NFE per step).",
+    summary: "DPM-Solver++ orde-2 multi-step. Solver cepat berbasis Runge-Kutta eksponensial yang memanfaatkan riwayat gradient step sebelumnya.",
+    mechanism: "Mengintegrasikan fungsi ODE difusi menggunakan formulasi multi-step orde ke-2. Setelah langkah awal, hanya memerlukan 1 evaluasi fungsi (1 NFE) per langkah.",
     pros: [
-      "Efisien dalam komputasi (1 NFE per step)",
-      "Deterministik (menghasilkan gambar identik pada seed dan step yang sama)",
-      "Banyak digunakan bersama scheduler Karras pada model difusi",
+      "Efisien dalam komputasi (1 NFE per step setelah inisialisasi)",
+      "Deterministik murni: seed dan step yang sama menghasilkan gambar yang identik",
+      "Umum dipadukan dengan Karras scheduler pada model SDXL dan fine-tune anime",
     ],
     cons: [
-      "Dapat tampak over-smoothed pada detail mikro tertentu jika step terlalu rendah atau model kurang variasi noise",
-      "Memerlukan riwayat step sebelumnya; kurang optimal jika total step terlalu sedikit (<15)",
+      "Dapat tampak over-smoothed pada detail mikro tertentu jika step terlalu sedikit (<15)",
+      "Memerlukan buffer riwayat langkah; tidak dapat mengubah nilai step secara dinamis di tengah proses",
     ],
-    bestUseCases: ["Model finetune anime (Illustrious, Pony)", "SDXL umum", "Workflow batch rendering"],
+    bestUseCases: ["Pony Diffusion V6", "Illustrious-XL", "SDXL Base", "Batch rendering cepat"],
     recommendedSchedulers: ["Karras", "SGM Uniform", "Exponential"],
     comfyName: "dpmpp_2m",
     webuiName: "DPM++ 2M",
+    paperTitle: "Lu et al. (NeurIPS 2022) - DPM-Solver++",
+    paperUrl: "https://arxiv.org/abs/2211.01095",
   },
   {
     id: "dpmpp_2m_sde",
@@ -110,28 +116,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "stochastic",
     order: 2,
     nfePerStep: 1,
-    speedRating: 4,
-    detailRating: 5,
     minSteps: 24,
     optimalSteps: "28 - 35",
-    optimalCfg: "4.5 - 6.5",
-    convergence: "Non-Konvergen (Stokastik/Kreatif)",
+    optimalCfg: "4.5 - 6.0",
+    convergence: "Non-Konvergen (Stokastik / SDE)",
     architectures: ["SDXL", "Pony", "Illustrious", "SD 1.5"],
-    summary: "Varian SDE (Stochastic Differential Equation) dengan penambahan noise Brownian terkontrol di setiap iterasi.",
-    mechanism: "Menyuntikkan noise stokastik terukur di setiap iterasi orde-2. Karakteristik ini mempertahankan variasi noise frekuensi tinggi hingga step akhir, memengaruhi tekstur permukaan tergantung model.",
+    summary: "Varian SDE (Stochastic Differential Equation) yang menyuntikkan noise Brownian acak terukur di setiap iterasi orde-2.",
+    mechanism: "Menyelesaikan persamaan diferensial stokastik (Reverse SDE) dengan menyuntikkan noise acak terukur pada setiap langkah. Hal ini mempertahankan energi noise frekuensi tinggi hingga tahap akhir.",
     pros: [
-      "Membantu mempertahankan variasi tekstur frekuensi tinggi pada model fotorealistik atau potret",
-      "Toleran terhadap variasi pencahayaan pada CFG moderat",
-      "Transisi gradasi bayangan yang halus pada konfigurasi step mencukupi",
+      "Dapat mempertahankan variasi tekstur frekuensi tinggi pada fotografi dan potret",
+      "Toleran terhadap saturasi kontras pada CFG moderat (4.5 - 6.0)",
+      "Mereduksi kecenderungan over-smoothing pada checkpoint fotorealistik",
     ],
     cons: [
-      "Non-konvergen: mengubah jumlah step dapat mengubah komposisi gambar meski seed tetap",
-      "Komputasi per step membutuhkan kalkulasi drift dan diffusion tambahan",
+      "Non-konvergen: mengubah jumlah steps akan mengubah komposisi dan pose gambar meski seed tetap sama",
+      "Memerlukan kalkulasi drift dan diffusion tambahan pada setiap langkah",
     ],
-    bestUseCases: ["Eksperimen tekstur fotorealistik", "Potret dengan pencahayaan terarah", "Gaya seni semi-realistis"],
+    bestUseCases: ["Fotografi Potret & Tekstur Kulit", "Pencahayaan Sinematik Kompleks", "Semi-realism"],
     recommendedSchedulers: ["Karras", "Exponential"],
     comfyName: "dpmpp_2m_sde",
     webuiName: "DPM++ 2M SDE",
+    paperTitle: "Katherine Crowson / k-diffusion SDE formulation",
+    paperUrl: "https://github.com/crowsonkb/k-diffusion",
   },
   {
     id: "euler",
@@ -140,28 +146,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "deterministic",
     order: 1,
     nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 4,
     minSteps: 18,
     optimalSteps: "20 - 30",
-    optimalCfg: "5.0 - 7.5",
-    convergence: "Konvergen (Gambar Mengunci)",
+    optimalCfg: "5.0 - 7.0",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SDXL", "SD 1.5", "Flux"],
-    summary: "Solver linear ODE orde-1 paling mendasar, deterministik, dan menjadi baseline evaluasi stabilitas model.",
-    mechanism: "Menghitung gradien vektor langsung pada titik latents saat ini ($x_{t-1} = x_t - \\sigma \\cdot \\nabla$). Sederhana, 1 NFE per step, dan tidak memerlukan memori riwayat langkah.",
+    summary: "Metode integrasi numerik linier Forward Euler orde-1. Merupakan baseline resmi pada banyak model dan wajib untuk NoobAI-XL V-Pred.",
+    mechanism: "Menghitung turunan vektor gradien langsung pada titik latents saat ini ($x_{t-1} = x_t - \\sigma \\cdot \\nabla$). Sederhana, 1 NFE per langkah, tanpa memori riwayat.",
     pros: [
-      "Beban komputasi per step ringan (1 NFE per step)",
-      "Sifat deterministik tinggi dan mudah direproduksi",
-      "Baseline standar pada evaluasi model dan arsitektur Flow Matching (FLUX)",
+      "Beban kalkulasi per langkah paling ringan (1 NFE per step)",
+      "Deterministik murni dan sangat mudah direproduksi",
+      "Solver standar resmi untuk arsitektur Rectified Flow (FLUX.1) dan varian NoobAI-XL V-Prediction",
     ],
     cons: [
-      "Akurasi integrasi numerik orde-1 lebih rendah dibanding solver orde-2 pada step rendah",
-      "Pada model difusi standar (non-distilled), step rendah dapat menyisakan artefak noise jika scheduler tidak sesuai",
+      "Akurasi integrasi numerik orde-1 lebih rendah dibanding orde-2 pada step rendah (<18)",
+      "Pada model difusi standar (non-distilled), step rendah dapat menyisakan noise jika scheduler tidak sesuai",
     ],
-    bestUseCases: ["Pengujian model baru", "Desain karakter bersih", "FLUX.1 inference baseline"],
-    recommendedSchedulers: ["Normal", "SGM Uniform", "Simple"],
+    bestUseCases: ["FLUX.1 [dev] & [schnell]", "NoobAI-XL V-Pred (Wajib)", "Baseline testing model baru"],
+    recommendedSchedulers: ["Simple", "Beta", "Normal", "SGM Uniform"],
     comfyName: "euler",
     webuiName: "Euler",
+    paperTitle: "Karras et al. (NeurIPS 2022) - EDM Baseline",
+    paperUrl: "https://arxiv.org/abs/2206.00364",
   },
   {
     id: "euler_a",
@@ -170,28 +176,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "stochastic",
     order: 1,
     nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 4,
     minSteps: 20,
-    optimalSteps: "24 - 35",
-    optimalCfg: "5.5 - 7.0",
-    convergence: "Non-Konvergen (Stokastik/Kreatif)",
-    architectures: ["SD 1.5", "SDXL", "Pony"],
-    summary: "Solver Euler dengan komponen ancestral (stokastik) yang menyuntikkan noise acak di setiap iterasi.",
-    mechanism: "Mengurangi noise sebagian lalu menyuntikkan kembali noise acak gaussian berskala sigma ancestral (\\sigma_{up}). Mencegah lintasan terperangkap pada titik lokal tertentu.",
+    optimalSteps: "20 - 28",
+    optimalCfg: "4.5 - 6.0",
+    convergence: "Non-Konvergen (Stokastik / SDE)",
+    architectures: ["Illustrious", "Pony", "SD 1.5", "SDXL"],
+    summary: "Euler dengan komponen ancestral (stokastik). Direkomendasikan resmi oleh model card Illustrious-XL dan NoobAI-XL Standard.",
+    mechanism: "Mengurangi noise lalu menyuntikkan kembali noise acak gaussian berskala sigma ancestral (\\sigma_{up}). Mengadaptasi sampling DDPM Ho et al. ke dalam langkah Euler.",
     pros: [
-      "Menghasilkan variasi komposisi dan ekspresi yang dinamis antar konfigurasi step",
-      "Banyak dieksplorasi komunitas anime untuk visual bergaya ilustrasi atau lukisan",
-      "Eksekusi cepat (1 NFE per step)",
+      "Rekomendasi resmi pada model card Illustrious-XL dan NoobAI-XL Standard",
+      "Menghasilkan variasi pose, ekspresi wajah, dan goresan visual anime yang dinamis",
+      "Eksekusi ringan (1 NFE per step)",
     ],
     cons: [
-      "Tidak konvergen (step 20 dan step 50 menghasilkan komposisi berbeda)",
+      "Tidak konvergen: hasil gambar tidak mengunci jika jumlah step diubah",
       "Kurang dapat diprediksi untuk inpainting yang memerlukan kesinambungan ketat",
     ],
-    bestUseCases: ["Ilustrasi Anime Tradisional/Digital", "Konsep Seni Fantasi", "Eksplorasi Pose Dinamis"],
-    recommendedSchedulers: ["Normal", "SGM Uniform"],
+    bestUseCases: ["Illustrious-XL (Rekomendasi Resmi)", "NoobAI-XL Standard", "Ilustrasi Anime & Fanart"],
+    recommendedSchedulers: ["SGM Uniform", "Normal", "Karras"],
     comfyName: "euler_ancestral",
     webuiName: "Euler a",
+    paperTitle: "Katherine Crowson (k-diffusion) - Ancestral Sampling",
+    paperUrl: "https://github.com/crowsonkb/k-diffusion",
   },
   {
     id: "dpmpp_3m_sde",
@@ -199,29 +205,29 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     codeName: "dpmpp_3m_sde",
     category: "stochastic",
     order: 3,
-    nfePerStep: 2,
-    speedRating: 3,
-    detailRating: 5,
+    nfePerStep: 1,
     minSteps: 26,
     optimalSteps: "30 - 45",
     optimalCfg: "4.0 - 6.0",
-    convergence: "Non-Konvergen (Stokastik/Kreatif)",
+    convergence: "Non-Konvergen (Stokastik / SDE)",
     architectures: ["SDXL", "Pony", "Illustrious"],
-    summary: "Solver SDE multi-step orde-3 untuk estimasi trayektori numerik dengan presisi orde lebih tinggi.",
-    mechanism: "Mengevaluasi tiga titik sampel gradien secara berurutan dengan penyeimbang Brownian noise. Memerlukan buffer riwayat langkah yang lebih panjang.",
+    summary: "DPM-Solver++ multi-step orde-3 dengan Brownian motion untuk aproksimasi trayektori kurva berakurasi tinggi.",
+    mechanism: "Mengevaluasi gradient riwayat hingga orde ke-3 ditambah penyeimbang Brownian noise stokastik. Membutuhkan buffer riwayat 3 langkah sebelumnya.",
     pros: [
-      "Akurasi integrasi tinggi pada resolusi besar",
+      "Akurasi integrasi tinggi pada resolusi besar (1024x1024 ke atas)",
       "Membantu transisi gradasi halus pada latar belakang atau area kontras rendah",
-      "Mereduksi artefak diskontinuitas numerik",
+      "Mereduksi diskontinuitas numerik",
     ],
     cons: [
-      "Memerlukan step yang cukup agar riwayat gradien stabil",
-      "Waktu komputasi lebih lama dibanding varian orde-2",
+      "Memerlukan step yang cukup (≥28) agar riwayat gradien orde-3 stabil",
+      "Komputasi per langkah sedikit lebih lama dibanding varian orde-2",
     ],
-    bestUseCases: ["Render Resolusi Tinggi", "Lanskap Kompleks", "Detailed Anime Scenery"],
+    bestUseCases: ["Render Ilustrasi Detail Tinggi", "Lanskap Kompleks", "High-res Upscaling"],
     recommendedSchedulers: ["Karras", "Exponential"],
     comfyName: "dpmpp_3m_sde",
     webuiName: "DPM++ 3M SDE",
+    paperTitle: "Lu et al. / k-diffusion 3rd-order Multi-step SDE",
+    paperUrl: "https://arxiv.org/abs/2211.01095",
   },
   {
     id: "dpmpp_2s_a",
@@ -230,27 +236,27 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "stochastic",
     order: 2,
     nfePerStep: 2,
-    speedRating: 3,
-    detailRating: 4,
     minSteps: 24,
-    optimalSteps: "28 - 40",
+    optimalSteps: "25 - 35",
     optimalCfg: "5.0 - 6.5",
-    convergence: "Non-Konvergen (Stokastik/Kreatif)",
+    convergence: "Non-Konvergen (Stokastik / SDE)",
     architectures: ["SDXL", "SD 1.5"],
-    summary: "Solver 2nd-order single-step ancestral dengan 2 evaluasi fungsi per langkah sampling.",
-    mechanism: "Melakukan dua evaluasi fungsi per langkah sampling (2 NFE) ditambah injeksi stochastic ancestral.",
+    summary: "DPM-Solver++ 2nd-order single-step ancestral. Melakukan dua evaluasi fungsi per langkah sampling.",
+    mechanism: "Menjalankan evaluasi fungsi ganda (2 NFE) per langkah ditambah injeksi stochastic ancestral pada setiap interval waktu.",
     pros: [
-      "Variasi komposisi dinamis untuk eksplorasi konsep",
-      "Menghasilkan variasi siluet dan pencahayaan alternatif",
+      "Akurasi kurva lokal tinggi karena single-step (tidak bergantung riwayat langkah)",
+      "Variasi siluet pakaian dan pose dinamis",
     ],
     cons: [
-      "Memerlukan 2 NFE per step (waktu kalkulasi mendekati dua kali lipat dibanding solver 1 NFE)",
+      "Memerlukan 2 NFE per step (waktu inferensi dua kali lipat dibanding Euler/DPM++ 2M pada step yang sama)",
       "Non-konvergen",
     ],
-    bestUseCases: ["Eksplorasi Konsep Seni", "Surreal Art"],
+    bestUseCases: ["Eksplorasi Konsep Dinamis", "Surreal Art"],
     recommendedSchedulers: ["Karras", "Normal"],
     comfyName: "dpmpp_2s_ancestral",
     webuiName: "DPM++ 2S a",
+    paperTitle: "Lu et al. (NeurIPS 2022) - Single-Step DPM-Solver",
+    paperUrl: "https://arxiv.org/abs/2211.01095",
   },
   {
     id: "ddim",
@@ -259,28 +265,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "deterministic",
     order: 1,
     nfePerStep: 1,
-    speedRating: 4,
-    detailRating: 4,
     minSteps: 25,
     optimalSteps: "30 - 50",
     optimalCfg: "6.0 - 8.0",
-    convergence: "Konvergen (Gambar Mengunci)",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SD 1.5", "SDXL"],
-    summary: "Denoising Diffusion Implicit Models, formulasi deterministik non-Markovian awal dalam literatur difusi.",
-    mechanism: "Memformulasikan proses difusi tanpa penambahan noise acak forward Markov, memungkinkan pemetaan latents yang deterministik dan matematis dapat dibalik (DDIM inversion).",
+    summary: "Denoising Diffusion Implicit Models. Formulasi proses difusi non-Markovian deterministik yang dapat dibalik (latent inversion).",
+    mechanism: "Memformulasikan proses difusi tanpa penambahan noise acak forward Markov. Trayektori sepenuhnya deterministik dan dapat di-invert kembali ke noise awal.",
     pros: [
       "Deterministik murni dan stabil untuk rekonstruksi latents",
-      "Mendukung teknik DDIM Inversion, interpolasi latents, dan inpainting tertentu",
+      "Mendukung teknik DDIM Inversion, interpolasi latents, dan inpainting presisi",
       "Konsistensi frame deterministik pada animasi terarah",
     ],
     cons: [
       "Memerlukan step relatif lebih banyak (umumnya ≥30) untuk mencapai konvergensi setara solver orde-2",
       "Dapat kurang terdefinisi jika step terlalu rendah (<20)",
     ],
-    bestUseCases: ["ControlNet Presisi", "Inpainting Deterministic", "Video Animation Frame Consistency"],
-    recommendedSchedulers: ["Normal", "Uniform"],
+    bestUseCases: ["ControlNet Inpainting", "DDIM Inversion & Image Editing", "Animasi Konsisten"],
+    recommendedSchedulers: ["Normal", "DDIM Uniform"],
     comfyName: "ddim",
     webuiName: "DDIM",
+    paperTitle: "Song et al. (ICLR 2021) - DDIM",
+    paperUrl: "https://arxiv.org/abs/2010.02502",
   },
   {
     id: "uni_pc",
@@ -289,28 +295,28 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "deterministic",
     order: 2,
     nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 4,
     minSteps: 12,
     optimalSteps: "14 - 20",
-    optimalCfg: "5.5 - 7.0",
-    convergence: "Konvergen (Gambar Mengunci)",
+    optimalCfg: "5.0 - 7.0",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SD 1.5", "SDXL"],
-    summary: "Unified Predictor-Corrector framework untuk akselerasi penyelesaian ODE pada difusi.",
-    mechanism: "Memadukan predictor korektor polinomial adaptif untuk menyelesaikan kurva difusi dengan evaluasi fungsi yang efisien.",
+    summary: "Unified Predictor-Corrector framework untuk akselerasi sampling ODE difusi dalam 14–20 langkah.",
+    mechanism: "Memadukan skema predictor korektor polinomial adaptif yang menyelesaikan kurva difusi dengan evaluasi fungsi yang efisien (1 NFE per step pada mode default).",
     pros: [
       "Mencapai struktur gambar utuh pada step relatif rendah (14-20 step pada SD 1.5/SDXL)",
       "Efisien (1 NFE per step pada mode dasar)",
-      "Hemat waktu untuk iterasi prompt",
+      "Hemat waktu komputasi untuk pengujian prompt",
     ],
     cons: [
-      "Karakteristik detail mikro bergantung pada checkpoint; penambahan step di atas 25 umumnya tidak memberikan perubahan signifikan",
-      "Kurang fleksibel untuk fine-tuning mikro pada beberapa arsitektur",
+      "Penambahan step di atas 25 umumnya tidak memberikan perubahan signifikan",
+      "Kurang fleksibel untuk fine-tuning mikro pada beberapa arsitektur baru",
     ],
     bestUseCases: ["Draft Cepat", "Iterasi Prompt Real-time", "Pengujian Komposisi Awal"],
     recommendedSchedulers: ["Normal", "Karras"],
     comfyName: "uni_pc",
     webuiName: "UniPC",
+    paperTitle: "Zhao et al. (NeurIPS 2023) - UniPC",
+    paperUrl: "https://arxiv.org/abs/2302.04867",
   },
   {
     id: "heun",
@@ -319,17 +325,15 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "deterministic",
     order: 2,
     nfePerStep: 2,
-    speedRating: 2,
-    detailRating: 4,
     minSteps: 15,
     optimalSteps: "20 - 30",
     optimalCfg: "6.0 - 7.5",
-    convergence: "Konvergen (Gambar Mengunci)",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SD 1.5", "SDXL"],
-    summary: "Metode Runge-Kutta 2nd Order klasik dengan dua evaluasi fungsi per langkah sampling.",
+    summary: "Metode Runge-Kutta orde-2 klasik (trapezoidal). Menghitung slope awal dan akhir per langkah untuk akurasi kurva tinggi.",
     mechanism: "Menghitung slope awal, mengambil tentative step, lalu menghitung slope akhir untuk merata-ratakan lintasan denoise (2 NFE per step).",
     pros: [
-      "Presisi numerik tinggi per step",
+      "Presisi numerik tinggi per langkah",
       "Deterministik murni dan stabil",
     ],
     cons: [
@@ -340,36 +344,8 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     recommendedSchedulers: ["Normal", "Karras"],
     comfyName: "heun",
     webuiName: "Heun",
-  },
-  {
-    id: "flow_match_euler",
-    name: "FlowMatchEuler (FLUX)",
-    codeName: "flow_match_euler",
-    category: "flow_matching",
-    order: 1,
-    nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 5,
-    minSteps: 4,
-    optimalSteps: "4 (Schnell) / 24 (Dev)",
-    optimalCfg: "1.0 - 3.5",
-    convergence: "Direct Flow",
-    architectures: ["Flux"],
-    summary: "Solver Euler pada continuous rectified flow matching untuk arsitektur seperti FLUX.1 dan SD3.",
-    mechanism: "Mengikuti medan kecepatan lurus (straight velocity field vector) antara distribusi Gaussian murni ke data manifold gambar. Berbeda dari score-based diffusion konvensional.",
-    pros: [
-      "Sesuai dengan formulasi matematis model Rectified Flow (FLUX.1)",
-      "Pada varian distilled (FLUX.1 [schnell]), dapat bekerja pada 4 step",
-      "Kesesuaian prompt dan struktur visual didukung oleh arsitektur model",
-    ],
-    cons: [
-      "Hanya bekerja pada model arsitektur Flow Matching (FLUX.1 / SD3)",
-      "Pengaturan guidance menggunakan node guidance khusus, bukan CFG konvensional",
-    ],
-    bestUseCases: ["FLUX.1 Schnell / Dev Inference", "Rendering Teks Akurat", "Fotografi & Desain Karakter"],
-    recommendedSchedulers: ["Normal", "Simple", "Beta"],
-    comfyName: "euler",
-    webuiName: "Euler (FLUX)",
+    paperTitle: "Karras et al. (NeurIPS 2022) - Heun 2nd Order ODE",
+    paperUrl: "https://arxiv.org/abs/2206.00364",
   },
   {
     id: "lcm",
@@ -378,17 +354,15 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     category: "accelerated",
     order: 1,
     nfePerStep: 1,
-    speedRating: 5,
-    detailRating: 3,
     minSteps: 4,
     optimalSteps: "4 - 8",
     optimalCfg: "1.2 - 2.0",
-    convergence: "Konvergen (Gambar Mengunci)",
+    convergence: "Konvergen (Deterministik)",
     architectures: ["SDXL", "SD 1.5"],
-    summary: "Latent Consistency Models untuk inferensi cepat pada checkpoint yang telah di-distill.",
-    mechanism: "Memetakan sembarang titik noise langsung ke trayektori manifold solusi menggunakan properti konsistensi.",
+    summary: "Latent Consistency Models untuk inferensi cepat (4-8 langkah) pada checkpoint yang telah di-distill.",
+    mechanism: "Memetakan sembarang titik noise langsung ke trayektori manifold solusi menggunakan properti self-consistency tanpa iterasi penuh.",
     pros: [
-      "Inferensi sangat cepat (4-8 step) pada model atau LoRA yang dilatih khusus dengan LCM distillation",
+      "Inferensi sangat cepat (4-8 step) pada checkpoint atau LoRA yang dilatih khusus dengan LCM distillation",
       "Bermanfaat untuk aplikasi interaktif atau real-time",
     ],
     cons: [
@@ -399,6 +373,8 @@ export const SAMPLER_DIRECTORY: SamplerItem[] = [
     recommendedSchedulers: ["SGM Uniform", "Simple"],
     comfyName: "lcm",
     webuiName: "LCM",
+    paperTitle: "Luo et al. (2023) - Latent Consistency Models",
+    paperUrl: "https://arxiv.org/abs/2310.04378",
   },
 ];
 
@@ -414,6 +390,8 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     bestFor: "DPM++ 2M, DPM++ 2M SDE, DPM++ 3M SDE. Alokasi step yang lebih rapat pada noise rendah berpengaruh pada pembentukan detail halus.",
     comfyName: "karras",
     webuiName: "Karras",
+    sourceReference: "Karras et al. (NeurIPS 2022) / k-diffusion",
+    sourceUrl: "https://arxiv.org/abs/2206.00364",
   },
   {
     id: "sgm_uniform",
@@ -421,11 +399,27 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     formula: "t_i = 1000 * (1 - i / (N - 1)) mapped to discrete σ schedule",
     category: "uniform",
     color: "#10b981", // Solid Emerald
-    description: "Jadwal resmi dari Stability AI untuk SDXL dan ComfyUI dengan pembagian langkah seragam di ruang diskrit.",
+    description: "Jadwal resmi dari Stability AI untuk SDXL dan ComfyUI dengan pembagian langkah seragam di ruang diskrit 1000 timesteps.",
     focusPhase: "Linier / Seragam",
     bestFor: "SDXL baseline ComfyUI, Euler, Euler A, Turbo. Menjaga distribusi timesteps merata di setiap tahap.",
     comfyName: "sgm_uniform",
     webuiName: "SGM Uniform",
+    sourceReference: "Stability AI SDXL / ComfyUI normal_scheduler(sgm=True)",
+    sourceUrl: "https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/samplers.py",
+  },
+  {
+    id: "simple",
+    name: "Simple",
+    formula: "t_i = t_max * (1 - i / N)",
+    category: "uniform",
+    color: "#8b5cf6", // Solid Purple
+    description: "Jadwal linier diskrit langsung menuju nol pada ruang timesteps model. Merupakan scheduler default dan baseline resmi FLUX.1 di ComfyUI.",
+    focusPhase: "Linier / Seragam",
+    bestFor: "FLUX.1 [dev] dan FLUX.1 [schnell], baseline ComfyUI.",
+    comfyName: "simple",
+    webuiName: "Simple",
+    sourceReference: "ComfyUI comfy/samplers.py:simple_scheduler",
+    sourceUrl: "https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/samplers.py",
   },
   {
     id: "exponential",
@@ -438,6 +432,8 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     bestFor: "Eksperimen kontras dan transisi cepat dari noise tinggi ke sedang.",
     comfyName: "exponential",
     webuiName: "Exponential",
+    sourceReference: "Katherine Crowson / k-diffusion get_sigmas_exponential",
+    sourceUrl: "https://github.com/crowsonkb/k-diffusion",
   },
   {
     id: "align_your_steps",
@@ -450,6 +446,8 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     bestFor: "SDXL dan SVD (Stable Video Diffusion) berdasarkan pengujian efisiensi langkah dalam paper Nvidia.",
     comfyName: "ays",
     webuiName: "AYS SDXL",
+    sourceReference: "Nvidia Research (arXiv:2404.14507, 2024)",
+    sourceUrl: "https://arxiv.org/abs/2404.14507",
   },
   {
     id: "normal",
@@ -462,6 +460,8 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     bestFor: "SD 1.5 baseline, DDIM Inpainting, model lama, dan pengujian deterministik linier.",
     comfyName: "normal",
     webuiName: "Automatic / Normal",
+    sourceReference: "Standard Linear Diffusion Schedule / ComfyUI normal_scheduler",
+    sourceUrl: "https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/samplers.py",
   },
   {
     id: "beta",
@@ -474,99 +474,177 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     bestFor: "Model FLUX.1 Dev dan pengujian eksperimental variasi noise frekuensi menengah-rendah.",
     comfyName: "beta",
     webuiName: "Beta",
+    sourceReference: "ComfyUI comfy/samplers.py:beta_scheduler",
+    sourceUrl: "https://github.com/comfyanonymous/ComfyUI/blob/master/comfy/samplers.py",
+  },
+  {
+    id: "ddim_uniform",
+    name: "DDIM Uniform",
+    formula: "t_i = round(i * (1000 / N))",
+    category: "uniform",
+    color: "#0ea5e9", // Solid Sky Blue
+    description: "Pembagian interval waktu seragam untuk formulasi non-Markovian DDIM.",
+    focusPhase: "Linier / Seragam",
+    bestFor: "DDIM Inpainting, Latent Inversion, dan animasi deterministik.",
+    comfyName: "ddim_uniform",
+    webuiName: "DDIM Uniform",
+    sourceReference: "Song et al. (ICLR 2021) / ComfyUI ddim_scheduler",
+    sourceUrl: "https://arxiv.org/abs/2010.02502",
   },
 ];
 
 export const CURATED_RECIPES: RecipeItem[] = [
   {
-    id: "anime_masterpiece",
-    title: "Anime Finetune (Illustrious / Pony)",
-    badge: "Titik Awal Anime",
+    id: "illustrious_xl",
+    title: "Illustrious-XL Early Release v0",
+    badge: "HuggingFace Official Card",
+    architecture: "Illustrious",
+    samplerId: "euler_a",
+    schedulerId: "sgm_uniform",
+    samplerName: "Euler a (atau DPM++ 2M)",
+    schedulerName: "SGM Uniform / Karras",
+    steps: 24,
+    cfg: 5.0,
+    clipSkip: 2,
+    speed: "1 NFE/step",
+    useCase: "OnomaAIResearch/Illustrious-xl-early-release-v0",
+    sourceName: "OnomaAI / HuggingFace",
+    sourceUrl: "https://huggingface.co/OnomaAIResearch/Illustrious-xl-early-release-v0",
+    officialNotes: "Rujukan Model Card: Sampler Euler a, sampling steps 20–28 (dapat hingga 40 jika prompt sangat detail), CFG scale 3.0–7.5 (rekomendasi 4.5–6.0), CLIP Skip 2, native SDXL aspect ratios.",
+    whyItWorks: "Illustrious-XL dilatih dengan token conditioning Danbooru yang dioptimasi untuk variasi ekspresi karakter anime pada noise ancestral Euler a tanpa artefak lineart kaku.",
+  },
+  {
+    id: "noobai_xl_standard",
+    title: "NoobAI-XL v1.0 / v1.1 Standard",
+    badge: "HuggingFace Official Card",
+    architecture: "Illustrious",
+    samplerId: "euler_a",
+    schedulerId: "normal",
+    samplerName: "Euler a",
+    schedulerName: "Normal / SGM Uniform",
+    steps: 28,
+    cfg: 5.5,
+    clipSkip: 2,
+    speed: "1 NFE/step",
+    useCase: "Laxhar/noobai-XL-1.0 & 1.1",
+    sourceName: "Laxhar / HuggingFace",
+    sourceUrl: "https://huggingface.co/Laxhar/noobai-XL-1.0",
+    officialNotes: "Rujukan Model Card: Sampling Method Euler a, Steps 25~30, CFG Scale 5~6, CLIP Skip 2. Resolusi optimal 1024x1024, 832x1216, 896x1152.",
+    whyItWorks: "Fine-tune anime beresolusi tinggi dengan OpenCLIP ViT-bigG + ViT-L. Euler a memberikan rendering rambut dan pakaian yang luwes tanpa over-saturation.",
+  },
+  {
+    id: "noobai_xl_vpred",
+    title: "NoobAI-XL V-Pred (v1.0)",
+    badge: "V-Prediction Wajib Euler",
+    architecture: "Illustrious",
+    samplerId: "euler",
+    schedulerId: "normal",
+    samplerName: "Euler",
+    schedulerName: "Normal / Simple",
+    steps: 30,
+    cfg: 4.5,
+    clipSkip: 2,
+    speed: "1 NFE/step",
+    useCase: "Laxhar/noobai-XL-Vpred-1.0",
+    sourceName: "Laxhar / HuggingFace",
+    sourceUrl: "https://huggingface.co/Laxhar/noobai-XL-Vpred-1.0",
+    officialNotes: "Peringatan Khusus Model Card: 'Euler (Other samplers will not work properly)'. Varian v-prediction ini hanya teruji stabil dengan solver Euler deterministik.",
+    whyItWorks: "Objektif v-prediction memetakan kecepatan vektor langsung, sehingga solver multi-step atau SDE yang mengasumsikan epsilon-prediction konvensional menghasilkan noise divergensi.",
+  },
+  {
+    id: "pony_v6",
+    title: "Pony Diffusion V6 XL",
+    badge: "Civitai Official Card",
     architecture: "Pony",
     samplerId: "dpmpp_2m",
     schedulerId: "karras",
-    samplerName: "DPM++ 2M",
+    samplerName: "DPM++ 2M (atau Euler a)",
     schedulerName: "Karras",
     steps: 26,
-    cfg: 6.0,
-    speed: "Efisien (1 NFE/step)",
-    useCase: "Illustrious-XL, NoobAI, Pony Diffusion V6",
-    whyItWorks: "DPM++ 2M (orde-2 multi-step) konvergen dan stabil pada kontur garis lineart. Kurva Karras memusatkan evaluasi pada fase noise rendah (sigma < 1.0) untuk detail mata dan rambut.",
+    cfg: 7.0,
+    clipSkip: 2,
+    speed: "1 NFE/step",
+    useCase: "AstraliteHeart / PurpleSmartAI Pony V6 XL",
+    sourceName: "AstraliteHeart / Civitai",
+    sourceUrl: "https://civitai.com/models/257749",
+    officialNotes: "Rujukan Model Card: Sampler DPM++ 2M Karras atau Euler a, steps 25–30, CFG 7, CLIP Skip 2. Wajib prompt prefix score_9, score_8_up, score_7_up... Kegagalan mengatur CLIP Skip 2 merusak anatomi.",
+    whyItWorks: "Pony V6 dilatih dengan penalti CLIP layer akhir sehingga CLIP Skip 2 esensial. Kurva Karras menjaga kerapatan noise mikro pada detail mata dan pakaian karakter.",
   },
   {
-    id: "ultra_realism",
-    title: "SDXL Fotorealistik & Potret",
-    badge: "Variasi Tekstur",
-    architecture: "SDXL",
-    samplerId: "dpmpp_2m_sde",
-    schedulerId: "karras",
-    samplerName: "DPM++ 2M SDE",
-    schedulerName: "Karras",
-    steps: 32,
-    cfg: 5.0,
-    speed: "Stokastik SDE",
-    useCase: "RealVisXL, Juggernaut XL, ZavyChroma",
-    whyItWorks: "Komponen stokastik Brownian noise pada varian SDE mempertahankan variasi noise frekuensi tinggi hingga langkah akhir, yang dapat membantu variasi tekstur mikro pada checkpoint fotorealistik.",
-  },
-  {
-    id: "flux_clean",
-    title: "FLUX.1 Schnell Baseline",
-    badge: "Distilled Flow",
+    id: "flux_dev",
+    title: "FLUX.1 [dev] Guidance-Distilled",
+    badge: "Black Forest Labs Official",
     architecture: "Flux",
-    samplerId: "flow_match_euler",
-    schedulerId: "normal",
-    samplerName: "FlowMatchEuler",
-    schedulerName: "Simple / Normal",
+    samplerId: "euler",
+    schedulerId: "simple",
+    samplerName: "Euler",
+    schedulerName: "Simple / Beta",
+    steps: 28,
+    cfg: 1.0,
+    clipSkip: "N/A (T5-XXL + CLIP)",
+    speed: "Flow Matching ODE",
+    useCase: "black-forest-labs/FLUX.1-dev",
+    sourceName: "Black Forest Labs / HuggingFace",
+    sourceUrl: "https://huggingface.co/black-forest-labs/FLUX.1-dev",
+    officialNotes: "Rujukan Model Card: 28–50 steps, guidance_scale 3.5, continuous flow matching ODE solver. Di ComfyUI menggunakan sampler euler dan scheduler simple/beta.",
+    whyItWorks: "Continuous rectified flow matching dengan MMDiT. Solver Euler linier mengikuti medan kecepatan lurus tanpa diskontinuitas.",
+  },
+  {
+    id: "flux_schnell",
+    title: "FLUX.1 [schnell] 4-Step Distilled",
+    badge: "Black Forest Labs Official",
+    architecture: "Flux",
+    samplerId: "euler",
+    schedulerId: "simple",
+    samplerName: "Euler",
+    schedulerName: "Simple",
     steps: 4,
     cfg: 1.0,
+    clipSkip: "N/A (T5-XXL + CLIP)",
     speed: "4 Langkah Distilled",
-    useCase: "FLUX.1 [schnell] 4-step model card",
-    whyItWorks: "Arsitektur continuous rectified flow matching bergerak dalam garis medan kecepatan linier. Varian Schnell telah di-distill untuk inferensi 4 langkah dengan guidance scale rendah (1.0).",
+    useCase: "black-forest-labs/FLUX.1-schnell",
+    sourceName: "Black Forest Labs / HuggingFace",
+    sourceUrl: "https://huggingface.co/black-forest-labs/FLUX.1-schnell",
+    officialNotes: "Rujukan Model Card: guidance_scale wajib 0 (tanpa guidance embeddings), 1–4 steps, max_sequence_length 256. Inferensi berkecepatan tinggi.",
+    whyItWorks: "Model telah melalui proses timestep-distillation ekstrem, memampatkan trayektori rectified flow penuh menjadi 4 langkah ortogonal.",
   },
   {
-    id: "artistic_watercolor",
-    title: "Eksplorasi Variasi (Euler A)",
-    badge: "Stokastik / Variasi",
+    id: "sdxl_base",
+    title: "SDXL 1.0 Base",
+    badge: "Stability AI Official",
     architecture: "SDXL",
-    samplerId: "euler_a",
+    samplerId: "dpmpp_2m",
     schedulerId: "sgm_uniform",
-    samplerName: "Euler A",
-    schedulerName: "SGM Uniform",
-    steps: 28,
-    cfg: 5.5,
-    speed: "Efisien (1 NFE/step)",
-    useCase: "ComfyUI Anime, Fantasy Concept Art, Scenic Painting",
-    whyItWorks: "Euler Ancestral menyuntikkan noise di setiap langkah sehingga menghasilkan variasi pose dan siluet yang dinamis antar eksperimen. SGM Uniform menjaga pembagian timesteps merata di ComfyUI.",
+    samplerName: "DPM++ 2M / Euler",
+    schedulerName: "SGM Uniform / Karras",
+    steps: 25,
+    cfg: 6.0,
+    clipSkip: "1 atau 2",
+    speed: "1 NFE/step",
+    useCase: "stabilityai/stable-diffusion-xl-base-1.0",
+    sourceName: "Stability AI / HuggingFace",
+    sourceUrl: "https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0",
+    officialNotes: "Rujukan Model Card: Native 1024x1024, dual text encoder OpenCLIP ViT-bigG + CLIP ViT-L, micro-conditioning size/crop, 20-30 steps.",
+    whyItWorks: "Jadwal SGM Uniform mendistribusikan langkah secara seragam di ruang diskrit 1000 timesteps Stability AI, menjaga kontras seimbang.",
   },
   {
-    id: "inpainting_perfection",
-    title: "Inpainting & Rekonstruksi Latents",
-    badge: "Deterministik Murni",
+    id: "sd_15_inpainting",
+    title: "SD 1.5 Inpainting & Latent Inversion",
+    badge: "Deterministik Non-Markovian",
     architecture: "SD 1.5",
     samplerId: "ddim",
     schedulerId: "normal",
     samplerName: "DDIM",
-    schedulerName: "Normal",
+    schedulerName: "Normal / DDIM Uniform",
     steps: 35,
     cfg: 7.0,
-    speed: "Standar (1 NFE/step)",
+    clipSkip: 1,
+    speed: "1 NFE/step",
     useCase: "ControlNet Inpaint, Latent Reversal / Inversion",
-    whyItWorks: "DDIM sepenuhnya deterministik dan dapat dibalik secara matematis (DDIM Inversion), menjaga stabilitas nilai latents di luar area mask inpainting.",
-  },
-  {
-    id: "speed_demon_turbo",
-    title: "SDXL Lightning / Turbo",
-    badge: "Distilled Model",
-    architecture: "SDXL",
-    samplerId: "dpmpp_2m",
-    schedulerId: "sgm_uniform",
-    samplerName: "DPM++ 2M",
-    schedulerName: "SGM Uniform",
-    steps: 6,
-    cfg: 1.8,
-    speed: "Langkah Rendah (Distilled)",
-    useCase: "SDXL Lightning / Turbo checkpoints & LoRA",
-    whyItWorks: "Checkpoint atau LoRA distilled (Lightning / Turbo) dirancang untuk beroperasi pada 4-8 langkah dengan CFG rendah (1.0 - 2.0) guna menghindari distorsi latents.",
+    sourceName: "Song et al. / ICLR 2021",
+    sourceUrl: "https://arxiv.org/abs/2010.02502",
+    officialNotes: "Formulasi non-Markovian deterministik memungkinkan proses rekonstruksi deterministik dan inversi latents tanpa variasi acak forward Markov.",
+    whyItWorks: "DDIM memastikan piksel di luar area mask inpainting tidak bergeser nilainya, menjaga perpaduan batas inpaint mulus.",
   },
 ];
 
@@ -595,6 +673,11 @@ export function computeSigmas(schedulerId: string, steps: number): { step: numbe
       }
       case "exponential": {
         val = sigmaMax * Math.pow(sigmaMin / sigmaMax, ramp);
+        break;
+      }
+      case "simple":
+      case "ddim_uniform": {
+        val = sigmaMax * (1 - ramp);
         break;
       }
       case "normal": {
@@ -716,59 +799,68 @@ export default function SamplerGuide() {
   const wizardResult = useMemo(() => {
     if (wizardArch === "Flux") {
       return {
-        sampler: "FlowMatchEuler",
-        scheduler: "Normal / Simple",
-        steps: "4 (Schnell) / 24 (Dev)",
-        cfg: "1.0 - 2.5",
-        summary: "Arsitektur Flow Matching membutuhkan solver Euler continuous rectified.",
-        tip: "FLUX Schnell sangat efisien pada 4 step. Jangan gunakan CFG di atas 3.5.",
+        sampler: "Euler",
+        scheduler: "Simple / Beta",
+        steps: "4 (Schnell) / 28 - 50 (Dev)",
+        cfg: "1.0 (Dev Guidance: 3.5)",
+        summary: "Berdasarkan model card resmi Black Forest Labs: FLUX.1 menggunakan continuous rectified flow matching dengan solver Euler dan scheduler Simple atau Beta.",
+        tip: "Di ComfyUI, pilih sampler 'euler' dan scheduler 'simple'. Atur CFG konvensional ke 1.0 dan gunakan node FluxGuidance (3.5 pada Dev, 0 pada Schnell).",
+      };
+    }
+    if (wizardArch === "Illustrious") {
+      return {
+        sampler: "Euler a (atau DPM++ 2M)",
+        scheduler: "SGM Uniform / Karras",
+        steps: "20 - 28",
+        cfg: "4.5 - 6.0",
+        summary: "Berdasarkan model card resmi OnomaAI (HuggingFace): Illustrious-XL dirancang optimal pada sampler Euler a, steps 20–28, CFG 3.0–7.5, dan wajib CLIP Skip 2.",
+        tip: "Gunakan CLIP Skip 2 via node CLIP Set Last Layer (-2) dan jaga CFG pada 4.5–6.0 untuk detail warna dan lineart seimbang.",
+      };
+    }
+    if (wizardArch === "Pony") {
+      return {
+        sampler: "DPM++ 2M (atau Euler a)",
+        scheduler: "Karras",
+        steps: "25 - 30",
+        cfg: "7.0",
+        summary: "Berdasarkan model card resmi AstraliteHeart (Civitai): Pony V6 XL merekomendasikan DPM++ 2M Karras, steps 25–30, CFG 7.0, dan wajib CLIP Skip 2.",
+        tip: "Wajib menyertakan score prefix ('score_9, score_8_up, score_7_up...') di awal prompt dan pastikan CLIP Skip bernilai 2.",
       };
     }
     if (wizardPriority === "speed") {
       return {
         sampler: "UniPC atau DPM++ 2M",
-        scheduler: "Karras / SGM Uniform",
-        steps: "16 - 20",
+        scheduler: "SGM Uniform / Normal",
+        steps: "14 - 20",
         cfg: "5.0 - 6.0",
-        summary: "Konvergensi ultra-cepat dengan evaluasi gradien multi-step efisien.",
-        tip: "UniPC pada 16 step menghasilkan detail setara Euler 30 step.",
+        summary: "Evaluasi gradien multi-step efisien (1 NFE per step) untuk iterasi prompt berkecepatan tinggi.",
+        tip: "UniPC pada 14–16 step menghasilkan struktur utuh untuk draft sebelum final render.",
       };
     }
     if (wizardPriority === "creative") {
       return {
         sampler: "Euler A (Ancestral)",
         scheduler: "SGM Uniform / Normal",
-        steps: "26 - 32",
-        cfg: "5.5 - 7.0",
-        summary: "Injeksi noise stokastik untuk variasi anatomi, pose, dan ekspresi yang dinamis.",
+        steps: "20 - 28",
+        cfg: "5.0 - 6.0",
+        summary: "Injeksi noise stokastik ancestral untuk variasi anatomi, pose, dan ekspresi karakter yang dinamis.",
         tip: "Setiap perubahan seed atau step akan menghasilkan komposisi baru yang unik.",
       };
     }
     if (wizardPriority === "inpainting") {
       return {
         sampler: "DDIM",
-        scheduler: "Normal",
-        steps: "30 - 40",
+        scheduler: "Normal / DDIM Uniform",
+        steps: "30 - 45",
         cfg: "6.5 - 8.0",
-        summary: "Jalur deterministik dengan latents continuity tertinggi untuk inpainting halus.",
-        tip: "DDIM memastikan piksel di pinggir mask tidak mengalami garis batas tajam.",
-      };
-    }
-    // Default High Quality
-    if (wizardArch === "Pony" || wizardArch === "Illustrious") {
-      return {
-        sampler: "DPM++ 2M",
-        scheduler: "Karras",
-        steps: "26 - 28",
-        cfg: "5.5 - 6.5",
-        summary: "Rekomendasi awal yang umum digunakan untuk model finetune anime SDXL (Illustrious, Pony).",
-        tip: "Scheduler Karras memusatkan evaluasi pada fase noise rendah (sigma < 1.0) untuk detail garis mata dan rambut.",
+        summary: "Jalur deterministik non-Markovian dengan latent inversion capability untuk inpainting tanpa pergeseran batas mask.",
+        tip: "DDIM menjaga piksel di luar area mask tetap konsisten secara deterministik.",
       };
     }
     return {
       sampler: "DPM++ 2M SDE",
       scheduler: "Karras",
-      steps: "30 - 35",
+      steps: "28 - 35",
       cfg: "4.5 - 6.0",
       summary: "Solver SDE dengan Karras scheduler membantu mempertahankan variasi tekstur frekuensi tinggi pada checkpoint fotorealistik.",
       tip: "Perhatikan tingkat CFG; nilai di atas 7.0 berpotensi menyebabkan saturasi berlebih pada model SDXL fotorealistik.",
@@ -965,9 +1057,9 @@ export default function SamplerGuide() {
                     <span className="sg-spec-val">{sampler.optimalCfg}</span>
                   </div>
                   <div className="sg-spec-col">
-                    <span className="sg-spec-label">Kecepatan</span>
-                    <span className="sg-spec-val" style={{ color: sampler.speedRating >= 4 ? "#10b981" : "#f59e0b" }}>
-                      {"★".repeat(sampler.speedRating)}{"☆".repeat(5 - sampler.speedRating)}
+                    <span className="sg-spec-label">Sifat Aliran</span>
+                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#60a5fa" : sampler.category === "flow_matching" ? "#e11d48" : "#f59e0b" }}>
+                      {sampler.category === "deterministic" ? "Deterministik" : sampler.category === "flow_matching" ? "Flow Match" : "Stokastik"}
                     </span>
                   </div>
                 </div>
@@ -975,8 +1067,23 @@ export default function SamplerGuide() {
                 <p className="sg-card-desc">{sampler.summary}</p>
 
                 <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#18181b", padding: "8px 10px", borderRadius: "6px", border: "1px solid #27272a" }}>
-                  <strong style={{ color: "#d4d4d8" }}>Prinsip Kerja: </strong>
+                  <strong style={{ color: "#d4d4d8" }}>Prinsip Numerik: </strong>
                   {sampler.mechanism}
+                </div>
+
+                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#121215", padding: "7px 10px", borderRadius: "6px", border: "1px solid #27272a", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
+                  <span>
+                    <strong style={{ color: "#d4d4d8" }}>Rujukan Ilmiah: </strong>
+                    {sampler.paperTitle}
+                  </span>
+                  <a
+                    href={sampler.paperUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#60a5fa", textDecoration: "underline", fontSize: "11px", fontWeight: 600 }}
+                  >
+                    Buka Paper / Source ↗
+                  </a>
                 </div>
 
                 <div className="sg-pros-cons">
@@ -1290,8 +1397,22 @@ export default function SamplerGuide() {
                   {recipe.useCase}
                 </div>
 
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#18181b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "4px" }}>
+                  <span><strong style={{ color: "#d4d4d8" }}>CLIP Skip: </strong><code style={{ color: "#f59e0b" }}>{recipe.clipSkip}</code></span>
+                  <span>
+                    <strong style={{ color: "#d4d4d8" }}>Model Card: </strong>
+                    <a href={recipe.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#60a5fa", textDecoration: "underline", fontWeight: 600 }}>
+                      {recipe.sourceName} ↗
+                    </a>
+                  </span>
+                </div>
+
+                <div style={{ fontSize: "11px", color: "#a1a1aa", background: "#121215", padding: "8px 10px", borderRadius: "6px", borderLeft: "3px solid #2563eb", marginTop: "4px", fontStyle: "italic", lineHeight: 1.45 }}>
+                  "{recipe.officialNotes}"
+                </div>
+
                 <div className="sg-recipe-why">
-                  <strong>Mengapa Efektif? </strong>
+                  <strong>Analisis Teknis: </strong>
                   {recipe.whyItWorks}
                 </div>
 
@@ -1419,12 +1540,35 @@ export default function SamplerGuide() {
                 <td>{itemB.optimalCfg}</td>
               </tr>
               <tr>
-                <td className="metric-col">Rating Kecepatan</td>
-                <td style={{ color: itemA.speedRating >= 4 ? "#10b981" : "#f59e0b" }}>
-                  {"★".repeat(itemA.speedRating)}{"☆".repeat(5 - itemA.speedRating)}
+                <td className="metric-col">Kebutuhan Komputasi (NFE)</td>
+                <td>
+                  <strong>{itemA.nfePerStep} Forward Pass / step</strong> ({itemA.nfePerStep === 1 ? "Efisien - 1 Evaluasi per step" : "Evaluasi Ganda - 2 NFE per step"})
                 </td>
-                <td style={{ color: itemB.speedRating >= 4 ? "#10b981" : "#f59e0b" }}>
-                  {"★".repeat(itemB.speedRating)}{"☆".repeat(5 - itemB.speedRating)}
+                <td>
+                  <strong>{itemB.nfePerStep} Forward Pass / step</strong> ({itemB.nfePerStep === 1 ? "Efisien - 1 Evaluasi per step" : "Evaluasi Ganda - 2 NFE per step"})
+                </td>
+              </tr>
+              <tr>
+                <td className="metric-col">Rujukan Makalah Ilmiah</td>
+                <td>
+                  <a
+                    href={itemA.paperUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#60a5fa", textDecoration: "underline", fontSize: "12px", fontWeight: 600 }}
+                  >
+                    {itemA.paperTitle} ↗
+                  </a>
+                </td>
+                <td>
+                  <a
+                    href={itemB.paperUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: "#34d399", textDecoration: "underline", fontSize: "12px", fontWeight: 600 }}
+                  >
+                    {itemB.paperTitle} ↗
+                  </a>
                 </td>
               </tr>
               <tr>
