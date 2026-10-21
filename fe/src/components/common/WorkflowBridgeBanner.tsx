@@ -9,10 +9,12 @@ import {
   bridgeToLoraStack,
   bridgeToNegativeVault,
   bridgeToSamplerGuide,
+  bridgeToVramProfiler,
+  bridgeToControlNet,
 } from "../../utils/workflowBridge";
 
 interface WorkflowBridgeBannerProps {
-  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet";
+  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet" | "vram";
   onApply?: (data: WorkflowBridgeData) => void;
 }
 
@@ -53,6 +55,8 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
         return "Sampler & Scheduler Guide";
       case "controlnet":
         return "ControlNet Studio";
+      case "vram":
+        return "VRAM Profiler";
       default:
         return "Alat Generator";
     }
@@ -97,7 +101,22 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
         </span>
 
         {/* Quick specs pill */}
-        <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+          {bridge.baseModel && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontFamily: "ui-monospace, monospace",
+                background: "#18181b",
+                border: "1px solid #27272a",
+                color: "#60a5fa",
+                padding: "1px 6px",
+                borderRadius: "3px",
+              }}
+            >
+              {bridge.baseModel}
+            </span>
+          )}
           {bridge.width && bridge.height && (
             <span
               style={{
@@ -113,7 +132,7 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
               {bridge.width}×{bridge.height}
             </span>
           )}
-          {bridge.baseModel && (
+          {bridge.sampler && (
             <span
               style={{
                 fontSize: "11px",
@@ -125,7 +144,37 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
                 borderRadius: "3px",
               }}
             >
-              {bridge.baseModel}
+              {bridge.sampler}{bridge.scheduler ? ` · ${bridge.scheduler}` : ""}
+            </span>
+          )}
+          {bridge.steps !== undefined && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontFamily: "ui-monospace, monospace",
+                background: "#18181b",
+                border: "1px solid #27272a",
+                color: "#38bdf8",
+                padding: "1px 6px",
+                borderRadius: "3px",
+              }}
+            >
+              {bridge.steps} Steps
+            </span>
+          )}
+          {bridge.cfgScale !== undefined && (
+            <span
+              style={{
+                fontSize: "11px",
+                fontFamily: "ui-monospace, monospace",
+                background: "#18181b",
+                border: "1px solid #27272a",
+                color: "#fb923c",
+                padding: "1px 6px",
+                borderRadius: "3px",
+              }}
+            >
+              CFG {bridge.cfgScale}
             </span>
           )}
           {bridge.loras && bridge.loras.length > 0 && (
@@ -147,8 +196,8 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
       </div>
 
       {/* Quick Hop to companion tools */}
-      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-        {currentTool !== "prompt-lab" && bridge.positivePrompt && (
+      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+        {currentTool !== "prompt-lab" && (bridge.positivePrompt || bridge.sampler || bridge.steps) && (
           <button
             type="button"
             onClick={() => bridgeToPromptLab(navigate, bridge)}
@@ -185,6 +234,46 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
             title="Lompat ke Calculator dengan resolusi ini"
           >
             Buka di Calculator
+          </button>
+        )}
+
+        {currentTool !== "vram" && (
+          <button
+            type="button"
+            onClick={() => bridgeToVramProfiler(navigate, bridge)}
+            style={{
+              background: "#18181b",
+              border: "1px solid #27272a",
+              color: "#f4f4f5",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "4px 8px",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Uji kebutuhan VRAM & hardware di VRAM Profiler"
+          >
+            Buka di VRAM Profiler
+          </button>
+        )}
+
+        {currentTool !== "sampler-guide" && (
+          <button
+            type="button"
+            onClick={() => bridgeToSamplerGuide(navigate, bridge)}
+            style={{
+              background: "#18181b",
+              border: "1px solid #27272a",
+              color: "#f4f4f5",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "4px 8px",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Lompat ke Visual Sampler & Scheduler Guide"
+          >
+            Buka di Sampler Guide
           </button>
         )}
 
@@ -228,10 +317,10 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
           </button>
         )}
 
-        {currentTool !== "sampler-guide" && (
+        {currentTool !== "controlnet" && (
           <button
             type="button"
-            onClick={() => bridgeToSamplerGuide(navigate, bridge)}
+            onClick={() => bridgeToControlNet(navigate, bridge)}
             style={{
               background: "#18181b",
               border: "1px solid #27272a",
@@ -242,9 +331,9 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
               borderRadius: "4px",
               cursor: "pointer",
             }}
-            title="Lompat ke Visual Sampler & Scheduler Guide"
+            title="Buka ControlNet & OpenPose Studio"
           >
-            Buka di Sampler Guide
+            Buka di ControlNet
           </button>
         )}
 

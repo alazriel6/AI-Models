@@ -1,6 +1,17 @@
-import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import {
+    type WorkflowBridgeData,
+    normalizeVramModel,
+    bridgeToPromptLab,
+    bridgeToCalculator,
+} from "../../utils/workflowBridge";
+import {
+    type HardwareProfile,
+    getActiveHardwareProfile,
+} from "../../utils/hardwareProfile";
+import { HardwareProfileModal } from "../common/HardwareProfileModal";
 import "../../style/VramProfiler.css";
 
 interface BaseModelDef {
@@ -294,6 +305,7 @@ const RESOLUTION_PRESETS: ResPreset[] = [
 ];
 
 export default function VramProfiler() {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
 
     // 1. Model Configuration State
@@ -317,8 +329,16 @@ export default function VramProfiler() {
     });
 
     // 4. Resolution & Batching
-    const [width, setWidth] = useState<number>(activeModel.defaultResolution.w);
-    const [height, setHeight] = useState<number>(activeModel.defaultResolution.h);
+    const [width, setWidth] = useState<number>(() => {
+        const w = searchParams.get("width");
+        if (w && !isNaN(Number(w)) && Number(w) > 0) return Number(w);
+        return activeModel.defaultResolution.w;
+    });
+    const [height, setHeight] = useState<number>(() => {
+        const h = searchParams.get("height");
+        if (h && !isNaN(Number(h)) && Number(h) > 0) return Number(h);
+        return activeModel.defaultResolution.h;
+    });
     const [batchSize, setBatchSize] = useState<number>(1);
     const [videoFrames, setVideoFrames] = useState<number>(activeModel.defaultFrames || 81);
 
@@ -331,17 +351,31 @@ export default function VramProfiler() {
     const [useTiledVae, setUseTiledVae] = useState<boolean>(true);
     const [useMedvramChunking, setUseMedvramChunking] = useState<boolean>(false);
 
-    // 7. GPU Target
-    const [gpuPresetId, setGpuPresetId] = useState<string>("rtx4060");
-    const [customGpuVram, setCustomGpuVram] = useState<number>(8);
+    // Active Hardware Profile from LocalStorage (persisted device spec)
+    const [activeProfile, setActiveProfile] = useState<HardwareProfile>(() => getActiveHardwareProfile());
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState<boolean>(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const showToast = useCallback((msg: string) => {
+        setToastMessage(msg);
+        setTimeout(() => {
+            setToastMessage((prev) => (prev === msg ? null : prev));
+        }, 3000);
+    }, []);
+
+    // 7. GPU Target (initialized from active hardware profile)
+    const [gpuPresetId, setGpuPresetId] = useState<string>(() => activeProfile.gpuPresetId || "rtx4060_laptop");
+    const [customGpuVram, setCustomGpuVram] = useState<number>(() => activeProfile.customGpuVram || 8);
     const [copiedFlags, setCopiedFlags] = useState<boolean>(false);
     const [copiedComfy, setCopiedComfy] = useState<boolean>(false);
 
     // 8. Windows Desktop & Multi-Monitor VRAM Deduction
-    const [displayDeductionMode, setDisplayDeductionMode] = useState<"primary_single" | "primary_multi" | "headless">("primary_single");
+    const [displayDeductionMode, setDisplayDeductionMode] = useState<"primary_single" | "primary_multi" | "headless">(
+        () => activeProfile.displayDeductionMode || "primary_single"
+    );
 
     // 9. System RAM Target (DDR4/DDR5) for Host CPU Offloading
-    const [systemRamGb, setSystemRamGb] = useState<number>(32);
+    const [systemRamGb, setSystemRamGb] = useState<number>(() => activeProfile.systemRamGb || 32);
 
     // 10. Hi-Res Fix & Workflow Post-Processing Simulator
     const [enableHiresFix, setEnableHiresFix] = useState<boolean>(false);
@@ -351,17 +385,21 @@ export default function VramProfiler() {
     const [enableRefiner, setEnableRefiner] = useState<boolean>(false);
 
     // 11. Throughput & Generation Speed Estimator
-    const [samplingSteps, setSamplingSteps] = useState<number>(() => (modelKey === "flux" ? 20 : 25));
+    const [samplingSteps, setSamplingSteps] = useState<number>(() => {
+        const s = searchParams.get("steps");
+        if (s && !isNaN(Number(s)) && Number(s) > 0) return Number(s);
+        return modelKey === "flux" ? 20 : 25;
+    });
 
     // 12. 1-Click Launch Config & Generator Tab
     const [genPreviewTab, setGenPreviewTab] = useState<"bat" | "comfy" | "webui">("bat");
 
     // 13. Power & Electricity Cost Estimator (Full System & Token PLN)
-    const [plnTarifPerKwh, setPlnTarifPerKwh] = useState<number>(1444);
+    const [plnTarifPerKwh, setPlnTarifPerKwh] = useState<number>(() => activeProfile.plnTarifPerKwh || 1444);
     const [batchImageCount, setBatchImageCount] = useState<number>(100);
-    const [laptopTgpWatts, setLaptopTgpWatts] = useState<number>(100);
-    const [tufProfile, setTufProfile] = useState<"turbo" | "perf" | "silent" | "overnight" | "custom">("perf");
-    const [cpuWatts, setCpuWatts] = useState<number>(35); // AMD Ryzen HS / Intel Core
+    const [laptopTgpWatts, setLaptopTgpWatts] = useState<number>(() => activeProfile.laptopTgpWatts || 140);
+    const [tufProfile, setTufProfile] = useState<"turbo" | "perf" | "silent" | "overnight" | "custom">(() => activeProfile.tufProfile || "perf");
+    const [cpuWatts, setCpuWatts] = useState<number>(() => activeProfile.cpuWatts || 35); // AMD Ryzen HS / Intel Core
     const [screenMode, setScreenMode] = useState<"off" | "med" | "high">("med"); // Layar Laptop 16" IPS (0W, 9W, 15W)
     const [externalMonitorMode, setExternalMonitorMode] = useState<"none" | "fhd" | "4k">("none"); // Monitor Eksternal (0W, 25W, 42W)
     const [coolingFanMode, setCoolingFanMode] = useState<"silent" | "balanced" | "turbo">("balanced"); // Dual Arc-Flow Fans (8W, 14W, 20W)
@@ -1042,7 +1080,21 @@ call webui.bat
         setTimeout(() => setCopiedFlags(false), 2000);
     };
 
+    const handleApplyProfile = useCallback((prof: HardwareProfile) => {
+        setActiveProfile(prof);
+        setGpuPresetId(prof.gpuPresetId);
+        if (prof.customGpuVram) setCustomGpuVram(prof.customGpuVram);
+        setSystemRamGb(prof.systemRamGb);
+        setDisplayDeductionMode(prof.displayDeductionMode);
+        if (prof.laptopTgpWatts) setLaptopTgpWatts(prof.laptopTgpWatts);
+        if (prof.tufProfile) setTufProfile(prof.tufProfile);
+        if (prof.cpuWatts) setCpuWatts(prof.cpuWatts);
+        if (prof.plnTarifPerKwh) setPlnTarifPerKwh(prof.plnTarifPerKwh);
+    }, []);
+
     const handleReset = () => {
+        const prof = getActiveHardwareProfile();
+        setActiveProfile(prof);
         setModelKey("sdxl");
         setQuantKey("fp16");
         setTeKey("dual_clip_fp16");
@@ -1054,9 +1106,10 @@ call webui.bat
         setUseSdpAttention(true);
         setUseTiledVae(true);
         setUseMedvramChunking(false);
-        setGpuPresetId("rtx4060");
-        setDisplayDeductionMode("primary_single");
-        setSystemRamGb(32);
+        setGpuPresetId(prof.gpuPresetId);
+        if (prof.customGpuVram) setCustomGpuVram(prof.customGpuVram);
+        setDisplayDeductionMode(prof.displayDeductionMode);
+        setSystemRamGb(prof.systemRamGb);
         setEnableHiresFix(false);
         setHiresScale(1.5);
         setUpscaleMethod("latent");
@@ -1064,23 +1117,42 @@ call webui.bat
         setEnableRefiner(false);
         setSamplingSteps(20);
         setGenPreviewTab("bat");
-        setPlnTarifPerKwh(1444);
+        setPlnTarifPerKwh(prof.plnTarifPerKwh || 1444);
         setBatchImageCount(100);
-        setLaptopTgpWatts(100);
-        setTufProfile("perf");
-        setCpuWatts(35);
+        setLaptopTgpWatts(prof.laptopTgpWatts || 140);
+        setTufProfile(prof.tufProfile || "perf");
+        setCpuWatts(prof.cpuWatts || 35);
         setScreenMode("med");
         setExternalMonitorMode("none");
         setCoolingFanMode("balanced");
         setIncludeChargerLoss(true);
         setBillingType("token");
         setTokenNominal(50000);
+        showToast("Parameter direset kembali ke profil hardware default!");
     };
+
+    // Workflow Bridge Handler
+    const handleApplyBridge = useCallback((data: WorkflowBridgeData) => {
+        if (data.baseModel) {
+            const mKey = normalizeVramModel(data.baseModel);
+            if (BASE_MODELS[mKey]) {
+                setModelKey(mKey);
+                if (mKey === "flux" || mKey.includes("wan21")) {
+                    setQuantKey("fp8_e4m3");
+                }
+                setTeKey(BASE_MODELS[mKey].defaultTextEncoder);
+            }
+        }
+        if (data.width && data.width > 0) setWidth(data.width);
+        if (data.height && data.height > 0) setHeight(data.height);
+        if (data.steps && data.steps > 0) setSamplingSteps(data.steps);
+        if (data.loras && data.loras.length > 0) setLoraCount(data.loras.length);
+    }, []);
 
     return (
         <div className="vram-profiler-container">
             {/* Global Workflow Bridge Banner */}
-            <WorkflowBridgeBanner currentTool="calculator" />
+            <WorkflowBridgeBanner currentTool="vram" onApply={handleApplyBridge} />
 
             {/* Header */}
             <header className="vram-header">
@@ -1102,6 +1174,60 @@ call webui.bat
                     </div>
 
                     <div className="vram-header-actions">
+                        <button
+                            type="button"
+                            className="vram-profile-header-btn"
+                            onClick={() => setIsProfileModalOpen(true)}
+                            title="Kelola &amp; simpan profil spek laptop / PC bawaan Anda"
+                        >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                                <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                                <line x1="6" y1="6" x2="6.01" y2="6" />
+                                <line x1="6" y1="18" x2="6.01" y2="18" />
+                            </svg>
+                            <span>Profil: <strong style={{ color: "#60a5fa" }}>{activeProfile.name.split("(")[0].trim()}</strong></span>
+                            <span className="vram-profile-badge">Tersimpan</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="vram-reset-btn"
+                            onClick={() => bridgeToPromptLab(navigate, {
+                                source: "vram",
+                                baseModel: activeModel.name,
+                                width,
+                                height,
+                                steps: samplingSteps,
+                                timestamp: Date.now()
+                            })}
+                            title="Bawa resolusi &amp; steps ini ke Prompt Lab"
+                            style={{ borderColor: "#2563eb", color: "#60a5fa" }}
+                        >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                            </svg>
+                            <span>Bawa ke Studio</span>
+                        </button>
+                        <button
+                            type="button"
+                            className="vram-reset-btn"
+                            onClick={() => bridgeToCalculator(navigate, {
+                                source: "vram",
+                                baseModel: activeModel.name,
+                                width,
+                                height,
+                                timestamp: Date.now()
+                            })}
+                            title="Buka dimensi ini di Resolution Calculator"
+                        >
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" />
+                                <path d="M3 9h18" />
+                                <path d="M9 21V9" />
+                            </svg>
+                            <span>Kalkulator</span>
+                        </button>
                         <button type="button" className="vram-reset-btn" onClick={handleReset}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
@@ -1933,7 +2059,7 @@ call webui.bat
                             {/* 1. GPU dGPU Power */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>💻 GPU (TGP / dGPU):</span>
+                                    <span>GPU (TGP / dGPU):</span>
                                     <span style={{ color: powerTelemetry.isTgpThrottled ? "#f59e0b" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
                                         {powerTelemetry.gpuWatts}W
                                     </span>
@@ -1973,8 +2099,8 @@ call webui.bat
                             {/* 2. CPU AMD Ryzen / Intel */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>🧠 CPU (AMD Ryzen / Intel):</span>
-                                    <span style={{ color: "#a78bfa", fontWeight: 700, fontFamily: "monospace" }}>
+                                    <span>CPU (AMD Ryzen / Intel):</span>
+                                    <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
                                         {powerTelemetry.activeCpuWatts}W
                                     </span>
                                 </div>
@@ -1999,7 +2125,7 @@ call webui.bat
                                 </div>
                                 {teKey === "none" && (
                                     <span style={{ fontSize: "10px", color: "#f59e0b" }}>
-                                        ⚠️ +15W beban CPU offloading Text Encoder
+                                        +15W beban CPU offloading Text Encoder
                                     </span>
                                 )}
                             </div>
@@ -2007,7 +2133,7 @@ call webui.bat
                             {/* 3. Layar Laptop (16" IPS TUF A16) */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>🖥️ Layar Laptop (16" IPS 165Hz):</span>
+                                    <span>Layar Laptop (16" IPS 165Hz):</span>
                                     <span style={{ color: screenMode === "off" ? "#10b981" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
                                         {powerTelemetry.screenWatts}W
                                     </span>
@@ -2036,7 +2162,7 @@ call webui.bat
                             {/* 4. Monitor Eksternal Tambahan */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>🔌 Monitor Eksternal Tambahan:</span>
+                                    <span>Monitor Eksternal Tambahan:</span>
                                     <span style={{ color: externalMonitorMode === "none" ? "#a1a1aa" : "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
                                         {powerTelemetry.extMonitorWatts}W
                                     </span>
@@ -2062,7 +2188,7 @@ call webui.bat
                             {/* 5. Kipas Dual Arc-Flow & Komponen Sistem */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>🌪️ Kipas Turbo, DDR5 &amp; SSD NVMe:</span>
+                                    <span>Kipas Turbo, DDR5 &amp; SSD NVMe:</span>
                                     <span style={{ color: "#38bdf8", fontWeight: 700, fontFamily: "monospace" }}>
                                         {powerTelemetry.systemInternalWatts}W
                                     </span>
@@ -2091,7 +2217,7 @@ call webui.bat
                             {/* 6. Efisiensi Adaptor Charger AC/DC Stopkontak PLN */}
                             <div className="vram-power-ctrl-box">
                                 <div className="vram-power-ctrl-label">
-                                    <span>🔌 Rugi Daya Adaptor 240W:</span>
+                                    <span>Rugi Daya Adaptor 240W:</span>
                                     <span style={{ color: "#f59e0b", fontWeight: 700, fontFamily: "monospace" }}>
                                         +{powerTelemetry.chargerLossWatts}W AC Loss
                                     </span>
@@ -2333,7 +2459,7 @@ call webui.bat
                         </div>
 
                         {multiPassTelemetry.isPass2Risk && (
-                            <div style={{ marginTop: "10px", padding: "8px 12px", background: "rgba(239, 68, 68, 0.1)", border: "1px solid #ef4444", borderRadius: "6px", fontSize: "12px", color: "#fca5a5", lineHeight: "1.4" }}>
+                            <div style={{ marginTop: "10px", padding: "8px 12px", background: "#18181b", border: "1px solid #ef4444", borderRadius: "6px", fontSize: "12px", color: "#fca5a5", lineHeight: "1.4" }}>
                                 ⚠️ <strong>Peringatan Lonjakan Pass 2:</strong> Pass 1 muat di GPU, namun Pass 2 (Hi-Res Fix) melebihi VRAM {effectiveAiVram.toFixed(1)} GB Efektif GPU Anda{desktopDeductionGb > 0 ? ` (${targetGpuVram} GB fisik - ${desktopDeductionGb} GB desktop)` : ""}! Ganti metode upscaling ke <strong>Ultimate SD Upscale</strong> atau aktifkan <strong>Tiled VAE</strong> untuk mencegah crash OOM.
                             </div>
                         )}
@@ -2341,6 +2467,27 @@ call webui.bat
 
                     {/* TARGET GPU SELECTOR */}
                     <div className="vram-gpu-box">
+                        <div className="vram-gpu-profile-sync-row">
+                            <span style={{ color: "#a1a1aa" }}>
+                                Profil Hardware: <strong style={{ color: "#f4f4f5" }}>{activeProfile.name}</strong>
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => setIsProfileModalOpen(true)}
+                                style={{
+                                    background: "transparent",
+                                    border: "none",
+                                    color: "#60a5fa",
+                                    fontSize: "11px",
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    padding: "0",
+                                }}
+                            >
+                                Ganti / Edit Profil ⚙
+                            </button>
+                        </div>
+
                         <div className="vram-gpu-title-row">
                             <span>Komparasi GPU Anda:</span>
                             <span style={{ color: "#3b82f6" }}>
@@ -2525,6 +2672,52 @@ call webui.bat
                     </div>
                 </div>
             </div>
+
+            {/* Hardware Profile Modal */}
+            <HardwareProfileModal
+                isOpen={isProfileModalOpen}
+                onClose={() => setIsProfileModalOpen(false)}
+                gpuPresets={GPU_PRESETS}
+                currentSpecs={{
+                    gpuPresetId,
+                    customGpuVram,
+                    systemRamGb,
+                    displayDeductionMode,
+                    laptopTgpWatts,
+                    tufProfile,
+                    cpuWatts,
+                    plnTarifPerKwh,
+                }}
+                onApplyProfile={handleApplyProfile}
+                onToast={showToast}
+            />
+
+            {/* Quick Toast Notification */}
+            {toastMessage && (
+                <div
+                    style={{
+                        position: "fixed",
+                        bottom: "24px",
+                        right: "24px",
+                        background: "#121215",
+                        border: "1px solid #27272a",
+                        borderLeft: "3px solid #2563eb",
+                        color: "#f4f4f5",
+                        padding: "10px 16px",
+                        borderRadius: "6px",
+                        fontSize: "12.5px",
+                        fontWeight: 600,
+                        zIndex: 10000,
+                        boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                    }}
+                >
+                    <span style={{ color: "#38bdf8" }}>✓</span>
+                    <span>{toastMessage}</span>
+                </div>
+            )}
         </div>
     );
 }

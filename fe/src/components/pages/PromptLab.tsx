@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
     getModels,
     getPromptPresets,
@@ -22,7 +22,12 @@ import {
     type StudioTabKey,
 } from "../prompt-studio/PromptStudioTabs";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
-import { type WorkflowBridgeData } from "../../utils/workflowBridge";
+import {
+    type WorkflowBridgeData,
+    bridgeToVramProfiler,
+    bridgeToCalculator,
+    bridgeToSamplerGuide,
+} from "../../utils/workflowBridge";
 import {
     INITIAL_CATEGORY_INPUTS,
     compileCategoriesPrompt,
@@ -443,7 +448,21 @@ export interface PromptLabProps {
     defaultTab?: StudioTabKey;
 }
 
+interface ActiveGenerationRecipe {
+    sampler?: string;
+    scheduler?: string;
+    steps?: number;
+    cfgScale?: number;
+    width?: number;
+    height?: number;
+    baseModel?: string;
+    seed?: number;
+}
+
 export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) => {
+    const navigate = useNavigate();
+    const [activeRecipe, setActiveRecipe] = useState<ActiveGenerationRecipe | null>(null);
+
     // Studio Workstation Mode Tab ("studio" | "canvas" | "deconstructor" | "library")
     const [studioTab, setStudioTab] = useState<StudioTabKey>(() => {
         try {
@@ -1729,13 +1748,202 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                         setLoraWeight(data.loras[0].weight);
                         setLoraEnabled(true);
                     }
+                    if (data.sampler || data.steps !== undefined || data.cfgScale !== undefined || data.width || data.baseModel) {
+                        setActiveRecipe({
+                            sampler: data.sampler,
+                            scheduler: data.scheduler,
+                            steps: data.steps,
+                            cfgScale: data.cfgScale,
+                            width: data.width,
+                            height: data.height,
+                            baseModel: data.baseModel,
+                            seed: data.seed,
+                        });
+                        updatedCount++;
+                    }
                     showToast(
                         updatedCount > 0
-                            ? "Prompt positif & negatif dari Workflow Bridge berhasil dimuat ke Studio!"
+                            ? "Metadata & Parameter dari Workflow Bridge berhasil dimuat ke Studio!"
                             : "Data Workflow Bridge siap digunakan di Studio!"
                     );
                 }}
             />
+
+            {/* Active Generation Recipe from Workflow Bridge */}
+            {activeRecipe && (
+                <div
+                    style={{
+                        background: "#121215",
+                        border: "1px solid #27272a",
+                        borderLeft: "3px solid #2563eb",
+                        borderRadius: "6px",
+                        padding: "10px 14px",
+                        marginBottom: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        flexWrap: "wrap",
+                        gap: "10px",
+                        boxSizing: "border-box",
+                    }}
+                >
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                            Resep Generasi:
+                        </span>
+                        {activeRecipe.baseModel && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#60a5fa", padding: "1px 6px", borderRadius: "3px" }}>
+                                {activeRecipe.baseModel}
+                            </span>
+                        )}
+                        {activeRecipe.width && activeRecipe.height && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#34d399", padding: "1px 6px", borderRadius: "3px" }}>
+                                {activeRecipe.width}×{activeRecipe.height}
+                            </span>
+                        )}
+                        {activeRecipe.sampler && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#60a5fa", padding: "1px 6px", borderRadius: "3px" }}>
+                                {activeRecipe.sampler}{activeRecipe.scheduler ? ` · ${activeRecipe.scheduler}` : ""}
+                            </span>
+                        )}
+                        {activeRecipe.steps !== undefined && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#38bdf8", padding: "1px 6px", borderRadius: "3px" }}>
+                                {activeRecipe.steps} Steps
+                            </span>
+                        )}
+                        {activeRecipe.cfgScale !== undefined && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#fb923c", padding: "1px 6px", borderRadius: "3px" }}>
+                                CFG {activeRecipe.cfgScale}
+                            </span>
+                        )}
+                        {activeRecipe.seed !== undefined && (
+                            <span style={{ fontSize: "11px", fontFamily: "ui-monospace, monospace", background: "#18181b", border: "1px solid #27272a", color: "#a1a1aa", padding: "1px 6px", borderRadius: "3px" }}>
+                                Seed {activeRecipe.seed}
+                            </span>
+                        )}
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                const params: string[] = [];
+                                if (activeRecipe.steps) params.push(`Steps: ${activeRecipe.steps}`);
+                                if (activeRecipe.sampler) params.push(`Sampler: ${activeRecipe.sampler}${activeRecipe.scheduler ? ` ${activeRecipe.scheduler}` : ""}`);
+                                if (activeRecipe.cfgScale) params.push(`CFG scale: ${activeRecipe.cfgScale}`);
+                                if (activeRecipe.seed !== undefined) params.push(`Seed: ${activeRecipe.seed}`);
+                                if (activeRecipe.width && activeRecipe.height) params.push(`Size: ${activeRecipe.width}x${activeRecipe.height}`);
+                                if (activeRecipe.baseModel) params.push(`Model: ${activeRecipe.baseModel}`);
+                                const fullText = `${positivePrompt}\nNegative prompt: ${negativePrompt}\n${params.join(", ")}`;
+                                navigator.clipboard.writeText(fullText);
+                                showToast("Prompt + Parameter A1111 berhasil disalin ke clipboard!");
+                            }}
+                            style={{
+                                background: "#18181b",
+                                border: "1px solid #27272a",
+                                color: "#f4f4f5",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                            }}
+                            title="Salin Prompt dan parameter lengkap dalam format Automatic1111 / WebUI"
+                        >
+                            Salin Format A1111
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => bridgeToVramProfiler(navigate, {
+                                source: "prompt-lab",
+                                baseModel: activeRecipe.baseModel,
+                                width: activeRecipe.width,
+                                height: activeRecipe.height,
+                                steps: activeRecipe.steps,
+                                timestamp: Date.now(),
+                            })}
+                            style={{
+                                background: "#18181b",
+                                border: "1px solid #27272a",
+                                color: "#38bdf8",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                            }}
+                            title="Uji beban VRAM &amp; hardware di VRAM Profiler"
+                        >
+                            Uji VRAM ➔
+                        </button>
+                        {activeRecipe.width && activeRecipe.height && (
+                            <button
+                                type="button"
+                                onClick={() => bridgeToCalculator(navigate, {
+                                    source: "prompt-lab",
+                                    baseModel: activeRecipe.baseModel,
+                                    width: activeRecipe.width,
+                                    height: activeRecipe.height,
+                                    timestamp: Date.now(),
+                                })}
+                                style={{
+                                    background: "#18181b",
+                                    border: "1px solid #27272a",
+                                    color: "#34d399",
+                                    fontSize: "11px",
+                                    fontWeight: 500,
+                                    padding: "4px 8px",
+                                    borderRadius: "4px",
+                                    cursor: "pointer",
+                                }}
+                                title="Kalkulasi rasio aspek di Resolution Calculator"
+                            >
+                                Kalkulator ➔
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => bridgeToSamplerGuide(navigate, {
+                                source: "prompt-lab",
+                                sampler: activeRecipe.sampler,
+                                scheduler: activeRecipe.scheduler,
+                                steps: activeRecipe.steps,
+                                cfgScale: activeRecipe.cfgScale,
+                                baseModel: activeRecipe.baseModel,
+                                timestamp: Date.now(),
+                            })}
+                            style={{
+                                background: "#18181b",
+                                border: "1px solid #27272a",
+                                color: "#60a5fa",
+                                fontSize: "11px",
+                                fontWeight: 500,
+                                padding: "4px 8px",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                            }}
+                            title="Buka panduan sampler untuk mengatur ulang metode konvergensi"
+                        >
+                            Panduan Sampler ➔
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveRecipe(null)}
+                            style={{
+                                background: "transparent",
+                                border: "none",
+                                color: "#71717a",
+                                fontSize: "13px",
+                                cursor: "pointer",
+                                padding: "2px 6px",
+                            }}
+                            title="Hapus resep ini"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {/* Studio Header Bar */}
             <header className="prompt-lab-header">

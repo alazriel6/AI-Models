@@ -6,7 +6,7 @@ export interface LoraBridgeItem {
 }
 
 export interface WorkflowBridgeData {
-  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet";
+  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide" | "controlnet" | "vram";
   timestamp: number;
   imageId?: number;
   imageUrl?: string;
@@ -109,6 +109,23 @@ export function normalizeBaseModel(arch?: string): "sdxl" | "flux" | "sd15" {
   return "sdxl";
 }
 
+/**
+ * Standardize baseModel to VRAM profiler model keys
+ */
+export function normalizeVramModel(arch?: string): string {
+  if (!arch) return "sdxl";
+  const lower = arch.toLowerCase();
+  if (lower.includes("1.5") || lower.includes("sd1") || lower.includes("sd 1")) return "sd15";
+  if (lower.includes("pony")) return "pony";
+  if (lower.includes("illustrious") || lower.includes("il-xl") || lower.includes("anime")) return "illustrious";
+  if (lower.includes("flux")) return "flux";
+  if (lower.includes("3.5_l") || lower.includes("3.5 large") || lower.includes("sd3.5_large")) return "sd35_large";
+  if (lower.includes("3.5") || lower.includes("sd3")) return "sd35_med";
+  if (lower.includes("wan") && (lower.includes("14b") || lower.includes("14-b"))) return "wan21_14b";
+  if (lower.includes("wan")) return "wan21_13b";
+  return "sdxl";
+}
+
 // ----------------------------------------------------------------------------
 // Action Bridge Navigators
 // ----------------------------------------------------------------------------
@@ -143,10 +160,14 @@ export function bridgeToSamplerGuide(navigate: NavigateFunction, data: WorkflowB
 
 export function bridgeToVramProfiler(navigate: NavigateFunction, data: WorkflowBridgeData): void {
   setWorkflowBridge(data);
-  const model = (data.baseModel || "sdxl").toLowerCase().includes("1.5")
-    ? "sd15"
-    : (data.baseModel || "").toLowerCase().includes("flux")
-    ? "flux"
-    : "sdxl";
-  navigate(`/vram?model=${model}&bridge=1`);
+  const model = normalizeVramModel(data.baseModel);
+  const stepsParam = data.steps ? `&steps=${data.steps}` : "";
+  const w = data.width ? `&width=${data.width}` : "";
+  const h = data.height ? `&height=${data.height}` : "";
+  navigate(`/vram?model=${model}${stepsParam}${w}${h}&bridge=1`);
+}
+
+export function bridgeToControlNet(navigate: NavigateFunction, data: WorkflowBridgeData): void {
+  setWorkflowBridge(data);
+  navigate("/controlnet?bridge=1");
 }

@@ -2584,7 +2584,7 @@
 }
 
 .char-prompt-label.neg {
-    color: #fb7185;
+    color: #f87171;
 }
 
 .char-prompt-text {
@@ -4242,16 +4242,18 @@
 .snippet-tag {
     font-size: 9px;
     font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 2px;
+    padding: 1px 5px;
+    border-radius: 3px;
     margin-right: 5px;
-    background: rgba(16, 185, 129, 0.15);
+    background: #18181b;
+    border: 1px solid #059669;
     color: #34d399;
 }
 
 .snippet-tag.neg {
-    background: rgba(244, 63, 94, 0.15);
-    color: #fb7185;
+    background: #18181b;
+    border: 1px solid #dc2626;
+    color: #f87171;
 }
 
 /* Gallery Image Picker Modal */

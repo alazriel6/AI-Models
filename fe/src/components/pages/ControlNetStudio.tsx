@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { type WorkflowBridgeData } from "../../utils/workflowBridge";
 import { OpenPoseCanvas } from "../controlnet/OpenPoseCanvas";
 import { PreprocessorGuide } from "../controlnet/PreprocessorGuide";
 import { ControlNetMatrix } from "../controlnet/ControlNetMatrix";
@@ -118,10 +119,20 @@ export default function ControlNetStudio() {
     "Duo & Interaction",
   ];
 
+  // Workflow Bridge Handler
+  const handleApplyBridge = (data: WorkflowBridgeData) => {
+    if (data.baseModel) {
+      const lower = data.baseModel.toLowerCase();
+      if (lower.includes("flux") || lower.includes("sdxl") || lower.includes("1.5")) {
+        // Can sync with matrix or preprocessor view if appropriate
+      }
+    }
+  };
+
   return (
     <div className="controlnet-studio-page">
       {/* Universal Workflow Bridge Banner */}
-      <WorkflowBridgeBanner currentTool="controlnet" />
+      <WorkflowBridgeBanner currentTool="controlnet" onApply={handleApplyBridge} />
 
       {/* Main Studio Header */}
       <header className="studio-hero-banner">

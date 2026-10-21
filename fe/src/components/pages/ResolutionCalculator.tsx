@@ -1,7 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
-import { type WorkflowBridgeData, normalizeBaseModel } from "../../utils/workflowBridge";
+import {
+    type WorkflowBridgeData,
+    normalizeBaseModel,
+    bridgeToPromptLab,
+    bridgeToVramProfiler,
+    bridgeToControlNet,
+} from "../../utils/workflowBridge";
 import "../../style/ResolutionCalculator.css";
 
 interface BucketPreset {
@@ -119,6 +125,7 @@ function getRatioDetails(w: number, h: number): RatioDetails {
 }
 
 export default function ResolutionCalculator() {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [arch, setArch] = useState<"sdxl" | "flux" | "sd15">("sdxl");
     const [fluxMode, setFluxMode] = useState<"standard" | "native15">("standard");
@@ -819,6 +826,62 @@ export default function ResolutionCalculator() {
                                     ? "✓ Resolusi Hi-Res Tersalin!"
                                     : `Salin Resolusi Hi-Res (${hiresW}x${hiresH})`}
                             </button>
+
+                            {/* Workflow Bridge Export Actions */}
+                            <div style={{ marginTop: "14px", paddingTop: "12px", borderTop: "1px solid #27272a" }}>
+                                <div style={{ fontSize: "11px", fontWeight: 700, color: "#a1a1aa", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "8px" }}>
+                                    Kirim Dimensi ({width}×{height}) ke Alat:
+                                </div>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                                    <button
+                                        type="button"
+                                        className="btn-copy-secondary"
+                                        onClick={() => bridgeToVramProfiler(navigate, {
+                                            source: "calculator",
+                                            width,
+                                            height,
+                                            baseModel: arch,
+                                            timestamp: Date.now(),
+                                        })}
+                                        title="Uji alokasi VRAM &amp; kecepatan generasi untuk resolusi ini"
+                                        style={{ color: "#38bdf8", borderColor: "#3f3f46" }}
+                                    >
+                                        Uji VRAM ➔
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn-copy-secondary"
+                                        onClick={() => bridgeToPromptLab(navigate, {
+                                            source: "calculator",
+                                            width,
+                                            height,
+                                            baseModel: arch,
+                                            timestamp: Date.now(),
+                                        })}
+                                        title="Bawa resolusi ini ke Prompt Studio"
+                                        style={{ color: "#60a5fa", borderColor: "#3f3f46" }}
+                                    >
+                                        Prompt Studio ➔
+                                    </button>
+                                </div>
+                                <div style={{ marginTop: "6px" }}>
+                                    <button
+                                        type="button"
+                                        className="btn-copy-secondary"
+                                        onClick={() => bridgeToControlNet(navigate, {
+                                            source: "calculator",
+                                            width,
+                                            height,
+                                            baseModel: arch,
+                                            timestamp: Date.now(),
+                                        })}
+                                        title="Buka ControlNet &amp; OpenPose Studio dengan rasio ini"
+                                        style={{ width: "100%", color: "#67e8f9", borderColor: "#3f3f46" }}
+                                    >
+                                        ControlNet &amp; OpenPose ➔
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -8,6 +8,8 @@ import {
     type WorkflowBridgeData,
     extractLorasFromPrompt,
     stripLoraTags,
+    bridgeToPromptLab,
+    bridgeToVramProfiler,
 } from "../../utils/workflowBridge";
 import "../../style/LoraStack.css";
 
@@ -613,10 +615,26 @@ export default function LoraStack() {
         }
     };
 
-    // Open in Prompt Lab
+    // Open in Prompt Lab via Workflow Bridge
     const handleOpenInPromptLab = () => {
         const promptToTransfer = formattedSyntaxes.a1111;
-        navigate(`/prompt-lab?prompt=${encodeURIComponent(promptToTransfer)}`);
+        bridgeToPromptLab(navigate, {
+            source: "lora-stack",
+            positivePrompt: promptToTransfer,
+            baseModel: targetArch,
+            loras: stack.filter((s) => s.enabled).map((s) => ({ name: s.name, weight: s.weight })),
+            timestamp: Date.now(),
+        });
+    };
+
+    // Open in VRAM Profiler via Workflow Bridge
+    const handleOpenInVramProfiler = () => {
+        bridgeToVramProfiler(navigate, {
+            source: "lora-stack",
+            baseModel: targetArch,
+            loras: stack.filter((s) => s.enabled).map((s) => ({ name: s.name, weight: s.weight })),
+            timestamp: Date.now(),
+        });
     };
 
     return (
@@ -1353,15 +1371,28 @@ export default function LoraStack() {
                                 <span>{copiedKey === "main-cta" ? "Tersalin ke Clipboard" : "Salin Prompt & LoRA Tag"}</span>
                             </button>
 
-                            <button
-                                type="button"
-                                className="lora-sec-cta-btn"
-                                onClick={handleOpenInPromptLab}
-                                title="Buka dan racik lebih lanjut di Prompt Lab"
-                            >
-                                <Icons.ExternalLink />
-                                <span>Buka di Prompt Lab</span>
-                            </button>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                <button
+                                    type="button"
+                                    className="lora-sec-cta-btn"
+                                    onClick={handleOpenInPromptLab}
+                                    title="Buka dan racik lebih lanjut di Prompt Lab"
+                                    style={{ color: "#60a5fa" }}
+                                >
+                                    <Icons.ExternalLink />
+                                    <span>Buka di Studio</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className="lora-sec-cta-btn"
+                                    onClick={handleOpenInVramProfiler}
+                                    title="Uji beban VRAM untuk susunan LoRA ini di VRAM Profiler"
+                                    style={{ color: "#38bdf8" }}
+                                >
+                                    <Icons.Layers />
+                                    <span>Uji VRAM</span>
+                                </button>
+                            </div>
 
                             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                                 <button

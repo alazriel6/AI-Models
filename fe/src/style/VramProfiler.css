@@ -1,6 +1,6 @@
 /* ==========================================================================
    VRAM & Hardware Profiler Styles (Solid High-Contrast Technical Theme)
-   Solid Palette: Zinc-950, Zinc-900, Zinc-800, Solid Blue, Emerald, Amber, Rose
+   Solid Palette: Zinc-950, Zinc-900, Zinc-800, Solid Blue, Emerald, Amber, Sky
    Zero blurry glows, sharp borders, high data density & crisp telemetry
    ========================================================================== */
 
@@ -132,7 +132,7 @@
 .vram-section-badge {
     font-size: 11px;
     font-weight: 600;
-    color: #71717a;
+    color: #a1a1aa;
     background: #18181b;
     padding: 2px 8px;
     border-radius: 4px;
@@ -243,13 +243,13 @@
 }
 
 .vram-te-btn:hover {
-    border-color: #8b5cf6;
+    border-color: #2563eb;
     background: #18181b;
 }
 
 .vram-te-btn.active {
-    background: #2e1065;
-    border-color: #8b5cf6;
+    background: #1e3a8a;
+    border-color: #3b82f6;
 }
 
 .vram-te-title {
@@ -260,7 +260,7 @@
 
 .vram-te-vram {
     font-size: 10px;
-    color: #c4b5fd;
+    color: #93c5fd;
     font-weight: 600;
 }
 
@@ -387,7 +387,7 @@
 
 .vram-toggle-desc {
     font-size: 11px;
-    color: #71717a;
+    color: #a1a1aa;
 }
 
 .vram-switch {
@@ -536,7 +536,7 @@
 }
 
 .vram-comp-segment.weights { background: #3b82f6; }
-.vram-comp-segment.te { background: #8b5cf6; }
+.vram-comp-segment.te { background: #0284c7; }
 .vram-comp-segment.kv { background: #06b6d4; }
 .vram-comp-segment.vae { background: #f59e0b; }
 .vram-comp-segment.lora { background: #10b981; }
@@ -571,7 +571,7 @@
 }
 
 .vram-legend-dot.weights { background: #3b82f6; }
-.vram-legend-dot.te { background: #8b5cf6; }
+.vram-legend-dot.te { background: #0284c7; }
 .vram-legend-dot.kv { background: #06b6d4; }
 .vram-legend-dot.vae { background: #f59e0b; }
 .vram-legend-dot.lora { background: #10b981; }
@@ -870,11 +870,11 @@
 
 .vram-pass-box.active-risk {
     border-color: #ef4444;
-    background: rgba(239, 68, 68, 0.05);
+    background: #18181b;
 }
 
 .vram-pass-box.pass-safe {
-    border-color: rgba(16, 185, 129, 0.4);
+    border-color: #10b981;
 }
 
 .vram-pass-top {
@@ -902,8 +902,8 @@
 }
 
 .vram-pass-badge.p3 {
-    background: #4c1d95;
-    color: #ddd6fe;
+    background: #1e3a8a;
+    color: #93c5fd;
 }
 
 .vram-pass-res {
@@ -921,7 +921,7 @@
 
 .vram-pass-note {
     font-size: 11px;
-    color: #71717a;
+    color: #a1a1aa;
     line-height: 1.4;
 }
 
@@ -1204,11 +1204,11 @@
     transition: width 0.3s ease;
 }
 
-.vram-timeline-segment.te { background: #8b5cf6; }
+.vram-timeline-segment.te { background: #0284c7; }
 .vram-timeline-segment.denoise { background: #3b82f6; }
 .vram-timeline-segment.hires { background: #f59e0b; }
 .vram-timeline-segment.post { background: #10b981; }
-.vram-timeline-segment.vae { background: #ec4899; }
+.vram-timeline-segment.vae { background: #0d9488; }
 
 .vram-timeline-legend {
     display: flex;
@@ -1231,11 +1231,11 @@
     border-radius: 50%;
 }
 
-.vram-timeline-dot.te { background: #8b5cf6; }
+.vram-timeline-dot.te { background: #0284c7; }
 .vram-timeline-dot.denoise { background: #3b82f6; }
 .vram-timeline-dot.hires { background: #f59e0b; }
 .vram-timeline-dot.post { background: #10b981; }
-.vram-timeline-dot.vae { background: #ec4899; }
+.vram-timeline-dot.vae { background: #0d9488; }
 
 .vram-throughput-alert-box {
     font-size: 11px;
@@ -1264,7 +1264,7 @@
 .vram-throughput-alert-box.speed-critical {
     border-left: 3px solid #ef4444;
     color: #fca5a5;
-    background: rgba(239, 68, 68, 0.08);
+    background: #18181b;
 }
 
 /* 1-Click BAT & Command Generator Upgrades */
@@ -1499,7 +1499,6 @@
     border-color: #3b82f6;
     color: #bfdbfe;
     font-weight: 700;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
 }
 
 /* Big Hero Stats */
@@ -1555,7 +1554,7 @@
 
 .vram-token-capacity-sub {
     font-size: 10px;
-    color: #71717a;
+    color: #a1a1aa;
 }
 
 .vram-power-metric-box {
@@ -1673,7 +1672,7 @@
 }
 
 .vram-tgp-alert {
-    background: rgba(245, 158, 11, 0.1);
+    background: #18181b;
     border: 1px solid #f59e0b;
     border-radius: 6px;
     padding: 8px 12px;
@@ -1702,6 +1701,49 @@
     border-top: 1px dashed #27272a;
     flex-wrap: wrap;
     gap: 8px;
+}
+
+/* Hardware Profile Header Pill & Sync */
+.vram-profile-header-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #f4f4f5;
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.vram-profile-header-btn:hover {
+    border-color: #2563eb;
+    background: #1f1f23;
+}
+
+.vram-profile-badge {
+    font-size: 10px;
+    font-weight: 800;
+    background: #1e3a8a;
+    color: #93c5fd;
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.vram-gpu-profile-sync-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px dashed #27272a;
+    font-size: 11px;
 }
 
 /* Responsive */

@@ -103,18 +103,18 @@
 }
 
 .aps-nsfw-toggle-pill:hover {
-    border-color: #f43f5e;
+    border-color: #ef4444;
     color: #f4f4f5;
 }
 
 .aps-nsfw-toggle-pill.active {
-    background: #241015;
-    border-color: #e11d48;
-    color: #fda4af;
+    background: #18181b;
+    border-color: #dc2626;
+    color: #fca5a5;
 }
 
 .aps-nsfw-toggle-checkbox {
-    accent-color: #e11d48;
+    accent-color: #dc2626;
     cursor: pointer;
     margin: 0;
 }
@@ -987,9 +987,9 @@
 }
 
 .aps-chip-item.aps-chip-nsfw.active {
-    background: #3a0a18;
-    border-color: #e11d48;
-    color: #fda4af;
+    background: #18181b;
+    border-color: #dc2626;
+    color: #fca5a5;
 }
 
 .aps-chip-text {

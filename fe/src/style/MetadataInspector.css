@@ -461,27 +461,27 @@
 }
 
 .tag-source-comfyui {
-    background: rgba(139, 92, 246, 0.15);
-    color: #c4b5fd;
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    background: #18181b;
+    color: #93c5fd;
+    border: 1px solid #2563eb;
 }
 
 .tag-source-a1111 {
-    background: rgba(59, 130, 246, 0.15);
-    color: #93c5fd;
-    border: 1px solid rgba(59, 130, 246, 0.3);
+    background: #18181b;
+    color: #bfdbfe;
+    border: 1px solid #3b82f6;
 }
 
 .tag-source-novelai {
-    background: rgba(16, 185, 129, 0.15);
+    background: #18181b;
     color: #6ee7b7;
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid #059669;
 }
 
 .tag-source-other {
-    background: rgba(245, 158, 11, 0.15);
+    background: #18181b;
     color: #fcd34d;
-    border: 1px solid rgba(245, 158, 11, 0.3);
+    border: 1px solid #d97706;
 }
 
 .preview-actions-column {

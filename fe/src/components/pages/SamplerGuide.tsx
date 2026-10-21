@@ -5,6 +5,7 @@ import {
   type WorkflowBridgeData,
   bridgeToPromptLab,
   bridgeToCalculator,
+  bridgeToVramProfiler,
 } from "../../utils/workflowBridge";
 import "../../style/SamplerGuide.css";
 
@@ -1232,22 +1233,41 @@ export default function SamplerGuide() {
                     ))}
                   </div>
 
-                  <button
-                    type="button"
-                    className="sg-studio-btn"
-                    onClick={() => {
-                      bridgeToPromptLab(navigate, {
-                        source: "sampler-guide",
-                        timestamp: Date.now(),
-                        sampler: sampler.name,
-                        steps: parseInt(sampler.optimalSteps.split("-")[0].trim(), 10) || 24,
-                        baseModel: sampler.architectures[0] || "SDXL",
-                      });
-                    }}
-                    title="Bawa parameter sampler ini ke Prompt Studio"
-                  >
-                    <span>Gunakan di Studio →</span>
-                  </button>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="sg-studio-btn"
+                      style={{ background: "#18181b", borderColor: "#3f3f46", color: "#38bdf8" }}
+                      onClick={() => {
+                        bridgeToVramProfiler(navigate, {
+                          source: "sampler-guide",
+                          timestamp: Date.now(),
+                          sampler: sampler.name,
+                          steps: parseInt(sampler.optimalSteps.split("-")[0].trim(), 10) || 24,
+                          baseModel: sampler.architectures[0] || "SDXL",
+                        });
+                      }}
+                      title="Uji beban VRAM untuk sampler &amp; steps ini di VRAM Profiler"
+                    >
+                      <span>Uji VRAM ➔</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="sg-studio-btn"
+                      onClick={() => {
+                        bridgeToPromptLab(navigate, {
+                          source: "sampler-guide",
+                          timestamp: Date.now(),
+                          sampler: sampler.name,
+                          steps: parseInt(sampler.optimalSteps.split("-")[0].trim(), 10) || 24,
+                          baseModel: sampler.architectures[0] || "SDXL",
+                        });
+                      }}
+                      title="Bawa parameter sampler ini ke Prompt Studio"
+                    >
+                      <span>Gunakan di Studio →</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1537,22 +1557,42 @@ export default function SamplerGuide() {
                 <div className="sg-card-footer">
                   <span style={{ fontSize: "11px", color: "#a1a1aa" }}>{recipe.speed}</span>
 
-                  <button
-                    type="button"
-                    className="sg-btn-primary"
-                    onClick={() => {
-                      bridgeToPromptLab(navigate, {
-                        source: "sampler-guide",
-                        timestamp: Date.now(),
-                        sampler: `${recipe.samplerName} ${recipe.schedulerName}`,
-                        steps: recipe.steps,
-                        cfgScale: recipe.cfg,
-                        baseModel: recipe.architecture,
-                      });
-                    }}
-                  >
-                    <span>Terapkan ke Studio →</span>
-                  </button>
+                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                    <button
+                      type="button"
+                      className="sg-studio-btn"
+                      style={{ background: "#18181b", borderColor: "#3f3f46", color: "#38bdf8" }}
+                      onClick={() => {
+                        bridgeToVramProfiler(navigate, {
+                          source: "sampler-guide",
+                          timestamp: Date.now(),
+                          sampler: `${recipe.samplerName} ${recipe.schedulerName}`,
+                          steps: recipe.steps,
+                          cfgScale: recipe.cfg,
+                          baseModel: recipe.architecture,
+                        });
+                      }}
+                      title="Uji kebutuhan VRAM untuk resep ini di VRAM Profiler"
+                    >
+                      <span>Uji VRAM ➔</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="sg-btn-primary"
+                      onClick={() => {
+                        bridgeToPromptLab(navigate, {
+                          source: "sampler-guide",
+                          timestamp: Date.now(),
+                          sampler: `${recipe.samplerName} ${recipe.schedulerName}`,
+                          steps: recipe.steps,
+                          cfgScale: recipe.cfg,
+                          baseModel: recipe.architecture,
+                        });
+                      }}
+                    >
+                      <span>Terapkan ke Studio →</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}

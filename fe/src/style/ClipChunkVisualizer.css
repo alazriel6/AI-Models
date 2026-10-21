@@ -518,9 +518,9 @@
 }
 
 .clip-lora-badge {
-    background: rgba(168, 85, 247, 0.15);
-    color: #c084fc;
-    border: 1px solid rgba(168, 85, 247, 0.4);
+    background: #18181b;
+    color: #fbbf24;
+    border: 1px solid #d97706;
     padding: 3px 8px;
     border-radius: 5px;
     font-weight: 600;
