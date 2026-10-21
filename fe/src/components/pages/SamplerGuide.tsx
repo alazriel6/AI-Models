@@ -468,7 +468,7 @@ export const SCHEDULER_DIRECTORY: SchedulerItem[] = [
     name: "Beta",
     formula: "Smooth sigmoid transition based on Beta distribution curve",
     category: "fine_detail",
-    color: "#e11d48", // Solid Rose/Red
+    color: "#0ea5e9", // Tech Cyan
     description: "Kurva transisi lengkung halus berbasis distribusi Beta untuk transisi frekuensi spasial kontinu.",
     focusPhase: "Noise Rendah (Detail Mikro)",
     bestFor: "Model FLUX.1 Dev dan pengujian eksperimental variasi noise frekuensi menengah-rendah.",
@@ -1058,7 +1058,7 @@ export default function SamplerGuide() {
                   </div>
                   <div className="sg-spec-col">
                     <span className="sg-spec-label">Sifat Aliran</span>
-                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#cbd5e1" : sampler.category === "flow_matching" ? "#f43f5e" : "#f59e0b" }}>
+                    <span className="sg-spec-val" style={{ color: sampler.category === "deterministic" ? "#cbd5e1" : sampler.category === "flow_matching" ? "#38bdf8" : "#f59e0b" }}>
                       {sampler.category === "deterministic" ? "Deterministik" : sampler.category === "flow_matching" ? "Flow Match" : "Stokastik"}
                     </span>
                   </div>

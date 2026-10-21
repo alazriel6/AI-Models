@@ -82,24 +82,24 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
         <svg viewBox="0 0 600 360" className="preproc-svg-canvas">
           <defs>
             <linearGradient id="cannyNeonSky" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2e1065" />
-              <stop offset="100%" stopColor="#0f172a" />
+              <stop offset="0%" stopColor="#0b1329" />
+              <stop offset="100%" stopColor="#07090e" />
             </linearGradient>
             <linearGradient id="neonCar" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#f43f5e" />
-              <stop offset="100%" stopColor="#e11d48" />
+              <stop offset="0%" stopColor="#2563eb" />
+              <stop offset="100%" stopColor="#1d4ed8" />
             </linearGradient>
           </defs>
           <rect width="600" height="360" fill="url(#cannyNeonSky)" />
-          {/* Cyberpunk City */}
-          <rect x="60" y="80" width="80" height="180" fill="#1e1b4b" stroke="#a855f7" strokeWidth="1" />
-          <rect x="160" y="50" width="100" height="210" fill="#0f172a" stroke="#ec4899" strokeWidth="1" />
-          <rect x="280" y="110" width="70" height="150" fill="#1e1b4b" stroke="#38bdf8" strokeWidth="1" />
-          <rect x="370" y="70" width="90" height="190" fill="#0f172a" stroke="#a855f7" strokeWidth="1" />
+          {/* Studio Tech City */}
+          <rect x="60" y="80" width="80" height="180" fill="#0f172a" stroke="#334155" strokeWidth="1" />
+          <rect x="160" y="50" width="100" height="210" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
+          <rect x="280" y="110" width="70" height="150" fill="#0b1120" stroke="#38bdf8" strokeWidth="1" />
+          <rect x="370" y="70" width="90" height="190" fill="#0f172a" stroke="#475569" strokeWidth="1" />
           {/* Wet Road with reflections */}
           <rect x="0" y="260" width="600" height="100" fill="#020617" />
-          <ellipse cx="300" cy="280" rx="200" ry="25" fill="#f43f5e" opacity="0.25" />
-          {/* Redesigned Cyberpunk Car following exact same geometry */}
+          <ellipse cx="300" cy="280" rx="200" ry="25" fill="#38bdf8" opacity="0.18" />
+          {/* Studio Sports Car */}
           <path d="M 120 270 L 170 220 L 290 205 L 390 220 L 480 250 L 480 280 L 120 280 Z" fill="url(#neonCar)" />
           <path d="M 210 220 L 250 160 L 350 160 L 390 220 Z" fill="#020617" opacity="0.9" stroke="#38bdf8" strokeWidth="2" />
           <circle cx="200" cy="280" r="28" fill="#090d16" stroke="#38bdf8" strokeWidth="4" />
@@ -107,8 +107,8 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           <circle cx="410" cy="280" r="28" fill="#090d16" stroke="#38bdf8" strokeWidth="4" />
           <circle cx="410" cy="280" r="14" fill="#38bdf8" />
           <polygon points="120,265 140,260 140,272" fill="#facc15" />
-          {/* Neon underglow */}
-          <line x1="140" y1="282" x2="460" y2="282" stroke="#f43f5e" strokeWidth="4" />
+          {/* Tech underglow */}
+          <line x1="140" y1="282" x2="460" y2="282" stroke="#38bdf8" strokeWidth="4" />
         </svg>
       );
 
@@ -191,7 +191,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           <path d="M 205 145 C 215 80, 385 80, 395 145 C 380 220, 385 280, 420 340 L 180 340 C 215 280, 220 220, 205 145 Z" fill="url(#animeHairGrad)" />
           <path d="M 240 115 C 248 145, 255 175, 258 180 C 265 155, 275 145, 280 175 C 290 145, 305 135, 315 178 C 328 150, 345 140, 355 175 Z" fill="#67e8f9" />
           {/* Sailor Uniform */}
-          <path d="M 265 275 L 230 340 L 370 340 L 335 275 Z" fill="#1e1b4b" />
+          <path d="M 265 275 L 230 340 L 370 340 L 335 275 Z" fill="#0f172a" />
           <polygon points="300,300 280,340 320,340" fill="#ef4444" />
         </svg>
       );
@@ -208,7 +208,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
             <circle cx="300" cy="150" r="70" fill="#fde047" opacity="0.85" />
             <path d="M 220 180 Q 200 270 170 340" stroke="#f59e0b" strokeWidth="24" strokeLinecap="round" fill="none" />
             <path d="M 380 180 Q 400 270 430 340" stroke="#f59e0b" strokeWidth="24" strokeLinecap="round" fill="none" />
-            <path d="M 250 220 L 220 340 L 380 340 L 350 220 Z" fill="#ec4899" />
+            <path d="M 250 220 L 220 340 L 380 340 L 350 220 Z" fill="#2563eb" />
           </svg>
         );
       }
@@ -233,8 +233,8 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
         <svg viewBox="0 0 600 360" className="preproc-svg-canvas">
           <defs>
             <linearGradient id="softEdgeArtGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#a855f7" />
-              <stop offset="100%" stopColor="#ec4899" />
+              <stop offset="0%" stopColor="#38bdf8" />
+              <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
           </defs>
           <rect width="600" height="360" fill="#09090b" />
@@ -242,7 +242,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           <circle cx="300" cy="150" r="70" fill="#fed7aa" />
           <path d="M 220 180 Q 200 270 170 340" stroke="url(#softEdgeArtGrad)" strokeWidth="26" strokeLinecap="round" fill="none" />
           <path d="M 380 180 Q 400 270 430 340" stroke="url(#softEdgeArtGrad)" strokeWidth="26" strokeLinecap="round" fill="none" />
-          <path d="M 250 220 L 220 340 L 380 340 L 350 220 Z" fill="#3b82f6" />
+          <path d="M 250 220 L 220 340 L 380 340 L 350 220 Z" fill="#2563eb" />
           <path d="M 265 145 Q 300 175 335 145" stroke="#475569" strokeWidth="3" fill="none" />
         </svg>
       );
@@ -342,13 +342,13 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
       return (
         <svg viewBox="0 0 600 360" className="preproc-svg-canvas">
           <rect width="600" height="360" fill="#0a0a0f" />
-          {/* Cyberpunk Room Interior */}
-          <polygon points="0,0 200,120 200,240 0,360" fill="#1e1b4b" stroke="#6366f1" strokeWidth="1" />
-          <polygon points="600,0 400,120 400,240 600,360" fill="#1e1b4b" stroke="#ec4899" strokeWidth="1" />
+          {/* Studio Tech Room Interior */}
+          <polygon points="0,0 200,120 200,240 0,360" fill="#0b1120" stroke="#38bdf8" strokeWidth="1" />
+          <polygon points="600,0 400,120 400,240 600,360" fill="#0b1120" stroke="#10b981" strokeWidth="1" />
           <rect x="200" y="120" width="200" height="120" fill="#030712" stroke="#38bdf8" strokeWidth="2" />
           {/* Sci-fi Holographic Monitors */}
           <rect x="230" y="140" width="140" height="60" fill="#0284c7" opacity="0.3" stroke="#38bdf8" strokeWidth="2" />
-          <rect x="180" y="210" width="240" height="70" fill="#111827" stroke="#a855f7" strokeWidth="2" />
+          <rect x="180" y="210" width="240" height="70" fill="#111827" stroke="#38bdf8" strokeWidth="2" />
         </svg>
       );
 
@@ -364,8 +364,8 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
             <circle cx="320" cy="90" r="24" fill="#fed7aa" />
             <path d="M 320 114 L 300 190 L 250 250 L 210 330" stroke="#0284c7" strokeWidth="20" strokeLinecap="round" fill="none" />
             <path d="M 300 190 L 370 230 L 450 230" stroke="#0284c7" strokeWidth="20" strokeLinecap="round" fill="none" />
-            <path d="M 320 130 L 250 120 L 190 100" stroke="#f43f5e" strokeWidth="14" strokeLinecap="round" fill="none" />
-            <path d="M 320 130 L 390 140 L 440 110" stroke="#f43f5e" strokeWidth="14" strokeLinecap="round" fill="none" />
+            <path d="M 320 130 L 250 120 L 190 100" stroke="#38bdf8" strokeWidth="14" strokeLinecap="round" fill="none" />
+            <path d="M 320 130 L 390 140 L 440 110" stroke="#38bdf8" strokeWidth="14" strokeLinecap="round" fill="none" />
           </svg>
         );
       }
@@ -426,10 +426,10 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           <rect width="600" height="360" fill="#0f172a" />
           {/* Energy Sparks matching action pose */}
           <path d="M 170 80 Q 200 130 150 160" stroke="#38bdf8" strokeWidth="3" fill="none" opacity="0.6" />
-          <path d="M 460 210 Q 420 250 480 280" stroke="#ec4899" strokeWidth="4" fill="none" opacity="0.7" />
+          <path d="M 460 210 Q 420 250 480 280" stroke="#38bdf8" strokeWidth="4" fill="none" opacity="0.7" />
           {/* Rendered Anime Martial Artist Hero */}
           <circle cx="320" cy="90" r="24" fill="#fed7aa" />
-          <path d="M 305 78 C 310 65, 340 65, 342 82 C 335 95, 310 95, 305 78 Z" fill="#e11d48" />
+          <path d="M 305 78 C 310 65, 340 65, 342 82 C 335 95, 310 95, 305 78 Z" fill="#2563eb" />
           <path d="M 320 114 L 300 190 L 250 250 L 210 330" stroke="url(#fighterAura)" strokeWidth="22" strokeLinecap="round" fill="none" />
           <path d="M 300 190 L 370 230 L 450 230" stroke="url(#fighterAura)" strokeWidth="22" strokeLinecap="round" fill="none" />
           <path d="M 320 130 L 250 120 L 190 100" stroke="#f1f5f9" strokeWidth="14" strokeLinecap="round" fill="none" />
@@ -458,13 +458,13 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
         return (
           <svg viewBox="0 0 600 360" className="preproc-svg-canvas">
             <rect width="600" height="360" fill="#8080ff" />
-            {/* 3D Normal Map Vectors (RGB mapping) */}
+            {/* 3D Normal Map Vectors (RGB mapping: Red=X, Green=Y, Blue=Z) */}
             <circle cx="300" cy="140" r="60" fill="#00e5ff" />
-            <path d="M 240 140 A 60 60 0 0 0 300 200 Z" fill="#f43f5e" />
-            <path d="M 300 200 A 60 60 0 0 0 360 140 Z" fill="#a855f7" />
+            <path d="M 240 140 A 60 60 0 0 0 300 200 Z" fill="#ef4444" />
+            <path d="M 300 200 A 60 60 0 0 0 360 140 Z" fill="#22c55e" />
             {/* Torso & Drapery Surface Normals */}
             <path d="M 260 190 Q 300 240 340 190 L 380 320 L 220 320 Z" fill="#00e5ff" />
-            <path d="M 220 250 L 300 220 L 340 320 L 220 320 Z" fill="#ec4899" />
+            <path d="M 220 250 L 300 220 L 340 320 L 220 320 Z" fill="#22c55e" />
             <path d="M 300 220 L 380 260 L 380 320 L 340 320 Z" fill="#38bdf8" />
           </svg>
         );
@@ -484,7 +484,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           <path d="M 260 190 Q 300 240 340 190 L 380 320 L 220 320 Z" fill="url(#goldSpec)" />
           {/* Specular Rim Lighting matching normal tangents */}
           <path d="M 242 140 Q 250 185 285 195" stroke="#38bdf8" strokeWidth="4" fill="none" opacity="0.8" />
-          <path d="M 358 140 Q 350 185 315 195" stroke="#f43f5e" strokeWidth="4" fill="none" opacity="0.8" />
+          <path d="M 358 140 Q 350 185 315 195" stroke="#10b981" strokeWidth="4" fill="none" opacity="0.8" />
         </svg>
       );
 
@@ -557,7 +557,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
           {/* Detailed eyelashes & lips */}
           <path d="M 250 135 Q 265 128 280 135" stroke="#0f172a" strokeWidth="3" fill="none" />
           <path d="M 320 135 Q 335 128 350 135" stroke="#0f172a" strokeWidth="3" fill="none" />
-          <path d="M 285 200 Q 300 208 315 200" stroke="#e11d48" strokeWidth="4" strokeLinecap="round" fill="none" />
+          <path d="M 285 200 Q 300 208 315 200" stroke="#f97316" strokeWidth="4" strokeLinecap="round" fill="none" />
           <text x="300" y="300" fill="#38bdf8" fontSize="16" textAnchor="middle" fontFamily="monospace">
             [Ultra 4K Regenerated with ControlNet Tile]
           </text>
@@ -605,7 +605,7 @@ export const PreprocessorVisualGraphic: React.FC<PreprocessorVisualProps> = ({
             {/* Feature Heatmap Clusters */}
             <circle cx="275" cy="150" r="14" fill="#10b981" opacity="0.6" />
             <circle cx="325" cy="150" r="14" fill="#10b981" opacity="0.6" />
-            <circle cx="300" cy="190" r="10" fill="#f43f5e" opacity="0.6" />
+            <circle cx="300" cy="190" r="10" fill="#38bdf8" opacity="0.6" />
             <path d="M 235 100 Q 300 80 365 100" stroke="#00e5ff" strokeWidth="4" fill="none" />
             <text x="300" y="300" fill="#10b981" fontSize="14" textAnchor="middle" fontFamily="monospace">
               512-D Vision Latent Tokens (Cross-Attention Conditioning)

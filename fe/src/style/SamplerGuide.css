@@ -346,9 +346,9 @@
 }
 
 .sg-recipe-badge.flux {
-  background: rgba(168, 85, 247, 0.1);
-  border: 1px solid rgba(168, 85, 247, 0.28);
-  color: #d8b4fe;
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #7dd3fc;
 }
 
 /* Specs Row */

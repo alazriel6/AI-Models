@@ -278,15 +278,25 @@ export const PoseThumbnailSvg: React.FC<{
   const points = parseKeypointsFromJSON(keypointsData);
   if (!points || points.length === 0) {
     return (
-      <svg width="60" height="90" viewBox={`0 0 ${width} ${height}`} className={className}>
-        <rect width={width} height={height} fill="#000000" />
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className={className}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: "100%", height: "100%", display: "block" }}
+      >
+        <rect width={width} height={height} fill="#050811" />
       </svg>
     );
   }
 
   return (
-    <svg width="60" height="90" viewBox={`0 0 ${width} ${height}`} className={className}>
-      <rect width={width} height={height} fill="#000000" />
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className={className}
+      preserveAspectRatio="xMidYMid meet"
+      style={{ width: "100%", height: "100%", display: "block" }}
+    >
+      <rect width={width} height={height} fill="#050811" />
       {/* Draw 17 OpenPose Limbs */}
       {OPENPOSE_LIMBS.map((limb, idx) => {
         const p1 = points[limb.from];
@@ -300,7 +310,7 @@ export const PoseThumbnailSvg: React.FC<{
             x2={p2.x}
             y2={p2.y}
             stroke={`rgb(${limb.color.join(",")})`}
-            strokeWidth={18}
+            strokeWidth={16}
             strokeLinecap="round"
           />
         );
@@ -314,7 +324,7 @@ export const PoseThumbnailSvg: React.FC<{
             key={`joint-${idx}`}
             cx={pt.x}
             cy={pt.y}
-            r={16}
+            r={13}
             fill={`rgb(${joint.color.join(",")})`}
           />
         );
