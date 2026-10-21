@@ -22,6 +22,7 @@ const ComfyWorkflows = lazy(() => import('./components/pages/ComfyWorkflows'));
 const NegativeVault = lazy(() => import('./components/pages/NegativeVault'));
 const SamplerGuide = lazy(() => import('./components/pages/SamplerGuide'));
 const ControlNetStudio = lazy(() => import('./components/pages/ControlNetStudio'));
+const VramProfiler = lazy(() => import('./components/pages/VramProfiler'));
 
 function PageLoadingFallback() {
   return (
@@ -172,7 +173,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/vram', '/vram-profiler', '/vram-calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -327,6 +328,24 @@ function AppLayout() {
                 </NavLink>
 
                 <NavLink
+                  to="/vram"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                      <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                      <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">VRAM &amp; Hardware Profiler</span>
+                    <span className="nav-tool-desc">Real-time GPU memory &amp; OOM predictor</span>
+                  </span>
+                </NavLink>
+
+                <NavLink
                   to="/lora-stack"
                   className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
                   onClick={closeMobileMenu}
@@ -455,6 +474,9 @@ function AppLayout() {
             <Route path="/prompt-lab" element={<PromptLab />} />
             <Route path="/studio" element={<PromptLab />} />
             <Route path="/calculator" element={<ResolutionCalculator />} />
+            <Route path="/vram" element={<VramProfiler />} />
+            <Route path="/vram-profiler" element={<VramProfiler />} />
+            <Route path="/vram-calculator" element={<VramProfiler />} />
             <Route path="/lora-stack" element={<LoraStack />} />
             <Route path="/lora" element={<LoraStack />} />
             <Route path="/lora-builder" element={<LoraStack />} />

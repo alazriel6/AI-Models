@@ -1,0 +1,701 @@
+/* ==========================================================================
+   VRAM & Hardware Profiler Styles (Solid High-Contrast Technical Theme)
+   Solid Palette: Zinc-950, Zinc-900, Zinc-800, Solid Blue, Emerald, Amber, Rose
+   Zero blurry glows, sharp borders, high data density & crisp telemetry
+   ========================================================================== */
+
+.vram-profiler-container {
+    width: 100%;
+    box-sizing: border-box;
+    color: #f4f4f5;
+    padding-bottom: 60px;
+}
+
+/* Header */
+.vram-header {
+    margin-bottom: 24px;
+    border-bottom: 1px solid #27272a;
+    padding-bottom: 20px;
+}
+
+.vram-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.vram-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.vram-header-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: #18181b;
+    border: 1px solid #27272a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    flex-shrink: 0;
+}
+
+.vram-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #f4f4f5;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.vram-subtitle {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin: 4px 0 0 0;
+    line-height: 1.5;
+}
+
+.vram-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.vram-reset-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vram-reset-btn:hover {
+    color: #f4f4f5;
+    border-color: #3f3f46;
+}
+
+/* Main Layout Grid */
+.vram-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(380px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+/* Left Column: Interactive Inputs */
+.vram-inputs-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.vram-section-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.vram-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #1f1f23;
+}
+
+.vram-section-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #f4f4f5;
+    letter-spacing: -0.01em;
+}
+
+.vram-section-badge {
+    font-size: 11px;
+    font-weight: 600;
+    color: #71717a;
+    background: #18181b;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #27272a;
+}
+
+/* Model Selection Grid */
+.vram-model-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.vram-model-btn {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vram-model-btn:hover {
+    border-color: #3b82f6;
+    background: #18181b;
+}
+
+.vram-model-btn.active {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+}
+
+.vram-model-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-model-arch {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+/* Precision / Quantization Pills */
+.vram-quant-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(115px, 1fr));
+    gap: 8px;
+}
+
+.vram-quant-btn {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vram-quant-btn:hover {
+    border-color: #3b82f6;
+    background: #18181b;
+}
+
+.vram-quant-btn.active {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+}
+
+.vram-quant-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f4f4f5;
+    font-family: monospace;
+}
+
+.vram-quant-desc {
+    font-size: 10px;
+    color: #94a3b8;
+}
+
+/* Text Encoder Selector Grid */
+.vram-te-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.vram-te-btn {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.vram-te-btn:hover {
+    border-color: #8b5cf6;
+    background: #18181b;
+}
+
+.vram-te-btn.active {
+    background: #2e1065;
+    border-color: #8b5cf6;
+}
+
+.vram-te-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-te-vram {
+    font-size: 10px;
+    color: #c4b5fd;
+    font-weight: 600;
+}
+
+/* Resolution & Batch Controls */
+.vram-res-presets-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.vram-res-preset-chip {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.vram-res-preset-chip:hover {
+    color: #f4f4f5;
+    border-color: #3b82f6;
+}
+
+.vram-res-preset-chip.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.vram-controls-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.vram-input-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vram-input-label {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.vram-number-input {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.vram-number-input:focus {
+    border-color: #3b82f6;
+}
+
+/* Sliders for LoRA & ControlNet */
+.vram-slider-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.vram-slider-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+}
+
+.vram-slider-val {
+    font-weight: 700;
+    color: #60a5fa;
+    font-family: monospace;
+}
+
+.vram-range-input {
+    width: 100%;
+    accent-color: #3b82f6;
+    height: 6px;
+    background: #18181b;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Toggle switches */
+.vram-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.vram-toggle-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.vram-toggle-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-toggle-desc {
+    font-size: 11px;
+    color: #71717a;
+}
+
+.vram-switch {
+    width: 38px;
+    height: 20px;
+    background: #27272a;
+    border-radius: 12px;
+    position: relative;
+    transition: background 0.2s ease;
+    flex-shrink: 0;
+}
+
+.vram-switch.active {
+    background: #2563eb;
+}
+
+.vram-switch-handle {
+    width: 16px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s ease;
+}
+
+.vram-switch.active .vram-switch-handle {
+    transform: translateX(18px);
+}
+
+/* Right Column: Output Real-Time Telemetry */
+.vram-output-col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: sticky;
+    top: 90px;
+}
+
+/* Master Verdict Card */
+.vram-verdict-card {
+    background: #09090b;
+    border: 2px solid #27272a;
+    border-radius: 10px;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: border-color 0.2s ease;
+}
+
+.vram-verdict-card.status-safe {
+    border-color: #10b981;
+}
+
+.vram-verdict-card.status-warn {
+    border-color: #3b82f6;
+}
+
+.vram-verdict-card.status-offload {
+    border-color: #f59e0b;
+}
+
+.vram-verdict-card.status-danger {
+    border-color: #ef4444;
+}
+
+.vram-verdict-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vram-verdict-badge {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.vram-verdict-card.status-safe .vram-verdict-badge {
+    background: #064e3b;
+    color: #6ee7b7;
+    border: 1px solid #10b981;
+}
+
+.vram-verdict-card.status-warn .vram-verdict-badge {
+    background: #1e3a8a;
+    color: #93c5fd;
+    border: 1px solid #3b82f6;
+}
+
+.vram-verdict-card.status-offload .vram-verdict-badge {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+}
+
+.vram-verdict-card.status-danger .vram-verdict-badge {
+    background: #7f1d1d;
+    color: #fca5a5;
+    border: 1px solid #ef4444;
+}
+
+.vram-verdict-total {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vram-total-number {
+    font-size: 36px;
+    font-weight: 800;
+    color: #f4f4f5;
+    letter-spacing: -0.03em;
+    font-feature-settings: "tnum";
+}
+
+.vram-total-vs {
+    font-size: 13px;
+    color: #a1a1aa;
+}
+
+/* Comparison Bar */
+.vram-comp-bar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vram-comp-track {
+    height: 12px;
+    background: #18181b;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    border: 1px solid #27272a;
+}
+
+.vram-comp-segment {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.vram-comp-segment.weights { background: #3b82f6; }
+.vram-comp-segment.te { background: #8b5cf6; }
+.vram-comp-segment.kv { background: #06b6d4; }
+.vram-comp-segment.vae { background: #f59e0b; }
+.vram-comp-segment.lora { background: #10b981; }
+.vram-comp-segment.cuda { background: #64748b; }
+
+.vram-legend-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 12px;
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.vram-legend-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #a1a1aa;
+}
+
+.vram-legend-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vram-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.vram-legend-dot.weights { background: #3b82f6; }
+.vram-legend-dot.te { background: #8b5cf6; }
+.vram-legend-dot.kv { background: #06b6d4; }
+.vram-legend-dot.vae { background: #f59e0b; }
+.vram-legend-dot.lora { background: #10b981; }
+.vram-legend-dot.cuda { background: #64748b; }
+
+.vram-legend-val {
+    font-weight: 700;
+    color: #f4f4f5;
+    font-family: monospace;
+}
+
+/* User GPU Selector */
+.vram-gpu-box {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.vram-gpu-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.vram-gpu-select {
+    background: #18181b;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 600;
+    outline: none;
+    width: 100%;
+}
+
+.vram-gpu-custom-slider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+/* Command-line & Tips Card */
+.vram-flags-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.vram-flags-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.vram-flags-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.vram-flags-copy-btn {
+    background: #2563eb;
+    border: none;
+    color: #ffffff;
+    padding: 5px 12px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.vram-flags-copy-btn:hover {
+    background: #1d4ed8;
+}
+
+.vram-flags-code {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #93c5fd;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
+.vram-tips-list {
+    margin: 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 1.5;
+}
+
+.vram-tips-list li strong {
+    color: #f4f4f5;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .vram-main-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .vram-output-col {
+        position: static;
+    }
+}

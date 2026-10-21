@@ -389,13 +389,22 @@ export function TechnicalDetailsSection() {
                     Pilih kapasitas VRAM GPU Anda untuk melihat alokasi memori, throughput, dan rekomendasi model yang optimal.
                   </p>
                 </div>
-                <Link to="/models" className="mg-btn mg-btn-secondary">
-                  <span>Filter Model per VRAM</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="5" y1="12" x2="19" y2="12" />
-                    <polyline points="12 5 19 12 12 19" />
-                  </svg>
-                </Link>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  <Link to="/vram" className="mg-btn mg-btn-primary" style={{ background: '#2563eb', color: '#ffffff' }}>
+                    <span>⚡ Buka VRAM Profiler Interaktif</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                  <Link to="/models" className="mg-btn mg-btn-secondary">
+                    <span>Filter Model per VRAM</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                </div>
               </div>
 
               {/* VRAM Selector Tabs */}

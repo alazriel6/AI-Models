@@ -1,6 +1,6 @@
 import React from "react";
 
-export type StudioTabKey = "studio" | "canvas" | "deconstructor" | "library";
+export type StudioTabKey = "studio" | "canvas" | "tokenizer" | "deconstructor" | "library";
 
 interface PromptStudioTabsProps {
     activeTab: StudioTabKey;
@@ -62,6 +62,26 @@ export const PromptStudioTabs: React.FC<PromptStudioTabsProps> = ({
                 <span className="studio-mode-title">Prompt Lab Canvas</span>
                 <span className="studio-tab-badge tokens">
                     {tokenCount > 0 ? `~${tokenCount} tok` : "Canvas"}
+                </span>
+            </button>
+
+            <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "tokenizer"}
+                className={`studio-mode-tab-btn ${activeTab === "tokenizer" ? "active" : ""}`}
+                onClick={() => onSelectTab("tokenizer")}
+            >
+                <span className="studio-mode-tab-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <line x1="3" y1="9" x2="21" y2="9" />
+                        <line x1="9" y1="21" x2="9" y2="9" />
+                    </svg>
+                </span>
+                <span className="studio-mode-title">CLIP 77-Token Chunks</span>
+                <span className={`studio-tab-badge ${tokenCount > 75 ? "active-layers" : ""}`}>
+                    {tokenCount > 0 ? `${Math.ceil(tokenCount / 75)} Chunk` : "77-Tok"}
                 </span>
             </button>
 

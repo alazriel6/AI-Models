@@ -1,0 +1,528 @@
+/* ==========================================================================
+   CLIP Tokenizer & 77-Token Chunk Boundary Visualizer Styles
+   Deep High-Contrast Technical Cyber/Studio Theme
+   ========================================================================== */
+
+.clip-visualizer-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    color: #f4f4f5;
+    box-sizing: border-box;
+}
+
+/* Header & Telemetry Bar */
+.clip-telemetry-card {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.clip-telemetry-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.clip-telemetry-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.clip-telemetry-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    background: rgba(37, 99, 235, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #60a5fa;
+    flex-shrink: 0;
+}
+
+.clip-telemetry-title-group h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: #f4f4f5;
+    letter-spacing: -0.01em;
+}
+
+.clip-telemetry-title-group p {
+    margin: 3px 0 0 0;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.clip-arch-selector {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #18181b;
+    padding: 4px;
+    border-radius: 8px;
+    border: 1px solid #27272a;
+}
+
+.clip-arch-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clip-arch-btn:hover {
+    color: #f4f4f5;
+}
+
+.clip-arch-btn.active {
+    background: #2563eb;
+    color: #ffffff;
+}
+
+/* Meter Progress Bar */
+.clip-gauge-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.clip-gauge-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.clip-gauge-count {
+    color: #60a5fa;
+    font-feature-settings: "tnum";
+}
+
+.clip-gauge-track {
+    height: 8px;
+    background: #18181b;
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid #27272a;
+}
+
+.clip-gauge-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+    border-radius: 999px;
+}
+
+.clip-gauge-fill.chunk-1 {
+    background: #3b82f6;
+}
+
+.clip-gauge-fill.chunk-2 {
+    background: #10b981;
+}
+
+.clip-gauge-fill.chunk-3 {
+    background: #f59e0b;
+}
+
+.clip-gauge-fill.chunk-4 {
+    background: #ef4444;
+}
+
+/* Hazard Alert Box */
+.clip-hazard-card {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: hazardFade 0.25s ease;
+}
+
+@keyframes hazardFade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.clip-hazard-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.clip-hazard-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fbbf24;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.clip-hazard-btn {
+    background: #f59e0b;
+    color: #000000;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.clip-hazard-btn:hover {
+    background: #d97706;
+}
+
+.clip-hazard-body {
+    font-size: 13px;
+    color: #e4e4e7;
+    line-height: 1.5;
+}
+
+.clip-hazard-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+}
+
+.clip-hazard-split-pill {
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+}
+
+.clip-hazard-split-pill.p1 {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid #3b82f6;
+    color: #93c5fd;
+}
+
+.clip-hazard-split-pill.p2 {
+    background: rgba(239, 68, 68, 0.2);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+}
+
+/* Chunk Cards Stack */
+.clip-chunks-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.clip-chunk-box {
+    background: #0c0c0e;
+    border: 1px solid #27272a;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+}
+
+.clip-chunk-box.c1 {
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.clip-chunk-box.c2 {
+    border-color: rgba(16, 185, 129, 0.4);
+}
+
+.clip-chunk-box.c3 {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.clip-chunk-box.c4 {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+.clip-chunk-header {
+    background: #121215;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #27272a;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.clip-chunk-badge-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.clip-chunk-num-badge {
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.clip-chunk-box.c1 .clip-chunk-num-badge {
+    background: #1e3a8a;
+    color: #bfdbfe;
+    border: 1px solid #3b82f6;
+}
+
+.clip-chunk-box.c2 .clip-chunk-num-badge {
+    background: #064e3b;
+    color: #a7f3d0;
+    border: 1px solid #10b981;
+}
+
+.clip-chunk-box.c3 .clip-chunk-num-badge {
+    background: #78350f;
+    color: #fde68a;
+    border: 1px solid #f59e0b;
+}
+
+.clip-chunk-box.c4 .clip-chunk-num-badge {
+    background: #7f1d1d;
+    color: #fecaca;
+    border: 1px solid #ef4444;
+}
+
+.clip-chunk-desc {
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.clip-chunk-stats {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+}
+
+.clip-chunk-cap {
+    font-weight: 700;
+    color: #f4f4f5;
+}
+
+.clip-chunk-copy-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #d4d4d8;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clip-chunk-copy-btn:hover {
+    background: #27272a;
+    color: #ffffff;
+}
+
+/* Tokens Board Stream */
+.clip-token-stream {
+    padding: 16px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    line-height: 2;
+}
+
+.clip-token-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #e4e4e7;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.clip-token-pill:hover {
+    background: #27272a;
+    border-color: #3b82f6;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.clip-token-pill.active {
+    background: #1e3a8a;
+    border-color: #60a5fa;
+    color: #ffffff;
+}
+
+.clip-token-pill.special-token {
+    background: rgba(59, 130, 246, 0.12);
+    border: 1px dashed rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+    font-weight: 600;
+}
+
+.clip-token-pill.cut-hazard {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+    animation: hazardPulse 1.5s infinite;
+}
+
+@keyframes hazardPulse {
+    0%, 100% { border-color: #ef4444; }
+    50% { border-color: #f59e0b; }
+}
+
+.clip-token-pill.comma-token {
+    background: transparent;
+    border: none;
+    padding: 2px 3px;
+    color: #71717a;
+    font-weight: 700;
+}
+
+.clip-token-idx {
+    font-size: 10px;
+    color: #71717a;
+    font-feature-settings: "tnum";
+}
+
+.clip-token-weight {
+    font-size: 10px;
+    background: #2563eb;
+    color: #ffffff;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 700;
+}
+
+/* 77-Token Attention Barrier Wall */
+.clip-barrier-wall {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border-radius: 8px;
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(239, 68, 68, 0.08),
+        rgba(239, 68, 68, 0.08) 12px,
+        rgba(15, 15, 18, 0.95) 12px,
+        rgba(15, 15, 18, 0.95) 24px
+    );
+    border: 1px dashed rgba(239, 68, 68, 0.5);
+    text-align: center;
+    gap: 4px;
+}
+
+.clip-barrier-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #f87171;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.clip-barrier-desc {
+    font-size: 11px;
+    color: #a1a1aa;
+    max-width: 600px;
+    line-height: 1.4;
+}
+
+/* Token Inspector Bottom Sheet */
+.clip-token-inspector {
+    background: #09090b;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+}
+
+.clip-inspector-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.clip-inspector-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.clip-inspector-label {
+    font-size: 11px;
+    color: #71717a;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.clip-inspector-val {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f4f5;
+    font-family: monospace;
+}
+
+/* LoRA direct callout */
+.clip-lora-info-bar {
+    background: #121215;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.clip-lora-badge {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-weight: 600;
+    font-size: 11px;
+}

@@ -32,6 +32,8 @@ import {
 import { ModularStudioView } from "../prompt-studio/ModularStudioView";
 import { DeconstructorView } from "../prompt-studio/DeconstructorView";
 import { BooruAutocompleteInput } from "../common/BooruAutocompleteInput";
+import { ClipChunkVisualizer } from "../prompt-studio/ClipChunkVisualizer";
+import { tokenizeClipPrompt } from "../../utils/clipTokenizer";
 
 // SVG Technical Icons (No AI Slop)
 const Icons = {
@@ -447,7 +449,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         try {
             const params = new URLSearchParams(window.location.search);
             const tabParam = params.get("tab") as StudioTabKey;
-            if (tabParam && ["studio", "canvas", "deconstructor", "library"].includes(tabParam)) {
+            if (tabParam && ["studio", "canvas", "tokenizer", "deconstructor", "library"].includes(tabParam)) {
                 return tabParam;
             }
         } catch {
@@ -756,14 +758,14 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         setTimeout(() => setCopiedKey(null), 2000);
     };
 
-    // Token count estimation
-    const countTokens = (text: string) => {
-        if (!text.trim()) return 0;
-        return text.trim().split(/[\s,]+/).filter(Boolean).length;
-    };
+    // Real CLIP & BPE Token count estimation
+    const posTokenCount = useMemo(() => {
+        return tokenizeClipPrompt(positivePrompt).totalTextTokens;
+    }, [positivePrompt]);
 
-    const posTokenCount = countTokens(positivePrompt);
-    const negTokenCount = countTokens(negativePrompt);
+    const negTokenCount = useMemo(() => {
+        return tokenizeClipPrompt(negativePrompt).totalTextTokens;
+    }, [negativePrompt]);
 
     // Tokenize Positive Prompt into individual tokens
     const tokens = useMemo(() => {
@@ -1968,9 +1970,15 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                         <div className="prompt-canvas-header">
                             <div className="prompt-canvas-title-wrap">
                                 <span className="prompt-badge positive">Positive Prompt</span>
-                                <span className={`prompt-token-pill ${posTokenCount > 75 ? "over-chunk" : ""}`}>
-                                    ~{posTokenCount} tokens · Chunk {Math.ceil(posTokenCount / 75) || 1}/3
-                                </span>
+                                <button
+                                    type="button"
+                                    className={`prompt-token-pill ${posTokenCount > 75 ? "over-chunk" : ""}`}
+                                    onClick={() => handleSelectTab("tokenizer")}
+                                    style={{ cursor: "pointer", border: "1px solid rgba(59, 130, 246, 0.4)", background: "rgba(37, 99, 235, 0.12)" }}
+                                    title="Klik untuk membuka visualisasi 77-Token Chunk Boundary"
+                                >
+                                    ⚡ {posTokenCount} CLIP tok · {Math.ceil(posTokenCount / 75) || 1} Chunk
+                                </button>
                             </div>
 
                             <div className="prompt-canvas-actions">
@@ -1992,7 +2000,16 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                         title="Interactive Tag Weight Adjuster & Semantic Viewer"
                                     >
                                         <Icons.Tag />
-                                        <span>Tokens ({tokens.length})</span>
+                                        <span>Tags ({tokens.length})</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-view-btn"
+                                        onClick={() => handleSelectTab("tokenizer")}
+                                        title="Buka CLIP 77-Token Chunk Boundary Visualizer"
+                                    >
+                                        <Icons.Eye />
+                                        <span>77-Tok Chunks</span>
                                     </button>
                                     {matrixVariations.length > 0 && (
                                         <button
@@ -3350,6 +3367,31 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                 )}
             </div>
             </>
+            )}
+
+            {/* TAB: CLIP TOKENIZER & 77-TOKEN CHUNK BOUNDARY VISUALIZER */}
+            {studioTab === "tokenizer" && (
+                <div style={{ marginTop: "20px" }}>
+                    <ClipChunkVisualizer
+                        prompt={positivePrompt}
+                        onChangePrompt={(newPrompt) => {
+                            setPositivePrompt(newPrompt);
+                            const { buckets, lora } = deconstructPromptText(newPrompt);
+                            setCategoryInputs(buckets);
+                            if (lora) {
+                                setLoraName(lora.name);
+                                setLoraWeight(lora.weight);
+                                setLoraEnabled(true);
+                            }
+                        }}
+                        onCopy={(text) => {
+                            navigator.clipboard.writeText(text);
+                            showToast("Chunk prompt disalin ke clipboard!");
+                        }}
+                        defaultArch={activeCheckpoint?.base_model?.toLowerCase().includes("sd 1.5") ? "sd15" : activeCheckpoint?.base_model?.toLowerCase().includes("flux") ? "flux" : "sdxl"}
+                        activeCheckpointName={activeCheckpoint?.name}
+                    />
+                </div>
             )}
 
             {/* TAB 3: SMART DECONSTRUCTOR */}

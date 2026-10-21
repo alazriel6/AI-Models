@@ -140,3 +140,13 @@ export function bridgeToSamplerGuide(navigate: NavigateFunction, data: WorkflowB
   setWorkflowBridge(data);
   navigate("/sampler-guide?bridge=1");
 }
+
+export function bridgeToVramProfiler(navigate: NavigateFunction, data: WorkflowBridgeData): void {
+  setWorkflowBridge(data);
+  const model = (data.baseModel || "sdxl").toLowerCase().includes("1.5")
+    ? "sd15"
+    : (data.baseModel || "").toLowerCase().includes("flux")
+    ? "flux"
+    : "sdxl";
+  navigate(`/vram?model=${model}&bridge=1`);
+}
