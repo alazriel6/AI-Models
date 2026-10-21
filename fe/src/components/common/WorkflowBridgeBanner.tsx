@@ -8,10 +8,11 @@ import {
   bridgeToCalculator,
   bridgeToLoraStack,
   bridgeToNegativeVault,
+  bridgeToSamplerGuide,
 } from "../../utils/workflowBridge";
 
 interface WorkflowBridgeBannerProps {
-  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault";
+  currentTool: "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide";
   onApply?: (data: WorkflowBridgeData) => void;
 }
 
@@ -46,6 +47,10 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
         return "Resolution Calculator";
       case "lora-stack":
         return "LoRA Stack Studio";
+      case "negative-vault":
+        return "Negative Vault";
+      case "sampler-guide":
+        return "Sampler & Scheduler Guide";
       default:
         return "Alat Generator";
     }
@@ -218,6 +223,26 @@ export function WorkflowBridgeBanner({ currentTool, onApply }: WorkflowBridgeBan
             title="Lompat ke Negative Vault untuk analisis"
           >
             Buka di Negative Vault
+          </button>
+        )}
+
+        {currentTool !== "sampler-guide" && (
+          <button
+            type="button"
+            onClick={() => bridgeToSamplerGuide(navigate, bridge)}
+            style={{
+              background: "#18181b",
+              border: "1px solid #27272a",
+              color: "#f4f4f5",
+              fontSize: "11px",
+              fontWeight: 500,
+              padding: "4px 8px",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Lompat ke Visual Sampler & Scheduler Guide"
+          >
+            Buka di Sampler Guide
           </button>
         )}
 

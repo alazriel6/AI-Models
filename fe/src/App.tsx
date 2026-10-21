@@ -20,6 +20,7 @@ const Contact = lazy(() => import('./components/pages/Contact'));
 const AdminDashboard = lazy(() => import('./components/admin/AdminDashboard'));
 const ComfyWorkflows = lazy(() => import('./components/pages/ComfyWorkflows'));
 const NegativeVault = lazy(() => import('./components/pages/NegativeVault'));
+const SamplerGuide = lazy(() => import('./components/pages/SamplerGuide'));
 
 function PageLoadingFallback() {
   return (
@@ -170,7 +171,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -380,6 +381,24 @@ function AppLayout() {
                     <span className="nav-tool-desc">Quality guard, modular mixer &amp; TI dictionary</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/sampler-guide"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Sampler &amp; Scheduler Guide</span>
+                    <span className="nav-tool-desc">Sigma curve plotter &amp; diffusion math</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -425,6 +444,9 @@ function AppLayout() {
             <Route path="/negative-vault" element={<NegativeVault />} />
             <Route path="/negative-prompt" element={<NegativeVault />} />
             <Route path="/embeddings" element={<NegativeVault />} />
+            <Route path="/sampler-guide" element={<SamplerGuide />} />
+            <Route path="/samplers" element={<SamplerGuide />} />
+            <Route path="/schedulers" element={<SamplerGuide />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

@@ -6,6 +6,7 @@ import {
   bridgeToCalculator,
   bridgeToLoraStack,
   bridgeToNegativeVault,
+  bridgeToSamplerGuide,
   extractLorasFromPrompt,
 } from "../../utils/workflowBridge";
 
@@ -116,6 +117,12 @@ export function WorkflowBridgeMenu({
     } else {
       navigate("/inspector");
     }
+  };
+
+  const handleSendSamplerGuide = () => {
+    bridgeToSamplerGuide(navigate, enrichedData);
+    setIsOpen(false);
+    onActionComplete?.();
   };
 
   // Button styles based on variant (100% Solid)
@@ -499,6 +506,54 @@ export function WorkflowBridgeMenu({
                 }}
               >
                 Inspect
+              </span>
+            </button>
+
+            {/* 6. Sampler & Scheduler Guide */}
+            <button
+              type="button"
+              onClick={handleSendSamplerGuide}
+              style={{
+                background: "#121215",
+                border: "1px solid transparent",
+                borderRadius: "6px",
+                padding: "8px 10px",
+                textAlign: "left",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "8px",
+                color: "#f4f4f5",
+                transition: "all 0.12s ease",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "#18181b";
+                e.currentTarget.style.borderColor = "#10b981";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "#121215";
+                e.currentTarget.style.borderColor = "transparent";
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <span style={{ color: "#10b981" }}>📊</span>
+                <div>
+                  <div style={{ fontSize: "12.5px", fontWeight: 600 }}>Sampler &amp; Scheduler</div>
+                  <div style={{ fontSize: "11px", color: "#a1a1aa" }}>Analisis konvergensi &amp; sigma</div>
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "#18181b",
+                  border: "1px solid #065f46",
+                  color: "#34d399",
+                  padding: "2px 6px",
+                  borderRadius: "4px",
+                }}
+              >
+                Guide
               </span>
             </button>
           </div>

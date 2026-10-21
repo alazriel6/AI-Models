@@ -262,7 +262,7 @@ export default function About() {
       {/* ====================================================================
           INTERACTIVE NAVIGATION TABS
           ==================================================================== */}
-      <nav className="about-tabs-bar" aria-label="About section navigation">
+      <div className="about-tabs-bar" role="tablist" aria-label="About section navigation">
         <button
           type="button"
           className={`about-tab-btn ${activeTab === 'overview' ? 'active' : ''}`}
@@ -307,7 +307,7 @@ export default function About() {
           <span>Technical FAQ</span>
           <span className="about-tab-badge">05</span>
         </button>
-      </nav>
+      </div>
 
       {/* ====================================================================
           TAB 1: PLATFORM OVERVIEW & CORE MISSION

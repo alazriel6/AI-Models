@@ -6,7 +6,7 @@ export interface LoraBridgeItem {
 }
 
 export interface WorkflowBridgeData {
-  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault";
+  source: "gallery" | "inspector" | "prompt-lab" | "calculator" | "lora-stack" | "negative-vault" | "sampler-guide";
   timestamp: number;
   imageId?: number;
   imageUrl?: string;
@@ -19,6 +19,7 @@ export interface WorkflowBridgeData {
   baseModel?: string; // SDXL, Pony, Illustrious, SD 1.5, Flux
   modelName?: string;
   sampler?: string;
+  scheduler?: string;
   steps?: number;
   cfgScale?: number;
   seed?: number;
@@ -133,4 +134,9 @@ export function bridgeToLoraStack(navigate: NavigateFunction, data: WorkflowBrid
 export function bridgeToNegativeVault(navigate: NavigateFunction, data: WorkflowBridgeData): void {
   setWorkflowBridge(data);
   navigate("/negative-vault?bridge=1");
+}
+
+export function bridgeToSamplerGuide(navigate: NavigateFunction, data: WorkflowBridgeData): void {
+  setWorkflowBridge(data);
+  navigate("/sampler-guide?bridge=1");
 }
