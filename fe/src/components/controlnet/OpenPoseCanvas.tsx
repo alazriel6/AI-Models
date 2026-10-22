@@ -6,10 +6,39 @@ import {
   exportToOpenPosePNG,
   exportToOpenPoseJSON,
   parseKeypointsFromJSON,
+  type StickThicknessMode,
+  THICKNESS_PROFILES,
+  getStickDimensions,
 } from "./openposeConstants";
+import {
+  validateAndSanitizePose,
+  fitPoseToCanvas,
+  centerPoseInCanvas,
+  flipPoseHorizontal,
+  findNearestJoint,
+  createFallbackPose,
+} from "./poseTransform";
 import { createControlNetPoseApi, type ControlNetPose } from "../../api/controlnet";
 import { bridgeToPromptLab } from "../../utils/workflowBridge";
 import { useNavigate } from "react-router-dom";
+
+export interface CanvasPreset {
+  label: string;
+  width: number;
+  height: number;
+  desc: string;
+}
+
+export const CANVAS_PRESETS: CanvasPreset[] = [
+  { label: "1024×1536", width: 1024, height: 1536, desc: "2:3 SDXL / Illustrious Portrait" },
+  { label: "1024×1024", width: 1024, height: 1024, desc: "1:1 SDXL / Flux Square" },
+  { label: "832×1216", width: 832, height: 1216, desc: "SDXL Standard Portrait" },
+  { label: "1536×1024", width: 1536, height: 1024, desc: "3:2 SDXL Landscape" },
+  { label: "1216×832", width: 1216, height: 832, desc: "SDXL Standard Landscape" },
+  { label: "512×768", width: 512, height: 768, desc: "2:3 SD 1.5 Portrait" },
+  { label: "512×512", width: 512, height: 512, desc: "1:1 SD 1.5 Square" },
+  { label: "768×512", width: 768, height: 512, desc: "3:2 SD 1.5 Landscape" },
+];
 
 interface OpenPoseCanvasProps {
   selectedPose: ControlNetPose | null;
@@ -22,27 +51,63 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
 }) => {
   const navigate = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
 
-  // Canvas Dimensions & Presets
-  const [canvasWidth, setCanvasWidth] = useState<number>(512);
-  const [canvasHeight, setCanvasHeight] = useState<number>(768);
+  // 1. Canvas Dimensions State (Default to 1024x1536 SDXL 2:3)
+  const [canvasWidth, setCanvasWidth] = useState<number>(1024);
+  const [canvasHeight, setCanvasHeight] = useState<number>(1536);
+  const [inputW, setInputW] = useState<string>("1024");
+  const [inputH, setInputH] = useState<string>("1536");
+  const [resizeMode, setResizeMode] = useState<"preserve" | "stretch">("preserve");
 
-  // Active Keypoints State
+  // 2. Viewport Display Scale & Zoom/Pan State
+  const [displayScale, setDisplayScale] = useState<number>(1.0);
+  const [zoom, setZoom] = useState<number>(1.0);
+  const [panX, setPanX] = useState<number>(0);
+  const [panY, setPanY] = useState<number>(0);
+
+  // 3. Stick Thickness Configuration
+  const [thicknessMode, setThicknessMode] = useState<StickThicknessMode>("sdxl");
+  const [customLimbWidth, setCustomLimbWidth] = useState<number>(15);
+  const [customJointRadius, setCustomJointRadius] = useState<number>(17);
+
+  // Live buffer thickness metrics
+  const currentStickDims = useMemo(() => {
+    return getStickDimensions(canvasWidth, thicknessMode, customLimbWidth, customJointRadius);
+  }, [canvasWidth, thicknessMode, customLimbWidth, customJointRadius]);
+
+  // 4. Immutable Source of Truth & Active Pose State
+  // pristineBasePose stores unscaled preset keypoints and canonical reference dimensions.
+  // When switching presets or resizing canvas without manual edits, transformations are
+  // ALWAYS calculated from pristineBasePose, eliminating shrinking bugs.
+  const pristineBasePoseRef = useRef<{
+    points: JointPoint[];
+    sourceSize: { width: number; height: number };
+  }>({
+    points: createFallbackPose(512, 768),
+    sourceSize: { width: 512, height: 768 },
+  });
+
   const [keypoints, setKeypoints] = useState<JointPoint[]>([]);
-  const [initialKeypoints, setInitialKeypoints] = useState<JointPoint[]>([]);
+  const [isDirty, setIsDirty] = useState<boolean>(false);
 
-  // Dragging & Interaction State
+  // 5. Undo / Redo History Stack
+  const [history, setHistory] = useState<JointPoint[][]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const dragStartPointRef = useRef<{ index: number; pt: JointPoint } | null>(null);
+
+  // 6. Interactive Dragging & Hover State
   const [activeJointId, setActiveJointId] = useState<number | null>(null);
   const [hoverJointId, setHoverJointId] = useState<number | null>(null);
   const isDraggingRef = useRef<boolean>(false);
 
-  // Background Options
+  // 7. Background & Trace Overlay
   const [bgMode, setBgMode] = useState<"black" | "transparent" | "reference">("black");
   const [referenceImgUrl, setReferenceImgUrl] = useState<string | null>(null);
   const [referenceOpacity, setReferenceOpacity] = useState<number>(0.45);
   const referenceImgRef = useRef<HTMLImageElement | null>(null);
 
-  // Save Modal State
+  // 8. Save Modal State
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [saveTitle, setSaveTitle] = useState<string>("");
   const [saveCategory, setSaveCategory] = useState<string>("Standing & Model");
@@ -51,27 +116,87 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
 
-  // Initialize or update keypoints when selectedPose changes
+  // Push new state to undo/redo history
+  const pushToHistory = useCallback((newPoints: JointPoint[]) => {
+    setHistory((prev) => {
+      const trimmed = prev.slice(0, historyIndex + 1);
+      const next = [...trimmed, newPoints.map((pt) => ({ ...pt }))];
+      if (next.length > 30) next.shift();
+      return next;
+    });
+    setHistoryIndex((prev) => Math.min(prev + 1, 29));
+  }, [historyIndex]);
+
+  // Load / Update pose when selectedPose prop changes
   useEffect(() => {
     if (!selectedPose) return;
 
-    const parsed = parseKeypointsFromJSON(selectedPose.keypoints_data);
-    if (parsed.length > 0) {
-      setCanvasWidth(selectedPose.canvas_width || 512);
-      setCanvasHeight(selectedPose.canvas_height || 768);
-      setKeypoints(parsed);
-      setInitialKeypoints(parsed);
-      setSaveTitle(`${selectedPose.title} (Custom)`);
-      setSaveCategory(selectedPose.category);
-      setSaveTags(selectedPose.tags || "");
-      setSavePrompt(selectedPose.recommended_prompt || "");
-    }
+    const rawParsed = parseKeypointsFromJSON(selectedPose.keypoints_data);
+    const origW = selectedPose.canvas_width || 512;
+    const origH = selectedPose.canvas_height || 768;
+
+    // Validate and sanitize raw preset data
+    const { sanitized, sourceSize } = validateAndSanitizePose(rawParsed, {
+      width: origW,
+      height: origH,
+    });
+
+    // Store pristine reference
+    pristineBasePoseRef.current = {
+      points: sanitized,
+      sourceSize,
+    };
+
+    // Fit pristine points onto current active canvas size
+    const fitted = fitPoseToCanvas(
+      sanitized,
+      sourceSize,
+      { width: canvasWidth, height: canvasHeight },
+      { maintainAspect: true, center: true, paddingRatio: 0.08 }
+    );
+
+    setKeypoints(fitted);
+    setIsDirty(false);
+    setHistory([fitted]);
+    setHistoryIndex(0);
+
+    setSaveTitle(`${selectedPose.title} (Custom ${canvasWidth}x${canvasHeight})`);
+    setSaveCategory(selectedPose.category);
+    setSaveTags(selectedPose.tags || "");
+    setSavePrompt(selectedPose.recommended_prompt || "");
   }, [selectedPose]);
+
+  // ResizeObserver to track container display width and compute displayScale
+  useEffect(() => {
+    const el = viewportRef.current;
+    if (!el) return;
+
+    const updateDisplayScale = () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width > 0 && canvasWidth > 0) {
+        setDisplayScale(rect.width / canvasWidth);
+      }
+    };
+
+    const observer = new ResizeObserver(() => {
+      updateDisplayScale();
+    });
+
+    observer.observe(el);
+    updateDisplayScale();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [canvasWidth, canvasHeight, zoom]);
 
   // Handle Reference Image Load
   useEffect(() => {
     if (!referenceImgUrl) {
       referenceImgRef.current = null;
+      renderCanvas();
       return;
     }
     const img = new Image();
@@ -90,7 +215,7 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear canvas
+    // Clear buffer
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     // 1. Render Background
@@ -98,20 +223,22 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
       ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     } else if (bgMode === "transparent") {
-      // Draw subtle dark checkerboard pattern
-      const tileSize = 16;
+      // Checkerboard pattern
+      const tileSize = 20;
       for (let x = 0; x < canvasWidth; x += tileSize) {
         for (let y = 0; y < canvasHeight; y += tileSize) {
-          ctx.fillStyle = (Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0 ? "#111827" : "#1f2937";
+          ctx.fillStyle =
+            (Math.floor(x / tileSize) + Math.floor(y / tileSize)) % 2 === 0
+              ? "#111827"
+              : "#1f2937";
           ctx.fillRect(x, y, tileSize, tileSize);
         }
       }
     } else if (bgMode === "reference" && referenceImgRef.current) {
-      // Solid dark base behind reference
       ctx.fillStyle = "#0a0d14";
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
-      // Draw reference photo with user opacity
+      // Draw reference photo with opacity
       ctx.globalAlpha = referenceOpacity;
       ctx.drawImage(referenceImgRef.current, 0, 0, canvasWidth, canvasHeight);
       ctx.globalAlpha = 1.0;
@@ -120,25 +247,42 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
       ctx.fillRect(0, 0, canvasWidth, canvasHeight);
     }
 
-    // 2. Render OpenPose Skeleton
+    // 2. Render OpenPose Skeleton with Centralized Config
     if (keypoints.length > 0) {
       drawSkeletonOnCanvas(ctx, keypoints, 1.0, 1.0, {
-        showJoints: true,
-        showLimbs: true,
-        jointRadius: Math.max(5, Math.round(canvasWidth / 95)),
-        limbWidth: Math.max(4, Math.round(canvasWidth / 115)),
+        target: "canvas",
+        displayScale,
+        thicknessMode,
+        customLimbWidth,
+        customJointRadius,
         activeJointId,
         hoverJointId,
+        drawOutlines: true,
+        opacity: 1.0,
       });
     }
-  }, [canvasWidth, canvasHeight, keypoints, activeJointId, hoverJointId, bgMode, referenceOpacity]);
+  }, [
+    canvasWidth,
+    canvasHeight,
+    keypoints,
+    activeJointId,
+    hoverJointId,
+    bgMode,
+    referenceOpacity,
+    displayScale,
+    thicknessMode,
+    customLimbWidth,
+    customJointRadius,
+  ]);
 
   useEffect(() => {
     renderCanvas();
   }, [renderCanvas]);
 
-  // Coordinate Helper: Converts Client Mouse/Touch position to Canvas space
-  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  // Screen-space to Canvas Coordinate Transformation
+  const getCanvasCoordinates = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
@@ -147,6 +291,7 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
     let clientY = 0;
 
     if ("touches" in e) {
+      if (e.touches.length === 0) return { x: 0, y: 0 };
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
     } else {
@@ -163,167 +308,213 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
     };
   };
 
-  // Find Nearest Joint within threshold radius
-  const findNearestJoint = (x: number, y: number, threshold: number = 22): number | null => {
-    let closestId: number | null = null;
-    let minDistance = threshold;
-
-    for (let i = 0; i < keypoints.length; i++) {
-      const pt = keypoints[i];
-      if (!pt || pt.confidence <= 0) continue;
-      const dist = Math.hypot(pt.x - x, pt.y - y);
-      if (dist < minDistance) {
-        minDistance = dist;
-        closestId = i;
-      }
-    }
-
-    return closestId;
-  };
-
-  // Mouse & Touch Event Handlers
-  const handlePointerDown = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  // Pointer Interaction Handlers
+  const handlePointerDown = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
     const { x, y } = getCanvasCoordinates(e);
-    const nearest = findNearestJoint(x, y, 24);
+
+    // Dynamic screen-space hit detection: 22 real screen pixels
+    const canvas = canvasRef.current;
+    const rect = canvas ? canvas.getBoundingClientRect() : null;
+    const curScale = rect && rect.width > 0 ? rect.width / canvasWidth : 1.0;
+    const hitThreshold = Math.max(26, Math.round(22 / curScale));
+
+    const nearest = findNearestJoint(keypoints, x, y, hitThreshold);
 
     if (nearest !== null) {
       setActiveJointId(nearest);
       isDraggingRef.current = true;
+      dragStartPointRef.current = {
+        index: nearest,
+        pt: { ...keypoints[nearest] },
+      };
     }
   };
 
-  const handlePointerMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+  const handlePointerMove = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
+  ) => {
     const { x, y } = getCanvasCoordinates(e);
 
     if (isDraggingRef.current && activeJointId !== null) {
       // Clamp coordinates within canvas boundaries
-      const clampedX = Math.max(0, Math.min(canvasWidth, x));
-      const clampedY = Math.max(0, Math.min(canvasHeight, y));
+      const clampedX = Math.max(0, Math.min(canvasWidth, Math.round(x)));
+      const clampedY = Math.max(0, Math.min(canvasHeight, Math.round(y)));
 
       setKeypoints((prev) => {
         const next = [...prev];
         next[activeJointId] = {
           ...next[activeJointId],
-          x: Math.round(clampedX),
-          y: Math.round(clampedY),
+          x: clampedX,
+          y: clampedY,
         };
         return next;
       });
+
+      if (!isDirty) setIsDirty(true);
     } else {
-      // Check for hover state
-      const hover = findNearestJoint(x, y, 20);
+      // Hover check
+      const canvas = canvasRef.current;
+      const rect = canvas ? canvas.getBoundingClientRect() : null;
+      const curScale = rect && rect.width > 0 ? rect.width / canvasWidth : 1.0;
+      const hitThreshold = Math.max(24, Math.round(20 / curScale));
+
+      const hover = findNearestJoint(keypoints, x, y, hitThreshold);
       setHoverJointId(hover);
     }
   };
 
   const handlePointerUp = () => {
+    if (isDraggingRef.current && activeJointId !== null && dragStartPointRef.current) {
+      const orig = dragStartPointRef.current.pt;
+      const cur = keypoints[activeJointId];
+      if (cur && (orig.x !== cur.x || orig.y !== cur.y)) {
+        pushToHistory(keypoints);
+      }
+    }
     isDraggingRef.current = false;
     setActiveJointId(null);
+    dragStartPointRef.current = null;
   };
 
-  // Operations: Flip Horizontally (Mirrors pose and swaps Left & Right limbs)
+  // Undo & Redo Actions
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const targetIndex = historyIndex - 1;
+      const targetState = history[targetIndex];
+      setKeypoints(targetState.map((pt) => ({ ...pt })));
+      setHistoryIndex(targetIndex);
+      setIsDirty(true);
+    }
+  }, [history, historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const targetIndex = historyIndex + 1;
+      const targetState = history[targetIndex];
+      setKeypoints(targetState.map((pt) => ({ ...pt })));
+      setHistoryIndex(targetIndex);
+      setIsDirty(true);
+    }
+  }, [history, historyIndex]);
+
+  // Keyboard Shortcuts for Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        if (e.shiftKey) {
+          handleRedo();
+        } else {
+          handleUndo();
+        }
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleUndo, handleRedo]);
+
+  // Geometry Operation: Flip Horizontally
   const handleFlipHorizontal = () => {
     if (keypoints.length === 0) return;
-
-    // Pairs to swap when flipped:
-    // R-Shoulder (2) <-> L-Shoulder (5)
-    // R-Elbow (3) <-> L-Elbow (6)
-    // R-Wrist (4) <-> L-Wrist (7)
-    // R-Hip (8) <-> L-Hip (11)
-    // R-Knee (9) <-> L-Knee (12)
-    // R-Ankle (10) <-> L-Ankle (13)
-    // R-Eye (14) <-> L-Eye (15)
-    // R-Ear (16) <-> L-Ear (17)
-    const swapPairs: [number, number][] = [
-      [2, 5],
-      [3, 6],
-      [4, 7],
-      [8, 11],
-      [9, 12],
-      [10, 13],
-      [14, 15],
-      [16, 17],
-    ];
-
-    setKeypoints((prev) => {
-      // 1. Mirror X coordinate
-      const mirrored = prev.map((pt) => ({
-        ...pt,
-        x: canvasWidth - pt.x,
-      }));
-
-      // 2. Swap L and R keypoints
-      const next = [...mirrored];
-      for (const [r, l] of swapPairs) {
-        if (next[r] && next[l]) {
-          const temp = { ...next[r] };
-          next[r] = { ...next[l] };
-          next[l] = temp;
-        }
-      }
-
-      return next;
-    });
+    const flipped = flipPoseHorizontal(keypoints, canvasWidth);
+    setKeypoints(flipped);
+    setIsDirty(true);
+    pushToHistory(flipped);
   };
 
-  // Operations: Center Pose in Canvas
+  // Geometry Operation: Center Pose
   const handleCenterPose = () => {
     if (keypoints.length === 0) return;
-
-    let minX = Infinity;
-    let maxX = -Infinity;
-    let minY = Infinity;
-    let maxY = -Infinity;
-
-    for (const pt of keypoints) {
-      if (pt.confidence <= 0) continue;
-      if (pt.x < minX) minX = pt.x;
-      if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y;
-      if (pt.y > maxY) maxY = pt.y;
-    }
-
-    const currentCenterX = (minX + maxX) / 2;
-    const currentCenterY = (minY + maxY) / 2;
-    const targetCenterX = canvasWidth / 2;
-    const targetCenterY = canvasHeight / 2;
-
-    const deltaX = Math.round(targetCenterX - currentCenterX);
-    const deltaY = Math.round(targetCenterY - currentCenterY);
-
-    setKeypoints((prev) =>
-      prev.map((pt) => ({
-        ...pt,
-        x: Math.max(10, Math.min(canvasWidth - 10, pt.x + deltaX)),
-        y: Math.max(10, Math.min(canvasHeight - 10, pt.y + deltaY)),
-      }))
-    );
+    const centered = centerPoseInCanvas(keypoints, { width: canvasWidth, height: canvasHeight });
+    setKeypoints(centered);
+    setIsDirty(true);
+    pushToHistory(centered);
   };
 
-  // Operations: Reset Pose
+  // Operation: Reset Pose
   const handleResetPose = () => {
-    if (initialKeypoints.length > 0) {
-      setKeypoints(initialKeypoints);
+    const pristine = pristineBasePoseRef.current;
+    if (pristine && pristine.points.length > 0) {
+      const resetPoints = fitPoseToCanvas(
+        pristine.points,
+        pristine.sourceSize,
+        { width: canvasWidth, height: canvasHeight },
+        { maintainAspect: true, center: true, paddingRatio: 0.08 }
+      );
+      setKeypoints(resetPoints);
+      setIsDirty(false);
+      pushToHistory(resetPoints);
     }
   };
 
-  // Switch Aspect Ratio with proportional coordinate scaling
-  const handleSelectAspectRatio = (newW: number, newH: number) => {
-    if (newW === canvasWidth && newH === canvasHeight) return;
+  // Apply Dimension Changes Without Compound Scaling
+  const applyCanvasDimensions = useCallback(
+    (newW: number, newH: number, mode: "preserve" | "stretch" = resizeMode) => {
+      const clampedW = Math.max(256, Math.min(4096, Math.round(newW) || 1024));
+      const clampedH = Math.max(256, Math.min(4096, Math.round(newH) || 1536));
 
-    const scaleX = newW / canvasWidth;
-    const scaleY = newH / canvasHeight;
+      if (clampedW === canvasWidth && clampedH === canvasHeight) return;
 
-    setCanvasWidth(newW);
-    setCanvasHeight(newH);
+      const pristine = pristineBasePoseRef.current;
 
-    setKeypoints((prev) =>
-      prev.map((pt) => ({
-        ...pt,
-        x: Math.round(pt.x * scaleX),
-        y: Math.round(pt.y * scaleY),
-      }))
-    );
+      if (!isDirty && pristine && pristine.points.length > 0) {
+        // Pristine Pose: Always transform directly from unmutated pristine base data.
+        // This guarantees EXACT proportions and ZERO compounding shrinkage.
+        const fitted = fitPoseToCanvas(
+          pristine.points,
+          pristine.sourceSize,
+          { width: clampedW, height: clampedH },
+          { maintainAspect: mode === "preserve", center: true, paddingRatio: 0.08 }
+        );
+        setKeypoints(fitted);
+      } else if (keypoints.length > 0) {
+        // User-modified Pose: Fit active keypoints from current dimensions to new dimensions
+        const fitted = fitPoseToCanvas(
+          keypoints,
+          { width: canvasWidth, height: canvasHeight },
+          { width: clampedW, height: clampedH },
+          { maintainAspect: mode === "preserve", center: true, paddingRatio: 0.04 }
+        );
+        setKeypoints(fitted);
+        pushToHistory(fitted);
+      }
+
+      setCanvasWidth(clampedW);
+      setCanvasHeight(clampedH);
+      setInputW(clampedW.toString());
+      setInputH(clampedH.toString());
+    },
+    [canvasWidth, canvasHeight, keypoints, isDirty, resizeMode, pushToHistory]
+  );
+
+  // Swap Width & Height (Rotate Portrait <-> Landscape)
+  const handleSwapDimensions = () => {
+    applyCanvasDimensions(canvasHeight, canvasWidth, resizeMode);
+  };
+
+  // Submit custom W x H form
+  const handleApplyCustomDimensions = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const w = parseInt(inputW, 10);
+    const h = parseInt(inputH, 10);
+    if (!isNaN(w) && !isNaN(h)) {
+      applyCanvasDimensions(w, h, resizeMode);
+    }
+  };
+
+  // Zoom Controls
+  const handleZoomIn = () => setZoom((prev) => Math.min(2.5, Number((prev + 0.15).toFixed(2))));
+  const handleZoomOut = () => setZoom((prev) => Math.max(0.5, Number((prev - 0.15).toFixed(2))));
+  const handleZoomReset = () => {
+    setZoom(1.0);
+    setPanX(0);
+    setPanY(0);
   };
 
   // Reference Image Upload Handler
@@ -341,10 +532,14 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
     reader.readAsDataURL(file);
   };
 
-  // Export 1: Genuine OpenPose PNG
+  // Export 1: Genuine OpenPose PNG with Selected Stick Thickness
   const handleDownloadPNG = () => {
-    const filename = `${selectedPose?.title.toLowerCase().replace(/[^a-z0-9]/g, "_") || "pose"}_openpose_${canvasWidth}x${canvasHeight}.png`;
-    exportToOpenPosePNG(keypoints, canvasWidth, canvasHeight, filename);
+    const filename = `${selectedPose?.title.toLowerCase().replace(/[^a-z0-9]/g, "_") || "pose"}_openpose_${canvasWidth}x${canvasHeight}_${thicknessMode}.png`;
+    exportToOpenPosePNG(keypoints, canvasWidth, canvasHeight, filename, {
+      thicknessMode,
+      limbWidth: currentStickDims.limbWidth,
+      jointRadius: currentStickDims.jointRadius,
+    });
   };
 
   // Export 2: Standard OpenPose JSON
@@ -353,7 +548,7 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
     exportToOpenPoseJSON(keypoints, canvasWidth, canvasHeight, filename);
   };
 
-  // Copy Prompt with Toast Feedback
+  // Copy Prompt Feedback
   const handleCopyPrompt = () => {
     if (!selectedPose?.recommended_prompt) return;
     navigator.clipboard.writeText(selectedPose.recommended_prompt);
@@ -414,107 +609,303 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
       {/* LEFT: Interactive Canvas Workstation */}
       <div className="openpose-canvas-panel">
         <div className="openpose-canvas-toolbar">
-          <div className="toolbar-left">
-            <span className="toolbar-badge">
-              <span className="status-dot live" />
-              18-Joint COCO Rig
-            </span>
+          <div className="toolbar-top-row">
+            <div className="toolbar-left">
+              <span className="toolbar-badge">
+                <span className="status-dot live" />
+                18-Joint COCO Rig
+              </span>
+              <span className="active-canvas-badge" title="Ukuran aktif kanvas yang akan diekspor ke PNG">
+                <span className="badge-dim">{canvasWidth} × {canvasHeight} px</span>
+                <span className="badge-ratio">
+                  {canvasWidth === 1024 && canvasHeight === 1536
+                    ? "2:3 SDXL Match"
+                    : canvasWidth === canvasHeight
+                    ? "1:1 Square"
+                    : canvasWidth < canvasHeight
+                    ? "Portrait"
+                    : "Landscape"}
+                </span>
+              </span>
 
-            {/* Aspect Ratio Switcher */}
-            <div className="canvas-aspect-selector">
+              {isDirty ? (
+                <span className="pose-modified-badge" title="Pose telah dimodifikasi secara manual">
+                  • Dimodifikasi
+                </span>
+              ) : (
+                <span className="pose-pristine-badge" title="Pose bawaan preset tanpa modifikasi">
+                  • Preset Bawaan
+                </span>
+              )}
+            </div>
+
+            {/* Quick Actions (Undo, Redo, Mirror, Center, Reset) */}
+            <div className="toolbar-right">
               <button
                 type="button"
-                className={`aspect-pill ${canvasWidth === 512 && canvasHeight === 768 ? "active" : ""}`}
-                onClick={() => handleSelectAspectRatio(512, 768)}
+                className="canvas-tool-btn"
+                onClick={handleUndo}
+                disabled={historyIndex <= 0}
+                title="Undo edit (Ctrl + Z)"
               >
-                512×768 (2:3)
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 7v6h6" />
+                  <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13" />
+                </svg>
+                <span>Undo</span>
               </button>
+
               <button
                 type="button"
-                className={`aspect-pill ${canvasWidth === 512 && canvasHeight === 512 ? "active" : ""}`}
-                onClick={() => handleSelectAspectRatio(512, 512)}
+                className="canvas-tool-btn"
+                onClick={handleRedo}
+                disabled={historyIndex >= history.length - 1}
+                title="Redo edit (Ctrl + Y)"
               >
-                512×512 (1:1)
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 7v6h-6" />
+                  <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13" />
+                </svg>
+                <span>Redo</span>
               </button>
+
               <button
                 type="button"
-                className={`aspect-pill ${canvasWidth === 832 && canvasHeight === 1216 ? "active" : ""}`}
-                onClick={() => handleSelectAspectRatio(832, 1216)}
+                className="canvas-tool-btn"
+                onClick={handleFlipHorizontal}
+                title="Mirror / Flip Horizontal"
               >
-                832×1216 (SDXL)
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="16 3 21 3 21 8" />
+                  <line x1="4" y1="20" x2="21" y2="3" />
+                  <polyline points="21 16 21 21 16 21" />
+                  <line x1="15" y1="15" x2="21" y2="21" />
+                  <line x1="4" y1="4" x2="9" y2="9" />
+                </svg>
+                <span>Mirror</span>
               </button>
+
               <button
                 type="button"
-                className={`aspect-pill ${canvasWidth === 1024 && canvasHeight === 1024 ? "active" : ""}`}
-                onClick={() => handleSelectAspectRatio(1024, 1024)}
+                className="canvas-tool-btn"
+                onClick={handleCenterPose}
+                title="Center Skeleton"
               >
-                1024×1024 (Flux)
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="16" />
+                  <line x1="8" y1="12" x2="16" y2="12" />
+                </svg>
+                <span>Center</span>
+              </button>
+
+              <button
+                type="button"
+                className="canvas-tool-btn danger-hover"
+                onClick={handleResetPose}
+                title="Reset ke bentuk pose asli preset"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
+                <span>Reset</span>
               </button>
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="toolbar-right">
-            <button
-              type="button"
-              className="canvas-tool-btn"
-              onClick={handleFlipHorizontal}
-              title="Mirror / Flip Horizontal"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="16 3 21 3 21 8" />
-                <line x1="4" y1="20" x2="21" y2="3" />
-                <polyline points="21 16 21 21 16 21" />
-                <line x1="15" y1="15" x2="21" y2="21" />
-                <line x1="4" y1="4" x2="9" y2="9" />
-              </svg>
-              <span>Mirror</span>
-            </button>
+          {/* Dimension Controls Row */}
+          <div className="toolbar-dimension-row">
+            {/* Quick Presets */}
+            <div className="preset-pill-group">
+              <span className="preset-group-label">Preset:</span>
+              <button
+                type="button"
+                className={`aspect-pill highlight ${canvasWidth === 1024 && canvasHeight === 1536 ? "active" : ""}`}
+                onClick={() => applyCanvasDimensions(1024, 1536)}
+                title="1024×1536 (2:3) — Resolusi ideal SDXL & Illustrious Portrait"
+              >
+                1024×1536 (SDXL 2:3)
+              </button>
+              <button
+                type="button"
+                className={`aspect-pill ${canvasWidth === 1024 && canvasHeight === 1024 ? "active" : ""}`}
+                onClick={() => applyCanvasDimensions(1024, 1024)}
+                title="1024×1024 (1:1) — SDXL & Flux Square"
+              >
+                1024×1024 (1:1)
+              </button>
+              <button
+                type="button"
+                className={`aspect-pill ${canvasWidth === 832 && canvasHeight === 1216 ? "active" : ""}`}
+                onClick={() => applyCanvasDimensions(832, 1216)}
+                title="832×1216 — SDXL Standard Portrait"
+              >
+                832×1216
+              </button>
+              <button
+                type="button"
+                className={`aspect-pill ${canvasWidth === 512 && canvasHeight === 768 ? "active" : ""}`}
+                onClick={() => applyCanvasDimensions(512, 768)}
+                title="512×768 (2:3) — SD 1.5 Portrait"
+              >
+                512×768 (SD1.5)
+              </button>
 
-            <button
-              type="button"
-              className="canvas-tool-btn"
-              onClick={handleCenterPose}
-              title="Center Skeleton"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="16" />
-                <line x1="8" y1="12" x2="16" y2="12" />
-              </svg>
-              <span>Center</span>
-            </button>
+              {/* More Presets Dropdown */}
+              <select
+                className="preset-select-dropdown"
+                value={`${canvasWidth}x${canvasHeight}`}
+                onChange={(e) => {
+                  const [w, h] = e.target.value.split("x").map(Number);
+                  if (w && h) applyCanvasDimensions(w, h);
+                }}
+                title="Pilih preset resolusi lainnya"
+              >
+                <option value="" disabled>Lainnya...</option>
+                {CANVAS_PRESETS.map((p) => (
+                  <option key={`${p.width}x${p.height}`} value={`${p.width}x${p.height}`}>
+                    {p.label} — {p.desc}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <button
-              type="button"
-              className="canvas-tool-btn danger-hover"
-              onClick={handleResetPose}
-              title="Reset ke pose awal"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                <path d="M3 3v5h5" />
-              </svg>
-              <span>Reset</span>
-            </button>
+            {/* Custom Dimension Input Form */}
+            <form onSubmit={handleApplyCustomDimensions} className="custom-dim-form">
+              <span className="dim-form-label">Custom:</span>
+              <input
+                type="number"
+                min="256"
+                max="4096"
+                step="64"
+                value={inputW}
+                onChange={(e) => setInputW(e.target.value)}
+                placeholder="W"
+                className="dim-num-input"
+                title="Lebar canvas dalam piksel (256 - 4096)"
+              />
+              <span className="dim-multiplier">×</span>
+              <input
+                type="number"
+                min="256"
+                max="4096"
+                step="64"
+                value={inputH}
+                onChange={(e) => setInputH(e.target.value)}
+                placeholder="H"
+                className="dim-num-input"
+                title="Tinggi canvas dalam piksel (256 - 4096)"
+              />
+              <button
+                type="button"
+                className="dim-swap-btn"
+                onClick={handleSwapDimensions}
+                title="Tukar Lebar & Tinggi (Putar Portrait ⇄ Landscape)"
+              >
+                ⇄
+              </button>
+              <button
+                type="submit"
+                className="dim-apply-btn"
+                title="Terapkan ukuran custom ke kanvas"
+              >
+                Terapkan
+              </button>
+            </form>
+
+            {/* Resize Mode (Preserve Anatomy vs Stretch) */}
+            <div className="resize-mode-control">
+              <button
+                type="button"
+                className={`resize-mode-toggle ${resizeMode}`}
+                onClick={() => setResizeMode((prev) => (prev === "preserve" ? "stretch" : "preserve"))}
+                title={
+                  resizeMode === "preserve"
+                    ? "Mode Kunci Anatomi: Menjaga rasio tubuh 1:1 tanpa melar / distorsi (menambah ruang hitam otomatis)"
+                    : "Mode Stretch: Menarik semua sendi tubuh mengisi rasio kanvas baru"
+                }
+              >
+                {resizeMode === "preserve" ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    <span>Kunci Anatomi (Fit)</span>
+                  </>
+                ) : (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="15 3 21 3 21 9" />
+                      <polyline points="9 21 3 21 3 15" />
+                      <line x1="21" y1="3" x2="14" y2="10" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                    <span>Stretch Kanvas</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Viewport Canvas Wrapper */}
-        <div className="canvas-viewport-wrapper">
-          <canvas
-            ref={canvasRef}
-            width={canvasWidth}
-            height={canvasHeight}
-            className="openpose-interactive-canvas"
-            onMouseDown={handlePointerDown}
-            onMouseMove={handlePointerMove}
-            onMouseUp={handlePointerUp}
-            onMouseLeave={handlePointerUp}
-            onTouchStart={handlePointerDown}
-            onTouchMove={handlePointerMove}
-            onTouchEnd={handlePointerUp}
-          />
+        {/* Viewport Canvas Wrapper with Zoom & Pan */}
+        <div ref={viewportRef} className="canvas-viewport-wrapper">
+          {/* Zoom & Viewport Controls Bar */}
+          <div className="viewport-zoom-bar">
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={handleZoomOut}
+              title="Zoom Out (-)"
+            >
+              −
+            </button>
+            <span className="zoom-indicator" title="Current Zoom Level">
+              {Math.round(zoom * 100)}%
+            </span>
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={handleZoomIn}
+              title="Zoom In (+)"
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="zoom-fit-btn"
+              onClick={handleZoomReset}
+              title="Reset Zoom ke 100%"
+            >
+              Fit
+            </button>
+          </div>
+
+          {/* Interactive HTML5 Canvas */}
+          <div
+            className="canvas-zoom-container"
+            style={{
+              transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`,
+              transformOrigin: "center center",
+              transition: isDraggingRef.current ? "none" : "transform 0.15s ease-out",
+            }}
+          >
+            <canvas
+              ref={canvasRef}
+              width={canvasWidth}
+              height={canvasHeight}
+              className="openpose-interactive-canvas"
+              onMouseDown={handlePointerDown}
+              onMouseMove={handlePointerMove}
+              onMouseUp={handlePointerUp}
+              onMouseLeave={handlePointerUp}
+              onTouchStart={handlePointerDown}
+              onTouchMove={handlePointerMove}
+              onTouchEnd={handlePointerUp}
+            />
+          </div>
 
           {/* Hover Joint Indicator Tooltip */}
           {hoveredJointMeta && (
@@ -531,12 +922,91 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
 
           {/* Interactive Drag Hint */}
           <div className="canvas-interaction-hint">
-            <span>💡 Geser / Drag sendi (titik berwarna) untuk mengubah pose tubuh secara interaktif</span>
+            <span>💡 Geser titik sendi untuk memodifikasi pose • Ctrl+Z untuk Undo • Export siap pakai untuk ControlNet</span>
           </div>
         </div>
 
-        {/* Background & Trace Overlay Controls */}
+        {/* Background & Trace Overlay Controls + Stick Thickness Controls */}
         <div className="canvas-bottom-controls">
+          {/* Stick Thickness Controls (SDXL, Flux, Heavy, SD 1.5) */}
+          <div className="stick-thickness-bar">
+            <div className="stick-thickness-group">
+              <span className="control-label">Ketebalan Garis (Stick):</span>
+              <button
+                type="button"
+                className={`thickness-pill ${thicknessMode === "sdxl" ? "active" : ""}`}
+                onClick={() => setThicknessMode("sdxl")}
+                title="SDXL & Xinsir (Standar Resmi): Garis tebal (~15px pada 1024px) agar sendi terbaca akurat oleh model ControlNet SDXL"
+              >
+                <span className="dot sdxl" />
+                SDXL / Xinsir (Tebal)
+              </button>
+              <button
+                type="button"
+                className={`thickness-pill ${thicknessMode === "flux_heavy" ? "active" : ""}`}
+                onClick={() => setThicknessMode("flux_heavy")}
+                title="Flux & Heavy: Ekstra tebal (~22px pada 1024px) untuk resolusi tinggi & model Flux.1 Union"
+              >
+                <span className="dot heavy" />
+                Flux / Heavy (Super Tebal)
+              </button>
+              <button
+                type="button"
+                className={`thickness-pill ${thicknessMode === "sd15" ? "active" : ""}`}
+                onClick={() => setThicknessMode("sd15")}
+                title="SD 1.5: Garis klasik tipis (~6px pada 1024px) standar model 512x512"
+              >
+                <span className="dot sd15" />
+                SD 1.5 (Tipis)
+              </button>
+              <button
+                type="button"
+                className={`thickness-pill ${thicknessMode === "custom" ? "active" : ""}`}
+                onClick={() => setThicknessMode("custom")}
+                title="Manual Slider: Atur ketebalan piksel garis & bulatan sendi secara bebas"
+              >
+                Manual Slider
+              </button>
+            </div>
+
+            <div className="thickness-live-indicator" title="Ketebalan aktual pada canvas & file export">
+              <span>Garis: <strong>{currentStickDims.limbWidth}px</strong></span>
+              <span>•</span>
+              <span>Sendi: <strong>{currentStickDims.jointRadius}px</strong></span>
+            </div>
+          </div>
+
+          {/* Custom Manual Thickness Sliders */}
+          {thicknessMode === "custom" && (
+            <div className="custom-thickness-slider-row">
+              <div className="slider-item">
+                <span className="slider-label">Ketebalan Garis (Limb): <strong>{customLimbWidth}px</strong></span>
+                <input
+                  type="range"
+                  min="4"
+                  max="40"
+                  step="1"
+                  value={customLimbWidth}
+                  onChange={(e) => setCustomLimbWidth(parseInt(e.target.value, 10))}
+                  className="thickness-slider"
+                />
+              </div>
+              <div className="slider-item">
+                <span className="slider-label">Ukuran Bulatan Sendi (Joint): <strong>{customJointRadius}px</strong></span>
+                <input
+                  type="range"
+                  min="5"
+                  max="45"
+                  step="1"
+                  value={customJointRadius}
+                  onChange={(e) => setCustomJointRadius(parseInt(e.target.value, 10))}
+                  className="thickness-slider"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Background Layer Controls */}
           <div className="bg-mode-group">
             <span className="control-label">Canvas Layer:</span>
             <button
@@ -562,23 +1032,22 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
                 style={{ display: "none" }}
               />
             </label>
+            {bgMode === "reference" && (
+              <div className="reference-opacity-control">
+                <span className="opacity-label">Foto Opacity:</span>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="0.9"
+                  step="0.05"
+                  value={referenceOpacity}
+                  onChange={(e) => setReferenceOpacity(parseFloat(e.target.value))}
+                  className="opacity-slider"
+                />
+                <span className="opacity-val">{Math.round(referenceOpacity * 100)}%</span>
+              </div>
+            )}
           </div>
-
-          {bgMode === "reference" && (
-            <div className="reference-opacity-control">
-              <span className="opacity-label">Foto Opacity:</span>
-              <input
-                type="range"
-                min="0.1"
-                max="0.9"
-                step="0.05"
-                value={referenceOpacity}
-                onChange={(e) => setReferenceOpacity(parseFloat(e.target.value))}
-                className="opacity-slider"
-              />
-              <span className="opacity-val">{Math.round(referenceOpacity * 100)}%</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -654,8 +1123,8 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 <div className="btn-text-col">
-                  <strong>Download OpenPose PNG</strong>
-                  <small>Black Background Standard • {canvasWidth}×{canvasHeight}px</small>
+                  <strong>Download OpenPose PNG ({THICKNESS_PROFILES[thicknessMode].badge})</strong>
+                  <small>Black Background • {canvasWidth}×{canvasHeight}px • Limb {currentStickDims.limbWidth}px</small>
                 </div>
               </button>
 
@@ -720,6 +1189,9 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
                 </li>
                 <li>
                   <strong>Model:</strong> Pilih <code>control_v11p_sd15_openpose</code> atau <code>controlnet-openpose-sdxl</code>.
+                </li>
+                <li>
+                  <strong>Resolusi &amp; Aspect Ratio:</strong> Samakan ukuran canvas di sini dengan <code>Empty Latent Image</code> ComfyUI Anda (misal <strong>1024×1536</strong>) agar skeleton tidak melar / squashed saat diproses oleh Apply ControlNet.
                 </li>
                 <li>
                   <strong>Control Weight:</strong> Rekomendasi <strong>0.80 – 0.95</strong> untuk pose anatomi yang sangat presisi.

@@ -67,31 +67,207 @@ export function rgbToString(color: [number, number, number], alpha: number = 1.0
   return `rgba(${color[0]}, ${color[1]}, ${color[2]}, ${alpha})`;
 }
 
+import { getPoseBounds } from "./poseTransform";
+
+export type StickThicknessMode = "sdxl" | "flux_heavy" | "sd15" | "custom";
+
+export interface ThicknessConfig {
+  mode: StickThicknessMode;
+  label: string;
+  badge: string;
+  desc: string;
+}
+
+export const THICKNESS_PROFILES: Record<StickThicknessMode, ThicknessConfig> = {
+  sdxl: {
+    mode: "sdxl",
+    label: "SDXL & Xinsir (Tebal)",
+    badge: "SDXL / Xinsir",
+    desc: "Standar resmi Xinsir SDXL (scale_stick_for_xinsr_cn) agar sendi terbaca akurat.",
+  },
+  flux_heavy: {
+    mode: "flux_heavy",
+    label: "Flux & Heavy (Super Tebal)",
+    badge: "Flux / Extra Heavy",
+    desc: "Garis ekstra tebal untuk resolusi tinggi (>= 1536px) & model Flux.1 Union.",
+  },
+  sd15: {
+    mode: "sd15",
+    label: "SD 1.5 (Tipis)",
+    badge: "SD 1.5",
+    desc: "Standar klasik OpenPose SD 1.5 beresolusi 512x512.",
+  },
+  custom: {
+    mode: "custom",
+    label: "Manual Slider",
+    badge: "Custom px",
+    desc: "Atur ketebalan piksel garis & bulatan sendi secara manual dengan slider.",
+  },
+};
+
+/**
+ * Centralized rendering configuration for OpenPose skeleton.
+ */
+export interface SkeletonRenderConfig {
+  /** Target context: "canvas" for interactive editor with screen compensation, "export" for raw buffer PNG */
+  target?: "canvas" | "export";
+  /** Screen display scale: (CSS rendered width / Canvas buffer width) */
+  displayScale?: number;
+  /** Thickness mode: sdxl, flux_heavy, sd15, custom */
+  thicknessMode?: StickThicknessMode;
+  /** Show joints circles */
+  showJoints?: boolean;
+  /** Show limbs stick lines */
+  showLimbs?: boolean;
+  /** Joint radius override */
+  jointRadius?: number;
+  /** Limb width override */
+  limbWidth?: number;
+  /** Custom limb width in pixels */
+  customLimbWidth?: number;
+  /** Custom joint radius in pixels */
+  customJointRadius?: number;
+  /** Active / selected joint index */
+  activeJointId?: number | null;
+  /** Hovered joint index */
+  hoverJointId?: number | null;
+  /** Opacity of entire skeleton (0.0 to 1.0) */
+  opacity?: number;
+  /** High contrast outline around joints for visibility on any background */
+  drawOutlines?: boolean;
+}
+
+/**
+ * Computes limb width and joint radius based on canvas width and target thickness mode
+ */
+export function getStickDimensions(
+  canvasWidth: number,
+  mode: StickThicknessMode = "sdxl",
+  customLimbWidth?: number,
+  customJointRadius?: number
+): { limbWidth: number; jointRadius: number } {
+  if (mode === "custom" && customLimbWidth !== undefined && customJointRadius !== undefined) {
+    return {
+      limbWidth: Math.max(3, customLimbWidth),
+      jointRadius: Math.max(4, customJointRadius),
+    };
+  }
+
+  const safeW = Math.max(256, canvasWidth);
+
+  switch (mode) {
+    case "flux_heavy":
+      // ~22px limb, ~24px joint at 1024px width (~33px at 1536px)
+      return {
+        limbWidth: Math.max(12, Math.round(safeW / 46)),
+        jointRadius: Math.max(14, Math.round(safeW / 42)),
+      };
+    case "sd15":
+      // ~6px limb, ~7px joint at 1024px width (3-4px at 512px)
+      return {
+        limbWidth: Math.max(3, Math.round(safeW / 170)),
+        jointRadius: Math.max(4, Math.round(safeW / 150)),
+      };
+    case "sdxl":
+    default:
+      // ~15px limb, ~17px joint at 1024px width (~23px at 1536px)
+      // Matches official xinsir/controlnet-openpose-sdxl-1.0 training specs
+      return {
+        limbWidth: Math.max(8, Math.round(safeW / 68)),
+        jointRadius: Math.max(10, Math.round(safeW / 60)),
+      };
+  }
+}
+
+/**
+ * Computes exact rendering metrics (with screen-space compensation for the interactive editor)
+ */
+export function computeRenderMetrics(
+  canvasWidth: number,
+  config: SkeletonRenderConfig = {}
+): {
+  limbWidth: number;
+  jointRadius: number;
+  activeJointRadius: number;
+  hoverJointRadius: number;
+  outlineWidth: number;
+  hitThreshold: number;
+} {
+  const {
+    target = "canvas",
+    displayScale = 1.0,
+    thicknessMode = "sdxl",
+    customLimbWidth,
+    customJointRadius,
+  } = config;
+
+  const baseDims = getStickDimensions(canvasWidth, thicknessMode, customLimbWidth, customJointRadius);
+
+  if (target === "export") {
+    return {
+      limbWidth: baseDims.limbWidth,
+      jointRadius: baseDims.jointRadius,
+      activeJointRadius: baseDims.jointRadius,
+      hoverJointRadius: baseDims.jointRadius,
+      outlineWidth: 0,
+      hitThreshold: 24,
+    };
+  }
+
+  // Interactive Canvas Mode:
+  // Prevent joints and bones from becoming microscopic on scaled-down preview screens.
+  const safeScale = Math.max(0.05, Math.min(4.0, displayScale));
+
+  // Desired minimum screen sizes (in CSS px):
+  // Limb: at least 4px on screen, max 16px
+  // Joint: at least 7px radius on screen, max 20px
+  const screenLimb = Math.max(4, Math.min(16, baseDims.limbWidth * safeScale));
+  const screenJoint = Math.max(7, Math.min(20, baseDims.jointRadius * safeScale));
+
+  const compensatedLimbWidth = Math.round(screenLimb / safeScale);
+  const compensatedJointRadius = Math.round(screenJoint / safeScale);
+  const compensatedOutlineWidth = Math.max(1.5, Math.round(2.5 / safeScale));
+  const compensatedHitThreshold = Math.max(24, Math.round(22 / safeScale));
+
+  return {
+    limbWidth: compensatedLimbWidth,
+    jointRadius: compensatedJointRadius,
+    activeJointRadius: Math.round(compensatedJointRadius * 1.5),
+    hoverJointRadius: Math.round(compensatedJointRadius * 1.25),
+    outlineWidth: compensatedOutlineWidth,
+    hitThreshold: compensatedHitThreshold,
+  };
+}
+
 /**
  * Draws standard OpenPose skeleton onto an HTML5 Canvas 2D context.
+ * Adheres to official OpenPose COCO format and color palette.
  */
 export function drawSkeletonOnCanvas(
   ctx: CanvasRenderingContext2D,
   keypoints: JointPoint[],
   scaleX: number = 1.0,
   scaleY: number = 1.0,
-  options: {
-    showJoints?: boolean;
-    showLimbs?: boolean;
-    jointRadius?: number;
-    limbWidth?: number;
-    activeJointId?: number | null;
-    hoverJointId?: number | null;
-  } = {}
+  config: SkeletonRenderConfig = {}
 ) {
+  if (!keypoints || keypoints.length === 0) return;
+
   const {
     showJoints = true,
     showLimbs = true,
-    jointRadius = 5,
-    limbWidth = 4,
     activeJointId = null,
     hoverJointId = null,
-  } = options;
+    opacity = 1.0,
+    target = "canvas",
+    drawOutlines = target === "canvas",
+  } = config;
+
+  // Use canvas buffer width for metric calculation
+  const canvasW = ctx.canvas.width || 1024;
+  const metrics = computeRenderMetrics(canvasW, config);
+
+  const prevAlpha = ctx.globalAlpha;
+  ctx.globalAlpha = Math.max(0.1, Math.min(1.0, opacity));
 
   // 1. Draw Limbs
   if (showLimbs) {
@@ -111,11 +287,21 @@ export function drawSkeletonOnCanvas(
       const x2 = p2.x * scaleX;
       const y2 = p2.y * scaleY;
 
+      // Optional limb outline for contrast in editor
+      if (drawOutlines && target === "canvas") {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+        ctx.lineWidth = metrics.limbWidth + metrics.outlineWidth * 2;
+        ctx.stroke();
+      }
+
       ctx.beginPath();
       ctx.moveTo(x1, y1);
       ctx.lineTo(x2, y2);
-      ctx.strokeStyle = rgbToString(limb.color, 0.95);
-      ctx.lineWidth = limbWidth;
+      ctx.strokeStyle = rgbToString(limb.color, target === "export" ? 1.0 : 0.95);
+      ctx.lineWidth = metrics.limbWidth;
       ctx.stroke();
     }
   }
@@ -132,30 +318,63 @@ export function drawSkeletonOnCanvas(
       const isActive = activeJointId === i;
       const isHover = hoverJointId === i;
 
+      const currentRadius = isActive
+        ? metrics.activeJointRadius
+        : isHover
+        ? metrics.hoverJointRadius
+        : metrics.jointRadius;
+
+      // Under-glow ring for active joint in editor
+      if (isActive && target === "canvas") {
+        ctx.beginPath();
+        ctx.arc(x, y, currentRadius + metrics.outlineWidth * 2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(59, 130, 246, 0.4)";
+        ctx.fill();
+      }
+
+      // Base joint circle
       ctx.beginPath();
-      const currentRadius = isActive ? jointRadius * 1.6 : isHover ? jointRadius * 1.3 : jointRadius;
       ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
       ctx.fillStyle = rgbToString(meta.color, 1.0);
       ctx.fill();
 
-      // Outer ring for active or hovered joint
-      if (isActive || isHover) {
-        ctx.lineWidth = 2.5;
-        ctx.strokeStyle = "#ffffff";
-        ctx.stroke();
+      // Border / outline
+      if (target === "canvas") {
+        ctx.beginPath();
+        ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
+        if (isActive) {
+          ctx.lineWidth = metrics.outlineWidth * 1.5;
+          ctx.strokeStyle = "#ffffff";
+          ctx.stroke();
+        } else if (isHover) {
+          ctx.lineWidth = metrics.outlineWidth * 1.2;
+          ctx.strokeStyle = "#fbbf24";
+          ctx.stroke();
+        } else if (drawOutlines) {
+          ctx.lineWidth = Math.max(1, metrics.outlineWidth * 0.8);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.6)";
+          ctx.stroke();
+        }
       }
     }
   }
+
+  ctx.globalAlpha = prevAlpha;
 }
 
 /**
- * Exports genuine ControlNet OpenPose black background PNG
+ * Exports genuine ControlNet OpenPose black background PNG with thick sticks for SDXL/Flux
  */
 export function exportToOpenPosePNG(
   keypoints: JointPoint[],
   width: number,
   height: number,
-  filename: string = "controlnet_openpose_skeleton.png"
+  filename: string = "controlnet_openpose_skeleton.png",
+  options: {
+    thicknessMode?: StickThicknessMode;
+    limbWidth?: number;
+    jointRadius?: number;
+  } = {}
 ): void {
   const offscreen = document.createElement("canvas");
   offscreen.width = width;
@@ -167,12 +386,16 @@ export function exportToOpenPosePNG(
   ctx.fillStyle = "#000000";
   ctx.fillRect(0, 0, width, height);
 
-  // Render official colored skeleton
+  // Render official colored skeleton in export mode
   drawSkeletonOnCanvas(ctx, keypoints, 1.0, 1.0, {
+    target: "export",
     showJoints: true,
     showLimbs: true,
-    jointRadius: Math.max(4, Math.round(width / 110)),
-    limbWidth: Math.max(3, Math.round(width / 130)),
+    thicknessMode: options.thicknessMode || "sdxl",
+    limbWidth: options.limbWidth,
+    jointRadius: options.jointRadius,
+    drawOutlines: false,
+    opacity: 1.0,
   });
 
   // Download file
@@ -267,7 +490,7 @@ export function parseKeypointsFromJSON(jsonString: string): JointPoint[] {
 
 /**
  * Authentic Mini SVG Thumbnail for Pose Library Cards.
- * Parses the pose's actual 18-joint coordinates and renders exact OpenPose limbs and joints.
+ * Parses the pose's actual 18-joint coordinates and dynamically frames the pose.
  */
 export const PoseThumbnailSvg: React.FC<{
   keypointsData: string;
@@ -289,14 +512,23 @@ export const PoseThumbnailSvg: React.FC<{
     );
   }
 
+  const bounds = getPoseBounds(points);
+  const pad = bounds.isValid ? Math.max(bounds.width, bounds.height) * 0.16 : 40;
+  const vbX = bounds.isValid ? Math.round(bounds.minX - pad) : 0;
+  const vbY = bounds.isValid ? Math.round(bounds.minY - pad) : 0;
+  const vbW = bounds.isValid ? Math.round(bounds.width + pad * 2) : width;
+  const vbH = bounds.isValid ? Math.round(bounds.height + pad * 2) : height;
+  const strokeWidth = bounds.isValid ? Math.max(10, Math.round(vbW / 32)) : 16;
+  const jointRadius = bounds.isValid ? Math.max(8, Math.round(vbW / 38)) : 13;
+
   return (
     <svg
-      viewBox={`0 0 ${width} ${height}`}
+      viewBox={`${vbX} ${vbY} ${vbW} ${vbH}`}
       className={className}
       preserveAspectRatio="xMidYMid meet"
       style={{ width: "100%", height: "100%", display: "block" }}
     >
-      <rect width={width} height={height} fill="#050811" />
+      <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="#050811" />
       {/* Draw 17 OpenPose Limbs */}
       {OPENPOSE_LIMBS.map((limb, idx) => {
         const p1 = points[limb.from];
@@ -310,7 +542,7 @@ export const PoseThumbnailSvg: React.FC<{
             x2={p2.x}
             y2={p2.y}
             stroke={`rgb(${limb.color.join(",")})`}
-            strokeWidth={16}
+            strokeWidth={strokeWidth}
             strokeLinecap="round"
           />
         );
@@ -324,7 +556,7 @@ export const PoseThumbnailSvg: React.FC<{
             key={`joint-${idx}`}
             cx={pt.x}
             cy={pt.y}
-            r={13}
+            r={jointRadius}
             fill={`rgb(${joint.color.join(",")})`}
           />
         );
