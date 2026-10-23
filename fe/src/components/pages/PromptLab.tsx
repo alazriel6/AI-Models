@@ -39,6 +39,7 @@ import { DeconstructorView } from "../prompt-studio/DeconstructorView";
 import { BooruAutocompleteInput } from "../common/BooruAutocompleteInput";
 import { ClipChunkVisualizer } from "../prompt-studio/ClipChunkVisualizer";
 import { tokenizeClipPrompt } from "../../utils/clipTokenizer";
+import { PromptFixerModal } from "../prompt-studio/PromptFixerModal";
 
 // SVG Technical Icons (No AI Slop)
 const Icons = {
@@ -584,6 +585,9 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
 
     // Wildcard Quick Insert Popover
     const [isWildcardPickerOpen, setIsWildcardPickerOpen] = useState(false);
+
+    // Smart Prompt Fixer Modal State
+    const [isPromptFixerOpen, setIsPromptFixerOpen] = useState(false);
 
     // Floating Studio Toast
     const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -2255,6 +2259,16 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                 {/* Quick Tools Toolbar */}
                                 <button
                                     type="button"
+                                    className="prompt-btn-sm healer-btn-highlight"
+                                    onClick={() => setIsPromptFixerOpen(true)}
+                                    title="Buka Prompt Fix (Optimasi token, tata Chunk 1, dan bersihkan konflik pose)"
+                                >
+                                    <span style={{ color: "#38bdf8" }}>⚡</span>
+                                    <span>Prompt Fix</span>
+                                </button>
+
+                                <button
+                                    type="button"
                                     className="prompt-btn-sm"
                                     onClick={() => setPositivePrompt(cleanPromptText(positivePrompt))}
                                     title="Rapikan tanda koma, spasi berlebih, dan tanda baca tak terpakai"
@@ -2419,6 +2433,14 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                         <div className="chunk-ribbon-right">
                                             <button
                                                 type="button"
+                                                className="chunk-healer-quick-btn"
+                                                onClick={() => setIsPromptFixerOpen(true)}
+                                                title="Optimasi dan tata aksi ke Chunk 1 (100% Retained Attention)"
+                                            >
+                                                ⚡ Prompt Fix
+                                            </button>
+                                            <button
+                                                type="button"
                                                 className={`chunk-toggle-btn ${showLiveChunkInline ? "active" : ""}`}
                                                 onClick={() => setShowLiveChunkInline(!showLiveChunkInline)}
                                             >
@@ -2490,6 +2512,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                         onCopy={(text) => triggerCopy(text, "chunk-copy", "Chunk prompt disalin!")}
                                         defaultArch={activeCheckpoint?.base_model?.toLowerCase().includes("sd 1.5") ? "sd15" : activeCheckpoint?.base_model?.toLowerCase().includes("flux") ? "flux" : "sdxl"}
                                         activeCheckpointName={activeCheckpoint?.name}
+                                        onOpenPromptFixer={() => setIsPromptFixerOpen(true)}
                                     />
                                 </div>
                             )}
@@ -4753,6 +4776,27 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                 </div>
             )}
 
+
+            {/* PROMPT FIX & AUTO-ALIGN MODAL */}
+            <PromptFixerModal
+                isOpen={isPromptFixerOpen}
+                onClose={() => setIsPromptFixerOpen(false)}
+                positivePrompt={positivePrompt}
+                negativePrompt={negativePrompt}
+                onApplyFixed={(fixedPos, fixedNeg) => {
+                    handleTakeSnapshot("Before Prompt Fix");
+                    setPositivePrompt(fixedPos);
+                    setNegativePrompt(fixedNeg);
+                    const { buckets, lora } = deconstructPromptText(fixedPos);
+                    setCategoryInputs(buckets);
+                    if (lora) {
+                        setLoraName(lora.name);
+                        setLoraWeight(lora.weight);
+                        setLoraEnabled(true);
+                    }
+                }}
+                showToast={showToast}
+            />
 
             {/* FLOATING STUDIO TOAST */}
             {toastMessage && (

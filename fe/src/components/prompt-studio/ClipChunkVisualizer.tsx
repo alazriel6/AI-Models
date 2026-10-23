@@ -5,6 +5,7 @@ import {
     type TokenItem,
     type TagChunkSpan,
 } from "../../utils/clipTokenizer";
+import { analyzePrompt } from "../../utils/promptFixer";
 import "../../style/ClipChunkVisualizer.css";
 
 interface ClipChunkVisualizerProps {
@@ -13,9 +14,17 @@ interface ClipChunkVisualizerProps {
     onCopy?: (text: string) => void;
     defaultArch?: "sd15" | "sdxl" | "flux";
     activeCheckpointName?: string;
+    onOpenPromptFixer?: () => void;
+    onOpenPromptHealer?: () => void;
 }
 
 const PRESET_DEMOS = [
+    {
+        id: "rio-holding-hazard",
+        label: "Rio Tsukatsuki (Prop Hazard ~151 tok)",
+        desc: "Skenario konflik pose 2 tangan & aksi buku terlempar ke Chunk 2",
+        text: "masterpiece, best quality, very aesthetic, ultra-detailed, nsfw, explicit, (anime coloring:1.15), newest, highres, absurdres, amazing quality, 1girl, tsukatsuki rio, solo, halo, red eyes, tall female, mature female, large breasts, slender waist, wide hips, thick thighs, (updo, retro curls, short hair:1.2), (red headband, polka dot headband:1.2), (burgundy dress, halter dress, sleeveless dress, backless dress, white belt, short dress, sheer black thighhighs, bare shoulders:1.25), cowboy shot, eye-level, standing beside desk, hugging folder to chest, hand on cheek, looking away, embarrassed, blush, shy expression, indoor, classroom, orange sunset light through windows, warm lighting, depth of field",
+    },
     {
         id: "chunk1-safe",
         label: "Chunk 1 Aman (~24 tok)",
@@ -42,6 +51,8 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
     onCopy,
     defaultArch = "sdxl",
     activeCheckpointName,
+    onOpenPromptFixer,
+    onOpenPromptHealer,
 }) => {
     const [selectedArch, setSelectedArch] = useState<"sd15" | "sdxl" | "flux">(defaultArch);
     const [selectedToken, setSelectedToken] = useState<TokenItem | null>(null);
@@ -104,6 +115,18 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
         return { c1Count, c2Count, c3PlusCount, total: totalTextTokens };
     }, [chunks, totalTextTokens]);
 
+    // Live Prompt Health & Alignment Diagnosis
+    const liveHealthReport = useMemo(() => {
+        return analyzePrompt(prompt);
+    }, [prompt]);
+
+    const hasText = prompt.trim().length > 0;
+    const isPromptLiveOptimal =
+        hasText &&
+        (liveHealthReport.issues.length === 0 || liveHealthReport.overallScore >= 85) &&
+        hazards.length === 0 &&
+        (isFlux || liveHealthReport.primaryActionChunk === 1);
+
     return (
         <div className="clip-visualizer-container">
             {/* Header Telemetry Card */}
@@ -131,28 +154,40 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                         </div>
                     </div>
 
-                    <div className="clip-arch-selector">
-                        <button
-                            type="button"
-                            className={`clip-arch-btn ${selectedArch === "sd15" ? "active" : ""}`}
-                            onClick={() => setSelectedArch("sd15")}
-                        >
-                            SD 1.5 (CLIP-L)
-                        </button>
-                        <button
-                            type="button"
-                            className={`clip-arch-btn ${selectedArch === "sdxl" ? "active" : ""}`}
-                            onClick={() => setSelectedArch("sdxl")}
-                        >
-                            SDXL (Dual CLIP)
-                        </button>
-                        <button
-                            type="button"
-                            className={`clip-arch-btn ${selectedArch === "flux" ? "active" : ""}`}
-                            onClick={() => setSelectedArch("flux")}
-                        >
-                            Flux / SD 3.5 (T5-XXL)
-                        </button>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+                        {(onOpenPromptFixer || onOpenPromptHealer) && (
+                            <button
+                                type="button"
+                                className="clip-healer-telemetry-btn"
+                                onClick={onOpenPromptFixer || onOpenPromptHealer}
+                                title="Buka Prompt Fix (Optimasi urutan token & cegah konflik pose)"
+                            >
+                                <span>⚡ Prompt Fix</span>
+                            </button>
+                        )}
+                        <div className="clip-arch-selector">
+                            <button
+                                type="button"
+                                className={`clip-arch-btn ${selectedArch === "sd15" ? "active" : ""}`}
+                                onClick={() => setSelectedArch("sd15")}
+                            >
+                                SD 1.5 (CLIP-L)
+                            </button>
+                            <button
+                                type="button"
+                                className={`clip-arch-btn ${selectedArch === "sdxl" ? "active" : ""}`}
+                                onClick={() => setSelectedArch("sdxl")}
+                            >
+                                SDXL (Dual CLIP)
+                            </button>
+                            <button
+                                type="button"
+                                className={`clip-arch-btn ${selectedArch === "flux" ? "active" : ""}`}
+                                onClick={() => setSelectedArch("flux")}
+                            >
+                                Flux / SD 3.5 (T5-XXL)
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -305,6 +340,76 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                         placeholder="Ketik atau tempel prompt Stable Diffusion di sini untuk menganalisis batas 77-token CLIP..."
                     />
                 </div>
+
+                {/* LIVE PROMPT READINESS STATUS BANNER */}
+                {hasText ? (
+                    <div className={`clip-live-status-card ${isPromptLiveOptimal ? "optimal" : "needs-fix"}`}>
+                        <div className="live-status-icon">
+                            {isPromptLiveOptimal ? "✨" : "⚠️"}
+                        </div>
+                        <div className="live-status-content">
+                            <div className="live-status-top">
+                                <span className={`live-status-badge ${isPromptLiveOptimal ? "optimal" : "needs-fix"}`}>
+                                    {isPromptLiveOptimal
+                                        ? `✓ STATUS: PROMPT SUDAH BAGUS & OPTIMAL (${liveHealthReport.overallScore}/100)`
+                                        : `⚠️ STATUS: PROMPT BELUM OPTIMAL (SKOR: ${liveHealthReport.overallScore}/100)`}
+                                </span>
+                                <span className="live-status-meta">
+                                    {totalTextTokens} Tokens · {chunks.length} Chunk · Aksi di Chunk {liveHealthReport.primaryActionChunk}
+                                </span>
+                            </div>
+
+                            <p className="live-status-desc">
+                                {isPromptLiveOptimal
+                                    ? "✓ Prompt Anda berada dalam kondisi prima! Seluruh aksi penting berada di Chunk 1 dengan 100% full cross-attention, tanpa konflik pose atau pemborosan token."
+                                    : `⚠️ Prompt ini berisiko meleset saat digenerate: ${
+                                        liveHealthReport.issues.length > 0
+                                            ? liveHealthReport.issues[0].title
+                                            : hazards.length > 0
+                                            ? `${hazards.length} kata terbelah di batas 75 token`
+                                            : "Aksi atau pose berada di luar zona prioritas Chunk 1"
+                                    }. Klik tombol Prompt Fix untuk merapikannya otomatis.`}
+                            </p>
+
+                            {isPromptLiveOptimal ? (
+                                <div className="live-status-chips">
+                                    <span className="live-chip optimal">✓ Chunk 1 Aman (100% Retensi)</span>
+                                    <span className="live-chip optimal">✓ Bebas Konflik Pose</span>
+                                    <span className="live-chip optimal">✓ Sintaks Baku Siap Render</span>
+                                </div>
+                            ) : (
+                                <div className="live-status-action-row">
+                                    <div className="live-status-chips">
+                                        {liveHealthReport.issues.slice(0, 3).map((iss) => (
+                                            <span key={iss.id} className="live-chip warning">
+                                                • {iss.title}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    {(onOpenPromptFixer || onOpenPromptHealer) && (
+                                        <button
+                                            type="button"
+                                            className="btn-live-prompt-fix"
+                                            onClick={onOpenPromptFixer || onOpenPromptHealer}
+                                        >
+                                            ⚡ Buka Prompt Fix (Perbaiki Otomatis)
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="clip-live-status-card idle">
+                        <div className="live-status-icon">💡</div>
+                        <div className="live-status-content">
+                            <span className="live-status-badge idle">STATUS: MENUNGGU INPUT PROMPT</span>
+                            <p className="live-status-desc">
+                                Ketik prompt Stable Diffusion di atas atau klik salah satu skenario contoh untuk memeriksa kesehatan prompt dan memetakan batas 77-token CLIP secara live.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* LIVE CHUNK HIGHLIGHTER: THE CORE VISUALIZER */}
@@ -394,15 +499,27 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                             </svg>
                             <span>Terdeteksi Pemotongan Frasa di Batas 77-Token ({hazards.length} Hazard)</span>
                         </div>
-                        {onChangePrompt && (
-                            <button
-                                type="button"
-                                className="clip-hazard-btn"
-                                onClick={handleAutoFixHazard}
-                            >
-                                ⚡ Auto-Align ke Chunk 2
-                            </button>
-                        )}
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            {(onOpenPromptFixer || onOpenPromptHealer) && (
+                                <button
+                                    type="button"
+                                    className="clip-hazard-btn"
+                                    style={{ background: "linear-gradient(135deg, #06b6d4, #3b82f6)", border: "none", color: "#ffffff" }}
+                                    onClick={onOpenPromptFixer || onOpenPromptHealer}
+                                >
+                                    ⚡ Prompt Fix
+                                </button>
+                            )}
+                            {onChangePrompt && (
+                                <button
+                                    type="button"
+                                    className="clip-hazard-btn"
+                                    onClick={handleAutoFixHazard}
+                                >
+                                    ⚡ Auto-Align ke Chunk 2
+                                </button>
+                            )}
+                        </div>
                     </div>
                     <div className="clip-hazard-body">
                         {hazards.map((h, i) => (

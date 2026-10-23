@@ -1,0 +1,499 @@
+/* ==========================================================================
+   Prompt Healer & Pose Semantic Optimizer Modal Styles
+   Deep High-Contrast Studio Theme
+   ========================================================================== */
+
+.prompt-healer-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+    animation: healerFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes healerFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.prompt-healer-modal {
+    background: #0d0e12;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 960px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75), 0 0 30px rgba(6, 182, 212, 0.15);
+    color: #f4f4f5;
+    overflow: hidden;
+}
+
+/* Header */
+.prompt-healer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    background: #12131a;
+    border-bottom: 1px solid #27272a;
+}
+
+.prompt-healer-title-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.prompt-healer-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(168, 85, 247, 0.2));
+    border: 1px solid rgba(6, 182, 212, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    font-size: 20px;
+}
+
+.prompt-healer-header-text h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #f4f4f5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.prompt-healer-badge-pure {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.prompt-healer-header-text p {
+    margin: 3px 0 0 0;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.prompt-healer-close-btn {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    font-size: 20px;
+    cursor: pointer;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+}
+
+.prompt-healer-close-btn:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* Body */
+.prompt-healer-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Telemetry Metrics Comparison Bar */
+.healer-metrics-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.healer-metric-card {
+    background: #15161e;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.metric-label {
+    font-size: 11px;
+    color: #a1a1aa;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.metric-value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.metric-val-before {
+    font-size: 13px;
+    color: #ef4444;
+    text-decoration: line-through;
+}
+
+.metric-arrow {
+    color: #71717a;
+    font-size: 12px;
+}
+
+.metric-val-after {
+    font-size: 16px;
+    font-weight: 700;
+    color: #10b981;
+}
+
+.metric-sub {
+    font-size: 11px;
+    color: #71717a;
+}
+
+/* Diagnostics Issues List */
+.healer-issues-section {
+    background: #12131a;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.healer-issues-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.healer-issues-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e4e4e7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.healer-issues-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.healer-issue-item {
+    background: #181922;
+    border: 1px solid #2c2d38;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.healer-issue-item.critical {
+    border-left: 4px solid #ef4444;
+}
+
+.healer-issue-item.warning {
+    border-left: 4px solid #f59e0b;
+}
+
+.healer-issue-item.info {
+    border-left: 4px solid #3b82f6;
+}
+
+.healer-issue-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.healer-issue-sev {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.healer-issue-sev.critical {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+}
+
+.healer-issue-sev.warning {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+}
+
+.healer-issue-sev.info {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+
+.healer-issue-title-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #f4f4f5;
+}
+
+.healer-issue-detail {
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.healer-issue-fix {
+    font-size: 11px;
+    color: #38bdf8;
+    margin: 2px 0 0 0;
+}
+
+/* Options Controls Grid */
+.healer-options-card {
+    background: #12131a;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.healer-options-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e4e4e7;
+}
+
+.healer-radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.healer-radio-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #d4d4d8;
+    cursor: pointer;
+}
+
+.healer-radio-label input {
+    cursor: pointer;
+    accent-color: #06b6d4;
+}
+
+.healer-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+}
+
+.healer-check-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: #d4d4d8;
+    cursor: pointer;
+}
+
+.healer-check-label input {
+    cursor: pointer;
+    accent-color: #06b6d4;
+}
+
+/* Before vs After Preview Card */
+.healer-preview-card {
+    background: #12131a;
+    border: 1px solid #27272a;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.healer-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.healer-preview-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e4e4e7;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.healer-preview-box {
+    background: #090a0f;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    color: #e4e4e7;
+    line-height: 1.6;
+    word-break: break-word;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.healer-preview-box.healed {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.healer-negative-preview {
+    background: rgba(239, 68, 68, 0.04);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    color: #fca5a5;
+    line-height: 1.5;
+}
+
+/* Applied Fixes Summary */
+.healer-applied-fixes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.healer-fix-pill {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    color: #38bdf8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Footer & Actions */
+.prompt-healer-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    background: #12131a;
+    border-top: 1px solid #27272a;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.healer-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.healer-preset-btn {
+    background: #1e2029;
+    border: 1px solid #3f3f46;
+    color: #e4e4e7;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.healer-preset-btn:hover {
+    background: #27272a;
+    border-color: #06b6d4;
+    color: #38bdf8;
+}
+
+.healer-footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.healer-cancel-btn {
+    background: transparent;
+    border: 1px solid #3f3f46;
+    color: #a1a1aa;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.healer-cancel-btn:hover {
+    background: #1f2028;
+    color: #f4f4f5;
+}
+
+.healer-apply-btn {
+    background: linear-gradient(135deg, #06b6d4, #3b82f6);
+    border: none;
+    color: #ffffff;
+    padding: 8px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+    transition: all 0.15s;
+}
+
+.healer-apply-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+}
