@@ -1267,6 +1267,44 @@
   font-weight: 600;
 }
 
+.gallery-cat-pill.pill-female {
+  border-color: rgba(244, 114, 182, 0.4);
+  color: #f472b6;
+  background: rgba(244, 114, 182, 0.08);
+}
+
+.gallery-cat-pill.pill-female:hover {
+  background: rgba(244, 114, 182, 0.2);
+  border-color: #f472b6;
+  color: #fdf2f8;
+}
+
+.gallery-cat-pill.pill-female.active {
+  background: #db2777;
+  border-color: #f472b6;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(219, 39, 119, 0.45);
+}
+
+.gallery-cat-pill.pill-male {
+  border-color: rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.gallery-cat-pill.pill-male:hover {
+  background: rgba(56, 189, 248, 0.2);
+  border-color: #38bdf8;
+  color: #f0f9ff;
+}
+
+.gallery-cat-pill.pill-male.active {
+  background: #0284c7;
+  border-color: #38bdf8;
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.45);
+}
+
 .poses-cards-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1355,6 +1393,30 @@
   color: #93c5fd;
   border-color: #2563eb;
   background: rgba(37, 99, 235, 0.2);
+}
+
+.card-category-badge.badge-female {
+  color: #f472b6;
+  border-color: rgba(244, 114, 182, 0.4);
+  background: rgba(244, 114, 182, 0.12);
+}
+
+.card-category-badge.badge-male {
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.pose-gallery-card.selected .card-category-badge.badge-female {
+  color: #fdf2f8;
+  border-color: #f472b6;
+  background: rgba(219, 39, 119, 0.4);
+}
+
+.pose-gallery-card.selected .card-category-badge.badge-male {
+  color: #f0f9ff;
+  border-color: #38bdf8;
+  background: rgba(2, 132, 199, 0.4);
 }
 
 /* Card Info Body */

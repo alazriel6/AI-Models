@@ -74,13 +74,50 @@ export default function ControlNetStudio() {
   // Filtered Poses for Gallery
   const filteredPoses = useMemo(() => {
     return poses.filter((p) => {
-      const matchCat =
-        poseCategoryFilter === "All" ||
-        p.category.toLowerCase() === poseCategoryFilter.toLowerCase();
+      let matchCat = poseCategoryFilter === "All";
+      if (!matchCat) {
+        const filterLower = poseCategoryFilter.toLowerCase();
+        if (filterLower.includes("female") || filterLower.includes("wanita")) {
+          const isFemale =
+            p.category.toLowerCase().includes("female") ||
+            p.category.toLowerCase().includes("wanita") ||
+            p.tags.toLowerCase().includes("female") ||
+            p.tags.toLowerCase().includes("wanita") ||
+            p.tags.toLowerCase().includes("1girl") ||
+            p.recommended_prompt.toLowerCase().includes("1girl");
+          const isDuo =
+            p.category.toLowerCase().includes("duo") ||
+            p.category.toLowerCase().includes("couples") ||
+            p.category.toLowerCase().includes("romance") ||
+            p.tags.toLowerCase().includes("1boy") ||
+            p.recommended_prompt.toLowerCase().includes("1boy");
+          matchCat = isFemale && !isDuo;
+        } else if (filterLower.includes("male") || filterLower.includes("pria")) {
+          const isMale =
+            p.category.toLowerCase().includes("male") ||
+            p.category.toLowerCase().includes("pria") ||
+            p.tags.toLowerCase().includes("male") ||
+            p.tags.toLowerCase().includes("pria") ||
+            p.tags.toLowerCase().includes("1boy") ||
+            p.recommended_prompt.toLowerCase().includes("1boy");
+          const isDuo =
+            p.category.toLowerCase().includes("duo") ||
+            p.category.toLowerCase().includes("couples") ||
+            p.category.toLowerCase().includes("romance") ||
+            p.tags.toLowerCase().includes("1girl") ||
+            p.recommended_prompt.toLowerCase().includes("1girl");
+          matchCat = isMale && !isDuo;
+        } else {
+          matchCat = p.category.toLowerCase() === filterLower;
+        }
+      }
+
       const matchSearch =
         poseSearchQuery === "" ||
         p.title.toLowerCase().includes(poseSearchQuery.toLowerCase()) ||
-        p.tags.toLowerCase().includes(poseSearchQuery.toLowerCase());
+        p.tags.toLowerCase().includes(poseSearchQuery.toLowerCase()) ||
+        p.category.toLowerCase().includes(poseSearchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(poseSearchQuery.toLowerCase());
 
       return matchCat && matchSearch;
     });
@@ -111,12 +148,18 @@ export default function ControlNetStudio() {
 
   const poseCategories = [
     "All",
+    "Female (Wanita)",
+    "Male (Pria)",
     "Standing & Model",
     "Action & Combat",
     "Sitting & Relaxed",
     "Dynamic & Aerial",
     "Portrait & Selfie",
     "Duo & Interaction",
+    "Pin-up & Boudoir",
+    "Romance & Couples",
+    "Dance & Performance",
+    "Daily Life & Cute",
   ];
 
   // Workflow Bridge Handler
@@ -219,16 +262,22 @@ export default function ControlNetStudio() {
 
               {/* Categories Pills */}
               <div className="gallery-categories-pills">
-                {poseCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`gallery-cat-pill ${poseCategoryFilter === cat ? "active" : ""}`}
-                    onClick={() => setPoseCategoryFilter(cat)}
-                  >
-                    {cat}
-                  </button>
-                ))}
+                {poseCategories.map((cat) => {
+                  const isFemalePill = cat.includes("Female") || cat.includes("Wanita");
+                  const isMalePill = cat.includes("Male") || cat.includes("Pria");
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`gallery-cat-pill ${poseCategoryFilter === cat ? "active" : ""} ${
+                        isFemalePill ? "pill-female" : isMalePill ? "pill-male" : ""
+                      }`}
+                      onClick={() => setPoseCategoryFilter(cat)}
+                    >
+                      {isFemalePill ? "♀ " : isMalePill ? "♂ " : ""}{cat}
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Poses Grid */}
@@ -238,6 +287,17 @@ export default function ControlNetStudio() {
                 <div className="poses-cards-grid">
                   {filteredPoses.map((pose) => {
                   const isSelected = selectedPose?.id === pose.id;
+                  const isFem =
+                    pose.category.toLowerCase().includes("female") ||
+                    pose.category.toLowerCase().includes("wanita") ||
+                    pose.tags.toLowerCase().includes("female") ||
+                    pose.tags.toLowerCase().includes("1girl");
+                  const isMasc =
+                    pose.category.toLowerCase().includes("male") ||
+                    pose.category.toLowerCase().includes("pria") ||
+                    pose.tags.toLowerCase().includes("male") ||
+                    pose.tags.toLowerCase().includes("1boy");
+
                   return (
                     <div
                       key={pose.id}
@@ -256,7 +316,13 @@ export default function ControlNetStudio() {
                             className="mini-skeleton-svg"
                           />
                         </div>
-                        <span className="card-category-badge">{pose.category}</span>
+                        <span
+                          className={`card-category-badge ${
+                            isFem ? "badge-female" : isMasc ? "badge-male" : ""
+                          }`}
+                        >
+                          {isFem ? "♀ " : isMasc ? "♂ " : ""}{pose.category}
+                        </span>
                       </div>
 
                       <div className="card-info-wrap">

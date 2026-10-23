@@ -20,7 +20,14 @@ func (r *ControlNetRepository) FindPoses(category, search string) ([]models.Cont
 	query := r.db.Model(&models.ControlNetPose{})
 
 	if category != "" && strings.ToLower(category) != "all" && strings.ToLower(category) != "semua" {
-		query = query.Where("LOWER(category) = ?", strings.ToLower(category))
+		catLower := strings.ToLower(category)
+		if catLower == "female (wanita)" || catLower == "female" || catLower == "wanita" {
+			query = query.Where("(LOWER(category) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(recommended_prompt) LIKE ?) AND LOWER(category) NOT LIKE ? AND LOWER(category) NOT LIKE ? AND LOWER(recommended_prompt) NOT LIKE ? AND LOWER(tags) NOT LIKE ?", "%female%", "%female%", "%1girl%", "%duo%", "%couples%", "%1boy%", "%1boy%")
+		} else if catLower == "male (pria)" || catLower == "male" || catLower == "pria" {
+			query = query.Where("(LOWER(category) LIKE ? OR LOWER(tags) LIKE ? OR LOWER(recommended_prompt) LIKE ?) AND LOWER(category) NOT LIKE ? AND LOWER(category) NOT LIKE ? AND LOWER(recommended_prompt) NOT LIKE ? AND LOWER(tags) NOT LIKE ?", "%male%", "%male%", "%1boy%", "%duo%", "%couples%", "%1girl%", "%1girl%")
+		} else {
+			query = query.Where("LOWER(category) = ?", catLower)
+		}
 	}
 
 	if search != "" {

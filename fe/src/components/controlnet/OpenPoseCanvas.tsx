@@ -600,9 +600,19 @@ export const OpenPoseCanvas: React.FC<OpenPoseCanvasProps> = ({
   };
 
   const hoveredJointMeta = useMemo(() => {
-    if (hoverJointId === null || !OPENPOSE_JOINTS[hoverJointId]) return null;
-    return OPENPOSE_JOINTS[hoverJointId];
-  }, [hoverJointId]);
+    if (hoverJointId === null || !keypoints[hoverJointId]) return null;
+    const baseMeta = OPENPOSE_JOINTS[hoverJointId % 18];
+    if (!baseMeta) return null;
+    const totalPersons = Math.floor(keypoints.length / 18);
+    if (totalPersons > 1) {
+      const pNum = Math.floor(hoverJointId / 18) + 1;
+      return {
+        ...baseMeta,
+        name: `${baseMeta.name} (P${pNum})`,
+      };
+    }
+    return baseMeta;
+  }, [hoverJointId, keypoints]);
 
   return (
     <div className="openpose-rig-container">

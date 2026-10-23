@@ -269,50 +269,56 @@ export function drawSkeletonOnCanvas(
   const prevAlpha = ctx.globalAlpha;
   ctx.globalAlpha = Math.max(0.1, Math.min(1.0, opacity));
 
+  // Calculate number of people in skeleton (18 keypoints per person)
+  const numPersons = Math.max(1, Math.floor(keypoints.length / 18));
+
   // 1. Draw Limbs
   if (showLimbs) {
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    for (const limb of OPENPOSE_LIMBS) {
-      const p1 = keypoints[limb.from];
-      const p2 = keypoints[limb.to];
+    for (let p = 0; p < numPersons; p++) {
+      const offset = p * 18;
+      for (const limb of OPENPOSE_LIMBS) {
+        const p1 = keypoints[limb.from + offset];
+        const p2 = keypoints[limb.to + offset];
 
-      if (!p1 || !p2 || p1.confidence <= 0 || p2.confidence <= 0) {
-        continue;
-      }
+        if (!p1 || !p2 || p1.confidence <= 0 || p2.confidence <= 0) {
+          continue;
+        }
 
-      const x1 = p1.x * scaleX;
-      const y1 = p1.y * scaleY;
-      const x2 = p2.x * scaleX;
-      const y2 = p2.y * scaleY;
+        const x1 = p1.x * scaleX;
+        const y1 = p1.y * scaleY;
+        const x2 = p2.x * scaleX;
+        const y2 = p2.y * scaleY;
 
-      // Optional limb outline for contrast in editor
-      if (drawOutlines && target === "canvas") {
+        // Optional limb outline for contrast in editor
+        if (drawOutlines && target === "canvas") {
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
+          ctx.lineWidth = metrics.limbWidth + metrics.outlineWidth * 2;
+          ctx.stroke();
+        }
+
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.45)";
-        ctx.lineWidth = metrics.limbWidth + metrics.outlineWidth * 2;
+        ctx.strokeStyle = rgbToString(limb.color, target === "export" ? 1.0 : 0.95);
+        ctx.lineWidth = metrics.limbWidth;
         ctx.stroke();
       }
-
-      ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.strokeStyle = rgbToString(limb.color, target === "export" ? 1.0 : 0.95);
-      ctx.lineWidth = metrics.limbWidth;
-      ctx.stroke();
     }
   }
 
   // 2. Draw Keypoints / Joints
   if (showJoints) {
-    for (let i = 0; i < OPENPOSE_JOINTS.length; i++) {
+    for (let i = 0; i < keypoints.length; i++) {
       const pt = keypoints[i];
       if (!pt || pt.confidence <= 0) continue;
 
-      const meta = OPENPOSE_JOINTS[i];
+      const meta = OPENPOSE_JOINTS[i % 18];
       const x = pt.x * scaleX;
       const y = pt.y * scaleY;
       const isActive = activeJointId === i;
@@ -416,24 +422,28 @@ export function exportToOpenPoseJSON(
   height: number,
   filename: string = "openpose_pose.json"
 ): void {
-  // Convert 18 points into flat array [x0, y0, c0, x1, y1, c1, ...]
-  const flatPoints: number[] = [];
-  for (let i = 0; i < 18; i++) {
-    const pt = keypoints[i] || { x: 0, y: 0, confidence: 0 };
-    flatPoints.push(Math.round(pt.x), Math.round(pt.y), Number(pt.confidence.toFixed(2)));
+  const numPersons = Math.max(1, Math.floor(keypoints.length / 18));
+  const people = [];
+
+  for (let p = 0; p < numPersons; p++) {
+    const offset = p * 18;
+    const flatPoints: number[] = [];
+    for (let i = 0; i < 18; i++) {
+      const pt = keypoints[offset + i] || { x: 0, y: 0, confidence: 0 };
+      flatPoints.push(Math.round(pt.x), Math.round(pt.y), Number(pt.confidence.toFixed(2)));
+    }
+    people.push({
+      person_id: [p],
+      pose_keypoints_2d: flatPoints,
+      face_keypoints_2d: [],
+      hand_left_keypoints_2d: [],
+      hand_right_keypoints_2d: []
+    });
   }
 
   const jsonPayload = {
     version: 1.3,
-    people: [
-      {
-        person_id: [-1],
-        pose_keypoints_2d: flatPoints,
-        face_keypoints_2d: [],
-        hand_left_keypoints_2d: [],
-        hand_right_keypoints_2d: []
-      }
-    ],
+    people,
     canvas_width: width,
     canvas_height: height
   };
@@ -467,18 +477,20 @@ export function parseKeypointsFromJSON(jsonString: string): JointPoint[] {
 
     // Case 2: OpenPose standard { people: [ { pose_keypoints_2d: [...] } ] }
     if (parsed.people && Array.isArray(parsed.people) && parsed.people.length > 0) {
-      const flat = parsed.people[0].pose_keypoints_2d;
-      if (Array.isArray(flat)) {
-        const result: JointPoint[] = [];
-        for (let i = 0; i < flat.length; i += 3) {
-          result.push({
-            x: flat[i] || 0,
-            y: flat[i + 1] || 0,
-            confidence: flat[i + 2] ?? 1.0,
-          });
+      const result: JointPoint[] = [];
+      for (const person of parsed.people) {
+        const flat = person.pose_keypoints_2d;
+        if (Array.isArray(flat)) {
+          for (let i = 0; i < flat.length; i += 3) {
+            result.push({
+              x: flat[i] || 0,
+              y: flat[i + 1] || 0,
+              confidence: flat[i + 2] ?? 1.0,
+            });
+          }
         }
-        return result;
       }
+      return result;
     }
 
     return [];
@@ -490,7 +502,7 @@ export function parseKeypointsFromJSON(jsonString: string): JointPoint[] {
 
 /**
  * Authentic Mini SVG Thumbnail for Pose Library Cards.
- * Parses the pose's actual 18-joint coordinates and dynamically frames the pose.
+ * Parses the pose's actual 18 or 36 joint coordinates and dynamically frames the pose.
  */
 export const PoseThumbnailSvg: React.FC<{
   keypointsData: string;
@@ -520,6 +532,7 @@ export const PoseThumbnailSvg: React.FC<{
   const vbH = bounds.isValid ? Math.round(bounds.height + pad * 2) : height;
   const strokeWidth = bounds.isValid ? Math.max(10, Math.round(vbW / 32)) : 16;
   const jointRadius = bounds.isValid ? Math.max(8, Math.round(vbW / 38)) : 13;
+  const numPersons = Math.max(1, Math.floor(points.length / 18));
 
   return (
     <svg
@@ -529,35 +542,38 @@ export const PoseThumbnailSvg: React.FC<{
       style={{ width: "100%", height: "100%", display: "block" }}
     >
       <rect x={vbX} y={vbY} width={vbW} height={vbH} fill="#050811" />
-      {/* Draw 17 OpenPose Limbs */}
-      {OPENPOSE_LIMBS.map((limb, idx) => {
-        const p1 = points[limb.from];
-        const p2 = points[limb.to];
-        if (!p1 || !p2 || p1.confidence <= 0 || p2.confidence <= 0) return null;
-        return (
-          <line
-            key={`limb-${idx}`}
-            x1={p1.x}
-            y1={p1.y}
-            x2={p2.x}
-            y2={p2.y}
-            stroke={`rgb(${limb.color.join(",")})`}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
-          />
-        );
+      {/* Draw OpenPose Limbs for all people */}
+      {Array.from({ length: numPersons }).map((_, pIdx) => {
+        const offset = pIdx * 18;
+        return OPENPOSE_LIMBS.map((limb, idx) => {
+          const p1 = points[limb.from + offset];
+          const p2 = points[limb.to + offset];
+          if (!p1 || !p2 || p1.confidence <= 0 || p2.confidence <= 0) return null;
+          return (
+            <line
+              key={`limb-${pIdx}-${idx}`}
+              x1={p1.x}
+              y1={p1.y}
+              x2={p2.x}
+              y2={p2.y}
+              stroke={`rgb(${limb.color.join(",")})`}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+            />
+          );
+        });
       })}
-      {/* Draw 18 OpenPose Keypoint Circles */}
-      {OPENPOSE_JOINTS.map((joint, idx) => {
-        const pt = points[joint.id];
+      {/* Draw OpenPose Keypoint Circles for all people */}
+      {points.map((pt, idx) => {
         if (!pt || pt.confidence <= 0) return null;
+        const jointMeta = OPENPOSE_JOINTS[idx % 18];
         return (
           <circle
             key={`joint-${idx}`}
             cx={pt.x}
             cy={pt.y}
             r={jointRadius}
-            fill={`rgb(${joint.color.join(",")})`}
+            fill={`rgb(${jointMeta.color.join(",")})`}
           />
         );
       })}

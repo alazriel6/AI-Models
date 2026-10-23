@@ -9,7 +9,7 @@
  * 5. Screen-space hit testing and centering
  */
 
-import { type JointPoint, OPENPOSE_JOINTS } from "./openposeConstants";
+import { type JointPoint } from "./openposeConstants";
 
 export interface PoseBounds {
   minX: number;
@@ -186,7 +186,10 @@ export function validateAndSanitizePose(
   const isNorm = isNormalizedCoordinates(rawPoints);
   const sanitized: JointPoint[] = [];
 
-  for (let i = 0; i < OPENPOSE_JOINTS.length; i++) {
+  const numPersons = Math.max(1, Math.round(rawPoints.length / 18));
+  const totalJoints = numPersons * 18;
+
+  for (let i = 0; i < totalJoints; i++) {
     const raw = rawPoints[i];
     if (
       raw &&
@@ -412,13 +415,20 @@ export function flipPoseHorizontal(
     };
   });
 
-  // 2. Swap L and R limb keypoints
+  // 2. Swap L and R limb keypoints across all people
   const result = [...mirrored];
-  for (const [r, l] of swapPairs) {
-    if (result[r] && result[l]) {
-      const temp = { ...result[r] };
-      result[r] = { ...result[l] };
-      result[l] = temp;
+  const numPersons = Math.max(1, Math.floor(points.length / 18));
+
+  for (let p = 0; p < numPersons; p++) {
+    const offset = p * 18;
+    for (const [r, l] of swapPairs) {
+      const rIdx = r + offset;
+      const lIdx = l + offset;
+      if (result[rIdx] && result[lIdx]) {
+        const temp = { ...result[rIdx] };
+        result[rIdx] = { ...result[lIdx] };
+        result[lIdx] = temp;
+      }
     }
   }
 
