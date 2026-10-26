@@ -52,6 +52,7 @@ export interface FixOptions {
     decoupleSurfaceInteractions: boolean;
     guardNegativePrompt: boolean;
     strictChunk1: boolean;
+    consistencyProfile: "stable" | "aggressive";
 }
 
 export interface FixResult {
@@ -133,6 +134,9 @@ const GENERAL_NEGATIVE_GUARDS = [
     "deformed limbs",
     "floating limbs",
     "holding at side",
+    "hands on hips",
+    "dropped prop",
+    "mutated limbs",
 ];
 
 /**
@@ -520,6 +524,7 @@ export function fixPrompt(
         decoupleSurfaceInteractions: true,
         guardNegativePrompt: true,
         strictChunk1: false,
+        consistencyProfile: "stable",
         ...options,
     };
 
@@ -614,7 +619,7 @@ export function fixPrompt(
         appliedFixes.push(`Memadatkan ${removedBloatCount} tag kualitas berulang menjadi 2–3 trigger inti.`);
     }
 
-    // Step 5: Dynamic Prop & Pose Disambiguation (Any Object)
+    // Step 5: Dynamic Prop & Pose Disambiguation (Calibrated Anti-Burn Weights)
     const detectedProps = beforeReport.detectedProps;
     if (opts.resolvePoseConflicts && detectedProps.length > 0) {
         const primaryProp = detectedProps[0];
@@ -625,44 +630,48 @@ export function fixPrompt(
 
         if (opts.normalizeDanbooruSyntax) {
             const hasHugging = lowerRaw.some((t) => t.includes("hugging") || t.includes("against chest"));
+            const isAggressive = opts.consistencyProfile === "aggressive";
+            // Calibrated weights: 1.18 is the golden anti-burn standard for SDXL/Pony/Illustrious
+            const propWeight = isAggressive ? 1.25 : 1.18;
+            const handWeight = isAggressive ? 1.15 : 1.12;
 
             if (hasHugging && matchingHandPose) {
-                // Dual action: 1 hand holding prop to chest + 1 hand performing pose
+                // Dual action: 1 hand holding prop to chest + 1 hand performing secondary pose
                 buckets.actionPose = buckets.actionPose.filter(
                     (t) =>
                         !t.toLowerCase().includes("hugging") &&
                         !t.toLowerCase().includes("against chest") &&
                         !t.toLowerCase().includes(matchingHandPose)
                 );
+                // Calibrated single brackets (No double-bracket blowouts!)
                 buckets.actionPose.unshift(
-                    `((holding ${primaryProp} to chest:1.35))`,
-                    `(${primaryProp} covering chest:1.20)`,
-                    `(${primaryProp} against chest:1.25)`,
-                    `(${matchingHandPose}:1.15)`
+                    `(holding ${primaryProp} to chest:${propWeight.toFixed(2)})`,
+                    `(${matchingHandPose}:${handWeight.toFixed(2)})`,
+                    `${primaryProp}`
                 );
                 appliedFixes.push(
-                    `Mengharmonisasikan pose: '((holding ${primaryProp} to chest:1.35))' + '(${matchingHandPose}:1.15)' agar objek tetap di dada.`
+                    `Mengharmonisasikan pose stabil (Anti-Burn): '(holding ${primaryProp} to chest:${propWeight.toFixed(2)})' + '(${matchingHandPose}:${handWeight.toFixed(2)})' agar hasil konsisten antar seed.`
                 );
             } else if (hasHugging) {
                 // Holding prop to chest
                 buckets.actionPose = buckets.actionPose.filter(
-                    (t) => !t.toLowerCase().includes("hugging")
+                    (t) => !t.toLowerCase().includes("hugging") && !t.toLowerCase().includes("against chest")
                 );
                 buckets.actionPose.unshift(
-                    `((holding ${primaryProp} to chest:1.35))`,
-                    `(${primaryProp} covering chest:1.20)`
+                    `(holding ${primaryProp} to chest:${propWeight.toFixed(2)})`,
+                    `${primaryProp}`
                 );
-                appliedFixes.push(`Mengonversi ke tag Danbooru baku: '((holding ${primaryProp} to chest:1.35))'.`);
+                appliedFixes.push(`Mengonversi ke tag Danbooru stabil: '(holding ${primaryProp} to chest:${propWeight.toFixed(2)})'.`);
             } else if (matchingHandPose) {
                 // Normal holding + hand pose
                 buckets.actionPose = buckets.actionPose.filter(
                     (t) => !t.toLowerCase().includes(matchingHandPose)
                 );
                 buckets.actionPose.unshift(
-                    `((holding ${primaryProp}:1.25))`,
-                    `(${matchingHandPose}:1.15)`
+                    `(holding ${primaryProp}:${(propWeight - 0.03).toFixed(2)})`,
+                    `(${matchingHandPose}:${handWeight.toFixed(2)})`
                 );
-                appliedFixes.push(`Menyeimbangkan prop dan pose tangan: '((holding ${primaryProp}:1.25))' + '(${matchingHandPose}:1.15)'.`);
+                appliedFixes.push(`Menyeimbangkan prop dan pose tangan stabil: '(holding ${primaryProp}:${(propWeight - 0.03).toFixed(2)})' + '(${matchingHandPose}:${handWeight.toFixed(2)})'.`);
             }
         }
     }
@@ -748,13 +757,20 @@ export function fixPrompt(
         if (detectedProps.length > 0) {
             detectedProps.forEach((p) => {
                 const missingPropGuard = `missing ${p}`;
+                const droppedPropGuard = `dropped ${p}`;
                 if (!lowerNeg.includes(missingPropGuard) && !guardsToAdd.includes(missingPropGuard)) {
                     guardsToAdd.push(missingPropGuard);
                 }
+                if (!lowerNeg.includes(droppedPropGuard) && !guardsToAdd.includes(droppedPropGuard)) {
+                    guardsToAdd.push(droppedPropGuard);
+                }
             });
-            if (!lowerNeg.includes("holding behind back") && !guardsToAdd.includes("holding behind back")) {
-                guardsToAdd.push("holding behind back");
-            }
+            const antiReversion = ["holding behind back", "holding at side", "empty hands", "hands on hips"];
+            antiReversion.forEach((term) => {
+                if (!lowerNeg.includes(term) && !guardsToAdd.includes(term)) {
+                    guardsToAdd.push(term);
+                }
+            });
         }
 
         if (guardsToAdd.length > 0) {

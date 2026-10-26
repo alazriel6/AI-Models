@@ -1,6 +1,6 @@
 import React from "react";
 
-export type StudioTabKey = "studio" | "canvas" | "tokenizer" | "deconstructor" | "library";
+export type StudioTabKey = "studio" | "canvas" | "tokenizer" | "deconstructor" | "library" | "story";
 
 interface PromptStudioTabsProps {
     activeTab: StudioTabKey;
@@ -122,6 +122,25 @@ export const PromptStudioTabs: React.FC<PromptStudioTabsProps> = ({
                 <span className="studio-mode-title">Character &amp; Presets</span>
                 <span className="studio-tab-badge presets">
                     {presetCount > 0 ? `${presetCount} preset` : "Pustaka"}
+                </span>
+            </button>
+
+            <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "story"}
+                className={`studio-mode-tab-btn ${activeTab === "story" ? "active" : ""}`}
+                onClick={() => onSelectTab("story")}
+            >
+                <span className="studio-mode-tab-icon" aria-hidden="true">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                    </svg>
+                </span>
+                <span className="studio-mode-title">Storyboard &amp; 16 Categories Editor</span>
+                <span className="studio-tab-badge story">
+                    Studio Lab
                 </span>
             </button>
         </div>

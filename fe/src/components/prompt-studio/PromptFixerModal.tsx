@@ -46,6 +46,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
         decoupleSurfaceInteractions: true,
         guardNegativePrompt: true,
         strictChunk1: false,
+        consistencyProfile: "stable",
     });
 
     const [activeTab, setActiveTab] = useState<"fixed" | "diff" | "original">("fixed");
@@ -271,6 +272,29 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                             <span className="fixer-options-help">Setiap sakelar di bawah bekerja otomatis tanpa merusak isi prompt Anda</span>
                         </div>
 
+                        {/* Consistency Profile Selector */}
+                        <div className="fixer-profile-selector-wrap">
+                            <span className="profile-selector-label">
+                                ⚖️ Profil Konsistensi Bobot (Anti-Randomness ComfyUI):
+                            </span>
+                            <div className="profile-selector-buttons">
+                                <button
+                                    type="button"
+                                    className={`profile-mode-btn ${options.consistencyProfile === "stable" ? "active" : ""}`}
+                                    onClick={() => setOptions({ ...options, consistencyProfile: "stable" })}
+                                >
+                                    🟢 Mode Stabil (1.18x Anti-Burn) · Direkomendasikan
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`profile-mode-btn ${options.consistencyProfile === "aggressive" ? "active" : ""}`}
+                                    onClick={() => setOptions({ ...options, consistencyProfile: "aggressive" })}
+                                >
+                                    ⚡ Mode Agresif (1.25x Boost)
+                                </button>
+                            </div>
+                        </div>
+
                         <div className="fixer-switches-grid">
                             <div className="fixer-switch-item">
                                 <label className="fixer-switch-label">
@@ -375,6 +399,35 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                         <span className="switch-sub">Tambahkan pelindung anti-cacat tangan dan anti-kehilangan objek di Negative Prompt.</span>
                                     </span>
                                 </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ComfyUI Consistency Advisory Card */}
+                    <div className="fixer-comfy-advisory-card">
+                        <div className="advisory-card-header">
+                            <span className="advisory-icon">💡</span>
+                            <div className="advisory-header-text">
+                                <h5>Kunci Hasil 100% Konsisten di ComfyUI (Mencegah Hasil Acak / Kadang Aneh)</h5>
+                                <p>Jika hasil render suka berubah-ubah di ComfyUI padahal prompt awal sama, berikut 4 kunci kestabilannya:</p>
+                            </div>
+                        </div>
+                        <div className="advisory-grid">
+                            <div className="advisory-item">
+                                <span className="advisory-title">1. Turunkan CFG Scale ke 5.0 – 6.0</span>
+                                <p>CFG 7.5 – 8.5 di ComfyUI membuat bobot prompt terbakar (*CFG blowout*) sehingga anatomi tangan rusak di beberapa seed. <strong>Gunakan CFG 5.0 – 6.0</strong>.</p>
+                            </div>
+                            <div className="advisory-item">
+                                <span className="advisory-title">2. Bobot Tunggal Terkalibrasi (1.18x)</span>
+                                <p>Sistem ini sekarang menggunakan bobot tunggal <code>(holding ...:1.18)</code> tanpa menumpuk kurung ganda agar attention vector tidak meledak.</p>
+                            </div>
+                            <div className="advisory-item">
+                                <span className="advisory-title">3. Sampler &amp; Scheduler Rekomendasi</span>
+                                <p>Gunakan sampler <code>dpmpp_2m</code> dengan <code>karras</code> (28–32 steps) atau <code>euler_ancestral</code>.</p>
+                            </div>
+                            <div className="advisory-item">
+                                <span className="advisory-title">4. Kunci Seed Saat Menemukan Gambar Bagus</span>
+                                <p>Ubah KSampler dari <code>randomize</code> ke <code>fixed</code>. Gunakan <code>extra_seed</code> variation 0.15 jika ingin sedikit variasi tanpa merusak pose.</p>
                             </div>
                         </div>
                     </div>

@@ -23,6 +23,7 @@ const NegativeVault = lazy(() => import('./components/pages/NegativeVault'));
 const SamplerGuide = lazy(() => import('./components/pages/SamplerGuide'));
 const ControlNetStudio = lazy(() => import('./components/pages/ControlNetStudio'));
 const VramProfiler = lazy(() => import('./components/pages/VramProfiler'));
+const ComfyTelemetry = lazy(() => import('./components/pages/ComfyTelemetry'));
 
 function PageLoadingFallback() {
   return (
@@ -173,7 +174,7 @@ function AppLayout() {
   };
 
   const isHomePage = location.pathname === '/';
-  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/vram', '/vram-profiler', '/vram-calculator', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor'].includes(location.pathname);
+  const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/vram', '/vram-profiler', '/vram-calculator', '/telemetry', '/comfy-telemetry', '/benchmark', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor', '/story-merger', '/character-lock', '/prompt-merger'].includes(location.pathname);
 
   return (
     <div className="main-app">  
@@ -386,6 +387,22 @@ function AppLayout() {
                 </NavLink>
 
                 <NavLink
+                  to="/telemetry"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">ComfyUI Telemetry &amp; Benchmark</span>
+                    <span className="nav-tool-desc">Live execution, VRAM offload analyzer &amp; records</span>
+                  </span>
+                </NavLink>
+
+                <NavLink
                   to="/negative-vault"
                   className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
                   onClick={closeMobileMenu}
@@ -440,6 +457,23 @@ function AppLayout() {
                     <span className="nav-tool-desc">18-Joint skeleton editor &amp; preprocessor labs</span>
                   </span>
                 </NavLink>
+
+                <NavLink
+                  to="/story-merger"
+                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
+                  onClick={closeMobileMenu}
+                >
+                  <span className="nav-tool-icon-box" aria-hidden="true">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <span className="nav-tool-info">
+                    <span className="nav-tool-name">Character Lock &amp; Story Merger</span>
+                    <span className="nav-tool-desc">Deterministic 6-slot prompt merger &amp; storyboard scene presets</span>
+                  </span>
+                </NavLink>
               </div>
             </li>
 
@@ -485,6 +519,10 @@ function AppLayout() {
             <Route path="/deconstructor" element={<AnimePromptStudio />} />
             <Route path="/workflows" element={<ComfyWorkflows />} />
             <Route path="/comfyui" element={<ComfyWorkflows />} />
+            <Route path="/telemetry" element={<ComfyTelemetry />} />
+            <Route path="/comfy-telemetry" element={<ComfyTelemetry />} />
+            <Route path="/benchmark" element={<ComfyTelemetry />} />
+            <Route path="/benchmarks" element={<ComfyTelemetry />} />
             <Route path="/negative-vault" element={<NegativeVault />} />
             <Route path="/negative-prompt" element={<NegativeVault />} />
             <Route path="/embeddings" element={<NegativeVault />} />
@@ -494,6 +532,9 @@ function AppLayout() {
             <Route path="/controlnet" element={<ControlNetStudio />} />
             <Route path="/openpose" element={<ControlNetStudio />} />
             <Route path="/preprocessor" element={<ControlNetStudio />} />
+            <Route path="/story-merger" element={<PromptLab defaultTab="story" />} />
+            <Route path="/character-lock" element={<PromptLab defaultTab="story" />} />
+            <Route path="/prompt-merger" element={<PromptLab defaultTab="story" />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/admin" element={<AdminDashboard />} />

@@ -40,6 +40,7 @@ import { BooruAutocompleteInput } from "../common/BooruAutocompleteInput";
 import { ClipChunkVisualizer } from "../prompt-studio/ClipChunkVisualizer";
 import { tokenizeClipPrompt } from "../../utils/clipTokenizer";
 import { PromptFixerModal } from "../prompt-studio/PromptFixerModal";
+import { StorytellerMergerView } from "../prompt-studio/StorytellerMergerView";
 
 // SVG Technical Icons (No AI Slop)
 const Icons = {
@@ -469,7 +470,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         try {
             const params = new URLSearchParams(window.location.search);
             const tabParam = params.get("tab") as StudioTabKey;
-            if (tabParam && ["studio", "canvas", "tokenizer", "deconstructor", "library"].includes(tabParam)) {
+            if (tabParam && ["studio", "canvas", "tokenizer", "deconstructor", "library", "story"].includes(tabParam)) {
                 return tabParam;
             }
         } catch {
@@ -487,6 +488,13 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         } catch {
             // ignore
         }
+        // Scroll tab bar and container into view to guarantee top content is never cut off
+        requestAnimationFrame(() => {
+            const tabEl = document.querySelector(".studio-mode-tab-bar");
+            if (tabEl) {
+                tabEl.scrollIntoView({ behavior: "smooth", block: "start" });
+            }
+        });
     };
 
     // 10-Layer Modular Studio State
@@ -4776,6 +4784,26 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                 </div>
             )}
 
+
+            {/* TAB 6: STORYTELLER & STYLE MERGER */}
+            {studioTab === "story" && (
+                <StorytellerMergerView
+                    onApplyToCanvas={(fixedPos, fixedNeg) => {
+                        handleTakeSnapshot("Before Story Merger");
+                        setPositivePrompt(fixedPos);
+                        setNegativePrompt(fixedNeg);
+                        const { buckets, lora } = deconstructPromptText(fixedPos);
+                        setCategoryInputs(buckets);
+                        if (lora) {
+                            setLoraName(lora.name);
+                            setLoraWeight(lora.weight);
+                            setLoraEnabled(true);
+                        }
+                    }}
+                    showToast={showToast}
+                    activeCheckpointName={activeCheckpoint?.name}
+                />
+            )}
 
             {/* PROMPT FIX & AUTO-ALIGN MODAL */}
             <PromptFixerModal

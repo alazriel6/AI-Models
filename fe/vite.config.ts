@@ -14,6 +14,12 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      '/comfy-proxy': {
+        target: 'http://127.0.0.1:8188',
+        changeOrigin: true,
+        rewrite: (path: string) => path.replace(/^\/comfy-proxy/, ''),
+        ws: true,
+      },
     },
   },
   build: {
