@@ -1,30 +1,231 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import "../../style/StorytellerMerger.css";
 import type {
-    AttributeCategory,
-    CharacterProfile,
     LockConfiguration,
     MainSceneMergeResult,
-    MergeMode,
-    PromptAttribute,
-    StoryScene,
 } from "../../types/storyMerger";
 import { ATTRIBUTE_CATEGORIES } from "../../types/storyMerger";
 import {
-    analyzePromptWithAI,
-    createEmptyParsedAttributes,
-    extractTagWeight,
     parsePromptLocal,
+    tokenizeRawPrompt,
 } from "../../services/promptParserService";
 import {
     createDefaultLocks,
 } from "../../services/semanticComparator";
 import {
-    compileScenePrompt,
     mergeMainAndScenePrompt,
 } from "../../services/smartPromptMerger";
-import { DeterministicMergerView } from "./DeterministicMergerView";
-import { PromptMatrixStudioLab } from "../prompt-matrix/PromptMatrixStudioLab";
+import {
+    getLearnedTags,
+    isAutoLearnEnabled,
+    setAutoLearnEnabled,
+    registerNewVocabularyTag,
+    isKnownBooruTag,
+    inferTagCategoryAndLayer,
+    type LearnedTag,
+} from "../../services/smartTagDetector";
+import type { BooruTagCategory } from "../../data/booruTags";
+import type { AttributeCategory } from "../../types/storyMerger";
+
+export interface StorySceneItem {
+    id: string;
+    title: string;
+    prompt2: string;
+    keepSameLocation: boolean;
+    notes?: string;
+}
+
+export interface StoryPreset {
+    id: string;
+    name: string;
+    characterProfileName: string;
+    mainPrompt: string;
+    mainNegative: string;
+    scenes: StorySceneItem[];
+}
+
+// -----------------------------------------------------------------------------
+// CANONICAL PRESETS FOR MULTI-SCENE CONTINUOUS STORYTELLING
+// -----------------------------------------------------------------------------
+
+export const RIO_MAIN_PROMPT_DEFAULT =
+    "masterpiece, best quality, (anime coloring:1.15), 1girl, solo, tsukatsuki rio, red halo, red polka dot headband, black hair, elegant updo bun, blunt bangs, red eyes, blush, dark red halter dress, backless sleeveless mini dress, white buckle belt, black sheer thighhighs, holding blue folder, standing in classroom, wooden desks, window sunlight, soft shadows, anime style, clean lineart, rich cel shading";
+
+export const RIO_SCENE2_PROMPT_DEFAULT =
+    "walking through doorway, classroom door, hand on doorframe, looking at viewer, calm expression, medium shot";
+
+const STORY_PRESETS: StoryPreset[] = [
+    {
+        id: "preset-rio",
+        name: "🏫 Rio Tsukatsuki — Kehidupan Sekolah (Ruang Kelas -> Pintu -> Halaman Sakura -> Rooftop)",
+        characterProfileName: "Tsukatsuki Rio (Master Profile)",
+        mainPrompt: RIO_MAIN_PROMPT_DEFAULT,
+        mainNegative:
+            "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra limbs, deformed limbs, blurry, (3d, realistic, photorealistic:1.2), washed out colors, overexposed, underexposed, inconsistent lighting, deformed halo, broken accessories",
+        scenes: [
+            {
+                id: "rio-scene-1",
+                title: "Scene 1: Di Ruang Kelas (Anchor Awal)",
+                prompt2: "standing in classroom, wooden desks, holding blue folder against chest, looking at viewer, gentle smile, window sunlight",
+                keepSameLocation: true,
+                notes: "Pengenalan karakter di dalam ruang kelas dengan map biru.",
+            },
+            {
+                id: "rio-scene-2",
+                title: "Scene 2: Berjalan Melewati Pintu Kelas",
+                prompt2: "walking through doorway, classroom door, hand on doorframe, looking back, calm expression, medium shot",
+                keepSameLocation: true,
+                notes: "Rio melangkah keluar pintu kelas sambil menoleh ke belakang.",
+            },
+            {
+                id: "rio-scene-3",
+                title: "Scene 3: Halaman Sekolah di Bawah Pohon Sakura",
+                prompt2: "walking outdoors, school courtyard, large cherry blossom tree, falling petals, soft smile, wind blowing hair, wide angle",
+                keepSameLocation: false,
+                notes: "Pindah ke luar ruangan: Latar berganti pohon sakura dan kelopak berjatuhan.",
+            },
+            {
+                id: "rio-scene-4",
+                title: "Scene 4: Balkon Rooftop Menatap Senja",
+                prompt2: "leaning against railing, school rooftop, looking at sunset sky, twilight golden hour lighting, peaceful thoughtful gaze, cowboy shot",
+                keepSameLocation: false,
+                notes: "Adegan penutup sore hari di atap sekolah dengan pencahayaan golden hour.",
+            },
+        ],
+    },
+    {
+        id: "preset-cyberpunk",
+        name: "🌃 Cyberpunk Operative — Misi Malam (Rooftop Neon -> Gang Gelap -> Terminal Data)",
+        characterProfileName: "Valerie — Cyber Agent (Master Profile)",
+        mainPrompt:
+            "masterpiece, best quality, 1girl, solo, short neon cyan hair, asymmetric bob cut, glowing amber eyes, serious expression, cyberpunk tactical jacket, black high-collar bodysuit, luminous tech visor on forehead, fingerless gloves, cybernetic arm, neon rim lighting, cinematic shadows, futuristic anime aesthetic, sharp lineart",
+        mainNegative:
+            "worst quality, low quality, bad anatomy, bad hands, blurry, washed out, (3d, realistic:1.2), broken cybernetics, oversaturated face",
+        scenes: [
+            {
+                id: "cyber-scene-1",
+                title: "Scene 1: Mengawasi dari Atas Rooftop Gedung",
+                prompt2: "standing on edge of high skyscraper rooftop, observing neon cyberpunk city below, hand pressing wireless earpiece, cold wind blowing hair, wide shot, distant flying cars",
+                keepSameLocation: false,
+                notes: "Pengintaian target dari ketinggian gedung kota masa depan.",
+            },
+            {
+                id: "cyber-scene-2",
+                title: "Scene 2: Menyusup ke Gang Gelap Berhujan",
+                prompt2: "walking cautiously, dark wet alleyway, puddles on asphalt reflecting neon signs, steam rising from sewer grates, hand on holster, low angle shot",
+                keepSameLocation: false,
+                notes: "Bergerak senyap di gang basah berkabut.",
+            },
+            {
+                id: "cyber-scene-3",
+                title: "Scene 3: Membobol Terminal Server Hologram",
+                prompt2: "kneeling by glowing blue holographic server terminal, typing on virtual keyboard, data stream reflections in amber eyes, focused expression, close-up shot",
+                keepSameLocation: false,
+                notes: "Interaksi dengan terminal hologram untuk mencuri data misi.",
+            },
+        ],
+    },
+    {
+        id: "preset-fantasy",
+        name: "🏰 Fantasy Elf Mage — Petualangan Sihir (Perpustakaan -> Hutan Mistis -> Balkon Kastil)",
+        characterProfileName: "Sylvia Elf Sorceress (Master Profile)",
+        mainPrompt:
+            "masterpiece, best quality, 1girl, solo, elven mage, long silver hair, braided twintails, pointed elf ears, emerald green eyes, ornate emerald sorceress robe, gold embroidered corset, white ruffled skirt, magic crystal pendant, anime illustration, clean lineart, rich cel shading, glowing arcane particles",
+        mainNegative:
+            "worst quality, low quality, bad anatomy, bad hands, extra ears, broken staff, blurry, (3d, photorealistic:1.2)",
+        scenes: [
+            {
+                id: "mage-scene-1",
+                title: "Scene 1: Membaca Kitab Kuno di Perpustakaan",
+                prompt2: "sitting at antique wooden desk, reading ancient spellbook, quill and parchment, warm candlelight, quiet cathedral library shelves, serene gentle smile",
+                keepSameLocation: false,
+                notes: "Mempelajari mantra kuno di perpustakaan kastil.",
+            },
+            {
+                id: "mage-scene-2",
+                title: "Scene 2: Merapalkan Sihir di Hutan Mistis",
+                prompt2: "casting nature magic spell, floating green light orbs, hand reaching forward, dynamic wind blowing robe, magical enchanted forest, giant glowing ancient trees, determined gaze",
+                keepSameLocation: false,
+                notes: "Menembakkan mantra di tengah hutan bercahaya.",
+            },
+            {
+                id: "mage-scene-3",
+                title: "Scene 3: Berdiri di Balkon Kastil Memandang Lembah",
+                prompt2: "standing on stone castle balcony, overlooking vast misty mountain valley, gentle morning sunlight, soft breeze, looking towards horizon, cowboy shot",
+                keepSameLocation: false,
+                notes: "Pemandangan megah dari atas balkon istana di pagi hari.",
+            },
+        ],
+    },
+];
+
+// Quick Tag Inspiration Dictionary
+const INSPIRATION_TAGS: Record<"pose" | "background" | "expression" | "camera", string[]> = {
+    pose: [
+        "standing in doorway",
+        "walking through doorway",
+        "walking forward",
+        "sitting at wooden desk",
+        "leaning against wall",
+        "leaning against railing",
+        "looking over shoulder",
+        "reaching hand out",
+        "running forward",
+        "crossed arms",
+        "hands behind back",
+        "holding against chest",
+        "hand on doorframe",
+        "hand on hip",
+        "relaxed sitting pose",
+        "crouching low",
+    ],
+    background: [
+        "classroom door",
+        "school hallway",
+        "wooden desks and chairs",
+        "school window",
+        "school courtyard",
+        "cherry blossom tree",
+        "falling petals",
+        "sunset rooftop",
+        "rainy city street",
+        "cozy cafe interior",
+        "library bookshelves",
+        "bedroom window",
+        "stone castle balcony",
+        "magical forest",
+        "night neon city",
+    ],
+    expression: [
+        "calm expression",
+        "gentle smile",
+        "serious expression",
+        "blushing cheeks",
+        "surprised eyes",
+        "looking at viewer",
+        "looking away",
+        "side glance",
+        "closed eyes smile",
+        "subtle smirk",
+        "determined gaze",
+        "pensive thoughtful gaze",
+        "shy expression",
+    ],
+    camera: [
+        "medium shot",
+        "cowboy shot",
+        "close up face",
+        "upper body",
+        "full body shot",
+        "from below",
+        "from above",
+        "wide establishing shot",
+        "three-quarter view",
+        "dutch angle",
+        "depth of field",
+        "cinematic framing",
+    ],
+};
 
 interface StorytellerMergerViewProps {
     onApplyToCanvas: (positive: string, negative: string) => void;
@@ -32,19 +233,10 @@ interface StorytellerMergerViewProps {
     activeCheckpointName?: string;
 }
 
-// Case study: Rio Tsukatsuki classroom scene
-export const RIO_MAIN_PROMPT_DEFAULT =
-    "masterpiece, best quality, (anime coloring:1.15), 1girl, solo, tsukatsuki rio, red halo, red polka dot headband, black hair, elegant updo bun, blunt bangs, red eyes, blush, dark red halter dress, backless sleeveless mini dress, white buckle belt, black sheer thighhighs, holding blue folder, standing in classroom, wooden desks, window sunlight, soft shadows, anime style, clean lineart, rich cel shading";
-
-export const RIO_SCENE2_PROMPT_DEFAULT =
-    "1girl, walking through doorway, classroom door, hand on doorframe, looking at viewer, calm expression";
-
-const USER_EXAMPLE_PROMPT = RIO_MAIN_PROMPT_DEFAULT;
-
-let globalIdCounter = 0;
-function createUniqueId(prefix = "scene"): string {
-    globalIdCounter++;
-    return `${prefix}-${globalIdCounter}`;
+let sceneCounter = 100;
+function generateSceneId(): string {
+    sceneCounter++;
+    return `scene-${Date.now().toString(36)}-${sceneCounter}`;
 }
 
 export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
@@ -52,108 +244,205 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
     showToast,
     activeCheckpointName,
 }) => {
-    // 1. Navigation Mode (Defaults to Prompt Matrix & Studio Lab 16 Categories)
-    const [viewMode, setViewMode] = useState<"matrix_studio" | "deterministic" | "workflow_b" | "workflow_a" | "comfy_guide">("matrix_studio");
+    // -------------------------------------------------------------------------
+    // 1. MASTER STATE (PRESET, PROMPT 1 & SCENES)
+    // -------------------------------------------------------------------------
+    const [selectedPresetId, setSelectedPresetId] = useState<string>("preset-rio");
+    const [characterProfileName, setCharacterProfileName] = useState<string>("Tsukatsuki Rio (Master Profile)");
+    const [mainPrompt, setMainPrompt] = useState<string>(RIO_MAIN_PROMPT_DEFAULT);
+    const [mainNegative, setMainNegative] = useState<string>(
+        "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra limbs, deformed limbs, blurry, (3d, realistic, photorealistic:1.2), washed out colors, overexposed, underexposed, inconsistent lighting, deformed halo, broken accessories"
+    );
 
-    // 2. Workflow A (Single Source Prompt / Storyboard) State
-    const [rawInputPrompt, setRawInputPrompt] = useState<string>("");
-    const [rawInputNegative, setRawInputNegative] = useState<string>("");
-    const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
-    const [providerNotice, setProviderNotice] = useState<string | null>(null);
+    // Lock toggles (User-friendly granularity)
+    const [lockCharacter, setLockCharacter] = useState<boolean>(true);
+    const [lockOutfit, setLockOutfit] = useState<boolean>(true);
+    const [lockLighting, setLockLighting] = useState<boolean>(true);
+    const [lockArtStyle, setLockArtStyle] = useState<boolean>(true);
 
-    // Master Character Profile & Lock State
-    const [activeLocks, setActiveLocks] = useState<LockConfiguration>(createDefaultLocks());
-    const [characterProfile, setCharacterProfile] = useState<CharacterProfile>({
-        id: "profile-master",
-        name: "Tsukatsuki Rio Profile",
-        sourcePrompt: RIO_MAIN_PROMPT_DEFAULT,
-        sharedAttributes: parsePromptLocal(RIO_MAIN_PROMPT_DEFAULT),
-        locks: createDefaultLocks(),
-        updatedAt: 0,
-    });
+    // Scenes list
+    const [scenes, setScenes] = useState<StorySceneItem[]>(() => STORY_PRESETS[0].scenes);
+    const [activeSceneId, setActiveSceneId] = useState<string>(() => STORY_PRESETS[0].scenes[1]?.id || STORY_PRESETS[0].scenes[0].id);
 
-    // Storyboard Scenes List
-    const [scenes, setScenes] = useState<StoryScene[]>([
-        {
-            id: "scene-1",
-            title: "Scene 1: Di Ruang Kelas (Main Anchor)",
-            rawPrompt: RIO_MAIN_PROMPT_DEFAULT,
-            parsedAttributes: parsePromptLocal(RIO_MAIN_PROMPT_DEFAULT),
-            sceneSpecificAttributes: parsePromptLocal(RIO_MAIN_PROMPT_DEFAULT),
-            locks: createDefaultLocks(),
-            generatedPositive: RIO_MAIN_PROMPT_DEFAULT,
-            generatedNegative: "worst quality, low quality, bad anatomy, bad hands, blurry",
-            warnings: [],
-            order: 0,
-        },
-    ]);
-    const [activeSceneId, setActiveSceneId] = useState<string>("scene-1");
-    const [mergeMode, setMergeMode] = useState<MergeMode>("smart");
+    // Quick tag inspiration category tab
+    const [activeInspCategory, setActiveInspCategory] = useState<"pose" | "background" | "expression" | "camera">("pose");
 
-    // Quick tag addition state per category: record of input text
-    const [quickTagInputs, setQuickTagInputs] = useState<Record<string, string>>({});
+    // Collapsible ComfyUI Guide card
+    const [showComfyGuide, setShowComfyGuide] = useState<boolean>(false);
 
-    // 3. Workflow B (Prompt 1 Main + Prompt 2 Tambahan Scene Merger) State
-    const [comparePrompt1, setComparePrompt1] = useState<string>(RIO_MAIN_PROMPT_DEFAULT);
-    const [comparePrompt2, setComparePrompt2] = useState<string>(RIO_SCENE2_PROMPT_DEFAULT);
-    const [compareNegative1, setCompareNegative1] = useState<string>("");
-    const [compareNegative2, setCompareNegative2] = useState<string>("");
-
-    // Merger Toggles
-    const [lockLightingColoring, setLockLightingColoring] = useState<boolean>(true);
-    const [keepSameLocation, setKeepSameLocation] = useState<boolean>(true);
-    const [strictDedup, setStrictDedup] = useState<boolean>(true);
-
-    // Compiled Merged Result (Lazy initialized with Rio classroom case study)
-    const [mergedResult, setMergedResult] = useState<MainSceneMergeResult | null>(() => {
-        try {
-            return mergeMainAndScenePrompt(
-                RIO_MAIN_PROMPT_DEFAULT,
-                RIO_SCENE2_PROMPT_DEFAULT,
-                "",
-                "",
-                {
-                    locks: { ...createDefaultLocks(), lighting: true },
-                    keepSameBackground: true,
-                    mergeMode: "smart",
-                }
-            );
-        } catch {
-            return null;
-        }
-    });
-
-    // 4. Copied feedback key
+    // Copied feedback indicator
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-    // Ref to container for scroll management
-    const containerRef = useRef<HTMLDivElement | null>(null);
+    // Smart Tag & Danbooru Database Auto-Learn State
+    const [autoLearn, setAutoLearn] = useState<boolean>(() => isAutoLearnEnabled());
+    const [learnedTagsList, setLearnedTagsList] = useState<LearnedTag[]>(() => getLearnedTags());
+    const [showAddTagModal, setShowAddTagModal] = useState<boolean>(false);
+    const [showManageDrawer, setShowManageDrawer] = useState<boolean>(false);
 
-    // Auto-scroll on mount to ensure top content is never cut off
+    // Form states for manual tag creation
+    const [formTagName, setFormTagName] = useState<string>("");
+    const [formCategory, setFormCategory] = useState<BooruTagCategory>("general");
+    const [formLayer, setFormLayer] = useState<string>("lighting");
+    const [formAttrCat, setFormAttrCat] = useState<AttributeCategory>("lighting");
+    const [formDesc, setFormDesc] = useState<string>("");
+    const [isSavingCustomTag, setIsSavingCustomTag] = useState<boolean>(false);
+
+    const handleToggleAutoLearn = () => {
+        const next = !autoLearn;
+        setAutoLearn(next);
+        setAutoLearnEnabled(next);
+        showToast(
+            next
+                ? "✓ Auto-Simpan Kosa Kata Baru ke Database (PostgreSQL) DIAKTIFKAN"
+                : "Auto-Simpan dinonaktifkan (Mode Manual)"
+        );
+    };
+
+    const handleSaveTagManual = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formTagName.trim()) {
+            showToast("Nama tag tidak boleh kosong.");
+            return;
+        }
+
+        try {
+            setIsSavingCustomTag(true);
+            const saved = await registerNewVocabularyTag(formTagName.trim(), {
+                overrideCategory: formAttrCat,
+                overrideLayer: formLayer,
+                description: formDesc.trim() || undefined,
+                source: "manual",
+            });
+            setLearnedTagsList(getLearnedTags());
+            showToast(`✓ Tag "${saved.name}" berhasil disimpan ke database!`);
+            setShowAddTagModal(false);
+            setFormTagName("");
+            setFormDesc("");
+        } catch (err: any) {
+            showToast(`Gagal menyimpan tag: ${err?.message || err}`);
+        } finally {
+            setIsSavingCustomTag(false);
+        }
+    };
+
+    // Container Ref for smooth scroll
+    const containerRef = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         if (containerRef.current) {
             containerRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
         }
     }, []);
 
-    // Active Scene selector
+    // Active Scene object
     const activeScene = useMemo(() => {
         return scenes.find((s) => s.id === activeSceneId) || scenes[0];
     }, [scenes, activeSceneId]);
 
-    // Count of locked vs unlocked categories
-    const lockStats = useMemo(() => {
-        let lockedCount = 0;
-        let unlockedCount = 0;
-        ATTRIBUTE_CATEGORIES.forEach((cat) => {
-            if (activeLocks[cat.key]) lockedCount++;
-            else unlockedCount++;
-        });
-        return { lockedCount, unlockedCount };
-    }, [activeLocks]);
+    const activeSceneIndex = useMemo(() => {
+        const idx = scenes.findIndex((s) => s.id === activeSceneId);
+        return idx >= 0 ? idx : 0;
+    }, [scenes, activeSceneId]);
 
-    // Handle Copy Helper
-    const handleCopy = (text: string, key: string, msg = "✓ Berhasil disalin ke clipboard!") => {
+    // Active Lock Configuration derived from toggles
+    const activeLocks: LockConfiguration = useMemo(() => {
+        const def = createDefaultLocks();
+        return {
+            ...def,
+            character_identity: lockCharacter,
+            physical_appearance: lockCharacter,
+            hair: lockCharacter,
+            eyes: lockCharacter,
+            outfit: lockOutfit,
+            accessories: lockOutfit,
+            lighting: lockLighting,
+            art_style: lockArtStyle,
+            quality: true,
+            negative: true,
+            pose: false,
+            action: false,
+            expression: false,
+            objects: false,
+            background: false,
+            camera: false,
+        };
+    }, [lockCharacter, lockOutfit, lockLighting, lockArtStyle]);
+
+    // Auto-parsed DNA attributes from Prompt 1 (Master Anchor)
+    const parsedMainAttributes = useMemo(() => {
+        return parsePromptLocal(mainPrompt, mainNegative);
+    }, [mainPrompt, mainNegative]);
+
+    // Live Real-Time Merged Scene Compilation
+    const mergedResult: MainSceneMergeResult | null = useMemo(() => {
+        if (!mainPrompt.trim()) return null;
+        try {
+            return mergeMainAndScenePrompt(
+                mainPrompt,
+                activeScene ? activeScene.prompt2 : "",
+                mainNegative,
+                "",
+                {
+                    locks: activeLocks,
+                    keepSameBackground: activeScene ? activeScene.keepSameLocation : true,
+                    mergeMode: "smart",
+                }
+            );
+        } catch (err) {
+            console.error("[StorytellerMergerView] Merge calculation error:", err);
+            return null;
+        }
+    }, [mainPrompt, activeScene, mainNegative, activeLocks]);
+
+    // Live Semantic & Danbooru Tag Intelligence
+    const detectedVocabulary = useMemo(() => {
+        const allTokens = [
+            ...tokenizeRawPrompt(mainPrompt),
+            ...(activeScene ? tokenizeRawPrompt(activeScene.prompt2) : []),
+        ];
+
+        const seenClean = new Set<string>();
+        const knownTags: string[] = [];
+        const newLearnedTags: Array<{ clean: string; category: AttributeCategory; source: string; isDb: boolean }> = [];
+
+        allTokens.forEach((tok) => {
+            const clean = tok.replace(/^\(+/, "").replace(/\)+$/, "").replace(/:[0-9.]+$/, "").trim().toLowerCase();
+            if (!clean || seenClean.has(clean)) return;
+            seenClean.add(clean);
+
+            const check = isKnownBooruTag(clean);
+            if (check.isKnown) {
+                if (check.source === "learned") {
+                    const l = check.item as LearnedTag;
+                    newLearnedTags.push({
+                        clean,
+                        category: l.attributeCategory,
+                        source: "Tersimpan di DB",
+                        isDb: true,
+                    });
+                } else {
+                    knownTags.push(clean);
+                }
+            } else {
+                const inferred = inferTagCategoryAndLayer(clean);
+                newLearnedTags.push({
+                    clean,
+                    category: inferred.attributeCategory,
+                    source: "Terdeteksi Baru (Auto-Add)",
+                    isDb: autoLearn,
+                });
+            }
+        });
+
+        return {
+            totalAnalyzed: seenClean.size,
+            knownCount: knownTags.length,
+            newCount: newLearnedTags.length,
+            newLearnedTags,
+        };
+    }, [mainPrompt, activeScene, autoLearn, learnedTagsList]);
+
+    // Copy helper with animated feedback
+    const handleCopy = (text: string, key: string, msg: string) => {
         if (!text.trim()) return;
         navigator.clipboard.writeText(text);
         setCopiedKey(key);
@@ -161,486 +450,168 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
         setTimeout(() => setCopiedKey(null), 1800);
     };
 
-    // --------------------------------------------------------------------------
-    // WORKFLOW A: INTELLIGENT RAW PROMPT PARSER
-    // --------------------------------------------------------------------------
-    const handleAnalyzeRawPrompt = async (targetText?: string) => {
-        const textToAnalyze = targetText !== undefined ? targetText : rawInputPrompt;
-        if (!textToAnalyze.trim()) {
-            showToast("Masukkan prompt terlebih dahulu untuk dianalisis!");
+    // -------------------------------------------------------------------------
+    // PRESET & RESET HANDLERS
+    // -------------------------------------------------------------------------
+    const handleSelectPreset = (presetId: string) => {
+        setSelectedPresetId(presetId);
+        if (presetId === "custom") {
+            setCharacterProfileName("Karakter Kustom");
+            setMainPrompt("");
+            setScenes([
+                {
+                    id: generateSceneId(),
+                    title: "Scene 1: Adegan Awal",
+                    prompt2: "",
+                    keepSameLocation: true,
+                    notes: "Tulis pose dan latar untuk scene pertama.",
+                },
+            ]);
+            setActiveSceneId(scenes[0]?.id || "scene-1");
+            showToast("Memulai template cerita kustom kosong.");
             return;
         }
 
-        setIsAnalyzing(true);
-        setProviderNotice(null);
-
-        try {
-            const { parsed, providerUsed, error } = await analyzePromptWithAI(
-                textToAnalyze,
-                rawInputNegative
-            );
-
-            // Update character profile with parsed shared attributes
-            setCharacterProfile((prev) => ({
-                ...prev,
-                sourcePrompt: textToAnalyze,
-                sharedAttributes: parsed,
-                updatedAt: Date.now(),
-            }));
-
-            // Compile active scene using parsed attributes
-            const baseScene: StoryScene = {
-                ...activeScene,
-                rawPrompt: textToAnalyze,
-                parsedAttributes: parsed,
-                sceneSpecificAttributes: parsed,
-            };
-
-            const compiled = compileScenePrompt(
-                { ...characterProfile, sharedAttributes: parsed },
-                baseScene,
-                mergeMode,
-                activeLocks
-            );
-
-            const finalizedScene: StoryScene = {
-                ...baseScene,
-                generatedPositive: compiled.positive,
-                generatedNegative: compiled.negative,
-                warnings: compiled.warnings,
-            };
-
-            setScenes((prev) =>
-                prev.map((s) => (s.id === activeSceneId ? finalizedScene : s))
-            );
-
-            if (providerUsed === "local_fallback") {
-                setProviderNotice(
-                    error || "Dianalisis menggunakan Parser Semantik Lokal berkecerdasan tinggi (0 dependensi & instan)."
-                );
-            } else {
-                setProviderNotice(`Dianalisis kontekstual menggunakan AI Provider (${providerUsed.toUpperCase()}).`);
-            }
-
-            showToast("✓ Prompt berhasil dianalisis & dikelompokkan ke 16 kategori!");
-        } catch (err) {
-            console.error("[StorytellerMerger] Parse error:", err);
-            showToast("Gagal menganalisis prompt. Silakan periksa koneksi.");
-        } finally {
-            setIsAnalyzing(false);
+        const preset = STORY_PRESETS.find((p) => p.id === presetId);
+        if (preset) {
+            setCharacterProfileName(preset.characterProfileName);
+            setMainPrompt(preset.mainPrompt);
+            setMainNegative(preset.mainNegative);
+            setScenes(preset.scenes);
+            setActiveSceneId(preset.scenes[1]?.id || preset.scenes[0].id);
+            showToast(`✓ Preset "${preset.name.split("—")[0].trim()}" berhasil dimuat!`);
         }
     };
 
-    // Reset fields to empty
-    const handleResetFields = () => {
-        setRawInputPrompt("");
-        setRawInputNegative("");
-        const empty = createEmptyParsedAttributes();
-        setCharacterProfile((prev) => ({
-            ...prev,
-            sourcePrompt: "",
-            sharedAttributes: empty,
-        }));
-        setScenes((prev) =>
-            prev.map((s) =>
-                s.id === activeSceneId
-                    ? {
-                          ...s,
-                          rawPrompt: "",
-                          parsedAttributes: empty,
-                          sceneSpecificAttributes: empty,
-                          generatedPositive: "",
-                          generatedNegative: "",
-                          warnings: [],
-                      }
-                    : s
-            )
-        );
-        setProviderNotice(null);
-        showToast("Semua field dikembalikan ke keadaan kosong.");
+    const handleResetStory = () => {
+        handleSelectPreset("preset-rio");
+        showToast("↺ Cerita dikembalikan ke contoh utama Rio Tsukatsuki.");
     };
 
-    // Load canonical example prompt
-    const handleLoadExample = () => {
-        setRawInputPrompt(USER_EXAMPLE_PROMPT);
-        handleAnalyzeRawPrompt(USER_EXAMPLE_PROMPT);
-    };
-
-    // --------------------------------------------------------------------------
-    // LOCK CONTROLS
-    // --------------------------------------------------------------------------
-    const handleToggleCategoryLock = (cat: AttributeCategory) => {
-        const next = !activeLocks[cat];
-        const newLocks = { ...activeLocks, [cat]: next };
-        setActiveLocks(newLocks);
-
-        // Recompile storyboard scenes with new lock rules
-        setScenes((prev) =>
-            prev.map((s) => {
-                const res = compileScenePrompt(characterProfile, s, mergeMode, newLocks);
-                return {
-                    ...s,
-                    locks: newLocks,
-                    generatedPositive: res.positive,
-                    generatedNegative: res.negative,
-                    warnings: res.warnings,
-                };
-            })
-        );
-    };
-
-    const handleLockAll = () => {
-        const newLocks = {} as LockConfiguration;
-        ATTRIBUTE_CATEGORIES.forEach((cat) => {
-            newLocks[cat.key] = true;
-        });
-        newLocks.negative = true;
-        setActiveLocks(newLocks);
-        recompileAllScenes(characterProfile, newLocks, mergeMode);
-        showToast("🔒 Seluruh kategori dikunci (Locked).");
-    };
-
-    const handleUnlockAll = () => {
-        const newLocks = {} as LockConfiguration;
-        ATTRIBUTE_CATEGORIES.forEach((cat) => {
-            newLocks[cat.key] = false;
-        });
-        newLocks.negative = false;
-        setActiveLocks(newLocks);
-        recompileAllScenes(characterProfile, newLocks, mergeMode);
-        showToast("🔓 Seluruh kategori dibuka (Unlocked).");
-    };
-
-    const handleResetLocks = () => {
-        const def = createDefaultLocks();
-        setActiveLocks(def);
-        recompileAllScenes(characterProfile, def, mergeMode);
-        showToast("↺ Konfigurasi lock dikembalikan ke default rekomendasi.");
-    };
-
-    // --------------------------------------------------------------------------
-    // ATTRIBUTE CHIPS: ADD, REMOVE, MOVE
-    // --------------------------------------------------------------------------
-    const handleRemoveTag = (category: AttributeCategory, attributeId: string) => {
-        // Remove from profile
-        const updatedProfileAttrs = {
-            ...characterProfile.sharedAttributes,
-            [category]: characterProfile.sharedAttributes[category].filter(
-                (a) => a.id !== attributeId
-            ),
-        };
-        const updatedProfile = {
-            ...characterProfile,
-            sharedAttributes: updatedProfileAttrs,
-        };
-        setCharacterProfile(updatedProfile);
-
-        // Remove from active scene
-        const updatedSceneAttrs = {
-            ...activeScene.sceneSpecificAttributes,
-            [category]: activeScene.sceneSpecificAttributes[category].filter(
-                (a) => a.id !== attributeId
-            ),
-        };
-        const updatedScene: StoryScene = {
-            ...activeScene,
-            sceneSpecificAttributes: updatedSceneAttrs,
-        };
-
-        const res = compileScenePrompt(updatedProfile, updatedScene, mergeMode, activeLocks);
-        updatedScene.generatedPositive = res.positive;
-        updatedScene.generatedNegative = res.negative;
-        updatedScene.warnings = res.warnings;
-
-        setScenes((prev) =>
-            prev.map((s) => (s.id === activeSceneId ? updatedScene : s))
-        );
-    };
-
-    const handleAddQuickTag = (category: AttributeCategory) => {
-        const text = (quickTagInputs[category] || "").trim();
-        if (!text) return;
-
-        const { cleanText, weight } = extractTagWeight(text);
-        const newAttr: PromptAttribute = {
-            id: `attr-user-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
-            category,
-            text,
-            normalizedValue: cleanText,
-            weight,
-            source: "user",
-        };
-
-        // Add to active scene
-        const updatedSceneAttrs = {
-            ...activeScene.sceneSpecificAttributes,
-            [category]: [...(activeScene.sceneSpecificAttributes[category] || []), newAttr],
-        };
-        const updatedScene: StoryScene = {
-            ...activeScene,
-            sceneSpecificAttributes: updatedSceneAttrs,
-        };
-
-        // Also add to profile if category is locked
-        let updatedProfile = characterProfile;
-        if (activeLocks[category]) {
-            updatedProfile = {
-                ...characterProfile,
-                sharedAttributes: {
-                    ...characterProfile.sharedAttributes,
-                    [category]: [...(characterProfile.sharedAttributes[category] || []), newAttr],
-                },
-            };
-            setCharacterProfile(updatedProfile);
-        }
-
-        const res = compileScenePrompt(updatedProfile, updatedScene, mergeMode, activeLocks);
-        const finalizedScene: StoryScene = {
-            ...updatedScene,
-            generatedPositive: res.positive,
-            generatedNegative: res.negative,
-            warnings: res.warnings,
-        };
-
-        setScenes((prev) =>
-            prev.map((s) => (s.id === activeSceneId ? finalizedScene : s))
-        );
-
-        // Clear input
-        setQuickTagInputs((prev) => ({ ...prev, [category]: "" }));
-    };
-
-    // --------------------------------------------------------------------------
-    // SCENE TIMELINE MANAGEMENT
-    // --------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // SCENE MANAGEMENT (ADD, DELETE, UPDATE)
+    // -------------------------------------------------------------------------
     const handleAddScene = () => {
-        const newId = createUniqueId("scene");
-        const newOrder = scenes.length;
-        const newSceneBase: StoryScene = {
-            id: newId,
-            title: `Scene ${newOrder + 1}: Adegan Baru`,
-            rawPrompt: "",
-            parsedAttributes: createEmptyParsedAttributes(),
-            sceneSpecificAttributes: createEmptyParsedAttributes(),
-            locks: activeLocks,
-            generatedPositive: "",
-            generatedNegative: "",
-            warnings: [],
-            order: newOrder,
-        };
-
-        const compiled = compileScenePrompt(characterProfile, newSceneBase, mergeMode, activeLocks);
-        const finalizedNewScene: StoryScene = {
-            ...newSceneBase,
-            generatedPositive: compiled.positive,
-            generatedNegative: compiled.negative,
-            warnings: compiled.warnings,
-        };
-
-        setScenes((prev) => [...prev, finalizedNewScene]);
-        setActiveSceneId(newId);
-        showToast(`Adegan baru (Scene ${newOrder + 1}) berhasil ditambahkan!`);
-    };
-
-    const handleDuplicateScene = (sceneToDupe: StoryScene) => {
-        const newId = createUniqueId("scene");
-        const newScene: StoryScene = {
-            ...sceneToDupe,
-            id: newId,
-            title: `${sceneToDupe.title} (Salinan)`,
-            order: scenes.length,
+        const newIndex = scenes.length + 1;
+        const newScene: StorySceneItem = {
+            id: generateSceneId(),
+            title: `Scene ${newIndex}: Adegan Lanjutan Baru`,
+            prompt2: "",
+            keepSameLocation: false,
+            notes: "Tentukan pose, aksi, latar baru, atau ekspresi.",
         };
         setScenes((prev) => [...prev, newScene]);
-        setActiveSceneId(newId);
-        showToast("Adegan berhasil diduplikasi!");
+        setActiveSceneId(newScene.id);
+        showToast(`✓ Scene ${newIndex} ditambahkan ke storyboard!`);
     };
 
-    const handleDeleteScene = (idToDelete: string) => {
+    const handleDeleteScene = (e: React.MouseEvent, sceneIdToDelete: string) => {
+        e.stopPropagation();
         if (scenes.length <= 1) {
-            showToast("Minimal harus ada 1 adegan dalam cerita!");
+            showToast("Minimal harus ada 1 scene dalam cerita.");
             return;
         }
-        const remaining = scenes.filter((s) => s.id !== idToDelete);
-        setScenes(remaining);
-        if (activeSceneId === idToDelete) {
-            setActiveSceneId(remaining[0].id);
+        const filtered = scenes.filter((s) => s.id !== sceneIdToDelete);
+        setScenes(filtered);
+        if (activeSceneId === sceneIdToDelete) {
+            setActiveSceneId(filtered[0].id);
         }
-        showToast("Adegan dihapus.");
+        showToast("Scene berhasil dihapus.");
     };
 
-    const handleMoveScene = (index: number, direction: "up" | "down") => {
-        const targetIndex = direction === "up" ? index - 1 : index + 1;
-        if (targetIndex < 0 || targetIndex >= scenes.length) return;
-
-        const next = [...scenes];
-        const temp = next[index];
-        next[index] = next[targetIndex];
-        next[targetIndex] = temp;
-        setScenes(next);
-    };
-
-    const recompileAllScenes = (
-        profile: CharacterProfile,
-        locks: LockConfiguration,
-        mode: MergeMode
-    ) => {
+    const handleUpdateActiveSceneTitle = (title: string) => {
         setScenes((prev) =>
-            prev.map((s) => {
-                const res = compileScenePrompt(profile, s, mode, locks);
-                return {
-                    ...s,
-                    locks,
-                    generatedPositive: res.positive,
-                    generatedNegative: res.negative,
-                    warnings: res.warnings,
-                };
-            })
+            prev.map((s) => (s.id === activeSceneId ? { ...s, title } : s))
         );
     };
 
-    // --------------------------------------------------------------------------
-    // WORKFLOW B: PROMPT 1 (MAIN ANCHOR) + PROMPT 2 (TAMBAHAN SCENE) MERGER
-    // --------------------------------------------------------------------------
-    const handleExecuteMerge = () => {
-        if (!comparePrompt1.trim()) {
-            showToast("Masukkan Prompt 1 (Main Prompt / Anchor) terlebih dahulu!");
+    const handleUpdateActiveScenePrompt2 = (prompt2: string) => {
+        setScenes((prev) =>
+            prev.map((s) => (s.id === activeSceneId ? { ...s, prompt2 } : s))
+        );
+    };
+
+    const handleToggleActiveSceneLocationMode = (keepSame: boolean) => {
+        setScenes((prev) =>
+            prev.map((s) => (s.id === activeSceneId ? { ...s, keepSameLocation: keepSame } : s))
+        );
+    };
+
+    // -------------------------------------------------------------------------
+    // QUICK TAG INSERTION
+    // -------------------------------------------------------------------------
+    const handleInsertQuickTag = (tagToAdd: string) => {
+        if (!activeScene) return;
+        const currentPrompt = activeScene.prompt2.trim();
+
+        // Check if tag is already in prompt (case insensitive)
+        const tags = currentPrompt.split(",").map((t) => t.trim().toLowerCase());
+        if (tags.includes(tagToAdd.toLowerCase())) {
+            showToast(`Tag "${tagToAdd}" sudah ada di prompt scene ini.`);
             return;
         }
-        if (!comparePrompt2.trim()) {
-            showToast("Masukkan Prompt 2 (Tambahan Scene) terlebih dahulu!");
-            return;
-        }
 
-        const res = mergeMainAndScenePrompt(
-            comparePrompt1,
-            comparePrompt2,
-            compareNegative1,
-            compareNegative2,
-            {
-                locks: {
-                    ...activeLocks,
-                    lighting: lockLightingColoring,
-                },
-                keepSameBackground: keepSameLocation,
-                mergeMode,
-            }
-        );
-
-        setMergedResult(res);
-        showToast("✓ Scene berhasil digabungkan! 0 tag double, lighting & style konsisten.");
+        const newPrompt = currentPrompt ? `${currentPrompt}, ${tagToAdd}` : tagToAdd;
+        handleUpdateActiveScenePrompt2(newPrompt);
+        showToast(`+ "${tagToAdd}" ditambahkan ke Scene ${activeSceneIndex + 1}!`);
     };
 
-    const handleLoadRioCaseStudy = () => {
-        setComparePrompt1(RIO_MAIN_PROMPT_DEFAULT);
-        setComparePrompt2(RIO_SCENE2_PROMPT_DEFAULT);
-        const res = mergeMainAndScenePrompt(
-            RIO_MAIN_PROMPT_DEFAULT,
-            RIO_SCENE2_PROMPT_DEFAULT,
-            "",
-            "",
-            {
-                locks: { ...activeLocks, lighting: true },
-                keepSameBackground: true,
-                mergeMode: "smart",
-            }
-        );
-        setMergedResult(res);
-        showToast("✓ Contoh kasus Rio Tsukatsuki (Foto 1 & 2) dimuat & digabungkan!");
-    };
+    // -------------------------------------------------------------------------
+    // BATCH EXPORT ALL SCENES
+    // -------------------------------------------------------------------------
+    const handleCopyAllScenesBatch = () => {
+        let compiledBatch = `======================================================\n`;
+        compiledBatch += `STORY & STYLE PROMPT MERGER — BATCH STORY PROMPTS\n`;
+        compiledBatch += `Karakter Profile: ${characterProfileName}\n`;
+        compiledBatch += `Target Model: ${activeCheckpointName || "Anime Model"}\n`;
+        compiledBatch += `Total Adegan: ${scenes.length} Scenes\n`;
+        compiledBatch += `======================================================\n\n`;
 
-    const handleResetMergerInputs = () => {
-        setComparePrompt1("");
-        setComparePrompt2("");
-        setCompareNegative1("");
-        setCompareNegative2("");
-        setMergedResult(null);
-        showToast("Field Prompt 1 & 2 dikosongkan.");
-    };
+        scenes.forEach((sc, idx) => {
+            const res = mergeMainAndScenePrompt(
+                mainPrompt,
+                sc.prompt2,
+                mainNegative,
+                "",
+                {
+                    locks: activeLocks,
+                    keepSameBackground: sc.keepSameLocation,
+                    mergeMode: "smart",
+                }
+            );
 
-    const handleSendMergedToStoryboard = () => {
-        if (!mergedResult) return;
-
-        const parsed1 = parsePromptLocal(comparePrompt1, compareNegative1);
-        const newProfile: CharacterProfile = {
-            id: createUniqueId("profile"),
-            name: "Tsukatsuki Rio (Master Profile)",
-            sourcePrompt: comparePrompt1,
-            sharedAttributes: parsed1,
-            locks: activeLocks,
-            updatedAt: Date.now(),
-        };
-        setCharacterProfile(newProfile);
-
-        const scene1: StoryScene = {
-            id: createUniqueId("scene"),
-            title: "Scene 1: Di Ruang Kelas (Main Anchor)",
-            rawPrompt: comparePrompt1,
-            parsedAttributes: parsed1,
-            sceneSpecificAttributes: parsed1,
-            locks: activeLocks,
-            generatedPositive: comparePrompt1,
-            generatedNegative: compareNegative1 || "worst quality, low quality, bad anatomy, bad hands, blurry",
-            warnings: [],
-            order: 0,
-        };
-
-        const scene2: StoryScene = {
-            id: createUniqueId("scene"),
-            title: "Scene 2: Masuk Pintu Kelas (Cerita Lanjutan)",
-            rawPrompt: comparePrompt2,
-            parsedAttributes: parsed1,
-            sceneSpecificAttributes: mergedResult.appliedFromScene,
-            locks: activeLocks,
-            generatedPositive: mergedResult.positive,
-            generatedNegative: mergedResult.negative,
-            warnings: mergedResult.warnings,
-            order: 1,
-        };
-
-        setScenes([scene1, scene2]);
-        setActiveSceneId(scene2.id);
-        setViewMode("workflow_a");
-        showToast("✓ Scene 1 & Scene 2 berhasil ditambahkan ke Storyboard Timeline!");
-    };
-
-    // --------------------------------------------------------------------------
-    // GLOBAL EXPORT TOOLS
-    // --------------------------------------------------------------------------
-    const handleExportScenesJSON = () => {
-        const data = {
-            characterProfile,
-            mergeMode,
-            locks: activeLocks,
-            scenes: scenes.map((s) => ({
-                id: s.id,
-                title: s.title,
-                rawPrompt: s.rawPrompt,
-                positivePrompt: s.generatedPositive,
-                negativePrompt: s.generatedNegative,
-                sceneSpecificAttributes: s.sceneSpecificAttributes,
-                warningsCount: s.warnings.length,
-            })),
-            exportedAt: new Date().toISOString(),
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `story-scenes-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast("✓ File JSON adegan berhasil diunduh!");
-    };
-
-    const handleExportScenesText = () => {
-        let content = `# STORYBOARD SCENE PROMPTS\nTarget Checkpoint: ${activeCheckpointName || "Anime SDXL / Pony"}\nExported: ${new Date().toLocaleString()}\n\n`;
-        scenes.forEach((s, idx) => {
-            content += `==================================================\n`;
-            content += `[SCENE ${idx + 1}] ${s.title}\n`;
-            content += `--------------------------------------------------\n`;
-            content += `POSITIVE PROMPT:\n${s.generatedPositive}\n\n`;
-            content += `NEGATIVE PROMPT:\n${s.generatedNegative}\n\n`;
+            compiledBatch += `[SCENE ${idx + 1}] ${sc.title}\n`;
+            compiledBatch += `Mode Latar: ${sc.keepSameLocation ? "Satu Lokasi Berkelanjutan" : "Ganti Latar Baru"}\n`;
+            compiledBatch += `POSITIVE PROMPT:\n${res.positive}\n\n`;
+            compiledBatch += `NEGATIVE PROMPT:\n${res.negative}\n\n`;
+            compiledBatch += `------------------------------------------------------\n\n`;
         });
+
+        navigator.clipboard.writeText(compiledBatch);
+        handleCopy(compiledBatch, "batch-all", `✓ Seluruh ${scenes.length} prompt scene berhasil disalin ke clipboard!`);
+    };
+
+    const handleDownloadStoryTxt = () => {
+        let content = `STORY & STYLE PROMPT MERGER EXPORT\nKarakter: ${characterProfileName}\nModel: ${activeCheckpointName || "Anime Model"}\nTanggal: ${new Date().toLocaleString()}\n\n`;
+        scenes.forEach((sc, idx) => {
+            const res = mergeMainAndScenePrompt(
+                mainPrompt,
+                sc.prompt2,
+                mainNegative,
+                "",
+                {
+                    locks: activeLocks,
+                    keepSameBackground: sc.keepSameLocation,
+                    mergeMode: "smart",
+                }
+            );
+            content += `==================================================\n`;
+            content += `SCENE ${idx + 1}: ${sc.title}\n`;
+            content += `--------------------------------------------------\n`;
+            content += `POSITIVE:\n${res.positive}\n\n`;
+            content += `NEGATIVE:\n${res.negative}\n\n`;
+        });
+
         const blob = new Blob([content], { type: "text/plain" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -648,12 +619,14 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
         a.download = `story-prompts-${Date.now()}.txt`;
         a.click();
         URL.revokeObjectURL(url);
-        showToast("✓ File teks seluruh prompt berhasil diunduh!");
+        showToast("✓ File naskah cerita (.txt) berhasil diunduh!");
     };
 
     return (
-        <div className="storyteller-container" ref={containerRef}>
-            {/* 1. TOP CONTROL BAR */}
+        <div className="storyteller-container sm-unified-container" ref={containerRef}>
+            {/* ------------------------------------------------------------------
+                1. HEADER BRANDING & SYSTEM META
+               ------------------------------------------------------------------ */}
             <header className="sm-top-bar">
                 <div className="sm-top-brand">
                     <div className="sm-brand-icon-box">🎬</div>
@@ -661,915 +634,912 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                         <div className="sm-brand-title-row">
                             <h2 className="sm-brand-title">Story &amp; Style Prompt Merger</h2>
                             <span className="sm-badge-neutral">
-                                Checkpoint: {activeCheckpointName || "Anime Model"}
+                                Checkpoint: {activeCheckpointName || "Anime SDXL / Pony"}
+                            </span>
+                            <span className="sm-badge-pill success">
+                                🛡️ Anti-Clash 0 Double
+                            </span>
+                            <span className="sm-badge-pill warning">
+                                🔒 Karakter &amp; Lighting Terkunci
                             </span>
                         </div>
                         <p className="sm-brand-desc">
-                            Intelligent Character, Outfit, Art Style &amp; Lighting Lock System untuk visual novel / komik multi-scene berkelanjutan.
+                            Sistem Penggabung Prompt Cerita Multi-Scene: Mengunci Karakter, Baju, Rambut, Lighting &amp; Art Style tetap konsisten, dengan Pose, Aksi &amp; Background yang dinamis tiap adegan.
                         </p>
                     </div>
                 </div>
 
-                <nav className="sm-top-nav-tabs" aria-label="Mode Merger">
+                <div className="sm-preset-quick-actions">
                     <button
                         type="button"
-                        className={`sm-nav-tab-btn ${viewMode === "matrix_studio" ? "active" : ""}`}
-                        onClick={() => setViewMode("matrix_studio")}
+                        className={`sm-card-action-btn ${showComfyGuide ? "highlight" : ""}`}
+                        onClick={() => setShowComfyGuide(!showComfyGuide)}
+                        title="Tampilkan panduan pengaturan CFG & Seed di ComfyUI agar wajah tidak berubah"
                     >
-                        <span>⚡ Prompt Matrix &amp; Studio Lab (16 Kategori)</span>
+                        📋 {showComfyGuide ? "Tutup Panduan ComfyUI" : "Tips Kestabilan ComfyUI"}
                     </button>
                     <button
                         type="button"
-                        className={`sm-nav-tab-btn ${viewMode === "deterministic" ? "active" : ""}`}
-                        onClick={() => setViewMode("deterministic")}
+                        className="sm-card-action-btn highlight"
+                        onClick={handleCopyAllScenesBatch}
+                        title="Salin prompt seluruh adegan sekaligus untuk render batch di ComfyUI atau WebUI"
                     >
-                        <span>🔒 8-Category Lock Merger</span>
+                        📑 {copiedKey === "batch-all" ? "✓ Tersalin Semua!" : "Salin Semua Scene (Batch)"}
                     </button>
-                    <button
-                        type="button"
-                        className={`sm-nav-tab-btn ${viewMode === "workflow_b" ? "active" : ""}`}
-                        onClick={() => setViewMode("workflow_b")}
-                    >
-                        <span>⚡ Prompt 1 + 2 Merger (Main &amp; Tambahan)</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`sm-nav-tab-btn ${viewMode === "workflow_a" ? "active" : ""}`}
-                        onClick={() => setViewMode("workflow_a")}
-                    >
-                        <span>🎬 Storyboard &amp; AI Analisis</span>
-                    </button>
-                    <button
-                        type="button"
-                        className={`sm-nav-tab-btn ${viewMode === "comfy_guide" ? "active" : ""}`}
-                        onClick={() => setViewMode("comfy_guide")}
-                    >
-                        <span>📋 Panduan ComfyUI</span>
-                    </button>
-                </nav>
+                </div>
             </header>
 
-            {/* 0. MODE MATRIX STUDIO: PROMPT MATRIX & STUDIO LAB (16 CATEGORIES ENGINE) */}
-            {viewMode === "matrix_studio" && (
-                <PromptMatrixStudioLab
-                    onApplyToCanvas={onApplyToCanvas}
-                    showToast={showToast}
-                    activeCheckpointName={activeCheckpointName}
-                />
-            )}
-
-            {/* 1. MODE DETERMINISTIC: LEGACY 8-CATEGORY LOCK MERGER */}
-            {viewMode === "deterministic" && (
-                <DeterministicMergerView
-                    onApplyToCanvas={onApplyToCanvas}
-                    showToast={showToast}
-                    activeCheckpointName={activeCheckpointName}
-                />
-            )}
-
-            {/* 2. MODE B: PROMPT 1 (MAIN ANCHOR) + PROMPT 2 (TAMBAHAN SCENE) MERGER WORKFLOW */}
-            {viewMode === "workflow_b" && (
-                <div className="sm-merger-workflow-b">
-                    {/* Top Guide Card */}
-                    <div className="sm-merger-guide-card">
-                        <div className="sm-merger-guide-header">
-                            <div className="sm-merger-badge-row">
-                                <span className="sm-badge-pill primary">⚡ Story &amp; Style Merger</span>
-                                <span className="sm-badge-pill success">🛡️ Anti-Double Tags (0 Double)</span>
-                                <span className="sm-badge-pill warning">🔒 Lighting, Coloring &amp; Style Locked</span>
-                            </div>
-                            <div className="sm-merger-quick-buttons">
-                                <button
-                                    type="button"
-                                    className="sm-card-action-btn highlight"
-                                    onClick={handleLoadRioCaseStudy}
-                                    title="Muat contoh kasus Rio Tsukatsuki (Foto 1: Di Kelas bawa folder -> Foto 2: Masuk pintu)"
-                                >
-                                    Muat Contoh Rio (Foto 1 &amp; 2)
-                                </button>
-                                <button
-                                    type="button"
-                                    className="sm-card-action-btn"
-                                    onClick={handleResetMergerInputs}
-                                    title="Kosongkan prompt"
-                                >
-                                    Reset
-                                </button>
-                            </div>
-                        </div>
-
-                        <p className="sm-merger-desc">
-                            <strong>Prinsip Merger Cerita Berkelanjutan:</strong> Prompt 1 bertindak sebagai <em>Main Prompt / Anchor</em> (Karakter, Pakaian/Baju, Rambut, Mata, Aksesoris, Art Style Anime, serta Lighting &amp; Coloring dikunci tidak berubah). Prompt 2 bertindak sebagai <em>Tambahan Scene</em> (Pose, Aksi Tangan, Cerita Lanjutan, Ekspresi). Seluruh tag ganda/bentrok otomatis dideduplikasi (0 Tag Double).
-                        </p>
-                    </div>
-
-                    {/* Dual Inputs Grid */}
-                    <div className="sm-dual-inputs-grid">
-                        {/* Prompt 1 Column (Main Anchor) */}
-                        <div className="sm-prompt-input-col main-prompt-col">
-                            <div className="sm-prompt-col-header">
-                                <div className="sm-col-header-meta">
-                                    <span className="sm-col-role-badge main">PROMPT 1 (MAIN PROMPT / ANCHOR)</span>
-                                    <span className="sm-col-desc">
-                                        🔒 Scene Utama: Karakter, Gaun, Rambut, Halo, Art Style, Lighting &amp; Coloring
-                                    </span>
-                                </div>
-                                <span className="sm-tag-counter">
-                                    ~{comparePrompt1.split(",").filter((t) => t.trim()).length} tags
-                                </span>
-                            </div>
-
-                            <textarea
-                                className="sm-textarea-raw main-box"
-                                rows={5}
-                                value={comparePrompt1}
-                                onChange={(e) => setComparePrompt1(e.target.value)}
-                                placeholder="Masukkan Prompt 1 (Main Prompt: 1girl, tsukatsuki rio, red halo, red polka dot headband, black hair, updo, red eyes, dark red halter dress, white belt, black sheer thighhighs, classroom, sunlight, anime style...)"
-                            />
-
-                            <div className="sm-prompt-notes">
-                                <span className="sm-note-dot lock-dot" />
-                                <span>Atribut fisik, gaun, aksesoris, lineart cel shading &amp; tata cahaya sunlight DIKUNCI dari sini.</span>
-                            </div>
-                        </div>
-
-                        {/* Prompt 2 Column (Tambahan Scene) */}
-                        <div className="sm-prompt-input-col scene-prompt-col">
-                            <div className="sm-prompt-col-header">
-                                <div className="sm-col-header-meta">
-                                    <span className="sm-col-role-badge addition">PROMPT 2 (TAMBAHAN SCENE)</span>
-                                    <span className="sm-col-desc">
-                                        🔄 Cerita Lanjutan: Perubahan Pose, Aksi Tangan, Ekspresi Wajah, Objek/Pintu
-                                    </span>
-                                </div>
-                                <span className="sm-tag-counter">
-                                    ~{comparePrompt2.split(",").filter((t) => t.trim()).length} tags
-                                </span>
-                            </div>
-
-                            <textarea
-                                className="sm-textarea-raw scene-box"
-                                rows={5}
-                                value={comparePrompt2}
-                                onChange={(e) => setComparePrompt2(e.target.value)}
-                                placeholder="Masukkan Prompt 2 (Tambahan: walking through doorway, classroom door, hand on doorframe, looking at viewer, calm expression...)"
-                            />
-
-                            <div className="sm-prompt-notes">
-                                <span className="sm-note-dot adapt-dot" />
-                                <span>Tag duplikat (misal 1girl, outfit lama) otomatis disaring agar tidak double.</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Toggles & Execution Bar */}
-                    <div className="sm-merger-controls-bar">
-                        <div className="sm-merger-toggles-wrap">
-                            <label className="sm-merger-toggle-label" title="Mengunci tata cahaya (sunlight, window lighting, soft shadows) dan pewarnaan anime dari Prompt 1 agar foto 2 tidak miss atau pucat">
-                                <input
-                                    type="checkbox"
-                                    checked={lockLightingColoring}
-                                    onChange={(e) => setLockLightingColoring(e.target.checked)}
-                                />
-                                <span>🔒 Kunci Lighting &amp; Coloring dari Prompt 1</span>
-                            </label>
-
-                            <label className="sm-merger-toggle-label" title="Mempertahankan latar ruang kelas dari Prompt 1 dan menambahkan elemen pintu dari Prompt 2 tanpa dobel">
-                                <input
-                                    type="checkbox"
-                                    checked={keepSameLocation}
-                                    onChange={(e) => setKeepSameLocation(e.target.checked)}
-                                />
-                                <span>🏫 Latar Tempat Sama (Continuous Scene)</span>
-                            </label>
-
-                            <label className="sm-merger-toggle-label" title="Membersihkan variasi bobot atau sinonim ganda (1girl, solo, anime style, dress)">
-                                <input
-                                    type="checkbox"
-                                    checked={strictDedup}
-                                    onChange={(e) => setStrictDedup(e.target.checked)}
-                                />
-                                <span>🛡️ Anti-Double Filter (Deduplikasi Ketat)</span>
-                            </label>
-                        </div>
-
+            {/* ------------------------------------------------------------------
+                2. COMFORCE & COMFYUI STABILITY TIPS CARD (COLLAPSIBLE)
+               ------------------------------------------------------------------ */}
+            {showComfyGuide && (
+                <div className="sm-comfy-tips-card">
+                    <div className="sm-comfy-tips-header">
+                        <span className="sm-comfy-tips-title">
+                            💡 4 Kunci Menjaga Karakter 100% Konsisten di Antar Scene (ComfyUI / SD)
+                        </span>
                         <button
                             type="button"
-                            className="sm-card-action-btn primary sm-btn-run-merge"
-                            onClick={handleExecuteMerge}
+                            className="sm-scene-tab-del-btn"
+                            onClick={() => setShowComfyGuide(false)}
+                            title="Tutup panduan"
                         >
-                            ⚡ Gabungkan Scene (Prompt 1 + 2)
+                            ✕
                         </button>
                     </div>
 
-                    {/* Merged Output Section */}
-                    {mergedResult && (
-                        <div className="sm-merged-output-card">
-                            <div className="sm-merged-output-header">
-                                <div className="sm-merged-output-title">
-                                    <span>✨ Hasil Prompt Adegan Lanjutan (Merged Scene)</span>
-                                </div>
-                                <div className="sm-merger-badge-row">
-                                    <span className="sm-tag-counter">
-                                        {mergedResult.stats.totalTags} tags (~{Math.ceil(mergedResult.stats.totalTags * 1.3)} tok)
-                                    </span>
-                                    <span className="sm-badge-pill success">
-                                        ✓ 0 Tag Double (Clean)
-                                    </span>
-                                    <span className="sm-badge-pill warning">
-                                        🔒 Lighting &amp; Art Style Terkunci
-                                    </span>
-                                </div>
-                            </div>
+                    <div className="sm-comfy-tips-grid">
+                        <div className="sm-comfy-item">
+                            <span className="sm-comfy-item-title blue">1. Turunkan CFG Scale ke 5.0 – 6.0</span>
+                            <p className="sm-comfy-item-desc">
+                                CFG 7.5 – 8.5 sering membuat prompt terbobot mengalami <em>latent blowout</em> (wajah meleleh di beberapa scene). Gunakan CFG 5.0 – 6.0 untuk kestabilan anatomi maksimal.
+                            </p>
+                        </div>
 
-                            <div className="sm-merged-prompt-box">
-                                {mergedResult.positive}
-                            </div>
+                        <div className="sm-comfy-item">
+                            <span className="sm-comfy-item-title green">2. Kunci Seed &amp; Pakai Variation Seed (0.12)</span>
+                            <p className="sm-comfy-item-desc">
+                                Kunci seed KSampler ke <code>fixed</code>. Gunakan node <em>Variation Seed / Extra Seed</em> sebesar <code>0.10 – 0.15</code> untuk variasi pose dan latar tanpa mengubah fitur wajah karakter.
+                            </p>
+                        </div>
 
-                            <div className="sm-merged-actions-row">
-                                <button
-                                    type="button"
-                                    className="sm-btn-copy-output"
-                                    onClick={() =>
-                                        handleCopy(
-                                            mergedResult.positive,
-                                            "merged-pos-copy",
-                                            "Positive prompt hasil merger berhasil disalin!"
-                                        )
-                                    }
-                                >
-                                    📋 {copiedKey === "merged-pos-copy" ? "Tersalin!" : "Salin Prompt"}
-                                </button>
-                                <button
-                                    type="button"
-                                    className="sm-btn-apply-canvas"
-                                    onClick={() => {
-                                        onApplyToCanvas(mergedResult.positive, mergedResult.negative);
-                                        showToast("Scene hasil merger diterapkan ke Canvas Studio Lab!");
-                                    }}
-                                >
-                                    ⚡ Terapkan ke Canvas Studio
-                                </button>
-                                <button
-                                    type="button"
-                                    className="sm-card-action-btn highlight"
-                                    style={{ padding: "6px 14px", fontSize: "11.5px" }}
-                                    onClick={handleSendMergedToStoryboard}
-                                >
-                                    🎬 Jadikan Scene di Storyboard
-                                </button>
-                            </div>
+                        <div className="sm-comfy-item">
+                            <span className="sm-comfy-item-title yellow">3. Sampler DPMPP 2M Karras (28–32 Steps)</span>
+                            <p className="sm-comfy-item-desc">
+                                Kombinasi sampler <code>dpmpp_2m</code> dengan scheduler <code>karras</code> memberikan garis cel shading anime paling stabil antar perubahan latar.
+                            </p>
+                        </div>
 
-                            {/* Negative Prompt */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginTop: "4px" }}>
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                    <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
-                                        Guarded Negative Prompt (Anti-Burn &amp; 2D Anime Protection):
-                                    </span>
+                        <div className="sm-comfy-item">
+                            <span className="sm-comfy-item-title purple">4. IP-Adapter FaceID (Bobot 0.55 – 0.65)</span>
+                            <p className="sm-comfy-item-desc">
+                                Pasang node IP-Adapter FaceID dengan gambar referensi Scene 1 untuk memastikan struktur mata, hidung, dan proporsi wajah terkunci 100% sempurna di semua scene.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ------------------------------------------------------------------
+                3. PRESET SELECTOR & GLOBAL ACTIONS BAR
+               ------------------------------------------------------------------ */}
+            <div className="sm-preset-action-bar">
+                <div className="sm-preset-selector-group">
+                    <span className="sm-preset-select-label">Pilih Cerita / Preset:</span>
+                    <select
+                        className="sm-preset-dropdown"
+                        value={selectedPresetId}
+                        onChange={(e) => handleSelectPreset(e.target.value)}
+                    >
+                        {STORY_PRESETS.map((p) => (
+                            <option key={p.id} value={p.id}>
+                                {p.name}
+                            </option>
+                        ))}
+                        <option value="custom">✏️ Cerita Kustom Baru (Kosongkan Field)</option>
+                    </select>
+                </div>
+
+                <div className="sm-preset-quick-actions">
+                    <button
+                        type="button"
+                        className="sm-card-action-btn"
+                        onClick={handleResetStory}
+                        title="Kembalikan prompt dan scene ke default Rio Tsukatsuki"
+                    >
+                        ↺ Muat Ulang Contoh Rio
+                    </button>
+                    <button
+                        type="button"
+                        className="sm-card-action-btn"
+                        onClick={handleDownloadStoryTxt}
+                        title="Unduh seluruh prompt scene dalam format naskah TXT"
+                    >
+                        💾 Unduh File Teks (.txt)
+                    </button>
+                </div>
+            </div>
+
+            {/* ------------------------------------------------------------------
+                4. MULTI-SCENE STORYBOARD TIMELINE BAR
+               ------------------------------------------------------------------ */}
+            <div className="sm-timeline-card">
+                <div className="sm-timeline-header">
+                    <span className="sm-timeline-title">
+                        🎞️ Alur Cerita Adegan (Storyboard Timeline) — {scenes.length} Scene
+                    </span>
+                    <span style={{ fontSize: "11px", color: "var(--sm-text-muted)" }}>
+                        Klik adegan di bawah untuk mengatur pose &amp; latarnya:
+                    </span>
+                </div>
+
+                <div className="sm-timeline-scroll">
+                    {scenes.map((sc, idx) => {
+                        const isActive = sc.id === activeSceneId;
+                        return (
+                            <div
+                                key={sc.id}
+                                className={`sm-scene-tab-pill ${isActive ? "active" : ""}`}
+                                onClick={() => setActiveSceneId(sc.id)}
+                            >
+                                <span className="sm-scene-tab-idx">#{idx + 1}</span>
+                                <span className="sm-scene-tab-name">
+                                    {sc.title.length > 28 ? `${sc.title.slice(0, 28)}...` : sc.title}
+                                </span>
+                                {scenes.length > 1 && (
                                     <button
                                         type="button"
-                                        className="sm-card-action-btn"
-                                        style={{ fontSize: "10.5px", padding: "2px 8px" }}
-                                        onClick={() =>
-                                            handleCopy(
-                                                mergedResult.negative,
-                                                "merged-neg-copy",
-                                                "Negative prompt berhasil disalin!"
-                                            )
-                                        }
+                                        className="sm-scene-tab-del-btn"
+                                        onClick={(e) => handleDeleteScene(e, sc.id)}
+                                        title={`Hapus Scene ${idx + 1}`}
                                     >
-                                        📋 {copiedKey === "merged-neg-copy" ? "Tersalin!" : "Salin Negatif"}
+                                        ✕
                                     </button>
-                                </div>
-                                <div className="sm-merged-prompt-box negative">
-                                    {mergedResult.negative}
-                                </div>
+                                )}
                             </div>
+                        );
+                    })}
 
-                            {/* Visual Breakdown Audit Grid */}
-                            <div className="sm-audit-section">
-                                <span className="sm-audit-title">
-                                    🔍 Audit Penggabungan Semantik (Verifikasi Konsistensi)
-                                </span>
-                                <div className="sm-audit-grid">
-                                    {/* Column 1: Locked from Prompt 1 */}
-                                    <div className="sm-audit-col">
-                                        <div className="sm-audit-header locked">
-                                            <span>🔒 Dipertahankan dari Prompt 1 (Anchor)</span>
-                                            <span>{mergedResult.stats.inheritedCount} tags</span>
-                                        </div>
-                                        <div className="sm-audit-chips">
-                                            {ATTRIBUTE_CATEGORIES.filter((c) =>
-                                                [
-                                                    "character_identity",
-                                                    "physical_appearance",
-                                                    "hair",
-                                                    "eyes",
-                                                    "outfit",
-                                                    "accessories",
-                                                    "art_style",
-                                                    "lighting",
-                                                    "quality",
-                                                ].includes(c.key)
-                                            ).map((cat) => {
-                                                const list = mergedResult.inheritedFromMain[cat.key] || [];
-                                                if (list.length === 0) return null;
-                                                return list.map((a) => (
-                                                    <span
-                                                        key={a.id}
-                                                        className="sm-audit-chip inherited"
-                                                        title={`Kategori: ${cat.label}`}
-                                                    >
-                                                        {a.text}
-                                                    </span>
-                                                ));
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Column 2: Adapted from Prompt 2 */}
-                                    <div className="sm-audit-col">
-                                        <div className="sm-audit-header adapted">
-                                            <span>🔄 Diadaptasi dari Prompt 2 (Adegan Lanjutan)</span>
-                                            <span>{mergedResult.stats.sceneAddedCount} tags</span>
-                                        </div>
-                                        <div className="sm-audit-chips">
-                                            {ATTRIBUTE_CATEGORIES.filter((c) =>
-                                                ["pose", "action", "expression", "objects", "camera", "background"].includes(c.key)
-                                            ).map((cat) => {
-                                                const list = mergedResult.appliedFromScene[cat.key] || [];
-                                                if (list.length === 0) return null;
-                                                return list.map((a) => (
-                                                    <span
-                                                        key={a.id}
-                                                        className="sm-audit-chip added"
-                                                        title={`Kategori: ${cat.label}`}
-                                                    >
-                                                        {a.text}
-                                                    </span>
-                                                ));
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Column 3: Suppressed Duplicates & Overrides */}
-                                    <div className="sm-audit-col">
-                                        <div className="sm-audit-header suppressed">
-                                            <span>🛡️ Tag Duplikat/Bentrok yang Dieliminasi</span>
-                                            <span>{mergedResult.stats.suppressedCount} tags</span>
-                                        </div>
-                                        {mergedResult.suppressedSceneTags.length === 0 ? (
-                                            <span style={{ fontSize: "11px", color: "var(--sm-text-muted)", fontStyle: "italic" }}>
-                                                Tidak ada tag ganda atau bentrok yang terdeteksi.
-                                            </span>
-                                        ) : (
-                                            <div className="sm-suppressed-list">
-                                                {mergedResult.suppressedSceneTags.map((s, idx) => (
-                                                    <div key={idx} className="sm-suppressed-item">
-                                                        <span className="sm-suppressed-tag">{s.tag}</span>
-                                                        <span className="sm-suppressed-reason">{s.reason}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <button
+                        type="button"
+                        className="sm-scene-tab-add-btn"
+                        onClick={handleAddScene}
+                        title="Tambahkan scene baru ke storyboard cerita"
+                    >
+                        <span>+ Tambah Scene Baru</span>
+                    </button>
                 </div>
-            )}
+            </div>
 
-            {/* 3. COMFYUI KSTABILITY GUIDE TAB */}
-            {viewMode === "comfy_guide" && (
-                <div className="sm-card" style={{ gap: "16px", padding: "20px" }}>
-                    <div className="sm-card-header">
-                        <span className="sm-card-title">📋 4 Kunci Kestabilan Karakter &amp; Render Multi-Scene di ComfyUI</span>
-                    </div>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
-                        <div className="sm-profile-box" style={{ gap: "8px" }}>
-                            <strong style={{ color: "#60a5fa", fontSize: "12.5px" }}>1. Turunkan CFG Scale ke 5.0 – 6.0</strong>
-                            <p style={{ margin: 0, fontSize: "11.5px", color: "var(--sm-text-secondary)", lineHeight: 1.5 }}>
-                                CFG 7.5 – 8.5 di ComfyUI membuat prompt terbobot mengalami <em>latent blowout</em> (jari dan wajah meleleh di beberapa seed acak). Gunakan CFG 5.0 – 6.0 untuk kestabilan anatomi.
-                            </p>
-                        </div>
-
-                        <div className="sm-profile-box" style={{ gap: "8px" }}>
-                            <strong style={{ color: "#4ade80", fontSize: "12.5px" }}>2. Kunci Seed Saat Menemukan Karakter Bagus</strong>
-                            <p style={{ margin: 0, fontSize: "11.5px", color: "var(--sm-text-secondary)", lineHeight: 1.5 }}>
-                                Ubah KSampler dari <code>randomize</code> ke <code>fixed</code>. Gunakan node <em>Extra Seed / Variation Seed</em> sebesar <code>0.10 – 0.15</code> untuk variasi pose tanpa merusak wajah karakter.
-                            </p>
-                        </div>
-
-                        <div className="sm-profile-box" style={{ gap: "8px" }}>
-                            <strong style={{ color: "#facc15", fontSize: "12.5px" }}>3. Sampler &amp; Scheduler Rekomendasi</strong>
-                            <p style={{ margin: 0, fontSize: "11.5px", color: "var(--sm-text-secondary)", lineHeight: 1.5 }}>
-                                Gunakan sampler <code>dpmpp_2m</code> dengan scheduler <code>karras</code> (28–32 steps) atau <code>euler_ancestral</code> untuk garis anime yang bersih.
-                            </p>
-                        </div>
-
-                        <div className="sm-profile-box" style={{ gap: "8px" }}>
-                            <strong style={{ color: "#c084fc", fontSize: "12.5px" }}>4. Tambahkan IP-Adapter FaceID (Opsional)</strong>
-                            <p style={{ margin: 0, fontSize: "11.5px", color: "var(--sm-text-secondary)", lineHeight: 1.5 }}>
-                                Pasang node IP-Adapter di ComfyUI dengan bobot <code>0.55 – 0.65</code> menggunakan Foto 1 sebagai gambar referensi wajah untuk konsistensi 100% sempurna.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* 4. WORKFLOW A: STORYBOARD & AI ANALISIS (LEGACY) */}
-            {viewMode === "workflow_a" && (
-                <div className="sm-workspace-grid">
+            {/* ------------------------------------------------------------------
+                5. DUAL WORKSTATION: PROMPT 1 (MASTER ANCHOR) + PROMPT 2 (SCENE VARIATION)
+               ------------------------------------------------------------------ */}
+            <div className="sm-dual-inputs-grid">
                 {/* --------------------------------------------------------------
-                    LEFT PANEL: SCENES & PROFILE TIMELINE
+                    LEFT COLUMN: PROMPT 1 (MASTER CHARACTER & VISUAL ANCHOR)
                    -------------------------------------------------------------- */}
-                <aside className="sm-col-timeline">
-                    {/* Character Profile DNA Card */}
-                    <div className="sm-card">
-                        <div className="sm-card-header">
-                            <span className="sm-card-title">👤 Character DNA Profile</span>
-                            <span className="sm-locks-badge locked">
-                                🔒 {lockStats.lockedCount} Locked
+                <div className="sm-prompt-input-col main-prompt-col">
+                    <div className="sm-prompt-col-header">
+                        <div className="sm-col-header-meta">
+                            <span className="sm-col-role-badge main">
+                                🔒 PROMPT 1: MASTER CHARACTER &amp; STYLE ANCHOR
+                            </span>
+                            <span className="sm-col-desc">
+                                DNA Cerita: Wajah, Rambut, Gaun/Baju, Lighting &amp; Art Style DIKUNCI tidak berubah.
+                            </span>
+                        </div>
+                        <span className="sm-tag-counter">
+                            ~{mainPrompt.split(",").filter((t) => t.trim()).length} tags
+                        </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                            Nama Profil:
+                        </span>
+                        <input
+                            type="text"
+                            className="dm-form-input"
+                            style={{ padding: "4px 8px", fontSize: "11.5px", flex: 1 }}
+                            value={characterProfileName}
+                            onChange={(e) => setCharacterProfileName(e.target.value)}
+                            placeholder="cth. Rio Tsukatsuki (Master Profile)"
+                        />
+                    </div>
+
+                    <textarea
+                        className="sm-textarea-raw main-box"
+                        rows={6}
+                        value={mainPrompt}
+                        onChange={(e) => setMainPrompt(e.target.value)}
+                        placeholder="Masukkan Prompt 1 (Main Prompt / Karakter Utama lengkap dengan outfit, rambut, art style, dan pencahayaan)..."
+                    />
+
+                    {/* Live DNA Chips from Prompt 1 */}
+                    <div className="sm-dna-preview-box">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 800, color: "var(--sm-text-muted)" }}>
+                                🧬 DNA Karakter &amp; Visual yang Terdeteksi:
+                            </span>
+                            <span style={{ fontSize: "10.5px", color: "var(--sm-text-faint)" }}>
+                                Auto-classified
                             </span>
                         </div>
 
-                        <div className="sm-profile-box">
-                            <span className="sm-profile-name">
-                                {characterProfile.sharedAttributes.character_identity
-                                    .map((a) => a.text)
-                                    .join(", ") || "Belum ada karakter yang dianalisis"}
-                            </span>
-                            <div className="sm-profile-stats">
-                                <span>{lockStats.lockedCount} Atribut Terkunci</span>
-                                <span>·</span>
-                                <span>{lockStats.unlockedCount} Dinamis</span>
+                        {/* Character Identity */}
+                        {parsedMainAttributes.character_identity.length > 0 && (
+                            <div className="sm-dna-row">
+                                <span className="sm-dna-label">👤 Karakter:</span>
+                                <div className="sm-dna-tag-chips">
+                                    {parsedMainAttributes.character_identity.map((attr) => (
+                                        <span key={attr.id} className="sm-dna-tag-chip" title="Identitas Karakter Terkunci">
+                                            {attr.text}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
-                        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-                            <label style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-secondary)" }}>
-                                Mode Penggabungan (Merge Mode):
+                        {/* Hair & Eyes */}
+                        {(parsedMainAttributes.hair.length > 0 || parsedMainAttributes.eyes.length > 0) && (
+                            <div className="sm-dna-row">
+                                <span className="sm-dna-label">💇 Rambut &amp; Mata:</span>
+                                <div className="sm-dna-tag-chips">
+                                    {[...parsedMainAttributes.hair, ...parsedMainAttributes.eyes].map((attr) => (
+                                        <span key={attr.id} className="sm-dna-tag-chip" title="Fitur Wajah & Rambut Terkunci">
+                                            {attr.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Outfit & Accessories */}
+                        {(parsedMainAttributes.outfit.length > 0 || parsedMainAttributes.accessories.length > 0) && (
+                            <div className="sm-dna-row">
+                                <span className="sm-dna-label">👗 Outfit &amp; Aksesori:</span>
+                                <div className="sm-dna-tag-chips">
+                                    {[...parsedMainAttributes.outfit, ...parsedMainAttributes.accessories].map((attr) => (
+                                        <span key={attr.id} className="sm-dna-tag-chip" title="Pakaian & Aksesori Terkunci">
+                                            {attr.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Lighting & Coloring */}
+                        {parsedMainAttributes.lighting.length > 0 && (
+                            <div className="sm-dna-row">
+                                <span className="sm-dna-label">💡 Tata Cahaya:</span>
+                                <div className="sm-dna-tag-chips">
+                                    {parsedMainAttributes.lighting.map((attr) => (
+                                        <span key={attr.id} className="sm-dna-tag-chip lighting" title="Lighting Terkunci">
+                                            {attr.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Art Style */}
+                        {parsedMainAttributes.art_style.length > 0 && (
+                            <div className="sm-dna-row">
+                                <span className="sm-dna-label">🎨 Art Style:</span>
+                                <div className="sm-dna-tag-chips">
+                                    {parsedMainAttributes.art_style.map((attr) => (
+                                        <span key={attr.id} className="sm-dna-tag-chip style" title="Gaya Gambar Anime Terkunci">
+                                            {attr.text}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Granular Consistency Locks Toggles */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                            Kunci Konsistensi Atribut dari Prompt 1:
+                        </span>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                            <label className="sm-merger-toggle-label" title="Kunci wajah, mata, rambut, dan identitas karakter">
+                                <input
+                                    type="checkbox"
+                                    checked={lockCharacter}
+                                    onChange={(e) => setLockCharacter(e.target.checked)}
+                                />
+                                <span>🔒 Karakter &amp; Wajah</span>
                             </label>
-                            <select
-                                style={{
-                                    background: "var(--sm-bg-input)",
-                                    border: "1px solid var(--sm-border)",
-                                    color: "var(--sm-text-primary)",
-                                    padding: "6px 8px",
-                                    borderRadius: "4px",
-                                    fontSize: "11.5px",
-                                    outline: "none",
-                                }}
-                                value={mergeMode}
-                                onChange={(e) => {
-                                    const m = e.target.value as MergeMode;
-                                    setMergeMode(m);
-                                    recompileAllScenes(characterProfile, activeLocks, m);
-                                }}
-                            >
-                                <option value="smart">Smart Merge (Rekomendasi - Dedup &amp; Harmonize)</option>
-                                <option value="preserve_original">Preserve Original (Pertahankan Kata Asli)</option>
-                                <option value="strict_locks">Strict Locks (Kunci Ketat &amp; Tolak Modifikasi)</option>
-                                <option value="custom">Custom (Aturan Mandiri)</option>
-                            </select>
+
+                            <label className="sm-merger-toggle-label" title="Kunci gaun, baju, sepatu, dan perhiasan agar tidak berganti outfit">
+                                <input
+                                    type="checkbox"
+                                    checked={lockOutfit}
+                                    onChange={(e) => setLockOutfit(e.target.checked)}
+                                />
+                                <span>🔒 Outfit &amp; Pakaian</span>
+                            </label>
+
+                            <label className="sm-merger-toggle-label" title="Kunci tata cahaya (sunlight, shadows) agar nuansa scene tidak miss">
+                                <input
+                                    type="checkbox"
+                                    checked={lockLighting}
+                                    onChange={(e) => setLockLighting(e.target.checked)}
+                                />
+                                <span>🔒 Lighting &amp; Warna</span>
+                            </label>
+
+                            <label className="sm-merger-toggle-label" title="Kunci cel shading, ketebalan garis lineart, dan aesthetic anime">
+                                <input
+                                    type="checkbox"
+                                    checked={lockArtStyle}
+                                    onChange={(e) => setLockArtStyle(e.target.checked)}
+                                />
+                                <span>🔒 Art Style &amp; Cel Shading</span>
+                            </label>
                         </div>
                     </div>
 
-                    {/* Storyboard Scenes List Card */}
-                    <div className="sm-card">
-                        <div className="sm-card-header">
-                            <span className="sm-card-title">🎬 Daftar Adegan ({scenes.length})</span>
+                    {/* Anchor Negative Prompt */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "5px", marginTop: "4px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                                Negative Prompt Anchor (Guarded):
+                            </span>
+                            <span style={{ fontSize: "10.5px", color: "var(--sm-text-faint)" }}>
+                                Proteksi 2D Anime &amp; Anti-Burn
+                            </span>
+                        </div>
+                        <textarea
+                            className="sm-textarea-raw"
+                            rows={3}
+                            style={{ fontSize: "11.5px", borderColor: "rgba(239, 68, 68, 0.25)" }}
+                            value={mainNegative}
+                            onChange={(e) => setMainNegative(e.target.value)}
+                            placeholder="Negative prompt master..."
+                        />
+                    </div>
+                </div>
+
+                {/* --------------------------------------------------------------
+                    RIGHT COLUMN: PROMPT 2 (TAMBAHAN SCENE AKTIF)
+                   -------------------------------------------------------------- */}
+                <div className="sm-prompt-input-col scene-prompt-col">
+                    <div className="sm-prompt-col-header">
+                        <div className="sm-col-header-meta">
+                            <span className="sm-col-role-badge addition">
+                                🔄 PROMPT 2: TAMBAHAN SCENE #{activeSceneIndex + 1}
+                            </span>
+                            <span className="sm-col-desc">
+                                Elemen Berubah: Pose, Aksi Tangan, Background Tempat, Ekspresi &amp; Kamera.
+                            </span>
+                        </div>
+                        <span className="sm-tag-counter">
+                            ~{activeScene.prompt2.split(",").filter((t) => t.trim()).length} tags
+                        </span>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                            Judul Scene:
+                        </span>
+                        <input
+                            type="text"
+                            className="dm-form-input"
+                            style={{ padding: "4px 8px", fontSize: "11.5px", flex: 1 }}
+                            value={activeScene.title}
+                            onChange={(e) => handleUpdateActiveSceneTitle(e.target.value)}
+                            placeholder="cth. Scene 2: Berjalan Melewati Pintu Kelas"
+                        />
+                    </div>
+
+                    <textarea
+                        className="sm-textarea-raw scene-box"
+                        rows={6}
+                        value={activeScene.prompt2}
+                        onChange={(e) => handleUpdateActiveScenePrompt2(e.target.value)}
+                        placeholder="Masukkan variasi adegan untuk scene ini (cth: walking through doorway, classroom door, hand on doorframe, looking back, calm expression, medium shot)..."
+                    />
+
+                    {/* Background Continuity Mode Selector */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                            Mode Kontinuitas Latar / Tempat:
+                        </span>
+                        <div className="sm-continuity-switch">
                             <button
                                 type="button"
-                                className="sm-card-action-btn primary"
-                                onClick={handleAddScene}
-                                title="Tambah adegan baru"
+                                className={`sm-continuity-btn ${activeScene.keepSameLocation ? "active" : ""}`}
+                                onClick={() => handleToggleActiveSceneLocationMode(true)}
+                                title="Mempertahankan latar utama (ruang kelas) dan menambahkan elemen baru (pintu kelas) tanpa duplikat"
                             >
-                                + Tambah
+                                <span>🏫 Satu Lokasi Berkelanjutan</span>
+                            </button>
+                            <button
+                                type="button"
+                                className={`sm-continuity-btn ${!activeScene.keepSameLocation ? "active" : ""}`}
+                                onClick={() => handleToggleActiveSceneLocationMode(false)}
+                                title="Menghapus background lama dari Prompt 1 dan menggantinya total dengan background baru dari Scene 2 (misal pindah ke luar ruangan / rooftop)"
+                            >
+                                <span>🔄 Ganti Latar Baru Total</span>
+                            </button>
+                        </div>
+                        <span style={{ fontSize: "11px", color: "var(--sm-text-faint)", fontStyle: "italic" }}>
+                            {activeScene.keepSameLocation
+                                ? "Latar Prompt 1 (ruang kelas) dipertahankan, objek pintu/jendela ditambahkan secara mulus."
+                                : "Latar Prompt 1 diganti 100% oleh latar baru dari Scene ini (misal pindah ke halaman sakura atau atap rooftop)."}
+                        </span>
+                    </div>
+
+                    {/* Quick-Tag Inspiration Bar (1-Click Insertion) */}
+                    <div className="sm-inspiration-box">
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: "11.5px", fontWeight: 800, color: "var(--sm-text-secondary)" }}>
+                                ⚡ Inspirasi Tag Cepat (Klik untuk Tambah ke Prompt 2):
+                            </span>
+                        </div>
+
+                        <div className="sm-inspiration-nav">
+                            <button
+                                type="button"
+                                className={`sm-insp-nav-btn ${activeInspCategory === "pose" ? "active" : ""}`}
+                                onClick={() => setActiveInspCategory("pose")}
+                            >
+                                🏃 Pose &amp; Aksi
+                            </button>
+                            <button
+                                type="button"
+                                className={`sm-insp-nav-btn ${activeInspCategory === "background" ? "active" : ""}`}
+                                onClick={() => setActiveInspCategory("background")}
+                            >
+                                📍 Background / Latar
+                            </button>
+                            <button
+                                type="button"
+                                className={`sm-insp-nav-btn ${activeInspCategory === "expression" ? "active" : ""}`}
+                                onClick={() => setActiveInspCategory("expression")}
+                            >
+                                😊 Ekspresi Wajah
+                            </button>
+                            <button
+                                type="button"
+                                className={`sm-insp-nav-btn ${activeInspCategory === "camera" ? "active" : ""}`}
+                                onClick={() => setActiveInspCategory("camera")}
+                            >
+                                🎥 Kamera &amp; Angle
                             </button>
                         </div>
 
-                        <div className="sm-scene-list">
-                            {scenes.map((scene, idx) => {
-                                const isActive = scene.id === activeSceneId;
+                        <div className="sm-insp-chips-wrap">
+                            {INSPIRATION_TAGS[activeInspCategory].map((tag) => {
+                                const isAdded = activeScene.prompt2
+                                    .toLowerCase()
+                                    .includes(tag.toLowerCase());
                                 return (
-                                    <div
-                                        key={scene.id}
-                                        className={`sm-scene-item ${isActive ? "active" : ""}`}
-                                        onClick={() => setActiveSceneId(scene.id)}
+                                    <button
+                                        key={tag}
+                                        type="button"
+                                        className={`sm-insp-chip-btn ${isAdded ? "added" : ""}`}
+                                        onClick={() => handleInsertQuickTag(tag)}
+                                        title={isAdded ? "Sudah ada di prompt" : "Klik untuk menambahkan"}
                                     >
-                                        <div className="sm-scene-meta">
-                                            <div className="sm-scene-index-row">
-                                                <span className="sm-scene-idx-badge">S{idx + 1}</span>
-                                                <span className="sm-scene-title">{scene.title}</span>
-                                            </div>
-                                            <span className="sm-scene-preview-sub">
-                                                {scene.generatedPositive || "Belum ada prompt digenerate"}
-                                            </span>
-                                        </div>
-
-                                        <div className="sm-scene-actions">
-                                            {idx > 0 && (
-                                                <button
-                                                    type="button"
-                                                    className="sm-icon-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleMoveScene(idx, "up");
-                                                    }}
-                                                    title="Pindah ke atas"
-                                                >
-                                                    ▲
-                                                </button>
-                                            )}
-                                            {idx < scenes.length - 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="sm-icon-btn"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleMoveScene(idx, "down");
-                                                    }}
-                                                    title="Pindah ke bawah"
-                                                >
-                                                    ▼
-                                                </button>
-                                            )}
-                                            <button
-                                                type="button"
-                                                className="sm-icon-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleDuplicateScene(scene);
-                                                }}
-                                                title="Duplikasi adegan"
-                                            >
-                                                ⎘
-                                            </button>
-                                            {scenes.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    className="sm-icon-btn danger"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDeleteScene(scene.id);
-                                                    }}
-                                                    title="Hapus adegan"
-                                                >
-                                                    ✕
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
+                                        <span>{isAdded ? "✓" : "+"}</span>
+                                        <span>{tag}</span>
+                                    </button>
                                 );
                             })}
                         </div>
                     </div>
-                </aside>
-
-                {/* --------------------------------------------------------------
-                    MIDDLE PANEL: RAW PROMPT PARSER & 16-CATEGORY ATTRIBUTE EDITOR
-                   -------------------------------------------------------------- */}
-                <main className="sm-col-editor">
-                    {/* Raw Prompt Input & Analyzer */}
-                    <div className="sm-raw-input-card">
-                        <div className="sm-raw-header">
-                            <span className="sm-raw-title">
-                                📥 Raw Prompt Source (Input Prompt Mentah)
-                            </span>
-                            <div className="sm-raw-tools">
-                                <button
-                                    type="button"
-                                    className="sm-card-action-btn"
-                                    onClick={handleLoadExample}
-                                    title="Muat contoh prompt Rio Tsukatsuki"
-                                >
-                                    Muat Contoh Rio
-                                </button>
-                                <button
-                                    type="button"
-                                    className="sm-card-action-btn"
-                                    onClick={handleResetFields}
-                                    title="Kosongkan seluruh field"
-                                >
-                                    Reset Kosong
-                                </button>
-                            </div>
-                        </div>
-
-                        <textarea
-                            className="sm-textarea-raw"
-                            rows={3}
-                            value={rawInputPrompt}
-                            onChange={(e) => setRawInputPrompt(e.target.value)}
-                            placeholder="Ketik atau tempel prompt mentah di sini (semua field di bawah dimulai kosong lalu otomatis terisi setelah dianalisis)..."
-                        />
-
-                        <div className="sm-analyze-bar">
-                            <div className="sm-provider-indicator">
-                                <span
-                                    className={`sm-indicator-dot ${providerNotice?.includes("Lokal") ? "fallback" : ""}`}
-                                />
-                                <span>{providerNotice || "AI Provider siap menganalisis konteks semantik"}</span>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="sm-card-action-btn primary"
-                                style={{ padding: "8px 18px", fontSize: "12.5px" }}
-                                onClick={() => handleAnalyzeRawPrompt()}
-                                disabled={isAnalyzing}
-                            >
-                                {isAnalyzing ? "Sedang Menganalisis..." : "⚡ Analyze Prompt (Urai 16 Kategori)"}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Master Lock Controls Strip */}
-                    <div className="sm-locks-strip">
-                        <div className="sm-locks-summary">
-                            <span>Status Kunci Atribut:</span>
-                            <span className="sm-locks-badge locked">
-                                🔒 {lockStats.lockedCount} Terkunci (Locked)
-                            </span>
-                            <span className="sm-locks-badge unlocked">
-                                🔓 {lockStats.unlockedCount} Bebas Berubah (Unlocked)
-                            </span>
-                        </div>
-
-                        <div className="sm-locks-actions">
-                            <button
-                                type="button"
-                                className="sm-card-action-btn"
-                                onClick={handleLockAll}
-                                title="Kunci seluruh atribut agar sama di semua adegan"
-                            >
-                                🔒 Lock All
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-card-action-btn"
-                                onClick={handleUnlockAll}
-                                title="Buka seluruh atribut agar bebas berubah"
-                            >
-                                🔓 Unlock All
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-card-action-btn"
-                                onClick={handleResetLocks}
-                                title="Kembalikan konfigurasi lock ke standar rekomendasi"
-                            >
-                                ↺ Reset
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* 16-Category Breakdown Grid */}
-                    <div className="sm-categories-grid">
-                        {ATTRIBUTE_CATEGORIES.map((cat) => {
-                            const isLocked = activeLocks[cat.key];
-                            // Attributes come from active scene or profile
-                            const currentAttrs =
-                                activeScene.sceneSpecificAttributes[cat.key]?.length > 0
-                                    ? activeScene.sceneSpecificAttributes[cat.key]
-                                    : characterProfile.sharedAttributes[cat.key] || [];
-
-                            return (
-                                <div
-                                    key={cat.key}
-                                    className={`sm-category-card ${isLocked ? "locked" : "unlocked"}`}
-                                >
-                                    <div className="sm-cat-header">
-                                        <div className="sm-cat-title-row">
-                                            <span className="sm-cat-title">{cat.label}</span>
-                                            <span className="sm-cat-count">
-                                                ({currentAttrs.length})
-                                            </span>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            className={`sm-lock-toggle-btn ${isLocked ? "locked" : "unlocked"}`}
-                                            onClick={() => handleToggleCategoryLock(cat.key)}
-                                            title={
-                                                isLocked
-                                                    ? "Klik untuk membuka (Unlocked: boleh berubah per adegan)"
-                                                    : "Klik untuk mengunci (Locked: konsisten di seluruh adegan)"
-                                            }
-                                        >
-                                            {isLocked ? "🔒 Locked" : "🔓 Unlocked"}
-                                        </button>
-                                    </div>
-
-                                    {/* Chips List */}
-                                    <div className="sm-chips-wrap">
-                                        {currentAttrs.length === 0 ? (
-                                            <span className="sm-empty-hint">Field kosong</span>
-                                        ) : (
-                                            currentAttrs.map((attr) => (
-                                                <div key={attr.id} className="sm-token-chip">
-                                                    <span>{attr.text}</span>
-                                                    {attr.weight && attr.weight !== 1.0 && (
-                                                        <span className="sm-chip-weight">
-                                                            {attr.weight}x
-                                                        </span>
-                                                    )}
-                                                    {attr.isAmbiguous && (
-                                                        <span
-                                                            style={{ color: "#facc15", fontSize: "10px" }}
-                                                            title="Tag ambigu - bisa dipindahkan jika perlu"
-                                                        >
-                                                            (?)
-                                                        </span>
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        className="sm-chip-del-btn"
-                                                        onClick={() => handleRemoveTag(cat.key, attr.id)}
-                                                        title="Hapus tag ini"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-
-                                    {/* Quick Add Tag Input */}
-                                    <div className="sm-quick-add-row">
-                                        <input
-                                            type="text"
-                                            className="sm-input-tag-quick"
-                                            placeholder={`+ Tambah ke ${cat.label}...`}
-                                            value={quickTagInputs[cat.key] || ""}
-                                            onChange={(e) =>
-                                                setQuickTagInputs({
-                                                    ...quickTagInputs,
-                                                    [cat.key]: e.target.value,
-                                                })
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    e.preventDefault();
-                                                    handleAddQuickTag(cat.key);
-                                                }
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            className="sm-card-action-btn"
-                                            onClick={() => handleAddQuickTag(cat.key)}
-                                        >
-                                            +
-                                        </button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </main>
-
-                {/* --------------------------------------------------------------
-                    RIGHT PANEL: GENERATED PROMPT OUTPUT & VALIDATION
-                   -------------------------------------------------------------- */}
-                <aside className="sm-col-output">
-                    {/* Validation Warnings Card */}
-                    {activeScene.warnings.length > 0 && (
-                        <div className="sm-warnings-card">
-                            <span className="sm-warning-title">
-                                ⚠️ Deteksi Konflik &amp; Peringatan ({activeScene.warnings.length})
-                            </span>
-                            {activeScene.warnings.map((w) => (
-                                <div key={w.id} className="sm-warning-item">
-                                    {w.message}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Final Positive Prompt Card */}
-                    <div className="sm-output-card">
-                        <div className="sm-output-header">
-                            <div className="sm-output-badge-row">
-                                <span className="sm-output-label">Final Positive Prompt</span>
-                                <span className="sm-output-tokens">
-                                    ~{activeScene.generatedPositive.split(",").filter(Boolean).length} tags
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="sm-output-box">
-                            {activeScene.generatedPositive || "Belum ada prompt dihasilkan. Klik 'Analyze Prompt' terlebih dahulu."}
-                        </div>
-
-                        <div className="sm-output-actions">
-                            <button
-                                type="button"
-                                className="sm-btn-copy-output"
-                                onClick={() =>
-                                    handleCopy(
-                                        activeScene.generatedPositive,
-                                        "pos-copy",
-                                        "Positive prompt berhasil disalin untuk ComfyUI!"
-                                    )
-                                }
-                            >
-                                📋 {copiedKey === "pos-copy" ? "Tersalin!" : "Salin Prompt"}
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-btn-apply-canvas"
-                                onClick={() => {
-                                    onApplyToCanvas(
-                                        activeScene.generatedPositive,
-                                        activeScene.generatedNegative
-                                    );
-                                    showToast(`Adegan "${activeScene.title}" diterapkan ke Canvas Studio!`);
-                                }}
-                            >
-                                ⚡ Terapkan
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Final Negative Prompt Card */}
-                    <div className="sm-output-card">
-                        <div className="sm-output-header">
-                            <div className="sm-output-badge-row">
-                                <span className="sm-output-label">Final Negative Prompt</span>
-                                <span className="sm-output-tokens">Anti-Burn Protected</span>
-                            </div>
-                        </div>
-
-                        <div className="sm-output-box negative">
-                            {activeScene.generatedNegative || "worst quality, low quality, bad anatomy, bad hands, blurry"}
-                        </div>
-
-                        <div className="sm-output-actions">
-                            <button
-                                type="button"
-                                className="sm-btn-copy-output"
-                                onClick={() =>
-                                    handleCopy(
-                                        activeScene.generatedNegative,
-                                        "neg-copy",
-                                        "Negative prompt berhasil disalin untuk ComfyUI!"
-                                    )
-                                }
-                            >
-                                📋 {copiedKey === "neg-copy" ? "Tersalin!" : "Salin Negatif"}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Global Export Options */}
-                    <div className="sm-global-export-card">
-                        <span className="sm-card-title">📦 Ekspor &amp; Manajemen Storyboard</span>
-                        <div className="sm-export-grid">
-                            <button
-                                type="button"
-                                className="sm-btn-export-tile"
-                                onClick={handleExportScenesJSON}
-                            >
-                                📥 Ekspor JSON
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-btn-export-tile"
-                                onClick={handleExportScenesText}
-                            >
-                                📄 Ekspor Text (.txt)
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-btn-export-tile"
-                                onClick={() => {
-                                    recompileAllScenes(characterProfile, activeLocks, mergeMode);
-                                    showToast("✓ Semua adegan berhasil di-regenerate!");
-                                }}
-                            >
-                                🔄 Regenerate Semua
-                            </button>
-                            <button
-                                type="button"
-                                className="sm-btn-export-tile"
-                                onClick={() => {
-                                    handleCopy(
-                                        JSON.stringify(characterProfile, null, 2),
-                                        "profile-json",
-                                        "Profil karakter disalin ke clipboard!"
-                                    );
-                                }}
-                            >
-                                👤 Salin Profil
-                            </button>
-                        </div>
-                    </div>
-                </aside>
+                </div>
             </div>
+
+            {/* ------------------------------------------------------------------
+                5B. SMART TAG & DANBOORU DETECTOR INTELLIGENCE CARD
+               ------------------------------------------------------------------ */}
+            <div className="sm-smart-tag-card">
+                <div className="sm-smart-tag-header">
+                    <div className="sm-smart-tag-title-group">
+                        <span className="sm-smart-tag-title">
+                            🏷️ Smart Tag &amp; Danbooru Detector
+                        </span>
+                        <span className="sm-badge-pill success">
+                            PostgreSQL Sync Aktif
+                        </span>
+                    </div>
+
+                    <div className="sm-smart-tag-controls">
+                        <button
+                            type="button"
+                            className="sm-smart-tag-auto-toggle"
+                            onClick={handleToggleAutoLearn}
+                            title="Aktifkan atau nonaktifkan auto-learning tag baru ke database PostgreSQL"
+                        >
+                            <span>{autoLearn ? "✓ Auto-Simpan DB: AKTIF" : "✕ Auto-Simpan: MANUAL"}</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="sm-smart-tag-btn-add"
+                            onClick={() => setShowAddTagModal(true)}
+                            title="Tambah tag kustom secara manual ke database Danbooru"
+                        >
+                            <span>+ Tambah Tag Manual</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className="sm-smart-tag-btn-manage"
+                            onClick={() => setShowManageDrawer(!showManageDrawer)}
+                            title="Lihat daftar kosa kata kustom yang tersimpan di database"
+                        >
+                            <span>📚 Pustaka Tag ({learnedTagsList.length})</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p className="sm-smart-tag-desc">
+                    Sistem mendeteksi danbooru tags &amp; kosa kata baru secara otomatis. Kosa kata baru (seperti <code>defined shadow shapes</code>) diklasifikasikan ke kategori yang sesuai dan disimpan ke database agar tidak hilang saat merger.
+                </p>
+
+                {/* Detected Tags Breakdown */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-secondary)" }}>
+                            Status Analisis Prompt ({detectedVocabulary.totalAnalyzed} tag dianalisis):
+                        </span>
+                        <div style={{ display: "flex", gap: "10px", fontSize: "11px" }}>
+                            <span style={{ color: "#93c5fd" }}>✓ {detectedVocabulary.knownCount} Danbooru Standar</span>
+                            <span style={{ color: "#4ade80", fontWeight: 700 }}>
+                                🆕 {detectedVocabulary.newCount} Kosa Kata Baru / DB Custom
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="sm-smart-tag-chips-wrap">
+                        {detectedVocabulary.newLearnedTags.length === 0 ? (
+                            <span style={{ fontSize: "11px", color: "var(--sm-text-faint)", fontStyle: "italic" }}>
+                                Semua tag di prompt adalah tag standar Danbooru.
+                            </span>
+                        ) : (
+                            detectedVocabulary.newLearnedTags.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className={`sm-smart-tag-chip ${item.isDb ? "learned" : "custom"}`}
+                                    title={`Kategori: ${item.category} | ${item.source}`}
+                                >
+                                    <span>{item.isDb ? "✓" : "✨"}</span>
+                                    <span>{item.clean}</span>
+                                    <span className="sm-smart-tag-subbadge">{item.category}</span>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {/* Manage Drawer (Collapsible) */}
+                {showManageDrawer && (
+                    <div style={{
+                        marginTop: "10px",
+                        padding: "12px",
+                        background: "#121318",
+                        border: "1px solid #282a36",
+                        borderRadius: "6px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px"
+                    }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <span style={{ fontSize: "12px", fontWeight: 700, color: "#f4f4f6" }}>
+                                📚 Daftar Tag Kustom Tersimpan di Database ({learnedTagsList.length} tag):
+                            </span>
+                            <button
+                                type="button"
+                                className="sm-scene-tab-del-btn"
+                                onClick={() => setShowManageDrawer(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", maxHeight: "160px", overflowY: "auto" }}>
+                            {learnedTagsList.length === 0 ? (
+                                <span style={{ fontSize: "11px", color: "var(--sm-text-faint)" }}>
+                                    Belum ada tag kustom yang tersimpan di database. Tag baru akan otomatis tersimpan saat prompt dimasukkan.
+                                </span>
+                            ) : (
+                                learnedTagsList.map((tag, idx) => (
+                                    <div
+                                        key={idx}
+                                        className="sm-smart-tag-chip learned"
+                                        title={`${tag.description} | Ditambahkan: ${new Date(tag.learnedAt).toLocaleDateString()}`}
+                                    >
+                                        <span>✓</span>
+                                        <span>{tag.name}</span>
+                                        <span className="sm-smart-tag-subbadge">{tag.attributeCategory}</span>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ------------------------------------------------------------------
+                6. LIVE COMPILED MERGED OUTPUT SECTION
+               ------------------------------------------------------------------ */}
+            {mergedResult && (
+                <div className="sm-merged-output-card">
+                    <div className="sm-merged-output-header">
+                        <div className="sm-merged-output-title">
+                            <span>✨ Hasil Prompt Adegan Lanjutan: [{activeScene.title}]</span>
+                        </div>
+                        <div className="sm-merger-badge-row">
+                            <span className="sm-tag-counter">
+                                {mergedResult.stats.totalTags} tags (~{Math.ceil(mergedResult.stats.totalTags * 1.3)} tok)
+                            </span>
+                            <span className="sm-badge-pill success">
+                                ✓ 0 Tag Double (Clean Deduplicated)
+                            </span>
+                            <span className="sm-badge-pill primary">
+                                🔒 Karakter &amp; Baju Konsisten
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Positive Prompt Box */}
+                    <div className="sm-merged-prompt-box">
+                        {mergedResult.positive}
+                    </div>
+
+                    {/* Actions Row */}
+                    <div className="sm-merged-actions-row">
+                        <button
+                            type="button"
+                            className="sm-btn-copy-output"
+                            onClick={() =>
+                                handleCopy(
+                                    mergedResult.positive,
+                                    "merged-pos",
+                                    `✓ Prompt Scene ${activeSceneIndex + 1} berhasil disalin ke clipboard!`
+                                )
+                            }
+                        >
+                            📋 {copiedKey === "merged-pos" ? "✓ Tersalin!" : "Salin Prompt Scene Ini"}
+                        </button>
+
+                        <button
+                            type="button"
+                            className="sm-btn-apply-canvas"
+                            onClick={() => {
+                                onApplyToCanvas(mergedResult.positive, mergedResult.negative);
+                                showToast(`✓ Scene ${activeSceneIndex + 1} diterapkan ke Canvas Studio Lab!`);
+                            }}
+                        >
+                            ⚡ Terapkan ke Canvas Studio
+                        </button>
+
+                        <button
+                            type="button"
+                            className="sm-card-action-btn"
+                            onClick={() =>
+                                handleCopy(
+                                    mergedResult.negative,
+                                    "merged-neg",
+                                    "✓ Negative prompt berhasil disalin!"
+                                )
+                            }
+                        >
+                            📋 {copiedKey === "merged-neg" ? "✓ Tersalin!" : "Salin Negatif"}
+                        </button>
+                    </div>
+
+                    {/* Guarded Negative Box */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: "var(--sm-text-muted)" }}>
+                            Negative Prompt Hasil Merger (Anti-Burn &amp; 2D Anime Protection):
+                        </span>
+                        <div className="sm-merged-prompt-box negative">
+                            {mergedResult.negative}
+                        </div>
+                    </div>
+
+                    {/* ----------------------------------------------------------
+                        7. SEMANTIC CONSISTENCY AUDIT BREAKDOWN
+                       ---------------------------------------------------------- */}
+                    <div className="sm-audit-section">
+                        <span className="sm-audit-title">
+                            🔍 Audit Konsistensi Semantik: Mengapa Hasil Prompt Ini Konsisten?
+                        </span>
+                        <div className="sm-audit-grid">
+                            {/* Column 1: Locked from Prompt 1 */}
+                            <div className="sm-audit-col">
+                                <div className="sm-audit-header locked">
+                                    <span>🔒 Dipertahankan dari Prompt 1 (Anchor)</span>
+                                    <span>{mergedResult.stats.inheritedCount} tags</span>
+                                </div>
+                                <div className="sm-audit-chips">
+                                    {ATTRIBUTE_CATEGORIES.filter((c) =>
+                                        [
+                                            "character_identity",
+                                            "physical_appearance",
+                                            "hair",
+                                            "eyes",
+                                            "outfit",
+                                            "accessories",
+                                            "art_style",
+                                            "lighting",
+                                            "quality",
+                                        ].includes(c.key)
+                                    ).map((cat) => {
+                                        const list = mergedResult.inheritedFromMain[cat.key] || [];
+                                        if (list.length === 0) return null;
+                                        return list.map((a) => (
+                                            <span
+                                                key={a.id}
+                                                className="sm-audit-chip inherited"
+                                                title={`Kategori: ${cat.label}`}
+                                            >
+                                                {a.text}
+                                            </span>
+                                        ));
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Column 2: Adapted from Prompt 2 */}
+                            <div className="sm-audit-col">
+                                <div className="sm-audit-header adapted">
+                                    <span>🔄 Diadaptasi dari Prompt 2 (Adegan Ini)</span>
+                                    <span>{mergedResult.stats.sceneAddedCount} tags</span>
+                                </div>
+                                <div className="sm-audit-chips">
+                                    {ATTRIBUTE_CATEGORIES.filter((c) =>
+                                        ["pose", "action", "expression", "objects", "camera", "background"].includes(c.key)
+                                    ).map((cat) => {
+                                        const list = mergedResult.appliedFromScene[cat.key] || [];
+                                        if (list.length === 0) return null;
+                                        return list.map((a) => (
+                                            <span
+                                                key={a.id}
+                                                className="sm-audit-chip added"
+                                                title={`Kategori: ${cat.label}`}
+                                            >
+                                                {a.text}
+                                            </span>
+                                        ));
+                                    })}
+                                </div>
+                            </div>
+
+                            {/* Column 3: Suppressed Duplicates & Replaced Tags */}
+                            <div className="sm-audit-col">
+                                <div className="sm-audit-header suppressed">
+                                    <span>🛡️ Digantikan / Dieliminasi (Anti-Bentrok)</span>
+                                    <span>{mergedResult.stats.suppressedCount} tags</span>
+                                </div>
+                                {mergedResult.suppressedSceneTags.length === 0 ? (
+                                    <span style={{ fontSize: "11px", color: "var(--sm-text-muted)", fontStyle: "italic" }}>
+                                        Tidak ada bentrok atau tag duplikat terdeteksi.
+                                    </span>
+                                ) : (
+                                    <div className="sm-suppressed-list">
+                                        {mergedResult.suppressedSceneTags.map((s, idx) => (
+                                            <div key={idx} className="sm-suppressed-item">
+                                                <span className="sm-suppressed-tag">{s.tag}</span>
+                                                <span className="sm-suppressed-reason">{s.reason}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Tambah Tag Manual */}
+            {showAddTagModal && (
+                <div className="sm-modal-backdrop" onClick={() => setShowAddTagModal(false)}>
+                    <div className="sm-modal-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="sm-modal-header">
+                            <h3 className="sm-modal-title">
+                                <span>➕ Tambah Kosa Kata / Tag Baru ke Database</span>
+                            </h3>
+                            <button
+                                type="button"
+                                className="sm-modal-close-btn"
+                                onClick={() => setShowAddTagModal(false)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveTagManual}>
+                            <div className="sm-modal-body">
+                                <div className="sm-form-group">
+                                    <label className="sm-form-label">Nama Tag (Danbooru format / Spasi):</label>
+                                    <input
+                                        type="text"
+                                        className="sm-form-input"
+                                        value={formTagName}
+                                        onChange={(e) => setFormTagName(e.target.value)}
+                                        placeholder="cth. defined shadow shapes, retro curl bun, etc."
+                                        autoFocus
+                                        required
+                                    />
+                                    <span style={{ fontSize: "10.5px", color: "var(--sm-text-muted)" }}>
+                                        Bisa menggunakan spasi atau underscore (otomatis dinormalisasi).
+                                    </span>
+                                </div>
+
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                    <div className="sm-form-group">
+                                        <label className="sm-form-label">Kategori Prompt:</label>
+                                        <select
+                                            className="sm-form-select"
+                                            value={formAttrCat}
+                                            onChange={(e) => {
+                                                const val = e.target.value as AttributeCategory;
+                                                setFormAttrCat(val);
+                                                setFormLayer(val);
+                                            }}
+                                        >
+                                            {ATTRIBUTE_CATEGORIES.map((c) => (
+                                                <option key={c.key} value={c.key}>
+                                                    {c.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    <div className="sm-form-group">
+                                        <label className="sm-form-label">Kategori Danbooru:</label>
+                                        <select
+                                            className="sm-form-select"
+                                            value={formCategory}
+                                            onChange={(e) => setFormCategory(e.target.value as BooruTagCategory)}
+                                        >
+                                            <option value="general">general (Umum / Efek / Objek)</option>
+                                            <option value="character">character (Karakter)</option>
+                                            <option value="quality">quality (Kualitas / Resolusi)</option>
+                                            <option value="artist">artist (Gaya Artist)</option>
+                                            <option value="meta">meta (Teknis)</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="sm-form-group">
+                                    <label className="sm-form-label">Deskripsi / Catatan Tag (Opsional):</label>
+                                    <input
+                                        type="text"
+                                        className="sm-form-input"
+                                        value={formDesc}
+                                        onChange={(e) => setFormDesc(e.target.value)}
+                                        placeholder="cth. Efek bayangan tegas anime cel shading"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="sm-modal-footer">
+                                <button
+                                    type="button"
+                                    className="sm-btn-secondary"
+                                    onClick={() => setShowAddTagModal(false)}
+                                    disabled={isSavingCustomTag}
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="sm-btn-primary"
+                                    disabled={isSavingCustomTag}
+                                >
+                                    {isSavingCustomTag ? "Menyimpan ke PostgreSQL..." : "💾 Simpan ke Database"}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

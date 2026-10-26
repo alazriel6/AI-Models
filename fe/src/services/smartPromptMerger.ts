@@ -182,6 +182,23 @@ export function mergeMainAndScenePrompt(
         const sceneAttrs = sceneParsed[cat] || [];
 
         if (isLocked) {
+            // Quality Booster: Additive merge of quality tags so highres/absurdres/newest are preserved
+            if (cat === "quality") {
+                const combinedQuality = [...mainAttrs];
+                sceneAttrs.forEach((sAttr) => {
+                    const exists = combinedQuality.some((m) =>
+                        areAttributesSemanticallyEquivalent(m.normalizedValue, sAttr.normalizedValue)
+                    );
+                    if (!exists) {
+                        combinedQuality.push(sAttr);
+                    }
+                });
+                finalAttributesByCategory.quality = combinedQuality;
+                inheritedFromMain.quality = [...mainAttrs];
+                appliedFromScene.quality = [...sceneAttrs];
+                return;
+            }
+
             // Locked Category: Prompt 1 (Main Prompt) is the absolute DNA source of truth!
             if (mainAttrs.length > 0) {
                 finalAttributesByCategory[cat] = [...mainAttrs];
@@ -228,12 +245,33 @@ export function mergeMainAndScenePrompt(
                 appliedFromScene.background = [...sceneAttrs];
 
                 const combinedBg = [...mainAttrs];
+
+                // Detect if Scene 2 specifies a focal area (e.g. chalkboard in background) that supersedes
+                // previous scene's doorway/sliding door props
+                const sceneHasChalkboard = sceneAttrs.some((s) => /chalkboard|blackboard/i.test(s.normalizedValue));
+                const sceneHasDoor = sceneAttrs.some((s) => /\b(sliding door|doorway|doorframe|door)\b/i.test(s.normalizedValue));
+
+                let filteredMainBg = combinedBg;
+                if (sceneHasChalkboard && !sceneHasDoor) {
+                    filteredMainBg = combinedBg.filter((m) => {
+                        const isDoorProp = /\b(sliding door|doorway|doorframe|classroom door)\b/i.test(m.normalizedValue);
+                        if (isDoorProp) {
+                            suppressedSceneTags.push({
+                                tag: m.text,
+                                reason: `Latar pintu diabaikan karena karakter telah berpindah ke area papan tulis (chalkboard)`,
+                                category: "background",
+                            });
+                        }
+                        return !isDoorProp;
+                    });
+                }
+
                 sceneAttrs.forEach((sAttr) => {
-                    const alreadyPresent = combinedBg.some((m) =>
+                    const alreadyPresent = filteredMainBg.some((m) =>
                         areAttributesSemanticallyEquivalent(m.normalizedValue, sAttr.normalizedValue)
                     );
                     if (!alreadyPresent) {
-                        combinedBg.push(sAttr);
+                        filteredMainBg.push(sAttr);
                     } else {
                         suppressedSceneTags.push({
                             tag: sAttr.text,
@@ -242,17 +280,46 @@ export function mergeMainAndScenePrompt(
                         });
                     }
                 });
-                finalAttributesByCategory.background = combinedBg;
+                finalAttributesByCategory.background = filteredMainBg;
+            } else if (cat === "other") {
+                // Merge other/miscellaneous tags non-destructively so custom user attributes are not wiped out
+                const combinedOther = [...mainAttrs];
+                sceneAttrs.forEach((sAttr) => {
+                    const exists = combinedOther.some((m) =>
+                        areAttributesSemanticallyEquivalent(m.normalizedValue, sAttr.normalizedValue)
+                    );
+                    if (!exists) {
+                        combinedOther.push(sAttr);
+                    }
+                });
+                finalAttributesByCategory.other = combinedOther;
+                inheritedFromMain.other = [...mainAttrs];
+                appliedFromScene.other = [...sceneAttrs];
             } else {
-                // Pose, Action, Expression, Objects, Camera:
+                // Pose, Action, Expression, Objects, Camera, Background (when not keeping same location), etc.:
                 if (sceneAttrs.length > 0) {
                     finalAttributesByCategory[cat] = [...sceneAttrs];
                     appliedFromScene[cat] = [...sceneAttrs];
-                    // If Main Prompt had an old action/pose/expression, record that it was overridden
+                    // If Main Prompt had an old action/pose/expression/background, record that it was overridden
                     if (mainAttrs.length > 0) {
+                        let reasonMsg = `Digantikan oleh aksi/pose baru dari Scene 2`;
+                        if (cat === "background") {
+                            reasonMsg = `Latar/lokasi lama dari Prompt 1 digantikan oleh latar baru Scene 2`;
+                        } else if (cat === "objects") {
+                            reasonMsg = `Objek/props lama dari Prompt 1 digantikan oleh objek baru Scene 2`;
+                        } else if (cat === "expression") {
+                            reasonMsg = `Ekspresi lama dari Prompt 1 digantikan oleh ekspresi baru Scene 2`;
+                        } else if (cat === "camera") {
+                            reasonMsg = `Sudut kamera lama digantikan oleh framing baru Scene 2`;
+                        } else if (cat === "outfit") {
+                            reasonMsg = `Outfit lama digantikan oleh pakaian baru Scene 2`;
+                        } else if (cat === "lighting") {
+                            reasonMsg = `Tata cahaya lama digantikan oleh pencahayaan baru Scene 2`;
+                        }
+
                         suppressedSceneTags.push({
                             tag: mainAttrs.map((a) => a.text).join(", "),
-                            reason: `Digantikan oleh aksi/pose baru dari Scene 2`,
+                            reason: reasonMsg,
                             category: cat,
                         });
                     }

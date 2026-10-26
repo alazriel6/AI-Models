@@ -73,13 +73,20 @@ export function extractTagWeight(rawTag: string): { cleanText: string; weight: n
     return { cleanText: trimmed, weight: 1.0 };
 }
 
+import {
+    isKnownBooruTag,
+    inferTagCategoryAndLayer,
+    registerNewVocabularyTag,
+    isAutoLearnEnabled,
+} from "./smartTagDetector";
+
 /**
  * Semantic keyword dictionaries for high-precision local fallback parsing.
  * Supports Danbooru tags, weighted tags, and natural language diffusion descriptors.
  */
 const CATEGORY_RULES: Record<AttributeCategory, RegExp[]> = {
     quality: [
-        /\b(masterpiece|best quality|high quality|great quality|amazing quality|top quality|very aesthetic|ultra detailed|highly detailed|absurdres|highres|8k|4k|flawless|hdr|wallpaper)\b/i,
+        /\b(masterpiece|best quality|high quality|great quality|amazing quality|top quality|very aesthetic|ultra detailed|highly detailed|absurdres|highres|newest|8k|4k|flawless|hdr|wallpaper)\b/i,
     ],
     character_identity: [
         /\b(1girl|2girls|3girls|1boy|2boys|3boys|solo|multiple girls|multiple boys|tsukatsuki rio|rio tsukatsuki|asuka|rei ayanami|hatsune miku|rem|ram|frieren|fern|ganyu|raiden shogun|tifa|2b|makima|power|anya|yor forg|marin kitagawa)\b/i,
@@ -98,47 +105,44 @@ const CATEGORY_RULES: Record<AttributeCategory, RegExp[]> = {
     ],
     outfit: [
         /\b(dress|coat|jacket|shirt|blouse|skirt|pleated skirt|pants|shorts|trousers|jeans|sweater|hoodie|cardigan|vest|suit|tuxedo|uniform|school uniform|sailor uniform|gym uniform|maid outfit|bikini|swimsuit|bodysuit|leotard|armor|robe|kimono|yukata|hanfu|cheongsam|qipao)\b/i,
-        /\b(halter dress|sleeveless dress|backless dress|burgundy dress|dark red dress|red dress|mini dress|tight dress|backless halter dress|backless sleeveless dress|white coat|winter coat|black coat|raincoat|trench coat)\b/i,
-        /\b(thighhighs|stockings|black thighhighs|sheer thighhighs|black sheer thighhighs|pantyhose|socks|kneehighs|boots|knee boots|ankle boots|heels|high heels|shoes|sneakers|sandals|slippers)\b/i,
-        /\b(gloves|black gloves|white gloves|fingerless gloves|leather gloves|belt|white belt|buckle belt|white buckle belt|corset|apron|cape|cloak)\b/i,
+        /\b(halter dress|sleeveless dress|backless dress|burgundy dress|dark red dress|red dress|mini dress|minidress|tight dress|backless halter dress|backless sleeveless dress|white coat|winter coat|black coat|raincoat|trench coat)\b/i,
+        /\b(thighhighs|stockings|black thighhighs|sheer thighhighs|sheer black thighhighs|black sheer thighhighs|pantyhose|socks|kneehighs|boots|knee boots|ankle boots|heels|high heels|shoes|sneakers|sandals|slippers)\b/i,
+        /\b(gloves|black gloves|white gloves|fingerless gloves|leather gloves|belt|white belt|buckle belt|white buckle belt|corset|apron|cape|cloak|bare shoulders)\b/i,
     ],
     accessories: [
         /\b(headband|red headband|polka dot headband|polka-dot headband|white polka dot headband|ribbon|hair ribbon|hair bow|hair clip|hair ornament|hair flower|scrunchie|hairpin|barrette)\b/i,
         /\b(halo|red halo|black halo|glowing halo|overhead halo|floating halo|wings|angel wings|demon wings|horns|devil horns|animal ears|cat ears|fox ears|wolf ears|tail|cat tail|fox tail)\b/i,
         /\b(glasses|sunglasses|eyepatch|mask|choker|collar|necklace|pendant|earrings|piercing|bracelet|wristband|watch|ring|scarf|burgundy scarf|red scarf|muffler|tie|necktie|bowtie|badge|brooch|hat|beret|cap|crown|tiara)\b/i,
     ],
+    action: [
+        /\b(holding|clutching|grasping|carrying|hugging|embracing|touching|reaching|pointing|waving|adjusting|fixing|tucking)\b/i,
+        /\b(hand on|hands on|one hand on|hand in|hands in|hand to|hands to|arms at|arms crossed|folded arms|hands behind back|hands in pockets)\b/i,
+        /\b(holding to chest|holding against chest|holding clipboard|holding documents|holding papers|holding folder|holding blue folder|clutching folder|hugging object to chest|hugging object)\b/i,
+        /\b(hand on cheek|hand on hip|hands on hips|hand on door|hand on doorframe|hand on door handle|hand on hair|one hand on hair|hand in hair|hand on wall|hand on desk|hand on table|hand on railing)\b/i,
+        /\b(opening door|entering classroom|entering room|walking through door|walking through doorway|resting chin|resting head|reading|writing|eating|drinking|sleeping|singing|dancing|fighting|casting spell|running|jumping|flying|falling down)\b/i,
+    ],
     pose: [
-        /\b(standing|sitting|kneeling|lying|squatting|leaning|walking|crouching|reclining|perched|standing in doorway|entering)\b/i,
+        /\b(standing|sitting|kneeling|lying|squatting|leaning|walking|crouching|reclining|perched|stepping|running|jumping|floating)\b/i,
+        /\b(standing at|standing in|standing near|standing on|sitting at|sitting on|sitting in|leaning against|leaning on|walking into|walking through|walking past|walking towards|standing at sliding door|standing in doorway|entering)\b/i,
         /\b(dynamic pose|standing pose|sitting pose|action pose|relaxed pose|heroic pose|contrapposto|crossed legs|spread legs|all fours|bent over)\b/i,
         /\b(cowboy shot|full body|upper body|lower body|portrait|bust shot|close-up|headshot|feet out of frame)\b/i,
     ],
     expression: [
-        /\b(expression|smile|smiling|soft smile|warm smile|gentle smile|smirk|grinning|laughing|open mouth|closed mouth|parted lips)\b/i,
-        /\b(serious|serious expression|calm|calm expression|composed|neutral expression|stoic|pensive|thoughtful|melancholic|sad|crying|tears|frown|pout|angry|annoyed|furious|glaring|looking at viewer|looking away|looking to side|looking down|looking up|side glance)\b/i,
-        /\b(blush|subtle blush|shy|embarrassed|flustered|wink|winking|surprised|shocked|nervous|determined|seductive|sleepy)\b/i,
-    ],
-    action: [
-        /\b(holding|clutching|grasping|carrying|hugging|embracing|touching|reaching|pointing|waving|adjusting|fixing)\b/i,
-        /\b(holding to chest|holding against chest|holding folder|holding blue folder|clutching folder|hand on cheek|hand on hip|hands on hips|hand on wall|hand on doorframe|hand on door handle|opening door|entering classroom|entering room|walking through door|walking through doorway|arms at sides|crossed arms|folded arms|hands behind back|hands in pockets|resting chin|resting head|reading|writing|eating|drinking|sleeping|singing|dancing|fighting|casting spell|running|jumping|flying|falling down)\b/i,
-    ],
-    objects: [
-        /\b(sword|katana|blade|dagger|knife|shield|weapon|gun|pistol|rifle|bow|arrow|staff|wand|scythe|spear|axe)\b/i,
-        /\b(book|hardcover book|notebook|journal|pen|pencil|quill|scroll|letter|envelope|folder|blue folder|document folder|binder|document|paper|papers|smartphone|phone|camera|laptop|tablet|screen)\b/i,
-        /\b(umbrella|parasol|cup|mug|glass|bottle|plate|flower|bouquet|rose|bag|backpack|purse|suitcase|key|lantern|torch|candle)\b/i,
-    ],
-    background: [
-        /\b(forest|snowy forest|woods|trees|jungle|garden|flower garden|field|meadow|grass|mountain|hills|lake|river|sea|ocean|beach|sky|clouds|sunset|sunrise|night sky|stars|moon|space|galaxy)\b/i,
-        /\b(indoor|outdoors|classroom|school|hallway|school hallway|corridor|doorway|doorframe|door|classroom door|sliding door|blackboard|whiteboard|desk|wooden desk|wooden desks|table|chair|window|school window|balcony|terrace|rooftop)\b/i,
-        /\b(castle|dark castle|palace|mansion|room|bedroom|living room|kitchen|library|laboratory|cafe|coffee shop|restaurant|bar|dungeon|ruins|temple|shrine|church|cathedral)\b/i,
-        /\b(city|street|alley|urban|cyberpunk city|tokyo|building|neon signs|traffic|bridge|stairs|path|road)\b/i,
-        /\b(snow|falling snow|snowflakes|rain|falling rain|petals|falling petals|cherry blossoms|falling leaves|autumn leaves|fog|mist|smoke|sparks|bokeh)\b/i,
-        /\b(simple background|white background|black background|gradient background)\b/i,
+        /\b(expression|smile|smiling|soft smile|warm smile|gentle smile|smirk|grinning|laughing|open mouth|closed mouth|parted lips|speaking|talking)\b/i,
+        /\b(serious|serious expression|calm|calm expression|composed|neutral expression|stoic|pensive|thoughtful|melancholic|sad|crying|tears|frown|pout|angry|annoyed|furious|glaring|looking at viewer|looking away|looking to side|looking down|looking up|side glance|gaze|head tilt)\b/i,
+        /\b(blush|subtle blush|light blush|heavy blush|shy|embarrassed|flustered|wink|winking|surprised|shocked|nervous|determined|seductive|sleepy)\b/i,
     ],
     lighting: [
         /\b(lighting|cinematic lighting|dramatic lighting|studio lighting|natural lighting|ambient lighting|soft lighting|harsh lighting|indoor lighting|directional lighting)\b/i,
-        /\b(daylight|sunlight|sunbeams|sun rays|golden hour|blue hour|sunset lighting|morning light|afternoon light|window sunlight|window light|sunlight through window)\b/i,
-        /\b(rim lighting|rim light|backlighting|backlit|side lighting|top lighting|volumetric lighting|god rays|crepuscular rays|chiaroscuro)\b/i,
-        /\b(soft glow|glow|lantern light|candlelight|firelight|neon light|moonlight|starlight|fluorescent light|shadows|deep shadows|soft shadows|highlights|ambient occlusion)\b/i,
+        /\b(daylight|sunlight|soft sunlight|sunbeams|sun rays|golden hour|blue hour|sunset lighting|morning light|afternoon light|window sunlight|window light|sunlight through window)\b/i,
+        /\b(rim lighting|soft rim lighting|rim light|soft rim light|backlighting|backlit|side lighting|top lighting|volumetric lighting|god rays|crepuscular rays|chiaroscuro)\b/i,
+        /\b(soft glow|glow|lantern light|candlelight|firelight|neon light|moonlight|starlight|fluorescent light|shadow|shadows|defined shadow shapes|shadow shapes|deep shadows|soft shadows|highlights|ambient occlusion)\b/i,
+    ],
+    art_style: [
+        /\b(anime style|anime aesthetic|anime rendering|semi-realistic anime|japanese anime|kyoto animation|ufotable|makoto shinkai|studio ghibli)\b/i,
+        /\b(illustration|detailed illustration|digital painting|concept art|visual novel|visual novel art|official art|lineart|clean lineart|fine lineart|bold lineart|delicate lineart|sharp lineart|crisp lineart|clean lines)\b/i,
+        /\b(cel shading|rich cel shading|soft shading|subsurface scattering|watercolor|oil painting|sketch|ink|monochrome|pastel|defined shadow shapes|shadow shapes)\b/i,
+        /\b(anime coloring|anime_coloring|rich coloring|vibrant colors|saturated colors|rich color palette|flat color|smooth shading|2d illustration)\b/i,
     ],
     camera: [
         /\b(angle|eye-level|low angle|high angle|from above|from below|birds-eye view|worms-eye view|dutch angle|tilted frame)\b/i,
@@ -146,11 +150,18 @@ const CATEGORY_RULES: Record<AttributeCategory, RegExp[]> = {
         /\b(wide shot|wide angle|medium shot|medium cowboy shot|long shot|extreme close-up|macro shot|establishing shot)\b/i,
         /\b(depth of field|sharp focus|blurry background|shallow depth of field|bokeh background|motion blur|fish-eye|telephoto)\b/i,
     ],
-    art_style: [
-        /\b(anime style|anime aesthetic|anime rendering|semi-realistic anime|japanese anime|kyoto animation|ufotable|makoto shinkai|studio ghibli)\b/i,
-        /\b(illustration|detailed illustration|digital painting|concept art|visual novel|visual novel art|official art|lineart|clean lineart|fine lineart|bold lineart|delicate lineart|sharp lineart|crisp lineart|clean lines)\b/i,
-        /\b(cel shading|rich cel shading|soft shading|subsurface scattering|watercolor|oil painting|sketch|ink|monochrome|pastel)\b/i,
-        /\b(anime coloring|rich coloring|vibrant colors|saturated colors|rich color palette|flat color|smooth shading|2d illustration)\b/i,
+    background: [
+        /\b(forest|snowy forest|woods|trees|jungle|garden|flower garden|field|meadow|grass|mountain|hills|lake|river|sea|ocean|beach|sky|clouds|sunset|sunrise|night sky|stars|moon|space|galaxy)\b/i,
+        /\b(indoor|indoors|outdoor|outdoors|classroom|school|hallway|school hallway|corridor|doorway|doorframe|door|classroom door|sliding door|blackboard|blackboard in background|chalkboard|chalkboard in background|whiteboard|whiteboard in background|desk|desks|classroom desk|classroom desk in background|wooden desk|wooden desks|table|chair|window|school window|balcony|terrace|rooftop)\b/i,
+        /\b(castle|dark castle|palace|mansion|room|bedroom|living room|kitchen|library|laboratory|cafe|coffee shop|restaurant|bar|dungeon|ruins|temple|shrine|church|cathedral)\b/i,
+        /\b(city|street|alley|urban|cyberpunk city|tokyo|building|neon signs|traffic|bridge|stairs|path|road)\b/i,
+        /\b(snow|falling snow|snowflakes|rain|falling rain|petals|falling petals|cherry blossoms|falling leaves|autumn leaves|fog|mist|smoke|sparks|bokeh)\b/i,
+        /\b(simple background|white background|black background|gradient background)\b/i,
+    ],
+    objects: [
+        /\b(sword|katana|blade|dagger|knife|shield|weapon|gun|pistol|rifle|bow|arrow|staff|wand|scythe|spear|axe)\b/i,
+        /\b(book|hardcover book|notebook|journal|pen|pencil|quill|scroll|letter|envelope|folder|blue folder|document folder|binder|document|paper|papers|clipboard|documents|smartphone|phone|camera|laptop|tablet|screen)\b/i,
+        /\b(umbrella|parasol|cup|mug|glass|bottle|plate|flower|bouquet|rose|bag|backpack|purse|suitcase|key|lantern|torch|candle)\b/i,
     ],
     other: [],
     negative: [],
@@ -158,23 +169,25 @@ const CATEGORY_RULES: Record<AttributeCategory, RegExp[]> = {
 
 /**
  * Splits raw prompt text by commas, newlines, and semicolons while preserving
- * parenthesis-enclosed clauses like `(holding book, looking away:1.2)`.
+ * parenthesis-enclosed clauses, and automatically unpacks grouped weighted tags
+ * like `(standing at sliding door, hand on door:1.3)` into individual weighted tags:
+ * `(standing at sliding door:1.3)`, `(hand on door:1.3)`.
  */
 export function tokenizeRawPrompt(rawPrompt: string): string[] {
     if (!rawPrompt || !rawPrompt.trim()) return [];
 
-    const tokens: string[] = [];
+    const rawTokens: string[] = [];
     let current = "";
     let parenDepth = 0;
 
     for (let i = 0; i < rawPrompt.length; i++) {
         const char = rawPrompt[i];
-        if (char === "(") parenDepth++;
-        else if (char === ")") parenDepth = Math.max(0, parenDepth - 1);
+        if (char === "(" || char === "{" || char === "[") parenDepth++;
+        else if (char === ")" || char === "}" || char === "]") parenDepth = Math.max(0, parenDepth - 1);
 
         if ((char === "," || char === "\n" || char === ";") && parenDepth === 0) {
             const clean = current.trim();
-            if (clean) tokens.push(clean);
+            if (clean) rawTokens.push(clean);
             current = "";
         } else {
             current += char;
@@ -182,13 +195,56 @@ export function tokenizeRawPrompt(rawPrompt: string): string[] {
     }
 
     const last = current.trim();
-    if (last) tokens.push(last);
+    if (last) rawTokens.push(last);
 
-    return tokens;
+    // Unpack grouped weighted tokens (e.g. (tag1, tag2:1.3) -> (tag1:1.3), (tag2:1.3))
+    const unpackedTokens: string[] = [];
+
+    for (const token of rawTokens) {
+        const trimmed = token.trim();
+        if (!trimmed) continue;
+
+        // Grouped weight with single parens: (tag1, tag2, tag3:1.3)
+        const groupedWeightMatch = trimmed.match(/^\((.+):([0-9.]+)\)$/);
+        if (groupedWeightMatch && groupedWeightMatch[1].includes(",")) {
+            const weightStr = groupedWeightMatch[2];
+            const tags = groupedWeightMatch[1].split(",").map((t) => t.trim()).filter(Boolean);
+            for (const tag of tags) {
+                unpackedTokens.push(`(${tag}:${weightStr})`);
+            }
+            continue;
+        }
+
+        // Grouped weight with double parens: ((tag1, tag2:1.35))
+        const nestedGroupedMatch = trimmed.match(/^\(\((.+):([0-9.]+)\)\)$/);
+        if (nestedGroupedMatch && nestedGroupedMatch[1].includes(",")) {
+            const weightStr = nestedGroupedMatch[2];
+            const tags = nestedGroupedMatch[1].split(",").map((t) => t.trim()).filter(Boolean);
+            for (const tag of tags) {
+                unpackedTokens.push(`((${tag}:${weightStr}))`);
+            }
+            continue;
+        }
+
+        // Grouped plain parentheses without colon: (tag1, tag2)
+        const groupedPlainMatch = trimmed.match(/^\(([^:]+)\)$/);
+        if (groupedPlainMatch && groupedPlainMatch[1].includes(",")) {
+            const tags = groupedPlainMatch[1].split(",").map((t) => t.trim()).filter(Boolean);
+            for (const tag of tags) {
+                unpackedTokens.push(`(${tag})`);
+            }
+            continue;
+        }
+
+        unpackedTokens.push(trimmed);
+    }
+
+    return unpackedTokens;
 }
 
 /**
  * High-precision local heuristic classifier for a single token.
+ * Checks Danbooru taxonomy, learned custom tags, category rules, and NLP inference.
  */
 export function classifyToken(token: string): {
     category: AttributeCategory;
@@ -198,29 +254,48 @@ export function classifyToken(token: string): {
     const { cleanText } = extractTagWeight(token);
     const lower = cleanText.toLowerCase().trim();
 
-    // Check categories with priority order
+    // 1. Check learned custom tags cache or Danbooru DB match
+    const knownCheck = isKnownBooruTag(cleanText);
+    if (knownCheck.isKnown && knownCheck.item) {
+        if ("attributeCategory" in knownCheck.item) {
+            return {
+                category: knownCheck.item.attributeCategory,
+                isAmbiguous: false,
+                confidence: 0.98,
+            };
+        }
+    }
+
+    // 2. Check categories with semantic priority order
+    // Character Action and Pose MUST precede hair/outfit/background so gestures & environmental interactions
+    // (e.g. "one hand on hair", "standing at sliding door", "hand on door") are classified as actions, not hair or background!
     const priorityCategories: AttributeCategory[] = [
         "quality",
-        "art_style",
         "character_identity",
-        "lighting",
-        "camera",
+        "physical_appearance",
+        "action",
+        "pose",
+        "expression",
         "hair",
         "eyes",
         "outfit",
         "accessories",
+        "lighting",
+        "art_style",
+        "camera",
         "background",
-        "action",
-        "pose",
-        "expression",
         "objects",
-        "physical_appearance",
     ];
 
     let matchedCategory: AttributeCategory | null = null;
     let matchCount = 0;
 
     for (const cat of priorityCategories) {
+        // Prevent hair gesture actions like "one hand on hair", "tucking hair" from matching hair category
+        if (cat === "hair" && /hand on hair|one hand on hair|hands on hair|tucking hair|touching hair/i.test(lower)) {
+            continue;
+        }
+
         const patterns = CATEGORY_RULES[cat] || [];
         for (const pattern of patterns) {
             if (pattern.test(lower)) {
@@ -237,11 +312,21 @@ export function classifyToken(token: string): {
         return {
             category: matchedCategory,
             isAmbiguous: matchCount > 1,
-            confidence: matchCount === 1 ? 0.95 : 0.75,
+            confidence: matchCount === 1 ? 0.95 : 0.8,
         };
     }
 
-    // Fallback: Check if it looks like an object or background
+    // 3. Fallback: Smart semantic inference for newly introduced vocabulary
+    const inferred = inferTagCategoryAndLayer(cleanText);
+    if (inferred.attributeCategory !== "other") {
+        return {
+            category: inferred.attributeCategory,
+            isAmbiguous: false,
+            confidence: inferred.confidence,
+        };
+    }
+
+    // 4. Fallback: Check if it looks like an object or background
     if (/\b(room|hall|ground|wall|road|street|park)\b/i.test(lower)) {
         return { category: "background", isAmbiguous: false, confidence: 0.7 };
     }
@@ -264,6 +349,17 @@ export function parsePromptLocal(rawPrompt: string, rawNegativePrompt = ""): Par
     tokens.forEach((token, index) => {
         const { cleanText, weight } = extractTagWeight(token);
         const { category, isAmbiguous, confidence } = classifyToken(token);
+
+        // Auto-learn newly encountered vocabulary into database and local cache
+        if (cleanText && isAutoLearnEnabled()) {
+            const check = isKnownBooruTag(cleanText);
+            if (!check.isKnown) {
+                registerNewVocabularyTag(cleanText, {
+                    overrideCategory: category,
+                    source: "auto",
+                }).catch(() => {});
+            }
+        }
 
         const attr: PromptAttribute = {
             id: `attr-${index}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
