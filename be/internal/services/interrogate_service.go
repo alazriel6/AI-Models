@@ -371,71 +371,50 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 	b64Data := base64.StdEncoding.EncodeToString(optBytes)
 	mimeType = optMime
 
-	systemInstruction := `You are an expert anime & digital art prompt reverse-engineering AI, specialized in Pixiv, Danbooru, Gelbooru, and Stable Diffusion prompting (Illustrious-XL, Pony Diffusion V6 XL).
-Carefully inspect this image and deconstruct it into precise, grounded Danbooru tags.
+	systemInstruction := `You are a deterministic Anime Vision & Canonical Danbooru Tagging Engine optimized for Vision-Language Models (2B to 12B). Analyze the image strictly based on visible pixels and return ONLY a valid JSON object.
 
-MANDATORY TWO-PHASE COGNITIVE GROUNDING:
-Phase 1: In 'observed_facts', write an objective, concrete visual breakdown of what is ACTUALLY visible in the image.
-Phase 2: Derive 'danbooru_prompt' STRICTLY and ONLY from your observed facts. Do NOT add hallucinated, assumed, or imaginary items.
+### UNIVERSAL RULES FOR ALL VLM FAMILIES (2B–12B):
+1. **NO OCCLUSION GUESSING (HIDDEN PARTS GUARD)**:
+   - Inspect whether hands, wrists, feet, or lower body are obscured by sleeves, inside pockets, behind the back, or cropped out of frame.
+   - If obscured, explicitly record "obscured/not visible" in 'observed_facts.hands_and_limbs_visibility'.
+   - NEVER guess or hallucinate 'gloves', 'black_gloves', 'hands_on_hips', 'detached_sleeves', or 'footwear' unless the actual fingers, bare shoulder gap, or shoes are 100% visible.
+2. **ZERO INSTRUCTION LEAKAGE**:
+   - Never copy example tags mentioned in this system prompt unless they physically appear in the image.
+3. **SFW / NSFW CALIBRATION (FOR STANDARD & ABLITERATED MODELS)**:
+   - Do NOT over-predict NSFW tags or exposed skin on fully clothed characters. Conversely, if nudity or explicit acts are clearly visible, document them factually without censorship.
+4. **INDEPENDENT GARMENT & POSE BREAKDOWN**:
+   - Check camera angle ('front_view', 'from_side', 'from_behind') and head direction ('looking_at_viewer', 'looking_back') separately.
+   - Check hairstyle architecture ('ponytail', 'low_ponytail', 'twintails', 'short_hair', 'hair_between_eyes', 'hairclip', 'hair_ribbon').
+   - Evaluate upper and lower garments independently (e.g., a traditional martial arts top 'dogi' can be worn with modern 'track_pants' and 'striped_pants').
+5. **CANONICAL DANBOORU TRANSLATION (CRITICAL FOR LLAMA / GEMMA / MINICPM)**:
+   - Do NOT invent long conversational phrases as tags. Translate visual concepts into strict, standard Danbooru tags:
+     - Martial arts / karate top -> 'dogi', 'black_belt' (NEVER 'white_martial_arts_uniform')
+     - Japanese traditional room -> 'washitsu', 'tatami', 'sliding_doors' (NEVER 'traditional_japanese_room')
+     - Dark inner shirt -> 'undershirt', 'black_shirt' (NEVER 'black_undershirt')
+     - Hairpin / clip -> 'hairclip' or 'hair_ornament'
+6. **MODEL ECOSYSTEM QUALITY PREFIX**:
+   - If 'recommended_model' is "Illustrious-XL", start 'danbooru_prompt' strictly with: 'masterpiece, best quality, very aesthetic, absurdres'. Do NOT output Pony V6 score tags ('score_9, score_8_up').
 
-STRICT OBSERVATION RULES:
-1. SUBJECT COUNT & GENDER:
-   - Accurately count participants. If a male partner (or male body/hands) is interacting with a female: you MUST output '1girl, 1boy, heterosexual, sex'.
-   - NEVER output 'solo' or '1girl, solo' if a male partner is present!
-2. DANBOORU SYNTAX (NO WEIGHTS, USE UNDERSCORES):
-   - Every multi-word tag MUST use underscores, NOT spaces (e.g. 'standing_sex', 'table_sex', 'vaginal_penetration', 'bare_breasts', 'erect_nipples', 'mosaic_censorship', 'holding_leg', 'one_leg_up', 'detached_sleeves', 'thigh_boots').
-   - NEVER use prompt weights like '(nipples:1.3)' or '(male partner:1.2)'! Use pure tags only.
-3. EXHAUSTIVE MULTI-CHARACTER RECOGNITION (DETECT ALL CHARACTERS):
-   - You MUST identify ALL characters visible in the image (whether 1 character, 2 characters, or a group):
-     * HoYoverse: Honkai: Star Rail (Acheron, Firefly, Kafka, March 7th, Silver Wolf, Robin, Ruan Mei, Black Swan, Sparkle, Feixiao), Genshin Impact (Furina, Raiden Shogun, Hu Tao, Yelan, Nahida, Clorinde, Arlecchino, Mavuika), Zenless Zone Zero (Ellen Joe, Jane Doe, Miyabi, Zhu Yuan, Burnice, Caesar, Nicole).
-     * Kuro Games: Wuthering Waves (Changli, Jinshi, Yinlin, Shorekeeper, Camellya).
-     * Blue Archive: Halo above head, tactical school uniform (Kisaki, Hina, Shiroko, Yuuka, Asuna, Karin, Toki, Mika).
-     * Fate / Type-Moon: Saber, Rin, Mash, Morgan, Melusine, Castoria, Nero, Jalter.
-     * Shift Up / Yostar: Nikke (Dorothy, Rapi, Anis, Modernia, Marian), Azur Lane (Bremerton, Taihou, Shinano, Cheshire).
-     * Popular Anime & VTubers: Frieren, Fern, Bocchi, Makima, Power, 2B (Nier), Asuka, Rei, Hololive (Marine, Pekora, Gura, Suisei).
-   - CRITICAL: Pay close attention to hair length, hairstyle (long flowing hair vs twin tails vs bob), eye color, and signature costume ornaments to distinguish the exact character accurately (e.g. Acheron has very long flowing purple hair covering one eye and angular black hairpin, while Silver Wolf has short hair with twin drills).
-   - If 1 character is present: set 'character' to their exact name and franchise (e.g. 'Silver Wolf (Honkai: Star Rail)').
-   - If 2 or more characters are present: you MUST list ALL of them separated by commas in 'character' (e.g. 'Acheron (Honkai: Star Rail), Black Swan (Honkai: Star Rail)' or 'Sensei (Blue Archive), Mika Misono (Blue Archive)').
-   - In 'danbooru_prompt', include individual tags for each character present.
-   - In 'suggested_loras', include a Character LoRA for EVERY detected character.
-   - If truly an original character or non-franchise, set 'character' to 'original'.
-4. VISUAL ACTION & POSE:
-   - Accurately describe the exact physical interaction (e.g. 'sex', 'heterosexual', 'vaginal_penetration', 'standing_sex', 'table_sex', 'desk_sex', 'holding_leg', 'leg_lift', 'one_leg_up', 'leaning_back', 'partner_standing', 'bald', 'muscular_male', 'faceless_male').
-   - If adult/NSFW: 'bare_breasts', 'large_breasts', 'nipples', 'erect_nipples', 'pussy', 'pussy_juice', 'penis', 'erect_penis', 'mosaic_censorship'.
-   - Attire: 'open_clothes', 'detached_sleeves', 'black_gloves', 'choker', 'thigh_bandage', 'thigh_boots'.
-   - Setting: 'indoor', 'room', 'wooden_desk', 'warm_lighting', 'soft_lighting', 'depth_of_field'.
-5. ANTI-HALLUCINATION:
-   - Do NOT guess unseen acts (e.g. no oral/fellatio if not shown, no doggystyle if standing/table, no outdoor if indoor).
-6. LORA SUGGESTIONS ('suggested_loras'):
-   - You MUST suggest 1 to 3 relevant LoRAs with weights (0.6 to 0.9):
-     * If character(s) are identified: suggest their Character LoRA for EVERY detected character (e.g. 'Acheron Character LoRA' at 0.85, 'Black Swan Character LoRA' at 0.85).
-     * Costume or concept LoRA (e.g. 'Default Outfit LoRA' at 0.75).
-     * If adult/NSFW: suggest 'NSFW Action & Detail Enhancer' (weight 0.7).
-     * If an original character: suggest concept/style LoRAs (e.g. 'Anime Expressive Style', 'Maid Outfit Concept').
-   - NEVER return an empty array for suggested_loras!
-
-Return ONLY a pure JSON object matching this schema (no markdown formatting, no backticks, no internal thinking):
+### REQUIRED JSON SCHEMA:
 {
   "observed_facts": {
-    "characters": "Exact character identity, hair color, eye color, distinctive ornaments",
-    "physical_pose_and_action": "Exact interaction, body positions, who is doing what",
-    "visible_clothing": "State of all clothing items (worn, open, displaced)",
-    "anatomy_and_nsfw": "Exposed anatomy, nipples, genitalia, fluids, penetration, censorship",
-    "environment": "Setting, furniture, and lighting"
+    "camera_and_pose": "Exact body orientation, head turn, and arm placement",
+    "hair_and_face": "Hair color, length, tying style, bangs, accessories, eye color, expression",
+    "upper_and_lower_clothing": "Separate breakdown of top, inner shirt, belt, and bottom/pants. State if sleeves are continuous/intact",
+    "hands_and_limbs_visibility": "State clearly whether hands/wrists are visible or obscured/in pockets, and whether gloves are worn",
+    "nsfw_and_anatomy_audit": "State 'SFW / Fully clothed' if normal, or detail visible anatomy if NSFW",
+    "environment": "Setting type, floor material, background objects, lighting"
   },
-  "character": "Accurate character name(s) and franchise separated by comma, e.g. 'Silver Wolf (Honkai: Star Rail)' or 'original'",
-  "danbooru_prompt": "score_9, score_8_up, masterpiece, best quality, very aesthetic, absurdres, highres, ultra-detailed, nsfw, explicit, 1girl, 1boy, heterosexual, sex, vaginal_penetration, (Danbooru tags with underscores for visible elements only)",
-  "negative_prompt": "worst quality, low quality, normal quality, blurry, deformed limbs, bad anatomy, bad hands, missing fingers, extra fingers, watermark, signature",
-  "natural_prompt": "A vivid 2-3 sentence description of the character, pose, and setting.",
+  "character": "original (or canonical character_name_(series) if 100% certain)",
+  "danbooru_prompt": "masterpiece, best quality, very aesthetic, absurdres, 1girl, solo, ...",
+  "negative_prompt": "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature",
+  "natural_prompt": "Concise, factual natural language description strictly matching observed_facts.",
   "style_tags": ["anime", "digital media", "illustration"],
-  "recommended_model": "Illustrious-XL / Pony Diffusion V6 XL",
+  "recommended_model": "Illustrious-XL",
   "recommended_sampler": "Euler a",
   "recommended_steps": 28,
-  "recommended_cfg": 7.0,
-  "suggested_loras": [
-    {"name": "First Character LoRA", "weight": 0.85},
-    {"name": "Second Character or Style LoRA", "weight": 0.75}
-  ]
+  "recommended_cfg": 6.0,
+  "suggested_loras": []
 }`
 
 	cleanProvider := strings.ToLower(strings.TrimSpace(provider))
@@ -477,9 +456,11 @@ Return ONLY a pure JSON object matching this schema (no markdown formatting, no 
 					},
 				},
 			},
-			"temperature": 0.2,
-			"max_tokens":  2048,
-			"top_p":       0.9,
+			"temperature":       0.15,
+			"max_tokens":        2048,
+			"top_p":             0.85,
+			"repeat_penalty":    1.15,
+			"frequency_penalty": 1.15,
 		}
 		var err error
 		payloadBytes, err = json.Marshal(payload)
@@ -504,9 +485,10 @@ Return ONLY a pure JSON object matching this schema (no markdown formatting, no 
 			"stream": false,
 			"format": "json",
 			"options": map[string]interface{}{
-				"temperature": 0.15,
-				"num_predict": 2048,
-				"top_p":       0.9,
+				"temperature":    0.15,
+				"num_predict":    2048,
+				"top_p":          0.85,
+				"repeat_penalty": 1.15,
 			},
 		}
 		var err error
@@ -600,10 +582,52 @@ Return ONLY a pure JSON object matching this schema (no markdown formatting, no 
 		return nil, fmt.Errorf("failed to parse JSON from Local AI: %w (raw output: %s)", err, rawOutput)
 	}
 
-	// Sanitize and ground the Danbooru tags to guarantee no contradictory tags, weights, or invalid syntax
+	// 1. Deterministic Cross-Check: Observed Facts vs Danbooru Prompt
+	var handsVisibility, clothingAudit string
+	if obsMap, ok := result.ObservedFacts.(map[string]interface{}); ok {
+		if val, exists := obsMap["hands_and_limbs_visibility"].(string); exists {
+			handsVisibility = strings.ToLower(val)
+		}
+		if val, exists := obsMap["upper_and_lower_clothing"].(string); exists {
+			clothingAudit = strings.ToLower(val)
+		}
+	} else if obsStr, ok := result.ObservedFacts.(string); ok {
+		lowerObs := strings.ToLower(obsStr)
+		handsVisibility = lowerObs
+		clothingAudit = lowerObs
+	}
+
+	// Occlusion Guard: If hands/limbs are obscured, in pocket, or not visible -> strip hallucinated gloves & poses
+	if strings.Contains(handsVisibility, "obscured") ||
+		strings.Contains(handsVisibility, "hidden") ||
+		strings.Contains(handsVisibility, "pocket") ||
+		strings.Contains(handsVisibility, "not visible") ||
+		strings.Contains(handsVisibility, "no gloves") {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
+			"gloves", "black_gloves", "white_gloves", "fingerless_gloves", "hands_on_hips",
+		})
+	}
+
+	// Sleeve Continuity Guard: If sleeves are intact or continuous -> strip detached_sleeves
+	if strings.Contains(clothingAudit, "intact") || strings.Contains(clothingAudit, "continuous") {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
+			"detached_sleeves",
+		})
+	}
+
+	// 2. Quality Tag & Model Ecosystem Prefix Cleaner
+	// Strip Pony score tags if recommended model is Illustrious-XL
+	if strings.Contains(strings.ToLower(result.RecommendedModel), "illustrious") ||
+		!strings.Contains(strings.ToLower(result.RecommendedModel), "pony") {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
+			"score_9", "score_8_up", "score_7_up", "score_6_up", "score_5_up", "score_4_up",
+		})
+	}
+
+	// 3. Sanitize and ground Danbooru tags (canonicalTagMap, weights, underscores, deduplication)
 	result.DanbooruPrompt = sanitizeDanbooruPrompt(result.DanbooruPrompt)
 
-	// Detect all characters from tags, character field, captions, and observed facts
+	// 4. Detect all characters from tags, character field, captions, and observed facts
 	detectedChars := detectAllCharacters(result.Character, result.DanbooruPrompt, result.NaturalPrompt, result.ObservedFacts)
 	if len(detectedChars) > 0 {
 		result.Character = strings.Join(detectedChars, ", ")
@@ -611,8 +635,8 @@ Return ONLY a pure JSON object matching this schema (no markdown formatting, no 
 		result.Character = "original"
 	}
 
-	// Ensure suggested_loras is always populated with character and concept LoRAs
-	result.SuggestedLoras = enrichSuggestedLoras(detectedChars, result.DanbooruPrompt, result.SuggestedLoras)
+	// 5. Filter fictitious LoRAs: validate against canonical character and concept database
+	result.SuggestedLoras = filterValidLoras(detectedChars, result.DanbooruPrompt, result.SuggestedLoras)
 
 	// Defaults if missing
 	if result.RecommendedSampler == "" {
@@ -622,17 +646,125 @@ Return ONLY a pure JSON object matching this schema (no markdown formatting, no 
 		result.RecommendedSteps = 28
 	}
 	if result.RecommendedCFG == 0 {
-		result.RecommendedCFG = 7.0
+		result.RecommendedCFG = 6.0
 	}
 	if result.RecommendedModel == "" {
-		result.RecommendedModel = "Illustrious-XL / Pony V6"
+		result.RecommendedModel = "Illustrious-XL"
 	}
 	if result.NegativePrompt == "" {
-		result.NegativePrompt = "worst quality, low quality, normal quality, blurry, deformed limbs, bad anatomy, bad hands, missing fingers, extra fingers, watermark, signature"
+		result.NegativePrompt = "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature"
 	}
 	result.UsedModel = fmt.Sprintf("Local (%s: %s)", strings.ToUpper(cleanProvider), cleanModel)
 
 	return &result, nil
+}
+
+// stripForbiddenTags removes specific tags (case-insensitive) from a comma-separated prompt
+func stripForbiddenTags(prompt string, forbidden []string) string {
+	parts := strings.Split(prompt, ",")
+	var cleaned []string
+	forbiddenMap := make(map[string]bool)
+	for _, f := range forbidden {
+		forbiddenMap[strings.ToLower(strings.TrimSpace(f))] = true
+		forbiddenMap[strings.ToLower(strings.ReplaceAll(strings.TrimSpace(f), " ", "_"))] = true
+	}
+	for _, p := range parts {
+		tag := strings.TrimSpace(p)
+		if tag == "" {
+			continue
+		}
+		tagNorm := strings.ToLower(strings.ReplaceAll(tag, " ", "_"))
+		if forbiddenMap[tagNorm] || forbiddenMap[strings.ToLower(tag)] {
+			continue
+		}
+		cleaned = append(cleaned, tag)
+	}
+	return strings.Join(cleaned, ", ")
+}
+
+// canonicalTagMap maps conversational or verbose VLM descriptions to standard canonical Danbooru tags
+var canonicalTagMap = map[string]string{
+	"white_martial_arts_uniform": "dogi",
+	"martial_arts_uniform":       "dogi",
+	"karate_uniform":            "dogi",
+	"judo_uniform":              "dogi",
+	"traditional_japanese_room": "washitsu",
+	"japanese_room":             "washitsu",
+	"japanese_style_room":       "washitsu",
+	"tatami_floor":              "tatami",
+	"wooden_doors":              "sliding_doors",
+	"shoji_doors":               "shoji",
+	"silver_hairpin":            "hairclip",
+	"hair_pin":                  "hairclip",
+	"blue_hair_tie":             "blue_hairband, hair_ribbon",
+	"black_undershirt":          "black_shirt, undershirt",
+	"athletic_pants":            "track_pants",
+	"sport_pants":               "track_pants",
+	"sports_pants":              "track_pants",
+	"black_belt_strap":          "black_belt",
+	"bare_feet":                 "barefoot",
+	"white_socks":               "socks",
+}
+
+// filterValidLoras ensures suggested_loras only contains verified canonical character or concept LoRAs
+func filterValidLoras(characters []string, danbooruPrompt string, existing []LoraSuggestion) []LoraSuggestion {
+	if len(existing) == 0 {
+		return []LoraSuggestion{}
+	}
+
+	var valid []LoraSuggestion
+	for _, lora := range existing {
+		nameClean := strings.TrimSpace(lora.Name)
+		if nameClean == "" {
+			continue
+		}
+		nameLower := strings.ToLower(nameClean)
+
+		// Filter out AI hallucinated generic phrase LoRAs
+		if strings.Contains(nameLower, "expressive") ||
+			strings.Contains(nameLower, "masterpiece") ||
+			strings.Contains(nameLower, "digital art") ||
+			strings.Contains(nameLower, "first character") ||
+			strings.Contains(nameLower, "second character") {
+			continue
+		}
+
+		// Check if it matches any detected canonical character
+		isCharMatch := false
+		for _, c := range characters {
+			cClean := strings.ToLower(strings.TrimSpace(c))
+			if cClean != "" && cClean != "original" {
+				firstWord := strings.Fields(cClean)[0]
+				if len(firstWord) >= 3 && strings.Contains(nameLower, firstWord) {
+					isCharMatch = true
+					break
+				}
+			}
+		}
+
+		// Check against recognized canonical concepts in knowledge base
+		isConceptMatch := strings.Contains(nameLower, "maid") ||
+			strings.Contains(nameLower, "bunny") ||
+			strings.Contains(nameLower, "swimsuit") ||
+			strings.Contains(nameLower, "bikini") ||
+			strings.Contains(nameLower, "school uniform") ||
+			strings.Contains(nameLower, "gym uniform") ||
+			strings.Contains(nameLower, "bloomer") ||
+			strings.Contains(nameLower, "kimono") ||
+			strings.Contains(nameLower, "yukata") ||
+			strings.Contains(nameLower, "cyberpunk") ||
+			strings.Contains(nameLower, "dogi")
+
+		if isCharMatch || isConceptMatch {
+			valid = append(valid, lora)
+		}
+	}
+
+	// Strictly NO hallucinated/unverified LoRAs: if none verified, return empty
+	if len(valid) == 0 {
+		return []LoraSuggestion{}
+	}
+	return valid
 }
 
 // sanitizeDanbooruPrompt normalizes Danbooru tags: removes weights, converts spaces to underscores,
@@ -715,6 +847,20 @@ func sanitizeDanbooruPrompt(raw string) string {
 		}
 
 		normKey := strings.ToLower(tag)
+
+		// 4. Canonical Danbooru translation (canonicalTagMap)
+		if canon, ok := canonicalTagMap[normKey]; ok {
+			for _, sub := range strings.Split(canon, ",") {
+				s := strings.TrimSpace(sub)
+				sNorm := strings.ToLower(s)
+				if s != "" && !seen[sNorm] {
+					seen[sNorm] = true
+					cleaned = append(cleaned, s)
+				}
+			}
+			continue
+		}
+
 		if seen[normKey] {
 			continue
 		}

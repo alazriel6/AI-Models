@@ -256,6 +256,82 @@ export default function MetadataInspector() {
     const [localDetectedModels, setLocalDetectedModels] = useState<Array<{ id: string; name: string }>>([]);
     const [isFetchingLocalModels, setIsFetchingLocalModels] = useState<boolean>(false);
     const [localConnectionStatus, setLocalConnectionStatus] = useState<string | null>(null);
+    const [danbooruViewMode, setDanbooruViewMode] = useState<"chips" | "raw">("chips");
+    const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
+
+    // Helpers for Pro Developer UI/UX
+    const getModelProfileBadge = (modelName: string): { label: string; color: string } => {
+        const m = (modelName || "").toLowerCase();
+        if (m.includes("2b") || m.includes("3b") || m.includes("4b")) {
+            return { label: "≤4B Fast", color: "#10b981" };
+        }
+        if (m.includes("11b") || m.includes("12b") || m.includes("14b") || m.includes("pixtral")) {
+            return { label: "11B–12B Deep", color: "#38bdf8" };
+        }
+        return { label: "7B–8B Balanced", color: "#2563eb" };
+    };
+
+    const getTagCategoryClass = (tag: string): string => {
+        const t = tag.toLowerCase().trim();
+        if (
+            t.startsWith("masterpiece") ||
+            t.startsWith("best quality") ||
+            t.startsWith("score_") ||
+            t.startsWith("very aesthetic") ||
+            t.startsWith("absurdres") ||
+            t.startsWith("ultra-detailed")
+        ) {
+            return "tag-cat-quality";
+        }
+        if (
+            t.includes("1girl") ||
+            t.includes("1boy") ||
+            t.includes("solo") ||
+            t.includes("heterosexual") ||
+            t.includes("female") ||
+            t.includes("male") ||
+            t.includes("character")
+        ) {
+            return "tag-cat-subject";
+        }
+        if (
+            t.includes("room") ||
+            t.includes("washitsu") ||
+            t.includes("indoor") ||
+            t.includes("outdoor") ||
+            t.includes("lighting") ||
+            t.includes("tatami") ||
+            t.includes("background") ||
+            t.includes("depth of field")
+        ) {
+            return "tag-cat-environment";
+        }
+        return "tag-cat-appearance";
+    };
+
+    const getObservedFactVal = (facts: any, key: string): string => {
+        if (!facts) return "";
+        if (typeof facts === "object" && facts[key]) {
+            return String(facts[key]);
+        }
+        if (typeof facts === "string") {
+            return facts;
+        }
+        return "";
+    };
+
+    const handleDeleteTag = (indexToDelete: number) => {
+        if (!interrogateResult) return;
+        const currentTags = (interrogateResult.danbooru_prompt || "")
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean);
+        const updated = currentTags.filter((_, idx) => idx !== indexToDelete).join(", ");
+        setInterrogateResult({
+            ...interrogateResult,
+            danbooru_prompt: updated,
+        });
+    };
 
     // Parsed results
     const [metaResult, setMetaResult] = useState<ParsedImageMetadata | null>(null);
@@ -1863,210 +1939,314 @@ export default function MetadataInspector() {
                     <div className="inspector-right-panel">
                         {/* KASUS B — Jika Metadata TIDAK Ditemukan (File Polos / Stripped) */}
                         {!hasAiMetadata ? (
-                            <div className="empty-meta-callout-card">
-                                <div className="empty-meta-header">
-                                    <div className="empty-meta-icon">
-                                        <Icons.AlertTriangle />
-                                    </div>
-                                    <div className="empty-meta-title-group">
-                                        <h3 className="empty-meta-title">Metadata Generasi Tidak Ditemukan (File Polos / Stripped)</h3>
-                                        <p className="empty-meta-desc">
-                                            File ini tidak memiliki chunk metadata AI (kemungkinan telah terkompresi oleh media sosial atau dihapus saat ekspor).
-                                        </p>
-                                    </div>
-                                </div>
+                            <div className="pro-inspector-card">
+                                {/* Compact Top Control Bar */}
+                                {(() => {
+                                    const activeModelName = aiProvider === "gemini"
+                                        ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
+                                        : (localModelInput || "Default Model");
+                                    const modelProfile = getModelProfileBadge(activeModelName);
 
-                                <div className="empty-meta-action-section">
-                                    <div className="empty-meta-action-header">
-                                        <div className="empty-meta-action-info">
-                                            <span className="empty-meta-action-badge">Solusi AI Vision</span>
-                                            <p className="empty-meta-action-lead">
-                                                Gunakan AI Vision untuk mengekstrak estimasi prompt, gaya visual, dan tag Danbooru dari gambar ini.
-                                            </p>
-                                        </div>
-                                        <div className="empty-meta-action-buttons">
-                                            <button
-                                                type="button"
-                                                className="ai-settings-btn"
-                                                onClick={() => setShowApiKeyModal(true)}
-                                                title="Pengaturan Provider & Model AI"
-                                            >
-                                                <Icons.Settings />
-                                                <span>Provider & Model</span>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="ai-interrogate-trigger-btn primary-cta"
-                                                onClick={() => handleRunInterrogate()}
-                                                disabled={isInterrogating || !rawFile}
-                                            >
-                                                {isInterrogating ? (
-                                                    <>
-                                                        <span className="inspector-spinner" style={{ width: 14, height: 14 }}></span>
-                                                        <span>Mengekstrak Prompt...</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Icons.Sparkles />
-                                                        <span>Ekstrak Prompt dengan AI</span>
-                                                    </>
-                                                )}
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Active Provider Indicator */}
-                                    <div className="empty-meta-provider-status">
-                                        <span className="ai-pill-dot" />
-                                        <span className="ai-pill-provider">
-                                            {aiProvider === "gemini" ? "Google Gemini" : aiProvider === "ollama" ? "Ollama Lokal" : "LM Studio Lokal"}
-                                        </span>
-                                        <span className="ai-pill-divider">•</span>
-                                        <span className="ai-pill-model">
-                                            {aiProvider === "gemini"
-                                                ? (PRESET_GEMINI_MODELS.find((m) => m.id === selectedGeminiModel)?.badge || selectedGeminiModel)
-                                                : (localModelInput || "Default Model")}
-                                        </span>
-                                    </div>
-
-                                    {/* Error Alert if Interrogation Failed */}
-                                    {interrogateError && (
-                                        <div className="ai-interrogate-inline-error">
-                                            <span>{interrogateError}</span>
-                                            <button
-                                                type="button"
-                                                className="ai-settings-btn mini"
-                                                onClick={() => setShowApiKeyModal(true)}
-                                            >
-                                                <Icons.Settings />
-                                                <span>Buka Pengaturan</span>
-                                            </button>
-                                        </div>
-                                    )}
-
-                                    {/* Interrogation Result directly embedded in the callout */}
-                                    {interrogateResult && (
-                                        <div className="ai-interrogate-result-panel embedded">
-                                            <div className="ai-result-header">
-                                                <div className="ai-result-badge-group">
-                                                    <span className="ai-model-rec-badge">Hasil Ekstraksi AI</span>
-                                                    {interrogateResult.character && (
-                                                        <span className="ai-character-badge">
-                                                            Karakter: <strong>{interrogateResult.character}</strong>
-                                                        </span>
-                                                    )}
-                                                    <span className="ai-model-rec-badge">
-                                                        Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
-                                                    </span>
-                                                </div>
+                                    return (
+                                        <div className="pro-top-control-bar">
+                                            <div className="pro-control-left">
+                                                <span className="pro-status-badge stripped">
+                                                    <span className="pro-dot" /> Stripped (No EXIF)
+                                                </span>
+                                                <span className="pro-engine-badge">
+                                                    <span className="pro-dot active" />
+                                                    {aiProvider === "gemini" ? "Google Gemini" : aiProvider === "ollama" ? "Ollama" : "LM Studio"}
+                                                    {" · "}
+                                                    <span className="pro-model-name">{activeModelName}</span>
+                                                </span>
+                                                <span
+                                                    className="pro-profile-badge"
+                                                    style={{
+                                                        borderColor: modelProfile.color,
+                                                        color: modelProfile.color,
+                                                    }}
+                                                >
+                                                    {modelProfile.label}
+                                                </span>
                                             </div>
 
-                                            {/* Danbooru Tags Prompt */}
-                                            <div className="ai-result-box">
-                                                <div className="ai-result-label-row">
-                                                    <span className="ai-result-label">Danbooru Tag Prompt:</span>
+                                            <div className="pro-control-right">
+                                                <button
+                                                    type="button"
+                                                    className="pro-btn-secondary"
+                                                    onClick={() => setShowApiKeyModal(true)}
+                                                    title="Pengaturan Provider & Model AI"
+                                                >
+                                                    <Icons.Settings />
+                                                    <span>⚙ Provider & Model</span>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="pro-btn-primary"
+                                                    onClick={() => handleRunInterrogate()}
+                                                    disabled={isInterrogating || !rawFile}
+                                                >
+                                                    {isInterrogating ? (
+                                                        <>
+                                                            <span className="inspector-spinner" style={{ width: 13, height: 13 }} />
+                                                            <span>Mengekstrak Prompt...</span>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Icons.Sparkles />
+                                                            <span>Ekstrak Prompt</span>
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+
+                                {/* Error Alert if Interrogation Failed */}
+                                {interrogateError && (
+                                    <div className="pro-error-banner">
+                                        <span className="pro-error-text">{interrogateError}</span>
+                                        <button
+                                            type="button"
+                                            className="pro-btn-secondary mini"
+                                            onClick={() => setShowApiKeyModal(true)}
+                                        >
+                                            <Icons.Settings />
+                                            <span>Buka Pengaturan</span>
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Interrogation Result */}
+                                {interrogateResult && (
+                                    <div className="pro-interrogate-content">
+                                        {/* Status Meta Row */}
+                                        <div className="pro-result-meta-row">
+                                            <span className="pro-rec-badge">Hasil Ekstraksi VLM</span>
+                                            {interrogateResult.character && (
+                                                <span className="pro-char-badge">
+                                                    Karakter: <strong>{interrogateResult.character}</strong>
+                                                </span>
+                                            )}
+                                            <span className="pro-rec-badge">
+                                                Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
+                                            </span>
+                                            {interrogateResult.recommended_sampler && (
+                                                <span className="pro-params-badge">
+                                                    {interrogateResult.recommended_sampler} · {interrogateResult.recommended_steps} steps · CFG {interrogateResult.recommended_cfg}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* Collapsible Accordion: Audit Fakta Visual (Observed Facts) */}
+                                        {interrogateResult.observed_facts && (
+                                            <div className="pro-audit-accordion">
+                                                <button
+                                                    type="button"
+                                                    className="pro-audit-toggle-btn"
+                                                    onClick={() => setIsAuditOpen(!isAuditOpen)}
+                                                >
+                                                    <div className="pro-audit-toggle-left">
+                                                        <span className="pro-audit-icon">{isAuditOpen ? "▾" : "▸"}</span>
+                                                        <span className="pro-audit-title">Audit Visual Fakta (6 Parameter Verifikasi)</span>
+                                                    </div>
+                                                    <span className="pro-audit-state-pill">{isAuditOpen ? "Sembunyikan" : "Tampilkan Rincian"}</span>
+                                                </button>
+                                                {isAuditOpen && (
+                                                    <div className="pro-audit-grid">
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">Camera & Pose</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "camera_and_pose") || "—"}</p>
+                                                        </div>
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">Hair & Face</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "hair_and_face") || "—"}</p>
+                                                        </div>
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">Upper & Lower Clothing</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "upper_and_lower_clothing") || "—"}</p>
+                                                        </div>
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">Hands & Limbs Visibility</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "hands_and_limbs_visibility") || "—"}</p>
+                                                        </div>
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">NSFW & Anatomy Audit</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "nsfw_and_anatomy_audit") || "—"}</p>
+                                                        </div>
+                                                        <div className="pro-audit-card">
+                                                            <span className="pro-audit-card-label">Environment</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "environment") || "—"}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Danbooru Tag Prompt */}
+                                        {(() => {
+                                            const danbooruTags = (interrogateResult.danbooru_prompt || "")
+                                                .split(",")
+                                                .map((t) => t.trim())
+                                                .filter(Boolean);
+
+                                            return (
+                                                <div className="pro-output-box">
+                                                    <div className="pro-output-header">
+                                                        <div className="pro-output-title-group">
+                                                            <span className="pro-output-label">DANBOORU TAGS</span>
+                                                            <span className="pro-output-count">({danbooruTags.length})</span>
+                                                        </div>
+                                                        <div className="pro-output-actions">
+                                                            <div className="pro-view-toggle">
+                                                                <button
+                                                                    type="button"
+                                                                    className={`pro-toggle-btn ${danbooruViewMode === "chips" ? "active" : ""}`}
+                                                                    onClick={() => setDanbooruViewMode("chips")}
+                                                                >
+                                                                    Chips
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className={`pro-toggle-btn ${danbooruViewMode === "raw" ? "active" : ""}`}
+                                                                    onClick={() => setDanbooruViewMode("raw")}
+                                                                >
+                                                                    Raw Text
+                                                                </button>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                className="pro-copy-btn"
+                                                                onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
+                                                            >
+                                                                {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
+                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Tags"}</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="pro-output-body">
+                                                        {danbooruViewMode === "chips" ? (
+                                                            <div className="pro-chips-grid">
+                                                                {danbooruTags.map((tag, idx) => (
+                                                                    <span key={idx} className={`pro-danbooru-chip ${getTagCategoryClass(tag)}`}>
+                                                                        <span className="chip-text">{tag}</span>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="chip-delete-btn"
+                                                                            onClick={() => handleDeleteTag(idx)}
+                                                                            title="Hapus tag ini"
+                                                                        >
+                                                                            ×
+                                                                        </button>
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="pro-raw-text-box danbooru">
+                                                                {interrogateResult.danbooru_prompt}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* Negative Prompt */}
+                                        {interrogateResult.negative_prompt && (
+                                            <div className="pro-output-box">
+                                                <div className="pro-output-header">
+                                                    <span className="pro-output-label">NEGATIVE PROMPT</span>
                                                     <button
                                                         type="button"
-                                                        className="copy-chip-btn"
-                                                        onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
+                                                        className="pro-copy-btn"
+                                                        onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
                                                     >
-                                                        {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
-                                                        <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
+                                                        {copiedKey === "copy-ai-neg" ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin"}</span>
                                                     </button>
                                                 </div>
-                                                <div className="ai-result-prompt-box danbooru">
-                                                    {interrogateResult.danbooru_prompt}
-                                                </div>
-                                            </div>
-
-                                            {/* Negative Prompt */}
-                                            {interrogateResult.negative_prompt && (
-                                                <div className="ai-result-box">
-                                                    <div className="ai-result-label-row">
-                                                        <span className="ai-result-label">Negative Prompt:</span>
-                                                        <button
-                                                            type="button"
-                                                            className="copy-chip-btn"
-                                                            onClick={() => handleCopy(interrogateResult.negative_prompt, "copy-ai-neg")}
-                                                        >
-                                                            {copiedKey === "copy-ai-neg" ? <Icons.Check /> : <Icons.Copy />}
-                                                            <span>{copiedKey === "copy-ai-neg" ? "Tersalin!" : "Salin Negative"}</span>
-                                                        </button>
-                                                    </div>
-                                                    <div className="ai-result-prompt-box">
+                                                <div className="pro-output-body">
+                                                    <div className="pro-raw-text-box">
                                                         {interrogateResult.negative_prompt}
                                                     </div>
                                                 </div>
-                                            )}
+                                            </div>
+                                        )}
 
-                                            {/* Natural Language Prompt */}
-                                            {interrogateResult.natural_prompt && (
-                                                <div className="ai-result-box">
-                                                    <div className="ai-result-label-row">
-                                                        <span className="ai-result-label">Natural Language Prompt:</span>
-                                                        <button
-                                                            type="button"
-                                                            className="copy-chip-btn"
-                                                            onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
-                                                        >
-                                                            {copiedKey === "copy-ai-natural" ? <Icons.Check /> : <Icons.Copy />}
-                                                            <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
-                                                        </button>
-                                                    </div>
-                                                    <div className="ai-result-prompt-box">
+                                        {/* Natural Language Prompt */}
+                                        {interrogateResult.natural_prompt && (
+                                            <div className="pro-output-box">
+                                                <div className="pro-output-header">
+                                                    <span className="pro-output-label">NATURAL LANGUAGE PROMPT</span>
+                                                    <button
+                                                        type="button"
+                                                        className="pro-copy-btn"
+                                                        onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
+                                                    >
+                                                        {copiedKey === "copy-ai-natural" ? <Icons.Check /> : <Icons.Copy />}
+                                                        <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin"}</span>
+                                                    </button>
+                                                </div>
+                                                <div className="pro-output-body">
+                                                    <div className="pro-raw-text-box">
                                                         {interrogateResult.natural_prompt}
                                                     </div>
                                                 </div>
-                                            )}
+                                            </div>
+                                        )}
 
-                                            {/* Style Tags & Suggested LoRAs */}
-                                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginTop: 10 }}>
-                                                {interrogateResult.style_tags?.length > 0 && (
-                                                    <div>
-                                                        <span className="ai-result-label">Art Style Tags:</span>
-                                                        <div className="ai-style-chips-row">
-                                                            {interrogateResult.style_tags.map((st, i) => (
-                                                                <span key={i} className="ai-style-chip">#{st}</span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {interrogateResult.suggested_loras?.length > 0 && (
-                                                    <div>
-                                                        <span className="ai-result-label">Saran LoRA:</span>
-                                                        <div className="lora-chips-row" style={{ marginTop: 6 }}>
-                                                            {interrogateResult.suggested_loras.map((lora, i) => (
-                                                                <div key={i} className="lora-chip-item">
-                                                                    <span>{lora.name}</span>
-                                                                    <span className="lora-weight-badge">{lora.weight}</span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                        {/* Footer Style & LoRA Grid */}
+                                        <div className="pro-footer-meta-grid">
+                                            <div>
+                                                <span className="pro-meta-label">Art Style Tags</span>
+                                                <div className="pro-style-chips-row">
+                                                    {interrogateResult.style_tags?.length > 0 ? (
+                                                        interrogateResult.style_tags.map((st, i) => (
+                                                            <span key={i} className="pro-style-chip">#{st}</span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="pro-empty-note">Default Anime / Digital</span>
+                                                    )}
+                                                </div>
                                             </div>
 
-                                            {/* Bottom Apply & Lab Actions */}
-                                            <div className="ai-interrogate-bottom-actions" style={{ marginTop: 16 }}>
-                                                <button
-                                                    type="button"
-                                                    className="ai-apply-meta-btn"
-                                                    onClick={handleApplyInterrogateToMetadata}
-                                                >
-                                                    <Icons.Copy />
-                                                    <span>Terapkan ke Parameter & Quick Copy</span>
-                                                </button>
-                                                <Link
-                                                    to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
-                                                    className="ai-lab-transfer-btn"
-                                                >
-                                                    <span>Buka di Prompt Lab Canvas →</span>
-                                                </Link>
+                                            <div>
+                                                <span className="pro-meta-label">Rekomendasi LoRA Terverifikasi</span>
+                                                <div className="pro-lora-chips-row">
+                                                    {interrogateResult.suggested_loras && interrogateResult.suggested_loras.length > 0 ? (
+                                                        interrogateResult.suggested_loras.map((lora, i) => (
+                                                            <div key={i} className="pro-lora-item">
+                                                                <span className="pro-lora-name">{lora.name}</span>
+                                                                <span className="pro-lora-badge">{lora.weight}</span>
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        <span className="pro-empty-note">Tanpa rekomendasi LoRA spesifik</span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
+
+                                        {/* Bottom Action Buttons */}
+                                        <div className="pro-interrogate-bottom-actions">
+                                            <button
+                                                type="button"
+                                                className="pro-apply-meta-btn"
+                                                onClick={handleApplyInterrogateToMetadata}
+                                            >
+                                                <Icons.Copy />
+                                                <span>Terapkan ke Parameter & Quick Copy</span>
+                                            </button>
+                                            <Link
+                                                to={`/prompt-lab?positive=${encodeURIComponent(interrogateResult.danbooru_prompt)}&negative=${encodeURIComponent(interrogateResult.negative_prompt)}`}
+                                                className="pro-lab-transfer-btn"
+                                            >
+                                                <span>Buka di Prompt Lab Canvas →</span>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             /* KASUS A — Jika Metadata Ditemukan (Valid AI Image) */
