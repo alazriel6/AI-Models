@@ -82,6 +82,91 @@ func (s *PromptPresetService) SeedInitialPresets() {
 		s.seedModularTags()
 	}
 
+	fullSetSeeds := []models.PromptPreset{
+		{
+			Title:            "2D Anime Park (Full Set)",
+			Character:        "2D Anime Girl",
+			Slug:             "2d-anime-park-fullset",
+			Category:         "modular_preset",
+			Subcategory:      "2D Screencap",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "fullset",
+			PositivePrompt:   "masterpiece, best quality, amazing quality, newest, anime screencap, high quality anime illustration, modern japanese anime style, clean lineart, soft cel shading, vibrant natural colors, sharp character details, hand-drawn anime aesthetic, 1girl, solo, young adult woman, beautiful anime girl, long purple hair, high ponytail, purple eyes, soft bangs, five fingers, slender, cheerful expression, open mouth smile, looking at viewer, casual outfit, pink oversized hoodie, white inner shirt, black leggings, white sneakers, relaxed sitting pose, sitting on wooden park bench, one hand resting on bench, crossed legs, waving, raised hand, full body, eye level, three-quarter view, cinematic composition, detailed anime background, beautiful background, outdoors, peaceful park, lush green forest, tall trees, dense foliage, multiple wooden benches, sunlit pathway, detailed leaves, dappled sunlight, soft sunlight filtering through trees, atmospheric perspective, natural shadows, warm daylight, tranquil atmosphere",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, deformed limbs, blurry, watermark, signature",
+			TriggerWords:     "anime screencap, peaceful park, sitting on wooden park bench, dappled sunlight",
+			RecommendedModel: "Illustrious XL Base v0.1",
+			LayerData:        `{"quality":"masterpiece, best quality, amazing quality, newest, anime screencap, high quality anime illustration, modern japanese anime style, clean lineart, soft cel shading, vibrant natural colors, sharp character details, hand-drawn anime aesthetic","identity":"1girl, solo, young adult woman, beautiful anime girl, long purple hair, high ponytail, purple eyes, soft bangs","proportions":"five fingers, slender","details":"","expression":"cheerful expression, open mouth smile, looking at viewer","outfit":"casual outfit, pink oversized hoodie, white inner shirt, black leggings, white sneakers","pose":"relaxed sitting pose, sitting on wooden park bench, one hand resting on bench, crossed legs, waving, raised hand","camera":"full body, eye level, three-quarter view, cinematic composition","background":"detailed anime background, beautiful background, outdoors, peaceful park, lush green forest, tall trees, dense foliage, multiple wooden benches, sunlit pathway, detailed leaves","effects":"dappled sunlight, soft sunlight filtering through trees, atmospheric perspective, natural shadows, warm daylight, tranquil atmosphere","lora":{"name":"","weight":0.85,"enabled":false}}`,
+			Description:      "Full 10-Layer Composition of an anime girl sitting on a park bench in soft dappled forest sunlight.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Rio Tsukatsuki - Seminar President (Full Set)",
+			Character:        "Rio Tsukatsuki",
+			Slug:             "rio-tsukatsuki-fullset",
+			Category:         "modular_preset",
+			Subcategory:      "Blue Archive",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "fullset",
+			PositivePrompt:   "(anime_coloring:1.15), masterpiece, newest, best quality, highres, illustration, 1girl, solo, tsukatsuki rio, red eyes, halo, black hair, long hair, intricate braided crown updo, long braided ponytail, loose framing side tendrils, tall female, mature, slender, hourglass figure, slender waist, toned stomach, long legs, slender fingers, sweat, glistening skin, sweatdrops on neck and collarbone, wet skin, shiny skin texture, heavy breathing, melancholic intense expression, focused fierce expression, slightly parted lips, intense gaze, looking at viewer, blazer, black jacket, collared shirt, black necktie, ornate Victorian gothic black dress, sheer lace sleeves, tight corset bodice, high-slit velvet skirt showing legs, sheer black thigh-high stockings, stiletto heels, theatrical standing pose, standing dramatically in front of a massive pipe organ, one arm raised conducting invisible music, holding a glowing crimson violin, environmental portrait, full body, full length view, low angle view, dynamic dutch angle, leading lines composition, seminar office, highly detailed background, indoor, abandoned gothic cathedral, giant shattered stained-glass window behind her, overgrown ruins, floating dust motes, scattered sheet music flying in the air, volumetric moonlight beams, volumetric fog, dramatic chiaroscuro lighting, cinematic lighting, tyndall effect, <lora:tsukatsuki_rio_illustrious:0.85>",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, deformed halo",
+			TriggerWords:     "tsukatsuki rio, halo, black hair, red eyes, blazer, seminar office",
+			RecommendedModel: "Illustrious XL Base v0.1",
+			RecommendedLoras: `[{"name": "tsukatsuki_rio_illustrious", "slug": "rio_lora", "weight": 0.85, "base_model": "Illustrious"}]`,
+			LayerData:        `{"quality":"(anime_coloring:1.15), masterpiece, newest, best quality, highres, illustration","identity":"1girl, solo, tsukatsuki rio, red eyes, halo, black hair, long hair, intricate braided crown updo, long braided ponytail, loose framing side tendrils","proportions":"tall female, mature, slender, hourglass figure, slender waist, toned stomach, long legs, slender fingers","details":"sweat, glistening skin, sweatdrops on neck and collarbone, wet skin, shiny skin texture, heavy breathing","expression":"melancholic intense expression, focused fierce expression, slightly parted lips, intense gaze, looking at viewer","outfit":"blazer, black jacket, collared shirt, black necktie, ornate Victorian gothic black dress, sheer lace sleeves, tight corset bodice, high-slit velvet skirt showing legs, sheer black thigh-high stockings, stiletto heels","pose":"theatrical standing pose, standing dramatically in front of a massive pipe organ, one arm raised conducting invisible music, holding a glowing crimson violin","camera":"environmental portrait, full body, full length view, low angle view, dynamic dutch angle, leading lines composition","background":"seminar office, highly detailed background, indoor, abandoned gothic cathedral, giant shattered stained-glass window behind her, overgrown ruins","effects":"floating dust motes, scattered sheet music flying in the air, volumetric moonlight beams, volumetric fog, dramatic chiaroscuro lighting, cinematic lighting, tyndall effect","lora":{"name":"tsukatsuki_rio_illustrious","weight":0.85,"enabled":true}}`,
+			Description:      "Rio Tsukatsuki from Blue Archive with signature black blazer, red eyes, and high-tech seminar office atmosphere.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Rin Tohsaka - Twin Braids (Full Set)",
+			Character:        "Rin Tohsaka",
+			Slug:             "rin-tohsaka-fullset",
+			Category:         "modular_preset",
+			Subcategory:      "Fate",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "fullset",
+			PositivePrompt:   "(anime_coloring:1.20), masterpiece, newest, best quality, highres, illustration, 1girl, solo, tohsaka rin, aqua eyes, twin braids, black hair, hair ribbon, slender, thigh gap, delicate hands, glistening skin, slight blush, parted lips, tsundere expression, confident smirk, blushing slightly, looking at viewer, red turtleneck sweater, black pleated skirt, black thighhighs, pendant necklace, standing with hands on hips, cowboy shot, upper body, slight low angle, depth of field, fuyuki city rooftop at night, glowing city lights, moonlit sky, volumetric moonlight, gentle wind blowing hair, atmospheric lighting, <lora:tohsaka_rin_illustrious:0.85>",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, blurry, bad hands, deformed eyes",
+			TriggerWords:     "tohsaka rin, aqua eyes, twin braids, red turtleneck sweater",
+			RecommendedModel: "Illustrious XL Base v0.1",
+			RecommendedLoras: `[{"name": "tohsaka_rin_illustrious", "slug": "rin_lora", "weight": 0.85, "base_model": "Illustrious"}]`,
+			LayerData:        `{"quality":"(anime_coloring:1.20), masterpiece, newest, best quality, highres, illustration","identity":"1girl, solo, tohsaka rin, aqua eyes, twin braids, black hair, hair ribbon","proportions":"slender, thigh gap, delicate hands","details":"glistening skin, slight blush, parted lips","expression":"tsundere expression, confident smirk, blushing slightly, looking at viewer","outfit":"red turtleneck sweater, black pleated skirt, black thighhighs, pendant necklace","pose":"standing with hands on hips","camera":"cowboy shot, upper body, slight low angle, depth of field","background":"fuyuki city rooftop at night, glowing city lights, moonlit sky","effects":"volumetric moonlight, gentle wind blowing hair, atmospheric lighting","lora":{"name":"tohsaka_rin_illustrious","weight":0.85,"enabled":true}}`,
+			Description:      "Rin Tohsaka on a Fuyuki City rooftop under moonlit sky with twin braids and classic red sweater.",
+			IsSystem:         true,
+		},
+		{
+			Title:            "Fantasy Elf Ranger (Full Set)",
+			Character:        "Fantasy Elf Ranger",
+			Slug:             "fantasy-elf-ranger-fullset",
+			Category:         "modular_preset",
+			Subcategory:      "Fantasy",
+			BaseModelTarget:  "Illustrious",
+			PresetType:       "fullset",
+			PositivePrompt:   "masterpiece, best quality, amazing quality, highres, illustration, cel shading, 1girl, solo, emerald eyes, glowing eyes, elf ears, silver hair, elegant hairstyle, loose framing side tendrils, slender, athletic build, toned stomach, wide hips, thick thighs, delicate hands, manicured nails, glistening skin, sweat, pale skin, sun-kissed tan, slight blush, battle damage, focused fierce expression, intense gaze, gentle smile, white fantasy ranger tunic, leather corset, detached sleeves, fingerless gloves, thigh-high boots, capelet, dynamic combat stance, standing on a giant mossy tree root, drawing a glowing magic bow, holding crystal arrows, wide shot, low angle view, environmental portrait, cowboy shot, outdoor, ancient mystical forest, dense jungle, giant bioluminescent trees, mossy rocks, glowing mushrooms, waterfall, floating glowing spores, fireflies, shafts of sunlight breaking through canopy, volumetric fog, cinematic lighting, depth of field, <lora:fantasy_elf_ranger_xl:0.8>",
+			NegativePrompt:   "worst quality, low quality, bad anatomy, deformed ears, extra fingers",
+			TriggerWords:     "elf ears, silver hair, glowing eyes, magic bow, mystical forest",
+			RecommendedModel: "Illustrious XL Base v0.1",
+			RecommendedLoras: `[{"name": "fantasy_elf_ranger_xl", "slug": "elf_lora", "weight": 0.8, "base_model": "Illustrious"}]`,
+			LayerData:        `{"quality":"masterpiece, best quality, amazing quality, highres, illustration, cel shading","identity":"1girl, solo, emerald eyes, glowing eyes, elf ears, silver hair, elegant hairstyle, loose framing side tendrils","proportions":"slender, athletic build, toned stomach, wide hips, thick thighs, delicate hands, manicured nails","details":"glistening skin, sweat, pale skin, sun-kissed tan, slight blush, battle damage","expression":"focused fierce expression, intense gaze, gentle smile","outfit":"white fantasy ranger tunic, leather corset, detached sleeves, fingerless gloves, thigh-high boots, capelet","pose":"dynamic combat stance, standing on a giant mossy tree root, drawing a glowing magic bow, holding crystal arrows","camera":"wide shot, low angle view, environmental portrait, cowboy shot","background":"outdoor, ancient mystical forest, dense jungle, giant bioluminescent trees, mossy rocks, glowing mushrooms, waterfall","effects":"floating glowing spores, fireflies, shafts of sunlight breaking through canopy, volumetric fog, cinematic lighting, depth of field","lora":{"name":"fantasy_elf_ranger_xl","weight":0.8,"enabled":true}}`,
+			Description:      "Fantasy Elf Ranger in an ancient glowing forest wielding crystal magic arrows.",
+			IsSystem:         true,
+		},
+	}
+
+	for _, p := range fullSetSeeds {
+		var existing models.PromptPreset
+		if err := s.db.Where("slug = ?", p.Slug).First(&existing).Error; err != nil {
+			s.db.Create(&p)
+		} else if existing.IsSystem {
+			s.db.Model(&existing).Updates(map[string]interface{}{
+				"positive_prompt": p.PositivePrompt,
+				"preset_type":     p.PresetType,
+				"layer_data":      p.LayerData,
+				"category":        p.Category,
+				"subcategory":     p.Subcategory,
+			})
+		}
+	}
+
 	var fullCount int64
 	s.db.Model(&models.PromptPreset{}).Where("preset_type = ? AND is_system = ?", "full", true).Count(&fullCount)
 	if fullCount < 4 {

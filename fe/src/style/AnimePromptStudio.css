@@ -79,6 +79,30 @@
     color: #ffffff;
 }
 
+.aps-preset-pill-btn.full-set {
+    background: #0f172a;
+    border-color: #1e3a8a;
+    color: #93c5fd;
+}
+
+.aps-preset-pill-btn.full-set:hover {
+    background: #1e3a8a;
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
+.aps-preset-pill-btn.pinned {
+    background: #1e1b13;
+    border-color: #78350f;
+    color: #fbbf24;
+}
+
+.aps-preset-pill-btn.pinned:hover {
+    background: #291807;
+    border-color: #d97706;
+    color: #fef3c7;
+}
+
 .aps-templates-right {
     display: flex;
     align-items: center;
@@ -355,6 +379,624 @@
 }
 
 /* ==========================================================================
+   Collapsible Smart Raw Prompt Deconstructor Panel (Auto-10-Layer)
+   ========================================================================== */
+.aps-deconstructor-collapsible-bar {
+    background: #12151a;
+    border: 1px solid #22262f;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.15s ease;
+}
+
+.aps-deconstructor-collapsible-bar:hover {
+    border-color: #2e3542;
+}
+
+.aps-deconstructor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    cursor: pointer;
+    background: #12151a;
+    user-select: none;
+    transition: background 0.12s ease;
+}
+
+.aps-deconstructor-header:hover {
+    background: #151921;
+}
+
+.aps-deconstructor-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #e2e8f0;
+}
+
+.aps-deconstructor-header-title .zap-icon {
+    color: #3b82f6;
+    display: flex;
+    align-items: center;
+}
+
+.aps-deconstructor-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #94a3b8;
+    background: #181c24;
+    border: 1px solid #282f3d;
+    padding: 4px 10px;
+    border-radius: 5px;
+    transition: all 0.12s ease;
+}
+
+.aps-deconstructor-header:hover .aps-deconstructor-toggle-btn {
+    color: #f1f5f9;
+    border-color: #3b82f6;
+}
+
+.aps-deconstructor-body {
+    padding: 12px 14px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid #1c2029;
+    background: #0f1217;
+}
+
+.aps-deconstructor-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 95px;
+    background: #090b0e;
+    border: 1px solid #22262f;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #e2e8f0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+
+.aps-deconstructor-textarea:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 1px #2563eb;
+}
+
+.aps-deconstructor-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.aps-deconstruct-btn-replace {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+    border-radius: 6px;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.aps-deconstruct-btn-replace:hover {
+    background: #1d4ed8;
+}
+
+.aps-deconstruct-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 13px;
+    background: #181c24;
+    border: 1px solid #282f3d;
+    border-radius: 6px;
+    color: #d4d4d8;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.aps-deconstruct-btn-secondary:hover {
+    background: #232936;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+/* ==========================================================================
+   Full-Set Modular Presets Drawer & Manager
+   ========================================================================== */
+.aps-fullset-drawer {
+    background: #12151a;
+    border: 1px solid #22262f;
+    border-radius: 8px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.aps-fullset-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #22262f;
+}
+
+.aps-fullset-drawer-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aps-fullset-drawer-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: #60a5fa;
+    background: #0f172a;
+    border: 1px solid #1e3a8a;
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+
+.aps-fullset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+}
+
+.aps-fullset-card {
+    background: #0f1217;
+    border: 1px solid #22262f;
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.12s ease;
+}
+
+.aps-fullset-card:hover {
+    border-color: #333d4e;
+}
+
+.aps-fullset-card.is-pinned {
+    border-color: #78350f;
+    background: #141210;
+}
+
+.aps-fullset-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.aps-fullset-card-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #f8fafc;
+    word-break: break-word;
+}
+
+.aps-fullset-card-badges {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.aps-fullset-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: #181c24;
+    border: 1px solid #282f3d;
+    color: #94a3b8;
+}
+
+.aps-fullset-badge.model {
+    color: #60a5fa;
+    border-color: #1e3a8a;
+    background: #0f172a;
+}
+
+.aps-fullset-badge.pinned {
+    color: #f59e0b;
+    border-color: #78350f;
+    background: #291807;
+}
+
+.aps-fullset-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+    padding-top: 6px;
+    border-top: 1px solid #1a202c;
+}
+
+.aps-fullset-btn-apply {
+    padding: 4px 9px;
+    background: #2563eb;
+    border: 1px solid #1d4ed8;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.12s ease;
+}
+
+.aps-fullset-btn-apply:hover {
+    background: #1d4ed8;
+}
+
+.aps-fullset-btn-styleonly {
+    padding: 4px 8px;
+    background: #181c24;
+    border: 1px solid #282f3d;
+    border-radius: 4px;
+    color: #cbd5e1;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.aps-fullset-btn-styleonly:hover {
+    background: #232936;
+    border-color: #3b82f6;
+    color: #ffffff;
+}
+
+.aps-fullset-btn-pin {
+    padding: 4px 7px;
+    background: transparent;
+    border: 1px solid #282f3d;
+    border-radius: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+}
+
+.aps-fullset-btn-pin:hover {
+    color: #f59e0b;
+    border-color: #d97706;
+}
+
+.aps-fullset-btn-pin.pinned {
+    color: #f59e0b;
+    border-color: #d97706;
+    background: #291807;
+}
+
+.aps-fullset-btn-del {
+    padding: 4px 6px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: #64748b;
+    font-size: 11px;
+    cursor: pointer;
+    margin-left: auto;
+    transition: color 0.12s ease;
+}
+
+.aps-fullset-btn-del:hover {
+    color: #f87171;
+}
+
+.aps-fullset-btn-edit {
+    padding: 4px 7px;
+    background: transparent;
+    border: 1px solid #282f3d;
+    border-radius: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+}
+
+.aps-fullset-btn-edit:hover {
+    color: #38bdf8;
+    border-color: #0284c7;
+    background: #082f49;
+}
+
+.aps-fullset-btn-canvas {
+    padding: 4px 9px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    color: #38bdf8;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.12s ease;
+}
+
+.aps-fullset-btn-canvas:hover {
+    background: #0284c7;
+    border-color: #38bdf8;
+    color: #ffffff;
+}
+
+.aps-fullset-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #090b0e;
+    border: 1px solid #22262f;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.aps-fullset-search-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #f1f5f9;
+    font-size: 12px;
+}
+
+.aps-fullset-search-input::placeholder {
+    color: #475569;
+}
+
+.aps-fullset-search-clear {
+    background: transparent;
+    border: none;
+    color: #64748b;
+    font-size: 11px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.aps-fullset-search-clear:hover {
+    color: #f1f5f9;
+    background: #1e2430;
+}
+
+.aps-fullset-filter-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 2px 0;
+}
+
+.aps-fullset-filter-pill {
+    padding: 3px 9px;
+    background: #12151a;
+    border: 1px solid #22262f;
+    border-radius: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.aps-fullset-filter-pill:hover {
+    color: #f1f5f9;
+    border-color: #3b82f6;
+}
+
+.aps-fullset-filter-pill.active {
+    background: #1e293b;
+    border-color: #2563eb;
+    color: #60a5fa;
+    font-weight: 600;
+}
+
+.aps-fullset-prompt-preview {
+    background: #090b0e;
+    border: 1px solid #1a1e27;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-family: monospace;
+    font-size: 10.5px;
+    color: #94a3b8;
+    line-height: 1.45;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+    user-select: text;
+}
+
+/* ==========================================================================
+   Save Full-Set Modal Popover
+   ========================================================================== */
+.aps-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.aps-save-modal-card {
+    background: #12151a;
+    border: 1px solid #22262f;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.aps-save-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid #22262f;
+    background: #151921;
+}
+
+.aps-save-modal-title {
+    font-size: 13.5px;
+    font-weight: 700;
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aps-save-modal-body {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.aps-save-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aps-save-field-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.aps-save-field-input {
+    background: #090b0e;
+    border: 1px solid #22262f;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #f8fafc;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.12s ease;
+}
+
+.aps-save-field-input:focus {
+    border-color: #2563eb;
+}
+
+.aps-save-badges-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.aps-save-badge-chip {
+    padding: 3px 8px;
+    background: #181c24;
+    border: 1px solid #282f3d;
+    border-radius: 4px;
+    color: #94a3b8;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.12s ease;
+}
+
+.aps-save-badge-chip:hover {
+    color: #f1f5f9;
+    border-color: #3b82f6;
+}
+
+.aps-save-badge-chip.active {
+    background: #1e3a8a;
+    border-color: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.aps-save-preview-box {
+    background: #090b0e;
+    border: 1px solid #1e2430;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aps-save-preview-stats {
+    font-weight: 600;
+    color: #60a5fa;
+}
+
+.aps-save-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #cbd5e1;
+    cursor: pointer;
+    user-select: none;
+}
+
+.aps-save-checkbox {
+    accent-color: #2563eb;
+    cursor: pointer;
+}
+
+.aps-save-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 18px;
+    border-top: 1px solid #22262f;
+    background: #151921;
+}
+
+/* ==========================================================================
    Main Grid: 10 Categories (Left) vs Sticky Output (Right)
    ========================================================================== */
 
@@ -540,6 +1182,34 @@
     color: #f87171;
     background: #1e1315;
     border-color: #7f1d1d;
+}
+
+.aps-cat-lock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid transparent;
+    color: #71717a;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 2px 7px;
+    border-radius: 4px;
+    transition: all 0.12s ease;
+}
+
+.aps-cat-lock-btn:hover {
+    color: #93c5fd;
+    background: #1e293b;
+    border-color: #3b82f6;
+}
+
+.aps-cat-lock-btn.locked {
+    color: #60a5fa;
+    background: #0f172a;
+    border-color: #2563eb;
+    font-weight: 600;
 }
 
 .aps-layer-collapse-btn {
@@ -844,6 +1514,46 @@
     background: #18181b;
     border-color: #3f3f46;
     color: #f4f4f5;
+}
+
+.aps-token-save-db-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #0d1e38;
+    border: 1px solid #1e3a8a;
+    color: #60a5fa;
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 10.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    white-space: nowrap;
+}
+
+.aps-token-save-db-btn:hover {
+    background: #172554;
+    border-color: #2563eb;
+    color: #93c5fd;
+}
+
+.aps-chip-del-db-btn {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0 0 4px;
+    margin-left: 2px;
+    opacity: 0.7;
+    transition: opacity 0.12s ease;
+}
+
+.aps-chip-del-db-btn:hover {
+    opacity: 1;
+    color: #f87171;
 }
 
 /* Character Quick Banner (Layer 2 Karakter Mode) */

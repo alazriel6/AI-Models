@@ -311,13 +311,74 @@ export default function MetadataInspector() {
 
     const getObservedFactVal = (facts: any, key: string): string => {
         if (!facts) return "";
-        if (typeof facts === "object" && facts[key]) {
-            return String(facts[key]);
+        if (typeof facts === "object") {
+            const raw = facts[key] ?? (
+                key === "exposure_and_rating_audit" ? facts["nsfw_and_anatomy_audit"] :
+                key === "nsfw_and_anatomy_audit" ? facts["exposure_and_rating_audit"] : undefined
+            );
+            if (raw !== undefined && raw !== null) {
+                if (typeof raw === "string") return raw;
+                if (Array.isArray(raw)) return raw.filter(Boolean).map(String).join(", ");
+                if (typeof raw === "object") {
+                    return Object.entries(raw)
+                        .filter(([_, v]) => v !== undefined && v !== null && String(v).trim() !== "")
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join("; ");
+                }
+                return String(raw);
+            }
         }
         if (typeof facts === "string") {
             return facts;
         }
         return "";
+    };
+
+    const getRatingBadgeInfo = (result: InterrogateResult | null) => {
+        if (!result) return null;
+        const auditVal = (
+            getObservedFactVal(result.observed_facts, "exposure_and_rating_audit") ||
+            getObservedFactVal(result.observed_facts, "nsfw_and_anatomy_audit") ||
+            ""
+        ).toLowerCase();
+
+        // 1. Explicit check
+        const hasExplicitTier = auditVal.includes("tier: explicit") || auditVal.includes("[tier: explicit]");
+        const isExplicitKeyword =
+            auditVal.includes("explicit") ||
+            auditVal.includes("r-18") ||
+            (auditVal.includes("nsfw") && !auditVal.includes("not nsfw") && !auditVal.includes("no nsfw"));
+        const hasCoveredIndicator =
+            auditVal.includes("100% covered") || auditVal.includes("covered by fabric") || auditVal.includes("no nipples");
+
+        if (hasExplicitTier || (isExplicitKeyword && !hasCoveredIndicator && !auditVal.includes("sensitive") && !auditVal.includes("general"))) {
+            return {
+                tier: "explicit" as const,
+                label: "Rating: Explicit (NSFW)",
+            };
+        }
+
+        // 2. Sensitive check
+        const hasSensitiveTier = auditVal.includes("tier: sensitive") || auditVal.includes("[tier: sensitive]");
+        const isSensitiveKeyword =
+            auditVal.includes("sensitive") ||
+            auditVal.includes("ecchi") ||
+            auditVal.includes("suggestive") ||
+            auditVal.includes("cleavage") ||
+            auditVal.includes("cutout");
+
+        if (hasSensitiveTier || isSensitiveKeyword || hasCoveredIndicator) {
+            return {
+                tier: "sensitive" as const,
+                label: "Rating: Sensitive (Ecchi/SFW)",
+            };
+        }
+
+        // 3. General (Default SFW)
+        return {
+            tier: "general" as const,
+            label: "Rating: General (SFW)",
+        };
     };
 
     const handleDeleteTag = (indexToDelete: number) => {
@@ -2032,6 +2093,15 @@ export default function MetadataInspector() {
                                             <span className="pro-rec-badge">
                                                 Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
                                             </span>
+                                            {(() => {
+                                                const ratingInfo = getRatingBadgeInfo(interrogateResult);
+                                                if (!ratingInfo) return null;
+                                                return (
+                                                    <span className={`pro-rating-badge rating-${ratingInfo.tier}`}>
+                                                        {ratingInfo.label}
+                                                    </span>
+                                                );
+                                            })()}
                                             {interrogateResult.recommended_sampler && (
                                                 <span className="pro-params-badge">
                                                     {interrogateResult.recommended_sampler} · {interrogateResult.recommended_steps} steps · CFG {interrogateResult.recommended_cfg}
@@ -2072,8 +2142,8 @@ export default function MetadataInspector() {
                                                             <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "hands_and_limbs_visibility") || "—"}</p>
                                                         </div>
                                                         <div className="pro-audit-card">
-                                                            <span className="pro-audit-card-label">NSFW & Anatomy Audit</span>
-                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "nsfw_and_anatomy_audit") || "—"}</p>
+                                                            <span className="pro-audit-card-label">Exposure & Rating Audit</span>
+                                                            <p className="pro-audit-card-val">{getObservedFactVal(interrogateResult.observed_facts, "exposure_and_rating_audit") || "—"}</p>
                                                         </div>
                                                         <div className="pro-audit-card">
                                                             <span className="pro-audit-card-label">Environment</span>
@@ -2095,7 +2165,7 @@ export default function MetadataInspector() {
                                                 <div className="pro-output-box">
                                                     <div className="pro-output-header">
                                                         <div className="pro-output-title-group">
-                                                            <span className="pro-output-label">DANBOORU TAGS</span>
+                                                            <span className="pro-output-label">POSITIVE PROMPT — BOORU TAGS</span>
                                                             <span className="pro-output-count">({danbooruTags.length})</span>
                                                         </div>
                                                         <div className="pro-output-actions">
@@ -2121,7 +2191,7 @@ export default function MetadataInspector() {
                                                                 onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
                                                             >
                                                                 {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
-                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Tags"}</span>
+                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Positive Prompt"}</span>
                                                             </button>
                                                         </div>
                                                     </div>
@@ -2178,7 +2248,7 @@ export default function MetadataInspector() {
                                         {interrogateResult.natural_prompt && (
                                             <div className="pro-output-box">
                                                 <div className="pro-output-header">
-                                                    <span className="pro-output-label">NATURAL LANGUAGE PROMPT</span>
+                                                    <span className="pro-output-label">POSITIVE PROMPT — NATURAL / CAPTION</span>
                                                     <button
                                                         type="button"
                                                         className="pro-copy-btn"
@@ -2684,6 +2754,15 @@ export default function MetadataInspector() {
                                                             <span className="ai-model-rec-badge">
                                                                 Rekomendasi: <strong>{interrogateResult.recommended_model}</strong>
                                                             </span>
+                                                            {(() => {
+                                                                const ratingInfo = getRatingBadgeInfo(interrogateResult);
+                                                                if (!ratingInfo) return null;
+                                                                return (
+                                                                    <span className={`pro-rating-badge rating-${ratingInfo.tier}`}>
+                                                                        {ratingInfo.label}
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </div>
                                                         <button
                                                             type="button"
@@ -2697,14 +2776,14 @@ export default function MetadataInspector() {
 
                                                     <div className="ai-result-box">
                                                         <div className="ai-result-label-row">
-                                                            <span className="ai-result-label">Danbooru Tag Prompt:</span>
+                                                            <span className="ai-result-label">Positive Prompt (Booru Tags):</span>
                                                             <button
                                                                 type="button"
                                                                 className="copy-chip-btn"
                                                                 onClick={() => handleCopy(interrogateResult.danbooru_prompt, "copy-ai-danbooru")}
                                                             >
                                                                 {copiedKey === "copy-ai-danbooru" ? <Icons.Check /> : <Icons.Copy />}
-                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Danbooru Tags"}</span>
+                                                                <span>{copiedKey === "copy-ai-danbooru" ? "Tersalin!" : "Salin Positive Prompt"}</span>
                                                             </button>
                                                         </div>
                                                         <div className="ai-result-prompt-box danbooru">
@@ -2734,14 +2813,14 @@ export default function MetadataInspector() {
                                                     {interrogateResult.natural_prompt && (
                                                         <div className="ai-result-box">
                                                             <div className="ai-result-label-row">
-                                                                <span className="ai-result-label">Natural Language Prompt:</span>
+                                                                <span className="ai-result-label">Positive Prompt (Natural / Caption):</span>
                                                                 <button
                                                                     type="button"
                                                                     className="copy-chip-btn"
                                                                     onClick={() => handleCopy(interrogateResult.natural_prompt, "copy-ai-natural")}
                                                                 >
                                                                     {copiedKey === "copy-ai-natural" ? <Icons.Check /> : <Icons.Copy />}
-                                                                    <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Natural Prompt"}</span>
+                                                                    <span>{copiedKey === "copy-ai-natural" ? "Tersalin!" : "Salin Positive Prompt"}</span>
                                                                 </button>
                                                             </div>
                                                             <div className="ai-result-prompt-box">

@@ -10,7 +10,8 @@ export interface ObservedFacts {
     hair_and_face?: string;
     upper_and_lower_clothing?: string;
     hands_and_limbs_visibility?: string;
-    nsfw_and_anatomy_audit?: string;
+    exposure_and_rating_audit?: string;
+    nsfw_and_anatomy_audit?: string; // backward-compatibility
     environment?: string;
     [key: string]: string | undefined;
 }
@@ -620,7 +621,10 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
             if (clean.endsWith("```")) clean = clean.substring(0, clean.length - 3);
 
             const parsed: InterrogateResult = JSON.parse(clean.trim());
-            const danbooruPrompt = sanitizeDanbooruPrompt(parsed.danbooru_prompt || "");
+            const rawDan = parsed.danbooru_prompt || "";
+            const initialDanTags = rawDan.split(",").map((t) => t.trim()).filter(Boolean);
+            const harvestedTags = harvestCanonicalTagsFromText((parsed as any).observed_facts, parsed.natural_prompt || "", initialDanTags);
+            const danbooruPrompt = sanitizeDanbooruPrompt(harvestedTags.join(", "));
             const detectedChars = detectAllCharacters(
                 parsed.character || "original",
                 danbooruPrompt,
@@ -633,9 +637,10 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
             return {
                 character: characterStr,
                 danbooru_prompt: danbooruPrompt,
-                negative_prompt:
+                negative_prompt: sanitizeNegativePrompt(
                     parsed.negative_prompt ||
-                    "worst quality, low quality, normal quality, blurry, deformed limbs, watermark",
+                    "worst quality, low quality, normal quality, blurry, deformed limbs, watermark"
+                ),
                 natural_prompt: parsed.natural_prompt || "",
                 style_tags: parsed.style_tags || [],
                 recommended_model: parsed.recommended_model || "Illustrious-XL / Pony V6",
@@ -669,6 +674,103 @@ Do NOT include markdown formatting or backticks, return pure JSON.`;
     }
 
     throw lastErr || new Error("Gagal menganalisis gambar dengan Gemini API. Semua model sedang sibuk atau kuota harian habis.");
+}
+
+// canonicalTagMap maps conversational or verbose VLM descriptions to standard canonical Danbooru tags
+export const CANONICAL_TAG_MAP: Record<string, string> = {
+    // Martial arts & Traditional Japanese
+    white_martial_arts_uniform: "dogi",
+    martial_arts_uniform: "dogi",
+    karate_uniform: "dogi",
+    judo_uniform: "dogi",
+    traditional_japanese_room: "washitsu",
+    japanese_room: "washitsu",
+    japanese_style_room: "washitsu",
+    tatami_floor: "tatami",
+    wooden_doors: "sliding_doors",
+    shoji_doors: "shoji",
+
+    // Ears & Hair details
+    elf_ears: "pointy_ears",
+    pointed_ears: "pointy_ears",
+    bat_hairpin: "hair_ornament, bat_hair_ornament",
+    bat_wing_hairpin: "bat_hair_ornament",
+    silver_hairpin: "hairclip",
+    hair_pin: "hairclip",
+    blue_hair_tie: "blue_hairband, hair_ribbon",
+
+    // Arms & Gloves
+    long_gloves: "elbow_gloves",
+    opera_gloves: "elbow_gloves",
+
+    // Chest & Cutouts
+    sheer_chest: "see-through_cleavage",
+    translucent_chest: "see-through_cleavage",
+    stomach_cutout: "navel_cutout, navel",
+    belly_cutout: "navel_cutout, navel",
+
+    // Lower body, skirt & legwear
+    thigh_straps: "garter_straps",
+    garter_belt_straps: "garter_straps",
+    front_flap: "pelvic_curtain",
+    loincloth_dress: "pelvic_curtain",
+
+    // Clothing & accessories
+    black_undershirt: "black_shirt, undershirt",
+    athletic_pants: "track_pants",
+    sport_pants: "track_pants",
+    sports_pants: "track_pants",
+    black_belt_strap: "black_belt",
+    bare_feet: "barefoot",
+    white_socks: "socks",
+};
+
+/**
+ * stripForbiddenTags removes specific tags (case-insensitive) from a comma-separated prompt,
+ * including handling parentheses and weight modifiers (e.g. '(nsfw:1.2)' or '(explicit)').
+ */
+export function stripForbiddenTags(prompt: string, forbidden: string[]): string {
+    const parts = prompt.split(",");
+    const cleaned: string[] = [];
+    const forbiddenSet = new Set<string>();
+
+    for (const f of forbidden) {
+        const fClean = f.trim().toLowerCase();
+        forbiddenSet.add(fClean);
+        forbiddenSet.add(fClean.replace(/\s+/g, "_"));
+        forbiddenSet.add(fClean.replace(/_+/g, " "));
+    }
+
+    for (const p of parts) {
+        let tag = p.trim();
+        if (!tag) continue;
+
+        let checkTag = tag;
+        while (checkTag.startsWith("(") && checkTag.endsWith(")")) {
+            const inner = checkTag.slice(1, -1).trim();
+            const colonIdx = inner.lastIndexOf(":");
+            checkTag = colonIdx !== -1 ? inner.slice(0, colonIdx).trim() : inner;
+        }
+        const colonIdx = checkTag.lastIndexOf(":");
+        if (colonIdx !== -1) {
+            checkTag = checkTag.slice(0, colonIdx).trim();
+        }
+
+        const checkNorm = checkTag.toLowerCase().replace(/\s+/g, "_");
+        const tagNorm = tag.toLowerCase().replace(/\s+/g, "_");
+
+        if (
+            forbiddenSet.has(checkNorm) ||
+            forbiddenSet.has(checkTag.toLowerCase()) ||
+            forbiddenSet.has(tagNorm) ||
+            forbiddenSet.has(tag.toLowerCase())
+        ) {
+            continue;
+        }
+        cleaned.push(tag);
+    }
+
+    return cleaned.join(", ");
 }
 
 /**
@@ -759,12 +861,317 @@ export function sanitizeDanbooruPrompt(raw: string): string {
         }
 
         const normKey = tag.toLowerCase();
+
+        // 4. Canonical Danbooru translation (CANONICAL_TAG_MAP)
+        if (CANONICAL_TAG_MAP[normKey]) {
+            const canonicalSubs = CANONICAL_TAG_MAP[normKey].split(",");
+            for (const sub of canonicalSubs) {
+                const s = sub.trim();
+                const sNorm = s.toLowerCase();
+                if (s && !seen.has(sNorm)) {
+                    seen.add(sNorm);
+                    cleaned.push(s);
+                }
+            }
+            continue;
+        }
+
         if (seen.has(normKey)) continue;
         seen.add(normKey);
         cleaned.push(tag);
     }
 
     return cleaned.join(", ");
+}
+
+/**
+ * sanitizeNegativePrompt cleans and normalizes negative prompts, ensuring all tokens are separated by comma and space.
+ * If the model produced space-separated negative phrases (e.g. "lowres blurry bad anatomy bad hands missing fingers"),
+ * it parses them into standard comma-separated items.
+ */
+export function sanitizeNegativePrompt(raw: string): string {
+    const trimmed = (raw || "").trim();
+    if (!trimmed) {
+        return "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature";
+    }
+
+    const knownPhrases = [
+        "poorly drawn hands", "poorly drawn face", "too many fingers", "fused fingers",
+        "missing fingers", "missing arms", "missing legs", "extra fingers", "extra digit",
+        "extra digits", "fewer digits", "extra limbs", "extra arms", "extra legs",
+        "bad anatomy", "bad hands", "bad feet", "bad proportions", "bad quality",
+        "worst quality", "low quality", "normal quality", "jpeg artifacts",
+        "artist name in corner", "artist_name_in_corner", "artist name", "artist_name",
+        "gross proportions", "malformed limbs", "depth of field",
+        "watermark", "signature", "username", "lowres", "low res", "blurry",
+        "deformed", "disfigured", "mutation", "mutated", "amputation", "cropped",
+        "morbid", "text", "error", "duplicate",
+    ];
+
+    const parts = trimmed.split(",");
+    const resultTokens: string[] = [];
+    const seen = new Set<string>();
+
+    const addToken = (t: string) => {
+        const clean = t.replace(/^[,;:.\s]+|[,;:.\s]+$/g, "").trim();
+        if (!clean) return;
+        const norm = clean.toLowerCase();
+        if (!seen.has(norm)) {
+            seen.add(norm);
+            resultTokens.push(clean);
+        }
+    };
+
+    for (const part of parts) {
+        const pTrimmed = part.trim();
+        if (!pTrimmed) continue;
+
+        const words = pTrimmed.split(/\s+/).filter(Boolean);
+        if (words.length <= 2) {
+            addToken(pTrimmed);
+            continue;
+        }
+
+        const workingText = " " + pTrimmed + " ";
+        const workingLower = workingText.toLowerCase();
+
+        interface MatchItem {
+            start: number;
+            end: number;
+            val: string;
+        }
+        const matches: MatchItem[] = [];
+
+        for (const kp of knownPhrases) {
+            const regex = new RegExp(`\\b${kp.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "gi");
+            let m: RegExpExecArray | null;
+            while ((m = regex.exec(workingLower)) !== null) {
+                matches.push({
+                    start: m.index,
+                    end: m.index + m[0].length,
+                    val: workingText.slice(m.index, m.index + m[0].length).trim(),
+                });
+            }
+        }
+
+        if (matches.length <= 1) {
+            addToken(pTrimmed);
+            continue;
+        }
+
+        matches.sort((a, b) => {
+            if (a.start === b.start) {
+                return (b.end - b.start) - (a.end - a.start);
+            }
+            return a.start - b.start;
+        });
+
+        const filtered: MatchItem[] = [];
+        let lastEnd = 0;
+        for (const m of matches) {
+            if (m.start >= lastEnd) {
+                filtered.push(m);
+                lastEnd = m.end;
+            }
+        }
+
+        for (const m of filtered) {
+            addToken(m.val);
+        }
+    }
+
+    if (resultTokens.length === 0) {
+        return "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature";
+    }
+
+    return resultTokens.join(", ");
+}
+
+/**
+ * harvestCanonicalTagsFromText scans observed_facts and natural_prompt for visual keywords,
+ * mapping them to canonical Danbooru tags if not already present in existingTags.
+ * Respects Occlusion Guard (no gloves if obscured/hidden) and Anti-False-NSFW Gatekeeper.
+ */
+export function harvestCanonicalTagsFromText(
+    facts: ObservedFacts | Record<string, any> | undefined,
+    naturalPrompt: string,
+    existingTags: string[]
+): string[] {
+    const getFactStr = (val: any): string => {
+        if (!val) return "";
+        if (typeof val === "string") return val;
+        if (Array.isArray(val)) return val.map((x) => String(x || "")).join(" ");
+        if (typeof val === "object") return Object.values(val).map((x) => String(x || "")).join(" ");
+        return String(val);
+    };
+
+    const cameraAndPose = getFactStr(facts?.camera_and_pose);
+    const hairAndFace = getFactStr(facts?.hair_and_face);
+    const upperAndLowerClothing = getFactStr(facts?.upper_and_lower_clothing);
+    const handsAndLimbsVisibility = getFactStr(facts?.hands_and_limbs_visibility);
+    const exposureAndRatingAudit = getFactStr(facts?.exposure_and_rating_audit || facts?.nsfw_and_anatomy_audit);
+    const environment = getFactStr(facts?.environment);
+
+    const combinedText = ` ${[
+        cameraAndPose,
+        hairAndFace,
+        upperAndLowerClothing,
+        handsAndLimbsVisibility,
+        exposureAndRatingAudit,
+        environment,
+        naturalPrompt || "",
+    ].join(" ").toLowerCase()} `;
+
+    const normalizedText = ` ${combinedText.replace(/[-_]/g, " ")} `;
+
+    // Occlusion Guard
+    const handsVis = handsAndLimbsVisibility.toLowerCase();
+    const isGlovesObscured = (
+        handsVis.includes("obscured") ||
+        handsVis.includes("hidden") ||
+        handsVis.includes("inside pocket") ||
+        handsVis.includes("not visible") ||
+        handsVis.includes("no gloves")
+    ) && !handsVis.includes("wearing") && !handsVis.includes("glove") && !handsVis.includes("visible");
+
+    const clothingAudit = upperAndLowerClothing.toLowerCase();
+    const isSleevesIntact = (clothingAudit.includes("intact sleeves") || clothingAudit.includes("continuous sleeves")) &&
+        !clothingAudit.includes("bare shoulders") &&
+        !clothingAudit.includes("detached");
+
+    const seenTags = new Set<string>();
+    const resultTags: string[] = [];
+
+    for (const t of existingTags) {
+        const clean = t.trim();
+        if (!clean) continue;
+        const norm = clean.toLowerCase().replace(/\s+/g, "_");
+        if (!seenTags.has(norm)) {
+            seenTags.add(norm);
+            resultTags.push(clean);
+        }
+    }
+
+    const addTag = (tag: string) => {
+        const clean = tag.trim();
+        if (!clean) return;
+        const norm = clean.toLowerCase().replace(/\s+/g, "_");
+        if (!seenTags.has(norm)) {
+            seenTags.add(norm);
+            resultTags.push(clean);
+        }
+    };
+
+    const hasWord = (kw: string): boolean => {
+        const kwClean = kw.trim().toLowerCase();
+        if (!kwClean) return false;
+        const pat = new RegExp(`\\b${kwClean.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        if (pat.test(combinedText)) return true;
+        const kwSpace = kwClean.replace(/[-_]/g, " ");
+        const patSpace = new RegExp(`\\b${kwSpace.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`, "i");
+        return patSpace.test(normalizedText);
+    };
+
+    const hasAny = (...keywords: string[]): boolean => {
+        return keywords.some((kw) => hasWord(kw));
+    };
+
+    // --- 1. Hair & Head ---
+    if (hasAny("white hair", "white-haired", "white haired", "white_hair")) addTag("white_hair");
+    if (hasAny("blue hair", "blue-haired", "blue haired", "blue_hair")) addTag("blue_hair");
+    if (hasAny("blonde", "blond", "blonde hair", "blonde-haired", "blonde_hair")) addTag("blonde_hair");
+    if (hasAny("black hair", "black-haired", "black haired", "black_hair")) addTag("black_hair");
+    if (hasAny("pink hair", "pink-haired", "pink haired", "pink_hair")) addTag("pink_hair");
+    if (hasAny("silver hair", "silver-haired", "silver haired", "silver_hair")) addTag("silver_hair");
+    if (hasAny("purple hair", "purple-haired", "purple haired", "purple_hair")) addTag("purple_hair");
+    if (hasAny("long hair", "long-haired", "long haired", "long_hair")) addTag("long_hair");
+    if (hasAny("short hair", "short-haired", "short haired", "short_hair")) addTag("short_hair");
+    if (hasAny("low ponytail", "low_ponytail")) {
+        addTag("low_ponytail");
+    } else if (hasAny("ponytail", "ponytails", "pony tail")) {
+        addTag("ponytail");
+    }
+    if (hasAny("single braid", "single_braid")) {
+        addTag("single_braid");
+    } else if (hasAny("braid", "braids", "braided")) {
+        addTag("braid");
+    }
+    if (hasAny("twintails", "twintail", "twin tails", "twin tail", "twin-tails")) addTag("twintails");
+    if (hasAny("ahoge")) addTag("ahoge");
+    if (hasAny("hair between eyes", "hair_between_eyes")) addTag("hair_between_eyes");
+    if (hasAny("hairclip", "hairclips", "hair clip", "hair-clip", "hairpin", "hairpins", "hair pin", "hair-pin")) addTag("hairclip");
+    if (hasAny("ribbon", "ribbons", "hair ribbon", "hair-ribbon", "hair_ribbon")) addTag("hair_ribbon");
+    if (
+        hasAny("bat hair ornament", "bat hairpin", "bat-wing hairpin", "bat wing hairpin", "bat clip", "bat hairclip", "bat-wing", "bat ornament") ||
+        hairAndFace.toLowerCase().includes("bat")
+    ) {
+        addTag("bat_hair_ornament");
+    }
+
+    // --- 2. Face & Ears ---
+    if (hasAny("blue eyes", "blue-eyed", "blue eyed", "blue_eyes", "blue eye")) addTag("blue_eyes");
+    if (hasAny("red eyes", "red-eyed", "red eyed", "red_eyes", "red eye")) addTag("red_eyes");
+    if (hasAny("green eyes", "green-eyed", "green eyed", "green_eyes", "green eye")) addTag("green_eyes");
+    if (hasAny("yellow eyes", "yellow-eyed", "yellow_eyes", "golden eyes", "golden-eyed", "golden_eyes", "gold eyes")) addTag("yellow_eyes");
+    if (hasAny("purple eyes", "purple-eyed", "purple eyed", "purple_eyes", "purple eye")) addTag("purple_eyes");
+    if (hasAny("pointy ears", "pointed ears", "pointy-eared", "pointy_ears", "elf", "elf girl", "elven")) addTag("pointy_ears");
+    if (hasAny("blush", "blushing", "blushed", "blush on cheeks")) addTag("blush");
+    if (hasAny("smile", "smiling", "smiles", "smiled")) addTag("smile");
+    if (hasAny("open mouth", "open-mouthed", "open_mouth", "mouth open")) addTag("open_mouth");
+    if (hasAny("looking at viewer", "looking_at_viewer", "looks at viewer", "looking at the viewer")) addTag("looking_at_viewer");
+    if (hasAny("looking back", "looking_back", "looks back")) addTag("looking_back");
+
+    // --- 3. Clothing & Accessories ---
+    if (hasAny("choker", "chokers")) addTag("choker");
+    if (hasAny("collar", "collars")) addTag("collar");
+    if (!isSleevesIntact && hasAny("detached sleeves", "detached-sleeves", "detached_sleeves", "detached sleeve")) {
+        addTag("detached_sleeves");
+    }
+    if (hasAny("bare shoulders", "bare-shoulders", "bare_shoulders", "exposed shoulders")) addTag("bare_shoulders");
+    if (!isGlovesObscured) {
+        if (
+            hasAny("elbow gloves", "elbow-length gloves", "elbow_gloves", "long gloves", "opera gloves") ||
+            (hasAny("gloves") && hasAny("elbow", "elbows", "covering her arms to the elbow"))
+        ) {
+            addTag("elbow_gloves");
+        }
+        if (hasAny("black gloves", "black_gloves")) addTag("black_gloves");
+    }
+    if (hasAny("see-through", "see through", "see_through", "sheer", "translucent")) addTag("see-through_cleavage");
+    if (hasAny("cleavage")) addTag("cleavage");
+    if (hasAny("large breasts", "large_breasts", "big breasts")) addTag("large_breasts");
+    if (hasAny("medium breasts", "medium_breasts")) addTag("medium_breasts");
+    if (hasAny("navel cutout", "navel-cutout", "navel_cutout", "midsection", "stomach", "navel", "belly cutout")) {
+        addTag("navel_cutout");
+        addTag("navel");
+    }
+    if (hasAny("pelvic curtain", "pelvic_curtain", "front flap", "loincloth dress")) addTag("pelvic_curtain");
+    if (hasAny("garter", "garters", "garter straps", "garter_straps", "garter belt", "thigh straps")) addTag("garter_straps");
+    if (hasAny("thighhighs", "thigh-highs", "thigh highs", "thigh-high", "thigh high", "thigh-high stockings", "thigh high stockings")) addTag("thighhighs");
+    if (hasAny("dogi", "martial arts", "martial arts uniform", "karate", "karate uniform", "judo")) addTag("dogi");
+    if (hasAny("black belt", "black_belt", "black belt strap")) addTag("black_belt");
+    if (hasAny("track pants", "track_pants", "athletic pants", "sport pants", "sports pants", "sweatpants")) addTag("track_pants");
+    if (hasAny("dress", "dresses")) addTag("dress");
+
+    // --- 4. Pose & Environment ---
+    if (hasAny("sitting", "sits", "sat", "sitting on bed", "knees bent")) addTag("sitting");
+    if (hasAny("standing", "stands")) addTag("standing");
+    if (hasAny("from side", "from_side", "side view")) addTag("from_side");
+    if (hasAny("from behind", "from_behind", "back view")) addTag("from_behind");
+    if (hasAny("front view", "front_view", "facing viewer")) addTag("front_view");
+    if (hasAny("bed", "beds", "on bed", "bed sheet", "bedsheet", "bed covering")) {
+        addTag("on_bed");
+        addTag("bed_sheet");
+    }
+    if (hasAny("window", "windows")) addTag("window");
+    if (hasAny("blue sky", "clear sky", "clear blue sky") || (hasAny("sky") && hasAny("blue", "clear"))) addTag("blue_sky");
+    if (hasAny("indoors", "indoor", "room", "bedroom")) addTag("indoors");
+    if (hasAny("tatami", "tatami floor")) {
+        addTag("tatami");
+        addTag("washitsu");
+    }
+
+    return resultTags;
 }
 
 function formatPrettyName(s: string): string {
@@ -1429,46 +1836,389 @@ export function enrichSuggestedLoras(
 }
 
 /**
+ * Extract root JSON boundary from the first '{' to its matching '}' (or end if truncated)
+ */
+export function extractJSONBoundary(raw: string): string {
+    let clean = raw.trim();
+    clean = clean.replace(/^```(?:json|JSON)?\s*/i, "").replace(/```\s*$/i, "").trim();
+
+    const startIdx = clean.indexOf("{");
+    if (startIdx === -1) return clean;
+    clean = clean.substring(startIdx);
+
+    let inString = false;
+    let escape = false;
+    let depth = 0;
+    let rootClosedAt = -1;
+
+    for (let i = 0; i < clean.length; i++) {
+        const c = clean[i];
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        if (c === "\\") {
+            escape = true;
+            continue;
+        }
+        if (c === '"') {
+            inString = !inString;
+            continue;
+        }
+        if (inString) continue;
+
+        if (c === "{") depth++;
+        else if (c === "}") {
+            depth--;
+            if (depth === 0) {
+                rootClosedAt = i;
+                break;
+            }
+        }
+    }
+
+    if (rootClosedAt !== -1) {
+        return clean.substring(0, rootClosedAt + 1);
+    }
+    return clean;
+}
+
+/**
+ * Flexible string converter to safely handle strings, arrays, or objects returned by Local VLMs
+ */
+export function toFlexibleString(val: any): string {
+    if (val === null || val === undefined) return "";
+    if (typeof val === "string") return val;
+    if (Array.isArray(val)) {
+        return val.map((x) => (typeof x === "object" ? JSON.stringify(x) : String(x))).join(", ");
+    }
+    if (typeof val === "object") {
+        return Object.entries(val)
+            .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`)
+            .join("; ");
+    }
+    return String(val);
+}
+
+/**
+ * Sanitize and repair malformed JSON from Local VLMs
+ */
+export function repairMalformedJSON(rawText: string): string {
+    return repairAndSanitizeJSON(rawText);
+}
+
+/**
+ * Sanitize and repair malformed JSON from Local VLMs
+ */
+function repairAndSanitizeJSON(rawText: string): string {
+    let clean = extractJSONBoundary(rawText);
+
+    const startIdx = clean.indexOf("{");
+    if (startIdx === -1) return clean;
+    clean = clean.substring(startIdx);
+
+    // Track balanced root object depth
+    let inString = false;
+    let escape = false;
+    let depth = 0;
+    let rootClosedAt = -1;
+
+    for (let i = 0; i < clean.length; i++) {
+        const c = clean[i];
+        if (escape) {
+            escape = false;
+            continue;
+        }
+        if (c === "\\") {
+            escape = true;
+            continue;
+        }
+        if (c === '"') {
+            inString = !inString;
+            continue;
+        }
+        if (inString) continue;
+
+        if (c === "{") depth++;
+        else if (c === "}") {
+            depth--;
+            if (depth === 0) {
+                rootClosedAt = i;
+                break;
+            }
+        }
+    }
+
+    if (rootClosedAt !== -1) {
+        clean = clean.substring(0, rootClosedAt + 1);
+    }
+
+    // Fix pseudo-arrays: { "a", "b" } -> [ "a", "b" ]
+    clean = fixPseudoArraysTS(clean);
+
+    // Clean trailing commas
+    clean = clean.replace(/,\s*([}\]])/g, "$1");
+
+    // Close truncated JSON structures if root was not closed
+    if (rootClosedAt === -1) {
+        clean = closeTruncatedJSONTS(clean);
+        clean = clean.replace(/,\s*([}\]])/g, "$1");
+    }
+
+    return clean;
+}
+
+function fixPseudoArraysTS(input: string): string {
+    let inString = false;
+    let escape = false;
+    const stack: number[] = [];
+    const BRACE_ARRAY = 2;
+    const BRACE_PSEUDO = 3;
+    const BRACE_OBJECT = 1;
+
+    let res = "";
+
+    for (let i = 0; i < input.length; i++) {
+        const c = input[i];
+        if (escape) {
+            escape = false;
+            res += c;
+            continue;
+        }
+        if (c === "\\") {
+            escape = true;
+            res += c;
+            continue;
+        }
+        if (c === '"') {
+            inString = !inString;
+            res += c;
+            continue;
+        }
+        if (inString) {
+            res += c;
+            continue;
+        }
+
+        if (c === "[") {
+            stack.push(BRACE_ARRAY);
+            res += "[";
+            continue;
+        }
+        if (c === "]") {
+            if (stack.length > 0 && stack[stack.length - 1] === BRACE_ARRAY) {
+                stack.pop();
+            }
+            res += "]";
+            continue;
+        }
+        if (c === "{") {
+            if (isPseudoArrayTS(input, i)) {
+                stack.push(BRACE_PSEUDO);
+                res += "[";
+            } else {
+                stack.push(BRACE_OBJECT);
+                res += "{";
+            }
+            continue;
+        }
+        if (c === "}") {
+            if (stack.length > 0) {
+                const top = stack.pop();
+                if (top === BRACE_PSEUDO) {
+                    res += "]";
+                    continue;
+                }
+            }
+            res += "}";
+            continue;
+        }
+
+        res += c;
+    }
+
+    return res;
+}
+
+function isPseudoArrayTS(input: string, openBraceIdx: number): boolean {
+    let i = openBraceIdx + 1;
+    while (i < input.length && /\s/.test(input[i])) i++;
+    if (i >= input.length || input[i] === "}") return false;
+
+    if (input[i] === "'") {
+        i++;
+        while (i < input.length) {
+            if (input[i] === "\\") { i += 2; continue; }
+            if (input[i] === "'") { i++; break; }
+            i++;
+        }
+        while (i < input.length && /\s/.test(input[i])) i++;
+        return i < input.length && (input[i] === "," || input[i] === "}");
+    }
+
+    if (input[i] !== '"') {
+        return input[i] !== "{";
+    }
+
+    i++; // skip open quote
+    while (i < input.length) {
+        if (input[i] === "\\") { i += 2; continue; }
+        if (input[i] === '"') { i++; break; }
+        i++;
+    }
+
+    while (i < input.length && /\s/.test(input[i])) i++;
+    if (i >= input.length) return false;
+
+    return input[i] === "," || input[i] === "}";
+}
+
+function closeTruncatedJSONTS(input: string): string {
+    let clean = input.trimEnd();
+    if (!clean) return "{}";
+
+    let inString = false;
+    let escape = false;
+    for (let i = 0; i < clean.length; i++) {
+        const c = clean[i];
+        if (escape) { escape = false; continue; }
+        if (c === "\\") { escape = true; continue; }
+        if (c === '"') { inString = !inString; }
+    }
+
+    if (inString) clean += '"';
+
+    clean = clean.replace(/,\s*"[^"\\]*"\s*:\s*$/, "");
+    clean = clean.replace(/,\s*"[^"\\]*"\s*$/, "");
+    clean = clean.replace(/,\s*$/, "");
+
+    inString = false;
+    escape = false;
+    const stack: string[] = [];
+
+    for (let i = 0; i < clean.length; i++) {
+        const c = clean[i];
+        if (escape) { escape = false; continue; }
+        if (c === "\\") { escape = true; continue; }
+        if (c === '"') { inString = !inString; continue; }
+        if (inString) continue;
+
+        if (c === "{") stack.push("}");
+        else if (c === "[") stack.push("]");
+        else if (c === "}" || c === "]") {
+            if (stack.length > 0 && stack[stack.length - 1] === c) {
+                stack.pop();
+            }
+        }
+    }
+
+    for (let i = stack.length - 1; i >= 0; i--) {
+        clean += stack[i];
+    }
+
+    return clean;
+}
+
+/**
  * Helper to safely parse Danbooru JSON output from LLMs
  */
 function parseInterrogateJson(rawText: string, modelName: string): InterrogateResult {
-    let clean = rawText.trim();
-    clean = clean.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
-
-    // Extract JSON between first { and last }
-    const firstBrace = clean.indexOf("{");
-    const lastBrace = clean.lastIndexOf("}");
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        clean = clean.substring(firstBrace, lastBrace + 1);
-    }
-
-    // Clean trailing commas before closing braces/brackets
-    const sanitized = clean.replace(/,\s*([}\]])/g, "$1");
+    const sanitized = repairAndSanitizeJSON(rawText);
+    const clean = sanitized;
 
     try {
         const parsed = JSON.parse(sanitized);
-        const danbooruPrompt = sanitizeDanbooruPrompt(parsed.danbooru_prompt || "");
+        const observedFacts: any = parsed.observed_facts;
+
+        if (observedFacts) {
+            if (!observedFacts.exposure_and_rating_audit && observedFacts.nsfw_and_anatomy_audit) {
+                observedFacts.exposure_and_rating_audit = observedFacts.nsfw_and_anatomy_audit;
+            }
+            if (!observedFacts.nsfw_and_anatomy_audit && observedFacts.exposure_and_rating_audit) {
+                observedFacts.nsfw_and_anatomy_audit = observedFacts.exposure_and_rating_audit;
+            }
+        }
+
+        const rawDan = toFlexibleString(parsed.danbooru_prompt || "");
+        const initialDanTags = rawDan.split(",").map((t) => t.trim()).filter(Boolean);
+        const harvestedTags = harvestCanonicalTagsFromText(observedFacts, toFlexibleString(parsed.natural_prompt), initialDanTags);
+        let danbooruPrompt = sanitizeDanbooruPrompt(harvestedTags.join(", "));
+
+        if (observedFacts) {
+            const getStrFact = (val: any): string => toFlexibleString(val);
+
+            const handsVis = getStrFact(observedFacts.hands_and_limbs_visibility).toLowerCase();
+            const clothingAudit = getStrFact(observedFacts.upper_and_lower_clothing).toLowerCase();
+            const exposureAudit = getStrFact(observedFacts.exposure_and_rating_audit).toLowerCase();
+
+            // Anti-False-NSFW Gatekeeper
+            const isExplicitTier = exposureAudit.includes("tier: explicit") || exposureAudit.includes("[tier: explicit]");
+            const isCoveredOrNonExplicit =
+                exposureAudit.includes("tier: general") ||
+                exposureAudit.includes("tier: sensitive") ||
+                exposureAudit.includes("general") ||
+                exposureAudit.includes("sensitive") ||
+                exposureAudit.includes("100% covered") ||
+                exposureAudit.includes("covered by fabric") ||
+                exposureAudit.includes("no nipples");
+
+            const explicitTagsToStrip = [
+                "nsfw", "explicit", "rating:explicit", "rating_explicit", "nude", "completely_nude",
+                "nipples", "areolae", "pussy", "vaginal", "uncensored", "sex", "topless", "bottomless", "breasts_out",
+            ];
+
+            if (isCoveredOrNonExplicit && !isExplicitTier) {
+                danbooruPrompt = stripForbiddenTags(danbooruPrompt, explicitTagsToStrip);
+            }
+
+            // Occlusion Guard: Only strip gloves if explicitly obscured and not wearing/visible
+            const isGlovesObscured = (
+                handsVis.includes("obscured") ||
+                handsVis.includes("hidden") ||
+                handsVis.includes("inside pocket") ||
+                handsVis.includes("not visible") ||
+                handsVis.includes("no gloves")
+            ) && !handsVis.includes("wearing") && !handsVis.includes("glove") && !handsVis.includes("visible");
+
+            if (isGlovesObscured) {
+                danbooruPrompt = stripForbiddenTags(danbooruPrompt, [
+                    "gloves", "black_gloves", "white_gloves", "fingerless_gloves", "elbow_gloves", "hands_on_hips",
+                ]);
+            }
+
+            // Sleeve Continuity Guard
+            const isSleevesIntact = (clothingAudit.includes("intact sleeves") || clothingAudit.includes("continuous sleeves")) &&
+                !clothingAudit.includes("bare shoulders") &&
+                !clothingAudit.includes("detached");
+
+            if (isSleevesIntact) {
+                danbooruPrompt = stripForbiddenTags(danbooruPrompt, ["detached_sleeves"]);
+            }
+        }
+
         const detectedChars = detectAllCharacters(
-            parsed.character || "original",
+            toFlexibleString(parsed.character) || "original",
             danbooruPrompt,
-            parsed.natural_prompt,
-            parsed.observed_facts
+            toFlexibleString(parsed.natural_prompt),
+            observedFacts
         );
-        const characterStr = detectedChars.length > 0 ? detectedChars.join(", ") : "original";
-        const loras = enrichSuggestedLoras(detectedChars, danbooruPrompt, parsed.suggested_loras || []);
+        const characterStr = detectedChars.length > 0 ? detectedChars.join(", ") : (toFlexibleString(parsed.character) || "original");
+        const loras = enrichSuggestedLoras(detectedChars, danbooruPrompt, Array.isArray(parsed.suggested_loras) ? parsed.suggested_loras : []);
+
+        const rawNeg = toFlexibleString(parsed.negative_prompt) || "worst quality, low quality, normal quality, blurry, deformed limbs, watermark";
+        const negativePrompt = sanitizeNegativePrompt(rawNeg);
 
         return {
+            observed_facts: observedFacts,
             character: characterStr,
             danbooru_prompt: danbooruPrompt,
-            negative_prompt:
-                parsed.negative_prompt ||
-                "worst quality, low quality, normal quality, blurry, deformed limbs, watermark",
-            natural_prompt: parsed.natural_prompt || "",
+            negative_prompt: negativePrompt,
+            natural_prompt: toFlexibleString(parsed.natural_prompt) || "",
             style_tags: Array.isArray(parsed.style_tags) ? parsed.style_tags : ["anime", "digital art"],
-            recommended_model: parsed.recommended_model || "Illustrious-XL / Pony V6",
-            recommended_sampler: parsed.recommended_sampler || "Euler a",
-            recommended_steps: parsed.recommended_steps || 28,
-            recommended_cfg: parsed.recommended_cfg || 7.0,
+            recommended_model: toFlexibleString(parsed.recommended_model) || "Illustrious-XL / Pony V6",
+            recommended_sampler: toFlexibleString(parsed.recommended_sampler) || "Euler a",
+            recommended_steps: typeof parsed.recommended_steps === "number" ? parsed.recommended_steps : 28,
+            recommended_cfg: typeof parsed.recommended_cfg === "number" ? parsed.recommended_cfg : 7.0,
             suggested_loras: loras,
             used_model: modelName,
             fallback_occurred: false,
@@ -1478,12 +2228,17 @@ function parseInterrogateJson(rawText: string, modelName: string): InterrogateRe
         const danbooruMatch = clean.match(/"danbooru_prompt"\s*:\s*"([\s\S]*?)(?="\s*,\s*"|"\s*})/);
         const naturalMatch = clean.match(/"natural_prompt"\s*:\s*"([\s\S]*?)(?="\s*,\s*"|"\s*})/);
         const charMatch = clean.match(/"character"\s*:\s*"([^"]+)"/);
+        const negMatch = clean.match(/"negative_prompt"\s*:\s*"([\s\S]*?)(?="\s*,\s*"|"\s*})/);
 
         const extractedDanbooru = danbooruMatch ? danbooruMatch[1].replace(/\\"/g, '"') : "";
         const extractedNatural = naturalMatch ? naturalMatch[1].replace(/\\"/g, '"') : clean;
+        const extractedNeg = negMatch ? negMatch[1].replace(/\\"/g, '"') : "worst quality, low quality, normal quality, blurry, deformed limbs, watermark";
 
         if (extractedDanbooru || clean.includes(",")) {
-            const danbooruPrompt = sanitizeDanbooruPrompt(extractedDanbooru || clean);
+            const rawDan = extractedDanbooru || clean;
+            const initialDanTags = rawDan.split(",").map((t) => t.trim()).filter(Boolean);
+            const harvestedTags = harvestCanonicalTagsFromText(undefined, extractedNatural, initialDanTags);
+            const danbooruPrompt = sanitizeDanbooruPrompt(harvestedTags.join(", "));
             const detectedChars = detectAllCharacters(
                 charMatch ? charMatch[1] : "original",
                 danbooruPrompt,
@@ -1495,7 +2250,7 @@ function parseInterrogateJson(rawText: string, modelName: string): InterrogateRe
             return {
                 character: characterStr,
                 danbooru_prompt: danbooruPrompt,
-                negative_prompt: "worst quality, low quality, normal quality, blurry, deformed limbs, watermark",
+                negative_prompt: sanitizeNegativePrompt(extractedNeg),
                 natural_prompt: extractedNatural,
                 style_tags: ["anime", "digital art"],
                 recommended_model: "Illustrious-XL / Pony V6",
@@ -1582,44 +2337,52 @@ export async function directLocalInterrogate(
     const optimizedFile = await compressImageForVision(file, 1024);
     const { base64, mimeType } = await fileToBase64(optimizedFile);
 
-    const systemPrompt = `You are a deterministic Anime Vision & Canonical Danbooru Tagging Engine optimized for Vision-Language Models (2B to 12B). Analyze the image strictly based on visible pixels and return ONLY a valid JSON object.
+    const systemPrompt = `You are a deterministic Anime Vision & Canonical Danbooru Tagging Engine optimized for Vision-Language Models (2B to 12B). Analyze the image strictly based on visible pixels and return ONLY a valid JSON object without markdown code fences.
 
 ### UNIVERSAL RULES FOR ALL VLM FAMILIES (2B–12B):
-1. **NO OCCLUSION GUESSING (HIDDEN PARTS GUARD)**:
-   - Inspect whether hands, wrists, feet, or lower body are obscured by sleeves, inside pockets, behind the back, or cropped out of frame.
-   - If obscured, explicitly record "obscured/not visible" in 'observed_facts.hands_and_limbs_visibility'.
-   - NEVER guess or hallucinate 'gloves', 'black_gloves', 'hands_on_hips', 'detached_sleeves', or 'footwear' unless the actual fingers, bare shoulder gap, or shoes are 100% visible.
-2. **ZERO INSTRUCTION LEAKAGE**:
-   - Never copy example tags mentioned in this system prompt unless they physically appear in the image.
-3. **SFW / NSFW CALIBRATION (FOR STANDARD & ABLITERATED MODELS)**:
-   - Do NOT over-predict NSFW tags or exposed skin on fully clothed characters. Conversely, if nudity or explicit acts are clearly visible, document them factually without censorship.
-4. **INDEPENDENT GARMENT & POSE BREAKDOWN**:
-   - Check camera angle ('front_view', 'from_side', 'from_behind') and head direction ('looking_at_viewer', 'looking_back') separately.
-   - Check hairstyle architecture ('ponytail', 'low_ponytail', 'twintails', 'short_hair', 'hair_between_eyes', 'hairclip', 'hair_ribbon').
-   - Evaluate upper and lower garments independently (e.g., a traditional martial arts top 'dogi' can be worn with modern 'track_pants' and 'striped_pants').
-5. **CANONICAL DANBOORU TRANSLATION (CRITICAL FOR LLAMA / GEMMA / MINICPM)**:
-   - Do NOT invent long conversational phrases as tags. Translate visual concepts into strict, standard Danbooru tags:
-     - Martial arts / karate top -> 'dogi', 'black_belt' (NEVER 'white_martial_arts_uniform')
-     - Japanese traditional room -> 'washitsu', 'tatami', 'sliding_doors' (NEVER 'traditional_japanese_room')
-     - Dark inner shirt -> 'undershirt', 'black_shirt' (NEVER 'black_undershirt')
-     - Hairpin / clip -> 'hairclip' or 'hair_ornament'
-6. **MODEL ECOSYSTEM QUALITY PREFIX**:
-   - If 'recommended_model' is "Illustrious-XL", start 'danbooru_prompt' strictly with: 'masterpiece, best quality, very aesthetic, absurdres'. Do NOT output Pony V6 score tags ('score_9, score_8_up').
+1. **STRICT 3-TIER RATING & ANATOMY GATE (ANTI-FALSE-NSFW)**:
+   - Never confuse sexy/revealing fantasy outfits with explicit nudity. Classify every image into one of three strict tiers in 'observed_facts.exposure_and_rating_audit':
+     - **TIER 1 - general (Pure SFW)**: Everyday, modest, or standard full clothing (e.g., school uniform, martial arts dogi, casual wear).
+     - **TIER 2 - sensitive (Ecchi / Suggestive SFW)**: Revealing or form-fitting clothes, deep cleavage, sheer/translucent fabric over chest, bare shoulders, navel cutout, exposed hips, pelvic curtain, bikini, or garter straps—WHERE nipples and genitalia are 100% COVERED by fabric. For Tier 2, NEVER output 'nsfw', 'nude', 'nipples', 'areolae', or 'pussy'.
+     - **TIER 3 - explicit (True NSFW / R-18)**: ONLY when bare nipples, areolae, genitalia (pussy/penis), or explicit sexual acts are unmistakably exposed without fabric covering.
+2. **NO OCCLUSION GUESSING (HIDDEN Vs VISIBLE PARTS)**:
+   - If hands are hidden inside pockets or sleeves, write "obscured/hidden" and do NOT output glove tags.
+   - However, if gloves or detached sleeves ARE clearly visible (e.g., bare upper arms with separate forearm fabric and gloved fingers), accurately tag 'detached_sleeves' and 'gloves' / 'elbow_gloves'.
+3. **MICRO-DETAIL ANIME INSPECTION (HEAD TO TOE)**:
+   - **Head & Hair**: Check ear shape ('pointy_ears' for elf, 'animal_ears'), hair features ('ahoge', 'braid', 'single_braid', 'ponytail', 'low_ponytail', 'twintails', 'hair_between_eyes'), and ornaments ('hairclip', 'bat_hair_ornament', 'hair_ribbon').
+   - **Neck & Upper Body**: Check for 'choker', 'collar', sheer/translucent fabric ('see-through_cleavage', 'covered_cleavage', 'cleavage'), and arm wear ('detached_sleeves', 'armband', 'elbow_gloves', 'bare_shoulders').
+   - **Midsection & Lower Body**: Check for cutouts ('navel_cutout', 'navel', 'hip_vent'), skirt/dress style ('pelvic_curtain', 'high-waist_skirt', 'track_pants'), and legwear ('thighhighs', 'garter_straps', 'kneehighs').
+4. **CANONICAL DANBOORU VOCABULARY**:
+   - Translate descriptive English into standard Danbooru tags:
+     - Martial arts uniform -> 'dogi', 'black_belt'
+     - Japanese tatami room -> 'washitsu', 'tatami', 'sliding_doors'
+     - Elf ears -> 'pointy_ears'
+     - Sheer black chest fabric -> 'see-through_cleavage', 'cleavage_cutout'
+     - Stomach diamond opening -> 'navel_cutout', 'navel'
+     - Long gloves reaching elbows -> 'elbow_gloves', 'black_gloves'
+5. **MODEL ECOSYSTEM QUALITY PREFIX & EXHAUSTIVE TAGGING**:
+   - When 'recommended_model' is "Illustrious-XL", start 'danbooru_prompt' strictly with: 'masterpiece, best quality, very aesthetic, absurdres'. Do NOT output Pony V6 score tags ('score_9, score_8_up').
+   - "danbooru_prompt": MUST contain AT LEAST 20 to 35 comma-separated canonical Danbooru tags covering hair, eyes, ears, expression, upper clothing, lower clothing, legwear, pose, and background derived from observed_facts and natural_prompt.
+6. **STRICT FLAT JSON (ANTI-PARSE-ERROR)**:
+   - Output ONLY the raw JSON object starting with '{' and ending with '}'. Do NOT wrap in markdown code fences and do NOT output any conversational or introductory text.
+   - Every field inside 'observed_facts' MUST be a single plain text string. NEVER create nested JSON objects or sets with {} (e.g. do NOT write {"top": "..."} or {"item1", "item2"}).
+   - Only use square brackets [] for 'style_tags' and 'suggested_loras'.
+   - Keep observations concise so the complete JSON response finishes cleanly within token limits.
 
 ### REQUIRED JSON SCHEMA:
 {
   "observed_facts": {
-    "camera_and_pose": "Exact body orientation, head turn, and arm placement",
-    "hair_and_face": "Hair color, length, tying style, bangs, accessories, eye color, expression",
-    "upper_and_lower_clothing": "Separate breakdown of top, inner shirt, belt, and bottom/pants. State if sleeves are continuous/intact",
-    "hands_and_limbs_visibility": "State clearly whether hands/wrists are visible or obscured/in pockets, and whether gloves are worn",
-    "nsfw_and_anatomy_audit": "State 'SFW / Fully clothed' if normal, or detail visible anatomy if NSFW",
-    "environment": "Setting type, floor material, background objects, lighting"
+    "camera_and_pose": "Exact body orientation, sitting/standing posture, head turn, and arm placement",
+    "hair_and_face": "Hair color, length, braids/ponytail, ahoge, ear type (human vs pointy_ears), hair ornaments, eye color, expression, blush",
+    "upper_and_lower_clothing": "Detailed breakdown of neckwear, chest fabric (opaque vs sheer), sleeves (intact vs detached_sleeves), stomach/hip cutouts, bottom garment, and legwear (thighhighs/garter_straps)",
+    "hands_and_limbs_visibility": "State clearly whether hands are obscured in pockets OR visibly wearing specific gloves (e.g. elbow_gloves) or bare hands",
+    "exposure_and_rating_audit": "Format: '[TIER: general | sensitive | explicit] - State clearly whether nipples and genitalia are 100% covered by fabric or visibly exposed'",
+    "environment": "Indoor/outdoor setting, furniture (e.g. bed, sheet, window, tatami), sky/background, lighting"
   },
   "character": "original (or canonical character_name_(series) if 100% certain)",
-  "danbooru_prompt": "masterpiece, best quality, very aesthetic, absurdres, 1girl, solo, ...",
+  "danbooru_prompt": "<insert 25+ comma-separated canonical Danbooru tags here starting with masterpiece, best quality, very aesthetic, absurdres, 1girl, solo>",
   "negative_prompt": "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature",
-  "natural_prompt": "Concise, factual natural language description strictly matching observed_facts.",
+  "natural_prompt": "Concise, accurate natural language description strictly matching observed_facts.",
   "style_tags": ["anime", "digital media", "illustration"],
   "recommended_model": "Illustrious-XL",
   "recommended_sampler": "Euler a",
@@ -1680,6 +2443,7 @@ export async function directLocalInterrogate(
             format: "json",
             options: {
                 temperature: 0.15,
+                num_ctx: 4096,
                 num_predict: 2048,
                 top_p: 0.85,
                 repeat_penalty: 1.15,

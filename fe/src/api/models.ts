@@ -205,7 +205,7 @@ export interface PromptPreset {
     category: string; // 'character' | 'anime' | 'photorealistic' | 'style' | 'environment' | 'modular'
     subcategory?: string;
     base_model_target: string; // 'Illustrious' | 'SDXL' | 'Pony' | 'Flux' | 'All'
-    preset_type: "full" | "modular";
+    preset_type: "full" | "modular" | "fullset" | string;
     positive_prompt: string;
     negative_prompt?: string;
     trigger_words?: string;
@@ -214,6 +214,7 @@ export interface PromptPreset {
     sample_images?: string; // JSON array of string URLs
     description?: string;
     is_system?: boolean;
+    layer_data?: string; // Serialized JSON containing 10-layer inputs and LoRA settings
     created_at?: string;
     updated_at?: string;
 }

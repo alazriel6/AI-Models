@@ -23,6 +23,7 @@ type PromptPreset struct {
 	SampleImages     string `json:"sample_images" gorm:"type:text"` // JSON array string of up to 5 preview image URLs
 
 	Description string `json:"description" gorm:"type:text"`
+	LayerData   string `json:"layer_data" gorm:"type:text"` // JSON object storing 10-layer modular inputs & lora config
 	IsSystem    bool   `json:"is_system" gorm:"default:false"`
 
 	CreatedAt time.Time `json:"created_at"`

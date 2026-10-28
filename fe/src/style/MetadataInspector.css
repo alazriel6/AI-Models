@@ -1960,6 +1960,36 @@
     border-radius: 4px;
 }
 
+/* 3-Tier Rating Indicator Badges */
+.pro-rating-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.02em;
+}
+
+.pro-rating-badge.rating-general {
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid #10b981;
+    color: #10b981;
+}
+
+.pro-rating-badge.rating-sensitive {
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid #f59e0b;
+    color: #f59e0b;
+}
+
+.pro-rating-badge.rating-explicit {
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid #ef4444;
+    color: #ef4444;
+}
+
 /* Accordion Audit Visual Fakta */
 .pro-audit-accordion {
     background: #12151a;

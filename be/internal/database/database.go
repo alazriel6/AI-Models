@@ -41,9 +41,11 @@ func Connect(cfg config.Config) *gorm.DB {
 		CREATE INDEX IF NOT EXISTS idx_image_tags_tag_id ON image_tags(tag_id);
 
 		ALTER TABLE prompt_presets ADD COLUMN IF NOT EXISTS character VARCHAR(255);
+		ALTER TABLE prompt_presets ADD COLUMN IF NOT EXISTS layer_data TEXT;
 		UPDATE prompt_presets SET character = TRIM(split_part(title, ' - ', 1)) WHERE (character IS NULL OR character = '') AND title LIKE '% - %';
 		UPDATE prompt_presets SET character = TRIM(split_part(title, ' (', 1)) WHERE (character IS NULL OR character = '') AND title LIKE '% (%';
 		UPDATE prompt_presets SET character = title WHERE character IS NULL OR character = '';
+		UPDATE prompt_presets SET category = 'modular_preset' WHERE preset_type = 'fullset' OR slug LIKE '%-fullset';
 	`).Error; err != nil {
 		log.Printf("Warning: Failed to execute manual DDL on model_images/image_tags/prompt_presets: %v\n", err)
 	}

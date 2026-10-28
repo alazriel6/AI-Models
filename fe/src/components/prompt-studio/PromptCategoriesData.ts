@@ -506,8 +506,454 @@ export const compileCategoriesPrompt = (
     return prefixHeader + modelBlocks.join("\n\n");
 };
 
-// Deconstruct and classify raw prompt text into the 10 visual buckets
-export const deconstructPromptText = (
+// Deterministic Tag Classifier into the 10 Visual Layers
+export function classifyTagTo10Layers(tag: string): string {
+    const raw = tag.trim();
+    // Normalize: strip outer brackets, weight indicators like (:1.2), Danbooru underscores
+    const norm = raw
+        .toLowerCase()
+        .replace(/^[\(\[\{]+/, "")
+        .replace(/[\)\]\}]+$/, "")
+        .replace(/:[0-9.]+\s*$/, "")
+        .replace(/_/g, " ")
+        .trim();
+
+    // 1. Pose & Body Action (Layer 7)
+    // Priority: Action verbs like "sitting on bench" take priority over object "bench" or "park"
+    if (
+        norm.includes("sitting") ||
+        norm.includes("standing") ||
+        norm.includes("resting on") ||
+        norm.includes("crossed legs") ||
+        norm.includes("waving") ||
+        norm.includes("raised hand") ||
+        norm.includes("hands on hips") ||
+        norm.includes("arm raised") ||
+        norm.includes("arms crossed") ||
+        norm.includes("leaning") ||
+        norm.includes("on bed") ||
+        norm.includes("on bench") ||
+        norm.includes("arm support") ||
+        norm.includes("pose") ||
+        norm.includes("stance") ||
+        norm.includes("lying") ||
+        norm.includes("kneeling") ||
+        norm.includes("crouching") ||
+        norm.includes("jumping") ||
+        norm.includes("walking") ||
+        norm.includes("running") ||
+        norm.includes("holding") ||
+        norm.includes("drawing bow") ||
+        norm.includes("aiming") ||
+        norm.includes("conducting") ||
+        norm.includes("hand on cheek") ||
+        norm.includes("sex") ||
+        norm.includes("cowgirl") ||
+        norm.includes("missionary") ||
+        norm.includes("doggystyle") ||
+        norm.includes("straddling") ||
+        norm.includes("riding") ||
+        norm.includes("groping") ||
+        norm.includes("paizuri") ||
+        norm.includes("fellatio") ||
+        norm.includes("handjob")
+    ) {
+        return "pose";
+    }
+
+    // 2. Lighting & Atmosphere / Effects (Layer 10)
+    // Priority: "soft sunlight filtering through trees" takes priority over "trees"
+    if (
+        norm.includes("sunlight") ||
+        norm.includes("dappled") ||
+        norm.includes("atmospheric perspective") ||
+        norm.includes("natural shadows") ||
+        norm.includes("shadows") ||
+        norm.includes("warm daylight") ||
+        norm.includes("daylight") ||
+        norm.includes("tranquil atmosphere") ||
+        norm.includes("atmosphere") ||
+        norm.includes("lighting") ||
+        norm.includes("rim lighting") ||
+        norm.includes("backlighting") ||
+        norm.includes("backlight") ||
+        norm.includes("neon lights") ||
+        norm.includes("neon light") ||
+        norm.includes("light rays") ||
+        norm.includes("rays") ||
+        norm.includes("shade") ||
+        norm.includes("moonlight") ||
+        norm.includes("volumetric") ||
+        norm.includes("fog") ||
+        norm.includes("tyndall") ||
+        norm.includes("chiaroscuro") ||
+        norm.includes("dust motes") ||
+        norm.includes("motes") ||
+        norm.includes("spores") ||
+        norm.includes("fireflies") ||
+        norm.includes("particles") ||
+        norm.includes("lens flare") ||
+        norm.includes("bokeh") ||
+        norm.includes("sparkles") ||
+        norm.includes("ambient light") ||
+        norm.includes("god rays")
+    ) {
+        return "effects";
+    }
+
+    // 3. Expression & Gaze (Layer 5)
+    // Priority: "looking at viewer" takes priority over camera
+    if (
+        norm.includes("expression") ||
+        norm.includes("smile") ||
+        norm.includes("grin") ||
+        norm.includes("smirk") ||
+        norm.includes("cheerful") ||
+        norm.includes("happy") ||
+        norm.includes("serious") ||
+        norm.includes("parted lips") ||
+        norm.includes("lips") ||
+        norm.includes("open mouth") ||
+        norm.includes("looking at viewer") ||
+        norm.includes("looking back") ||
+        norm.includes("looking away") ||
+        norm.includes("looking to the side") ||
+        norm.includes("looking") ||
+        norm.includes("eye contact") ||
+        norm.includes("closed eyes") ||
+        norm.includes("wink") ||
+        norm.includes("blinking") ||
+        norm.includes("gaze") ||
+        norm.includes("ahegao") ||
+        norm.includes("heart eyes") ||
+        norm.includes("crying") ||
+        norm.includes("frown") ||
+        norm.includes("pout") ||
+        norm.includes("pleasure face") ||
+        norm.includes("orgasmic") ||
+        norm.includes("calm expression") ||
+        norm.includes("head tilt") ||
+        norm.includes("embarrassed") ||
+        norm.includes("shy expression") ||
+        norm.includes("tsundere")
+    ) {
+        return "expression";
+    }
+
+    // 4. Camera & Framing (Layer 8)
+    if (
+        norm === "full body" ||
+        norm.includes("body shot") ||
+        norm.includes("upper body") ||
+        norm.includes("cowboy shot") ||
+        norm.includes("portrait") ||
+        norm.includes("close-up") ||
+        norm.includes("close up") ||
+        norm.includes("wide shot") ||
+        norm.includes("distant shot") ||
+        norm.includes("environmental portrait") ||
+        norm.includes("eye level") ||
+        norm.includes("three-quarter view") ||
+        norm.includes("three quarter view") ||
+        norm.includes("from side") ||
+        norm.includes("from behind") ||
+        norm.includes("front view") ||
+        norm.includes("from above") ||
+        norm.includes("from below") ||
+        norm.includes("dutch angle") ||
+        norm.includes("cinematic composition") ||
+        norm.includes("composition") ||
+        norm.includes("depth of field") ||
+        norm.includes("camera") ||
+        norm.includes("angle") ||
+        norm.includes("pov") ||
+        norm.includes("full length view") ||
+        norm.includes("leading lines") ||
+        norm.includes("tilted")
+    ) {
+        return "camera";
+    }
+
+    // 5. Quality & Art Style (Layer 1)
+    if (
+        norm.includes("masterpiece") ||
+        norm.includes("best quality") ||
+        norm.includes("amazing quality") ||
+        norm.includes("very aesthetic") ||
+        norm.includes("aesthetic") ||
+        norm.includes("newest") ||
+        norm.includes("absurdres") ||
+        norm.includes("highres") ||
+        norm.includes("ultra-detailed") ||
+        norm.includes("screencap") ||
+        norm.includes("anime screencap") ||
+        norm.includes("illustration") ||
+        norm.includes("japanese anime style") ||
+        norm.includes("anime style") ||
+        norm.includes("lineart") ||
+        norm.includes("cel shading") ||
+        norm.includes("vibrant natural colors") ||
+        norm.includes("vibrant") ||
+        norm.includes("colors") ||
+        norm.includes("hand-drawn") ||
+        norm.includes("character details") ||
+        norm.includes("details") ||
+        norm.includes("flat color") ||
+        norm.includes("anime coloring") ||
+        norm.includes("anime_coloring") ||
+        norm.includes("score_") ||
+        norm.includes("rating:") ||
+        norm.includes("nsfw") ||
+        norm.includes("explicit") ||
+        norm.includes("uncensored") ||
+        norm.includes("censorship") ||
+        norm.includes("suggestive") ||
+        norm.includes("erotic") ||
+        norm.includes("8k") ||
+        norm.includes("4k") ||
+        norm.includes("resolution")
+    ) {
+        return "quality";
+    }
+
+    // 6. Background & Environment (Layer 9)
+    if (
+        norm.includes("background") ||
+        norm.includes("scenery") ||
+        norm.includes("landscape") ||
+        norm.includes("office") ||
+        norm.includes("seminar office") ||
+        norm.includes("classroom") ||
+        norm.includes("washitsu") ||
+        norm.includes("tatami") ||
+        norm.includes("forest") ||
+        norm.includes("jungle") ||
+        norm.includes("park") ||
+        norm.includes("pathway") ||
+        norm.includes("foliage") ||
+        norm.includes("leaves") ||
+        norm.includes("trees") ||
+        norm.includes("tree") ||
+        norm.includes("outdoors") ||
+        norm.includes("outdoor") ||
+        norm.includes("indoors") ||
+        norm.includes("indoor") ||
+        norm.includes("cathedral") ||
+        norm.includes("ruins") ||
+        norm.includes("rooftop") ||
+        norm.includes("cityscape") ||
+        norm.includes("city lights") ||
+        norm.includes("sky") ||
+        norm.includes("clouds") ||
+        norm.includes("waterfall") ||
+        norm.includes("beach") ||
+        norm.includes("ocean") ||
+        norm.includes("street") ||
+        norm.includes("hallway") ||
+        norm.includes("corridor") ||
+        norm.includes("garden") ||
+        norm.includes("building") ||
+        norm.includes("window") ||
+        norm.includes("sliding door") ||
+        norm.includes("desks") ||
+        norm.includes("desk") ||
+        norm.includes("benches") ||
+        norm.includes("bench") ||
+        norm.includes("bed")
+    ) {
+        return "background";
+    }
+
+    // 7. Clothing, Outfit & Accessories (Layer 6) - explicitly includes blazer, necktie, hoodie, etc.
+    if (
+        norm.includes("hoodie") ||
+        norm.includes("shirt") ||
+        norm.includes("blazer") ||
+        norm.includes("jacket") ||
+        norm.includes("necktie") ||
+        norm.includes("tie") ||
+        norm.includes("leggings") ||
+        norm.includes("sneakers") ||
+        norm.includes("shoes") ||
+        norm.includes("boots") ||
+        norm.includes("heels") ||
+        norm.includes("loafers") ||
+        norm.includes("casual outfit") ||
+        norm.includes("outfit") ||
+        norm.includes("dogi") ||
+        norm.includes("belt") ||
+        norm.includes("pants") ||
+        norm.includes("shorts") ||
+        norm.includes("jeans") ||
+        norm.includes("dress") ||
+        norm.includes("skirt") ||
+        norm.includes("thighhighs") ||
+        norm.includes("thigh-highs") ||
+        norm.includes("stockings") ||
+        norm.includes("socks") ||
+        norm.includes("garter") ||
+        norm.includes("sleeves") ||
+        norm.includes("gloves") ||
+        norm.includes("choker") ||
+        norm.includes("necklace") ||
+        norm.includes("corset") ||
+        norm.includes("tunic") ||
+        norm.includes("capelet") ||
+        norm.includes("cape") ||
+        norm.includes("swimsuit") ||
+        norm.includes("bikini") ||
+        norm.includes("lingerie") ||
+        norm.includes("bra") ||
+        norm.includes("panties") ||
+        norm.includes("underwear") ||
+        norm.includes("uniform") ||
+        norm.includes("suit") ||
+        norm.includes("apron") ||
+        norm.includes("leotard") ||
+        norm.includes("bodysuit") ||
+        norm.includes("cutout") ||
+        norm.includes("pelvic curtain") ||
+        norm.includes("see-through") ||
+        norm.includes("clothes") ||
+        norm.includes("clothing") ||
+        norm.includes("robe") ||
+        norm.includes("cloak") ||
+        norm.includes("scarf")
+    ) {
+        return "outfit";
+    }
+
+    // 8. Character & Head Identity (Layer 2) - strictly head, face features, character identity
+    if (
+        norm === "1girl" ||
+        norm === "solo" ||
+        norm === "1boy" ||
+        norm === "2girls" ||
+        norm === "2boys" ||
+        norm.includes("girls") ||
+        norm.includes("boys") ||
+        norm.includes("young adult woman") ||
+        norm.includes("beautiful anime girl") ||
+        norm.includes("woman") ||
+        norm.includes("girl") ||
+        norm.includes("female") ||
+        norm.includes("male") ||
+        norm.includes("rio tsukatsuki") ||
+        norm.includes("tsukatsuki rio") ||
+        norm.includes("rin tohsaka") ||
+        norm.includes("tohsaka rin") ||
+        norm.includes("hair") ||
+        norm.includes("ponytail") ||
+        norm.includes("twintails") ||
+        norm.includes("braid") ||
+        norm.includes("bangs") ||
+        norm.includes("ahoge") ||
+        norm.includes("updo") ||
+        norm.includes("tendrils") ||
+        norm.includes("hairclip") ||
+        norm.includes("hair ribbon") ||
+        norm.includes("hair ornament") ||
+        norm.includes("hair flower") ||
+        norm.includes("hairband") ||
+        norm.includes("headband") ||
+        norm.includes("eyes") ||
+        norm.includes("halo") ||
+        norm.includes("ears") ||
+        norm.includes("horns")
+    ) {
+        return "identity";
+    }
+
+    // 9. Character Details & Physical Effects (Layer 4)
+    if (
+        norm.includes("sweat") ||
+        norm.includes("sweatdrops") ||
+        norm.includes("blush") ||
+        norm.includes("shiny skin") ||
+        norm.includes("pale skin") ||
+        norm.includes("skin") ||
+        norm.includes("tan") ||
+        norm.includes("wet") ||
+        norm.includes("freckles") ||
+        norm.includes("glowing eyes") ||
+        norm.includes("floating hair") ||
+        norm.includes("wind") ||
+        norm.includes("breathing") ||
+        norm.includes("battle damage") ||
+        norm.includes("saliva") ||
+        norm.includes("drool") ||
+        norm.includes("cum") ||
+        norm.includes("precum")
+    ) {
+        return "details";
+    }
+
+    // 10. Body Proportions & Anatomy (Layer 3)
+    if (
+        norm === "slender" ||
+        norm.includes("slender") ||
+        norm === "tall" ||
+        norm.includes("tall female") ||
+        norm.includes("petite") ||
+        norm.includes("breasts") ||
+        norm.includes("breast") ||
+        norm.includes("cleavage") ||
+        norm.includes("hips") ||
+        norm.includes("thighs") ||
+        norm.includes("legs") ||
+        norm.includes("fingers") ||
+        norm.includes("five fingers") ||
+        norm.includes("5 fingers") ||
+        norm.includes("slender waist") ||
+        norm.includes("waist") ||
+        norm.includes("navel") ||
+        norm.includes("bare shoulders") ||
+        norm.includes("bare legs") ||
+        norm.includes("bare arms") ||
+        norm.includes("hourglass figure") ||
+        norm.includes("figure") ||
+        norm.includes("athletic build") ||
+        norm.includes("toned stomach") ||
+        norm.includes("stomach") ||
+        norm.includes("hands") ||
+        norm.includes("nails") ||
+        norm.includes("thigh gap") ||
+        norm.includes("underboob") ||
+        norm.includes("sideboob") ||
+        norm.includes("nipple") ||
+        norm.includes("areola") ||
+        norm.includes("pussy") ||
+        norm.includes("ass") ||
+        norm.includes("buttocks") ||
+        norm.includes("spread legs") ||
+        norm.includes("cameltoe") ||
+        norm.includes("penis")
+    ) {
+        return "proportions";
+    }
+
+    // Fallback: Check environment tokens first, then default to outfit (Layer 6)
+    if (
+        norm.includes("wall") ||
+        norm.includes("floor") ||
+        norm.includes("ground") ||
+        norm.includes("table") ||
+        norm.includes("chair") ||
+        norm.includes("nature") ||
+        norm.includes("water") ||
+        norm.includes("tree") ||
+        norm.includes("plant") ||
+        norm.includes("flower")
+    ) {
+        return "background";
+    }
+
+    // Default safe fallback: Layer 6 (Outfit/Accessory) so NO tag is lost and Layer 2 is NEVER polluted
+    return "outfit";
+}
+
+// Deconstruct and accurately classify raw prompt text into the 10 visual modular layers
+export const deconstructPromptTo10Layers = (
     rawText: string,
     existingInputs?: Record<string, string>
 ): {
@@ -524,8 +970,24 @@ export const deconstructPromptText = (
         };
     }
 
-    const rawTokens = rawText
-        .replace(/\r\n/g, "\n")
+    let textWithoutLora = rawText.replace(/\r\n/g, "\n");
+    let detectedLora: { name: string; weight: number } | undefined;
+
+    // 1. Extract LoRA Pattern: <lora:name:weight>
+    const loraRegex = /<lora:([^:>]+)(?::([0-9.]+))?>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = loraRegex.exec(rawText)) !== null) {
+        if (!detectedLora) {
+            detectedLora = {
+                name: match[1].trim(),
+                weight: match[2] ? parseFloat(match[2]) || 0.85 : 0.85,
+            };
+        }
+    }
+    // Remove LoRA tokens from remaining prompt text
+    textWithoutLora = textWithoutLora.replace(loraRegex, "");
+
+    const rawTokens = textWithoutLora
         .split(/,|\n/)
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
@@ -543,253 +1005,18 @@ export const deconstructPromptText = (
         effects: [],
     };
 
-    let detectedLora: { name: string; weight: number } | undefined;
     let classifiedCount = 0;
+    if (detectedLora) {
+        classifiedCount++;
+    }
 
     rawTokens.forEach((token) => {
-        const lower = token.toLowerCase();
-
-        // 1. LoRA Pattern Detection
-        const loraMatch = token.match(/<lora:([^:>]+):?([0-9.]*)>/i);
-        if (loraMatch) {
-            detectedLora = {
-                name: loraMatch[1],
-                weight: loraMatch[2] ? parseFloat(loraMatch[2]) || 0.8 : 0.8,
-            };
-            classifiedCount++;
-            return;
-        }
-
-        // 2. Keyword Classification into 10 Modular Buckets
-        if (
-            lower.includes("quality") ||
-            lower.includes("masterpiece") ||
-            lower.includes("highres") ||
-            lower.includes("absurdres") ||
-            lower.includes("illustration") ||
-            lower.includes("cel shading") ||
-            lower.includes("anime_coloring") ||
-            lower.includes("newest") ||
-            lower.includes("aesthetic") ||
-            lower.includes("resolution") ||
-            lower.includes("score_") ||
-            lower.includes("nsfw") ||
-            lower.includes("explicit") ||
-            lower.includes("uncensored") ||
-            lower.includes("censorship") ||
-            lower.includes("suggestive") ||
-            lower.includes("erotic")
-        ) {
-            bucketArrays.quality.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("camera") ||
-            lower.includes("shot") ||
-            lower.includes("view") ||
-            lower.includes("angle") ||
-            lower.includes("portrait") ||
-            lower.includes("full body") ||
-            lower.includes("cowboy shot") ||
-            lower.includes("close-up") ||
-            lower.includes("composition") ||
-            lower.includes("frame") ||
-            lower.includes("pov") ||
-            lower.includes("female on top") ||
-            lower.includes("male on female") ||
-            lower.includes("partner lying down")
-        ) {
-            bucketArrays.camera.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("expression") ||
-            lower.includes("gaze") ||
-            lower.includes("smirk") ||
-            lower.includes("smile") ||
-            lower.includes("crying") ||
-            lower.includes("emotionless") ||
-            lower.includes("lips") ||
-            lower.includes("mouth") ||
-            lower.includes("frown") ||
-            lower.includes("ahegao") ||
-            lower.includes("pleasure") ||
-            lower.includes("orgasmic") ||
-            lower.includes("heart eyes") ||
-            lower.includes("panting")
-        ) {
-            bucketArrays.expression.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("sweat") ||
-            lower.includes("skin") ||
-            lower.includes("blush") ||
-            lower.includes("breathing") ||
-            lower.includes("tears") ||
-            lower.includes("battle damage") ||
-            lower.includes("wet") ||
-            lower.includes("tan") ||
-            lower.includes("collarbone") ||
-            lower.includes("cum") ||
-            lower.includes("precum") ||
-            lower.includes("saliva") ||
-            lower.includes("drool") ||
-            lower.includes("juice")
-        ) {
-            bucketArrays.details.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("sex") ||
-            lower.includes("cowgirl") ||
-            lower.includes("straddling") ||
-            lower.includes("riding") ||
-            lower.includes("missionary") ||
-            lower.includes("doggystyle") ||
-            lower.includes("mating press") ||
-            lower.includes("penetration") ||
-            lower.includes("breast grab") ||
-            lower.includes("grabbing breast") ||
-            lower.includes("breast squeeze") ||
-            lower.includes("hands on breast") ||
-            lower.includes("cupping breast") ||
-            lower.includes("groping") ||
-            lower.includes("paizuri") ||
-            lower.includes("titfuck") ||
-            lower.includes("fellatio") ||
-            lower.includes("deepthroat") ||
-            lower.includes("handjob") ||
-            lower.includes("fingering") ||
-            lower.includes("cunnilingus") ||
-            lower.includes("pose") ||
-            lower.includes("standing") ||
-            lower.includes("stance") ||
-            lower.includes("sitting") ||
-            lower.includes("holding") ||
-            lower.includes("drawing") ||
-            lower.includes("conducting") ||
-            lower.includes("aiming") ||
-            lower.includes("kneeling") ||
-            lower.includes("organ") ||
-            lower.includes("violin") ||
-            lower.includes("bow")
-        ) {
-            bucketArrays.pose.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("dress") ||
-            lower.includes("corset") ||
-            lower.includes("sleeves") ||
-            lower.includes("skirt") ||
-            lower.includes("stockings") ||
-            lower.includes("heels") ||
-            lower.includes("tunic") ||
-            lower.includes("gloves") ||
-            lower.includes("boots") ||
-            lower.includes("capelet") ||
-            lower.includes("outfit") ||
-            lower.includes("costume") ||
-            lower.includes("uniform") ||
-            lower.includes("jacket") ||
-            lower.includes("lingerie") ||
-            lower.includes("torn clothes") ||
-            lower.includes("clothes lift") ||
-            lower.includes("shirt lift") ||
-            lower.includes("skirt lift") ||
-            lower.includes("garter") ||
-            lower.includes("bondage") ||
-            lower.includes("collar")
-        ) {
-            bucketArrays.outfit.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("cathedral") ||
-            lower.includes("forest") ||
-            lower.includes("indoor") ||
-            lower.includes("outdoor") ||
-            lower.includes("window") ||
-            lower.includes("ruins") ||
-            lower.includes("jungle") ||
-            lower.includes("trees") ||
-            lower.includes("rocks") ||
-            lower.includes("mushrooms") ||
-            lower.includes("waterfall") ||
-            lower.includes("background") ||
-            lower.includes("room")
-        ) {
-            bucketArrays.background.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("dust") ||
-            lower.includes("motes") ||
-            lower.includes("sheet music") ||
-            lower.includes("spores") ||
-            lower.includes("fireflies") ||
-            lower.includes("moonlight") ||
-            lower.includes("sunlight") ||
-            lower.includes("fog") ||
-            lower.includes("lighting") ||
-            lower.includes("chiaroscuro") ||
-            lower.includes("tyndall") ||
-            lower.includes("particles") ||
-            lower.includes("rays") ||
-            lower.includes("depth of field")
-        ) {
-            bucketArrays.effects.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("hair") ||
-            lower.includes("eyes") ||
-            lower.includes("halo") ||
-            lower.includes("ears") ||
-            lower.includes("1girl") ||
-            lower.includes("solo") ||
-            lower.includes("1boy") ||
-            lower.includes("2girls") ||
-            lower.includes("ponytail") ||
-            lower.includes("bangs") ||
-            lower.includes("tendrils") ||
-            lower.includes("updo") ||
-            lower.includes("hairstyle")
-        ) {
-            bucketArrays.identity.push(token);
-            classifiedCount++;
-        } else if (
-            lower.includes("tall") ||
-            lower.includes("petite") ||
-            lower.includes("slender") ||
-            lower.includes("athletic") ||
-            lower.includes("figure") ||
-            lower.includes("breasts") ||
-            lower.includes("waist") ||
-            lower.includes("stomach") ||
-            lower.includes("hips") ||
-            lower.includes("thighs") ||
-            lower.includes("legs") ||
-            lower.includes("fingers") ||
-            lower.includes("hands") ||
-            lower.includes("nails") ||
-            lower.includes("nude") ||
-            lower.includes("topless") ||
-            lower.includes("bottomless") ||
-            lower.includes("nipple") ||
-            lower.includes("areola") ||
-            lower.includes("pussy") ||
-            lower.includes("vaginal") ||
-            lower.includes("clitoris") ||
-            lower.includes("labia") ||
-            lower.includes("cameltoe") ||
-            lower.includes("penis") ||
-            lower.includes("erect") ||
-            lower.includes("testicle") ||
-            lower.includes("spread legs") ||
-            lower.includes("underboob") ||
-            lower.includes("sideboob") ||
-            lower.includes("ass") ||
-            lower.includes("buttock") ||
-            lower.includes("navel")
-        ) {
-            bucketArrays.proportions.push(token);
+        const targetLayer = classifyTagTo10Layers(token);
+        if (bucketArrays[targetLayer]) {
+            bucketArrays[targetLayer].push(token);
             classifiedCount++;
         } else {
-            bucketArrays.identity.push(token);
+            bucketArrays.outfit.push(token);
             classifiedCount++;
         }
     });
@@ -803,7 +1030,10 @@ export const deconstructPromptText = (
     return {
         buckets: result,
         lora: detectedLora,
-        totalTags: rawTokens.length,
+        totalTags: rawTokens.length + (detectedLora ? 1 : 0),
         classifiedCount,
     };
 };
+
+// Backward-compatible alias for existing callers
+export const deconstructPromptText = deconstructPromptTo10Layers;

@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -36,6 +37,184 @@ type InterrogateResult struct {
 	RecommendedCFG     float64          `json:"recommended_cfg"`
 	SuggestedLoras     []LoraSuggestion `json:"suggested_loras"`
 	UsedModel          string           `json:"used_model,omitempty"`
+}
+
+// FlexibleString unmarshals JSON strings, arrays (joined with comma), objects (joined with key: value),
+// and primitives into a clean Go string. This prevents unmarshal errors when a local LLM returns an array or object.
+type FlexibleString string
+
+func (fs *FlexibleString) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err == nil {
+		*fs = FlexibleString(s)
+		return nil
+	}
+	var arr []interface{}
+	if err := json.Unmarshal(b, &arr); err == nil {
+		var parts []string
+		for _, item := range arr {
+			if str := strings.TrimSpace(fmt.Sprintf("%v", item)); str != "" {
+				parts = append(parts, str)
+			}
+		}
+		*fs = FlexibleString(strings.Join(parts, ", "))
+		return nil
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal(b, &obj); err == nil {
+		var parts []string
+		for k, v := range obj {
+			if vStr := strings.TrimSpace(fmt.Sprintf("%v", v)); vStr != "" {
+				parts = append(parts, fmt.Sprintf("%s: %s", k, vStr))
+			}
+		}
+		*fs = FlexibleString(strings.Join(parts, "; "))
+		return nil
+	}
+	*fs = FlexibleString(strings.Trim(string(b), `"`))
+	return nil
+}
+
+func (fs FlexibleString) String() string {
+	return string(fs)
+}
+
+// UnmarshalJSON implements custom unmarshaling for InterrogateResult to ensure resilience
+// against local model output variations (e.g. array/object formats for prompt or character).
+func (r *InterrogateResult) UnmarshalJSON(data []byte) error {
+	type Alias InterrogateResult
+	aux := struct {
+		Character          FlexibleString `json:"character"`
+		DanbooruPrompt     FlexibleString `json:"danbooru_prompt"`
+		NegativePrompt     FlexibleString `json:"negative_prompt"`
+		NaturalPrompt      FlexibleString `json:"natural_prompt"`
+		RecommendedModel   FlexibleString `json:"recommended_model"`
+		RecommendedSampler FlexibleString `json:"recommended_sampler"`
+		*Alias
+	}{
+		Alias: (*Alias)(r),
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	r.Character = string(aux.Character)
+	r.DanbooruPrompt = string(aux.DanbooruPrompt)
+	r.NegativePrompt = string(aux.NegativePrompt)
+	r.NaturalPrompt = string(aux.NaturalPrompt)
+	r.RecommendedModel = string(aux.RecommendedModel)
+	r.RecommendedSampler = string(aux.RecommendedSampler)
+	return nil
+}
+
+type ObservedFacts struct {
+	CameraAndPose           string `json:"camera_and_pose,omitempty"`
+	HairAndFace             string `json:"hair_and_face,omitempty"`
+	UpperAndLowerClothing   string `json:"upper_and_lower_clothing,omitempty"`
+	HandsAndLimbsVisibility string `json:"hands_and_limbs_visibility,omitempty"`
+	ExposureAndRatingAudit  string `json:"exposure_and_rating_audit,omitempty"`
+	NsfwAndAnatomyAudit     string `json:"nsfw_and_anatomy_audit,omitempty"` // legacy backward-compatibility
+	Environment             string `json:"environment,omitempty"`
+}
+
+func extractObservedFact(obs interface{}, key string) string {
+	if obs == nil {
+		return ""
+	}
+	if m, ok := obs.(map[string]interface{}); ok {
+		if val, exists := m[key]; exists && val != nil {
+			if s, ok := val.(string); ok && strings.TrimSpace(s) != "" {
+				return s
+			}
+			if slice, ok := val.([]interface{}); ok {
+				var items []string
+				for _, item := range slice {
+					if itemStr := strings.TrimSpace(fmt.Sprintf("%v", item)); itemStr != "" {
+						items = append(items, itemStr)
+					}
+				}
+				if len(items) > 0 {
+					return strings.Join(items, ", ")
+				}
+			}
+			if subMap, ok := val.(map[string]interface{}); ok {
+				var items []string
+				for k, v := range subMap {
+					vStr := strings.TrimSpace(fmt.Sprintf("%v", v))
+					if vStr != "" {
+						items = append(items, fmt.Sprintf("%s: %s", k, vStr))
+					}
+				}
+				if len(items) > 0 {
+					return strings.Join(items, "; ")
+				}
+			}
+			if s := strings.TrimSpace(fmt.Sprintf("%v", val)); s != "" && s != "<nil>" {
+				return s
+			}
+		}
+		if key == "exposure_and_rating_audit" {
+			if val, exists := m["nsfw_and_anatomy_audit"]; exists && val != nil {
+				return extractObservedFact(obs, "nsfw_and_anatomy_audit")
+			}
+		} else if key == "nsfw_and_anatomy_audit" {
+			if val, exists := m["exposure_and_rating_audit"]; exists && val != nil {
+				return extractObservedFact(obs, "exposure_and_rating_audit")
+			}
+		}
+		return ""
+	}
+	if of, ok := obs.(*ObservedFacts); ok && of != nil {
+		switch key {
+		case "camera_and_pose":
+			return of.CameraAndPose
+		case "hair_and_face":
+			return of.HairAndFace
+		case "upper_and_lower_clothing":
+			return of.UpperAndLowerClothing
+		case "hands_and_limbs_visibility":
+			return of.HandsAndLimbsVisibility
+		case "exposure_and_rating_audit":
+			if of.ExposureAndRatingAudit != "" {
+				return of.ExposureAndRatingAudit
+			}
+			return of.NsfwAndAnatomyAudit
+		case "nsfw_and_anatomy_audit":
+			if of.NsfwAndAnatomyAudit != "" {
+				return of.NsfwAndAnatomyAudit
+			}
+			return of.ExposureAndRatingAudit
+		case "environment":
+			return of.Environment
+		}
+	}
+	if of, ok := obs.(ObservedFacts); ok {
+		switch key {
+		case "camera_and_pose":
+			return of.CameraAndPose
+		case "hair_and_face":
+			return of.HairAndFace
+		case "upper_and_lower_clothing":
+			return of.UpperAndLowerClothing
+		case "hands_and_limbs_visibility":
+			return of.HandsAndLimbsVisibility
+		case "exposure_and_rating_audit":
+			if of.ExposureAndRatingAudit != "" {
+				return of.ExposureAndRatingAudit
+			}
+			return of.NsfwAndAnatomyAudit
+		case "nsfw_and_anatomy_audit":
+			if of.NsfwAndAnatomyAudit != "" {
+				return of.NsfwAndAnatomyAudit
+			}
+			return of.ExposureAndRatingAudit
+		case "environment":
+			return of.Environment
+		}
+	}
+	if s, ok := obs.(string); ok {
+		return s
+	}
+	return ""
 }
 
 type InterrogateService struct {
@@ -275,6 +454,7 @@ Do NOT include markdown formatting or backticks, return pure JSON.`
 			result.NegativePrompt = "worst quality, low quality, normal quality, blurry, deformed limbs, bad anatomy, bad hands, missing fingers, extra fingers, watermark, signature"
 		}
 		result.DanbooruPrompt = sanitizeDanbooruPrompt(result.DanbooruPrompt)
+		result.NegativePrompt = sanitizeNegativePrompt(result.NegativePrompt)
 		detectedChars := detectAllCharacters(result.Character, result.DanbooruPrompt, result.NaturalPrompt, result.ObservedFacts)
 		if len(detectedChars) > 0 {
 			result.Character = strings.Join(detectedChars, ", ")
@@ -371,44 +551,52 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 	b64Data := base64.StdEncoding.EncodeToString(optBytes)
 	mimeType = optMime
 
-	systemInstruction := `You are a deterministic Anime Vision & Canonical Danbooru Tagging Engine optimized for Vision-Language Models (2B to 12B). Analyze the image strictly based on visible pixels and return ONLY a valid JSON object.
+	systemInstruction := `You are a deterministic Anime Vision & Canonical Danbooru Tagging Engine optimized for Vision-Language Models (2B to 12B). Analyze the image strictly based on visible pixels and return ONLY a valid JSON object without markdown code fences.
 
 ### UNIVERSAL RULES FOR ALL VLM FAMILIES (2B–12B):
-1. **NO OCCLUSION GUESSING (HIDDEN PARTS GUARD)**:
-   - Inspect whether hands, wrists, feet, or lower body are obscured by sleeves, inside pockets, behind the back, or cropped out of frame.
-   - If obscured, explicitly record "obscured/not visible" in 'observed_facts.hands_and_limbs_visibility'.
-   - NEVER guess or hallucinate 'gloves', 'black_gloves', 'hands_on_hips', 'detached_sleeves', or 'footwear' unless the actual fingers, bare shoulder gap, or shoes are 100% visible.
-2. **ZERO INSTRUCTION LEAKAGE**:
-   - Never copy example tags mentioned in this system prompt unless they physically appear in the image.
-3. **SFW / NSFW CALIBRATION (FOR STANDARD & ABLITERATED MODELS)**:
-   - Do NOT over-predict NSFW tags or exposed skin on fully clothed characters. Conversely, if nudity or explicit acts are clearly visible, document them factually without censorship.
-4. **INDEPENDENT GARMENT & POSE BREAKDOWN**:
-   - Check camera angle ('front_view', 'from_side', 'from_behind') and head direction ('looking_at_viewer', 'looking_back') separately.
-   - Check hairstyle architecture ('ponytail', 'low_ponytail', 'twintails', 'short_hair', 'hair_between_eyes', 'hairclip', 'hair_ribbon').
-   - Evaluate upper and lower garments independently (e.g., a traditional martial arts top 'dogi' can be worn with modern 'track_pants' and 'striped_pants').
-5. **CANONICAL DANBOORU TRANSLATION (CRITICAL FOR LLAMA / GEMMA / MINICPM)**:
-   - Do NOT invent long conversational phrases as tags. Translate visual concepts into strict, standard Danbooru tags:
-     - Martial arts / karate top -> 'dogi', 'black_belt' (NEVER 'white_martial_arts_uniform')
-     - Japanese traditional room -> 'washitsu', 'tatami', 'sliding_doors' (NEVER 'traditional_japanese_room')
-     - Dark inner shirt -> 'undershirt', 'black_shirt' (NEVER 'black_undershirt')
-     - Hairpin / clip -> 'hairclip' or 'hair_ornament'
-6. **MODEL ECOSYSTEM QUALITY PREFIX**:
-   - If 'recommended_model' is "Illustrious-XL", start 'danbooru_prompt' strictly with: 'masterpiece, best quality, very aesthetic, absurdres'. Do NOT output Pony V6 score tags ('score_9, score_8_up').
+1. **STRICT 3-TIER RATING & ANATOMY GATE (ANTI-FALSE-NSFW)**:
+   - Never confuse sexy/revealing fantasy outfits with explicit nudity. Classify every image into one of three strict tiers in 'observed_facts.exposure_and_rating_audit':
+     - **TIER 1 - general (Pure SFW)**: Everyday, modest, or standard full clothing (e.g., school uniform, martial arts dogi, casual wear).
+     - **TIER 2 - sensitive (Ecchi / Suggestive SFW)**: Revealing or form-fitting clothes, deep cleavage, sheer/translucent fabric over chest, bare shoulders, navel cutout, exposed hips, pelvic curtain, bikini, or garter straps—WHERE nipples and genitalia are 100% COVERED by fabric. For Tier 2, NEVER output 'nsfw', 'nude', 'nipples', 'areolae', or 'pussy'.
+     - **TIER 3 - explicit (True NSFW / R-18)**: ONLY when bare nipples, areolae, genitalia (pussy/penis), or explicit sexual acts are unmistakably exposed without fabric covering.
+2. **NO OCCLUSION GUESSING (HIDDEN Vs VISIBLE PARTS)**:
+   - If hands are hidden inside pockets or sleeves, write "obscured/hidden" and do NOT output glove tags.
+   - However, if gloves or detached sleeves ARE clearly visible (e.g., bare upper arms with separate forearm fabric and gloved fingers), accurately tag 'detached_sleeves' and 'gloves' / 'elbow_gloves'.
+3. **MICRO-DETAIL ANIME INSPECTION (HEAD TO TOE)**:
+   - **Head & Hair**: Check ear shape ('pointy_ears' for elf, 'animal_ears'), hair features ('ahoge', 'braid', 'single_braid', 'ponytail', 'low_ponytail', 'twintails', 'hair_between_eyes'), and ornaments ('hairclip', 'bat_hair_ornament', 'hair_ribbon').
+   - **Neck & Upper Body**: Check for 'choker', 'collar', sheer/translucent fabric ('see-through_cleavage', 'covered_cleavage', 'cleavage'), and arm wear ('detached_sleeves', 'armband', 'elbow_gloves', 'bare_shoulders').
+   - **Midsection & Lower Body**: Check for cutouts ('navel_cutout', 'navel', 'hip_vent'), skirt/dress style ('pelvic_curtain', 'high-waist_skirt', 'track_pants'), and legwear ('thighhighs', 'garter_straps', 'kneehighs').
+4. **CANONICAL DANBOORU VOCABULARY**:
+   - Translate descriptive English into standard Danbooru tags:
+     - Martial arts uniform -> 'dogi', 'black_belt'
+     - Japanese tatami room -> 'washitsu', 'tatami', 'sliding_doors'
+     - Elf ears -> 'pointy_ears'
+     - Sheer black chest fabric -> 'see-through_cleavage', 'cleavage_cutout'
+     - Stomach diamond opening -> 'navel_cutout', 'navel'
+     - Long gloves reaching elbows -> 'elbow_gloves', 'black_gloves'
+5. **MODEL ECOSYSTEM QUALITY PREFIX & EXHAUSTIVE TAGGING**:
+   - When 'recommended_model' is "Illustrious-XL", start 'danbooru_prompt' strictly with: 'masterpiece, best quality, very aesthetic, absurdres'. Do NOT output Pony V6 score tags ('score_9, score_8_up').
+   - "danbooru_prompt": MUST contain AT LEAST 20 to 35 comma-separated canonical Danbooru tags covering hair, eyes, ears, expression, upper clothing, lower clothing, legwear, pose, and background derived from observed_facts and natural_prompt.
+6. **STRICT FLAT JSON (ANTI-PARSE-ERROR)**:
+   - Output ONLY the raw JSON object starting with '{' and ending with '}'. Do NOT wrap in markdown code fences and do NOT output any introductory or conversational commentary.
+   - Every field inside 'observed_facts' MUST be a single plain text string. NEVER create nested JSON objects or sets with {} (e.g. do NOT write {"top": "..."} or {"item1", "item2"}).
+   - Only use square brackets [] for 'style_tags' and 'suggested_loras'.
+   - Keep observations concise so the complete JSON response finishes cleanly within token limits.
 
 ### REQUIRED JSON SCHEMA:
 {
   "observed_facts": {
-    "camera_and_pose": "Exact body orientation, head turn, and arm placement",
-    "hair_and_face": "Hair color, length, tying style, bangs, accessories, eye color, expression",
-    "upper_and_lower_clothing": "Separate breakdown of top, inner shirt, belt, and bottom/pants. State if sleeves are continuous/intact",
-    "hands_and_limbs_visibility": "State clearly whether hands/wrists are visible or obscured/in pockets, and whether gloves are worn",
-    "nsfw_and_anatomy_audit": "State 'SFW / Fully clothed' if normal, or detail visible anatomy if NSFW",
-    "environment": "Setting type, floor material, background objects, lighting"
+    "camera_and_pose": "Exact body orientation, sitting/standing posture, head turn, and arm placement",
+    "hair_and_face": "Hair color, length, braids/ponytail, ahoge, ear type (human vs pointy_ears), hair ornaments, eye color, expression, blush",
+    "upper_and_lower_clothing": "Detailed breakdown of neckwear, chest fabric (opaque vs sheer), sleeves (intact vs detached_sleeves), stomach/hip cutouts, bottom garment, and legwear (thighhighs/garter_straps)",
+    "hands_and_limbs_visibility": "State clearly whether hands are obscured in pockets OR visibly wearing specific gloves (e.g. elbow_gloves) or bare hands",
+    "exposure_and_rating_audit": "Format: '[TIER: general | sensitive | explicit] - State clearly whether nipples and genitalia are 100% covered by fabric or visibly exposed'",
+    "environment": "Indoor/outdoor setting, furniture (e.g. bed, sheet, window, tatami), sky/background, lighting"
   },
   "character": "original (or canonical character_name_(series) if 100% certain)",
-  "danbooru_prompt": "masterpiece, best quality, very aesthetic, absurdres, 1girl, solo, ...",
+  "danbooru_prompt": "<insert 25+ comma-separated canonical Danbooru tags here starting with masterpiece, best quality, very aesthetic, absurdres, 1girl, solo>",
   "negative_prompt": "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature",
-  "natural_prompt": "Concise, factual natural language description strictly matching observed_facts.",
+  "natural_prompt": "Concise, accurate natural language description strictly matching observed_facts.",
   "style_tags": ["anime", "digital media", "illustration"],
   "recommended_model": "Illustrious-XL",
   "recommended_sampler": "Euler a",
@@ -486,6 +674,7 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 			"format": "json",
 			"options": map[string]interface{}{
 				"temperature":    0.15,
+				"num_ctx":        4096,
 				"num_predict":    2048,
 				"top_p":          0.85,
 				"repeat_penalty": 1.15,
@@ -563,53 +752,85 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 		rawOutput = openAiResp.Choices[0].Message.Content
 	}
 
-	// Clean JSON markdown fences
-	cleanText := strings.TrimSpace(rawOutput)
-	cleanText = strings.TrimPrefix(cleanText, "```json")
-	cleanText = strings.TrimPrefix(cleanText, "```")
-	cleanText = strings.TrimSuffix(cleanText, "```")
-	cleanText = strings.TrimSpace(cleanText)
+	return s.parseAndPostProcessJSON(rawOutput, cleanProvider, cleanModel)
+}
 
-	// If there is text before the first '{', find the first '{' and last '}'
-	if startIdx := strings.Index(cleanText, "{"); startIdx != -1 {
-		if endIdx := strings.LastIndex(cleanText, "}"); endIdx != -1 && endIdx > startIdx {
-			cleanText = cleanText[startIdx : endIdx+1]
+// parseAndPostProcessJSON parses raw model output, performs JSON repair/sanitization,
+// extracts fields with regex fallback if needed, and applies anti-hallucination guards.
+func (s *InterrogateService) parseAndPostProcessJSON(rawOutput string, cleanProvider string, cleanModel string) (*InterrogateResult, error) {
+	cleanText := repairAndSanitizeJSON(rawOutput)
+
+	var result InterrogateResult
+	err := json.Unmarshal([]byte(cleanText), &result)
+	if err != nil {
+		// Attempt regex fallback if unmarshal still fails
+		fallbackResult := extractRegexFallback(cleanText, rawOutput)
+		if fallbackResult != nil {
+			result = *fallbackResult
+		} else {
+			return nil, fmt.Errorf("failed to parse JSON from Local AI: %w (raw output: %s)", err, rawOutput)
 		}
 	}
 
-	var result InterrogateResult
-	if err := json.Unmarshal([]byte(cleanText), &result); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON from Local AI: %w (raw output: %s)", err, rawOutput)
+	// Synchronize observed_facts fields for backward and forward compatibility
+	if obsMap, ok := result.ObservedFacts.(map[string]interface{}); ok {
+		if _, hasExp := obsMap["exposure_and_rating_audit"]; !hasExp {
+			if nsfwVal, hasNsfw := obsMap["nsfw_and_anatomy_audit"]; hasNsfw {
+				obsMap["exposure_and_rating_audit"] = nsfwVal
+			}
+		}
+		if _, hasNsfw := obsMap["nsfw_and_anatomy_audit"]; !hasNsfw {
+			if expVal, hasExp := obsMap["exposure_and_rating_audit"]; hasExp {
+				obsMap["nsfw_and_anatomy_audit"] = expVal
+			}
+		}
 	}
 
 	// 1. Deterministic Cross-Check: Observed Facts vs Danbooru Prompt
-	var handsVisibility, clothingAudit string
-	if obsMap, ok := result.ObservedFacts.(map[string]interface{}); ok {
-		if val, exists := obsMap["hands_and_limbs_visibility"].(string); exists {
-			handsVisibility = strings.ToLower(val)
-		}
-		if val, exists := obsMap["upper_and_lower_clothing"].(string); exists {
-			clothingAudit = strings.ToLower(val)
-		}
-	} else if obsStr, ok := result.ObservedFacts.(string); ok {
-		lowerObs := strings.ToLower(obsStr)
-		handsVisibility = lowerObs
-		clothingAudit = lowerObs
+	handsVisibility := strings.ToLower(extractObservedFact(result.ObservedFacts, "hands_and_limbs_visibility"))
+	clothingAudit := strings.ToLower(extractObservedFact(result.ObservedFacts, "upper_and_lower_clothing"))
+	exposureAudit := strings.ToLower(extractObservedFact(result.ObservedFacts, "exposure_and_rating_audit"))
+
+	// Anti-False-NSFW Gatekeeper
+	isExplicitTier := strings.Contains(exposureAudit, "tier: explicit") || strings.Contains(exposureAudit, "[tier: explicit]")
+	isCoveredOrNonExplicit := strings.Contains(exposureAudit, "tier: general") ||
+		strings.Contains(exposureAudit, "tier: sensitive") ||
+		strings.Contains(exposureAudit, "general") ||
+		strings.Contains(exposureAudit, "sensitive") ||
+		strings.Contains(exposureAudit, "100% covered") ||
+		strings.Contains(exposureAudit, "covered by fabric") ||
+		strings.Contains(exposureAudit, "no nipples")
+
+	explicitTagsToStrip := []string{
+		"nsfw", "explicit", "rating:explicit", "rating_explicit", "nude", "completely_nude",
+		"nipples", "areolae", "pussy", "vaginal", "uncensored", "sex", "topless", "bottomless", "breasts_out",
 	}
 
-	// Occlusion Guard: If hands/limbs are obscured, in pocket, or not visible -> strip hallucinated gloves & poses
-	if strings.Contains(handsVisibility, "obscured") ||
+	if isCoveredOrNonExplicit && !isExplicitTier {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, explicitTagsToStrip)
+	}
+
+	// Occlusion Guard: Only strip gloves if explicitly obscured/hidden/inside pocket/not visible AND not explicitly visible/wearing gloves
+	isGlovesObscured := (strings.Contains(handsVisibility, "obscured") ||
 		strings.Contains(handsVisibility, "hidden") ||
-		strings.Contains(handsVisibility, "pocket") ||
+		strings.Contains(handsVisibility, "inside pocket") ||
 		strings.Contains(handsVisibility, "not visible") ||
-		strings.Contains(handsVisibility, "no gloves") {
+		strings.Contains(handsVisibility, "no gloves")) &&
+		!strings.Contains(handsVisibility, "wearing") &&
+		!strings.Contains(handsVisibility, "glove") &&
+		!strings.Contains(handsVisibility, "visible")
+	if isGlovesObscured {
 		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
-			"gloves", "black_gloves", "white_gloves", "fingerless_gloves", "hands_on_hips",
+			"gloves", "black_gloves", "white_gloves", "fingerless_gloves", "elbow_gloves", "hands_on_hips",
 		})
 	}
 
-	// Sleeve Continuity Guard: If sleeves are intact or continuous -> strip detached_sleeves
-	if strings.Contains(clothingAudit, "intact") || strings.Contains(clothingAudit, "continuous") {
+	// Sleeve Continuity Guard: Only strip detached_sleeves if sleeves are explicitly described as intact sleeves or continuous sleeves,
+	// and NOT bare shoulders or detached
+	isSleevesIntact := (strings.Contains(clothingAudit, "intact sleeves") || strings.Contains(clothingAudit, "continuous sleeves")) &&
+		!strings.Contains(clothingAudit, "bare shoulders") &&
+		!strings.Contains(clothingAudit, "detached")
+	if isSleevesIntact {
 		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
 			"detached_sleeves",
 		})
@@ -624,10 +845,31 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 		})
 	}
 
-	// 3. Sanitize and ground Danbooru tags (canonicalTagMap, weights, underscores, deduplication)
+	// 3. Auto-Harvest Canonical Tags from observed_facts & natural_prompt
+	obsFacts := toObservedFacts(result.ObservedFacts)
+	existingDanbooruTags := splitPromptTags(result.DanbooruPrompt)
+	harvestedTags := harvestCanonicalTagsFromText(obsFacts, result.NaturalPrompt, existingDanbooruTags)
+	result.DanbooruPrompt = strings.Join(harvestedTags, ", ")
+
+	// 4. Sanitize and ground Danbooru tags (canonicalTagMap, weights, underscores, deduplication)
 	result.DanbooruPrompt = sanitizeDanbooruPrompt(result.DanbooruPrompt)
 
-	// 4. Detect all characters from tags, character field, captions, and observed facts
+	// Re-verify anti-false NSFW tags and occlusion guards after canonical normalization & harvesting
+	if isCoveredOrNonExplicit && !isExplicitTier {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, explicitTagsToStrip)
+	}
+	if isGlovesObscured {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
+			"gloves", "black_gloves", "white_gloves", "fingerless_gloves", "elbow_gloves", "hands_on_hips",
+		})
+	}
+	if isSleevesIntact {
+		result.DanbooruPrompt = stripForbiddenTags(result.DanbooruPrompt, []string{
+			"detached_sleeves",
+		})
+	}
+
+	// 5. Detect all characters from tags, character field, captions, and observed facts
 	detectedChars := detectAllCharacters(result.Character, result.DanbooruPrompt, result.NaturalPrompt, result.ObservedFacts)
 	if len(detectedChars) > 0 {
 		result.Character = strings.Join(detectedChars, ", ")
@@ -635,7 +877,7 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 		result.Character = "original"
 	}
 
-	// 5. Filter fictitious LoRAs: validate against canonical character and concept database
+	// 6. Filter fictitious LoRAs: validate against canonical character and concept database
 	result.SuggestedLoras = filterValidLoras(detectedChars, result.DanbooruPrompt, result.SuggestedLoras)
 
 	// Defaults if missing
@@ -654,27 +896,542 @@ func (s *InterrogateService) InterrogateLocal(imageBytes []byte, mimeType string
 	if result.NegativePrompt == "" {
 		result.NegativePrompt = "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature"
 	}
+	// Sanitize Negative Prompt to guarantee proper comma separation between all negative tokens
+	result.NegativePrompt = sanitizeNegativePrompt(result.NegativePrompt)
+	if len(result.StyleTags) == 0 {
+		result.StyleTags = []string{"anime", "digital media", "illustration"}
+	}
 	result.UsedModel = fmt.Sprintf("Local (%s: %s)", strings.ToUpper(cleanProvider), cleanModel)
 
 	return &result, nil
 }
 
-// stripForbiddenTags removes specific tags (case-insensitive) from a comma-separated prompt
+// extractJSONBoundary isolates the substring from the first '{' to its matching '}'
+// removing any conversational preamble, postscript, or markdown code fences from raw LLM output.
+func extractJSONBoundary(raw string) string {
+	clean := strings.TrimSpace(raw)
+	clean = strings.TrimPrefix(clean, "```json")
+	clean = strings.TrimPrefix(clean, "```JSON")
+	clean = strings.TrimPrefix(clean, "```")
+	if idx := strings.LastIndex(clean, "```"); idx != -1 {
+		clean = clean[:idx]
+	}
+	clean = strings.TrimSpace(clean)
+
+	startIdx := strings.Index(clean, "{")
+	if startIdx == -1 {
+		return clean
+	}
+	clean = clean[startIdx:]
+
+	inString := false
+	escape := false
+	depth := 0
+	rootClosedAt := -1
+
+	for i := 0; i < len(clean); i++ {
+		c := clean[i]
+		if escape {
+			escape = false
+			continue
+		}
+		if c == '\\' {
+			escape = true
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if c == '{' {
+			depth++
+		} else if c == '}' {
+			depth--
+			if depth == 0 {
+				rootClosedAt = i
+				break
+			}
+		}
+	}
+
+	if rootClosedAt != -1 {
+		return clean[:rootClosedAt+1]
+	}
+
+	// If root was not closed (truncated), return from first '{' to end
+	return clean
+}
+
+// repairMalformedJSON is an exported/standard repair routine that cleans code fences,
+// fixes pseudo-arrays ({ "a", "b" } -> [ "a", "b" ]), trailing commas, and unclosed JSON.
+func repairMalformedJSON(raw string) string {
+	return repairAndSanitizeJSON(raw)
+}
+
+// repairAndSanitizeJSON cleans code fences, fixes pseudo-arrays ({ "a", "b" } -> [ "a", "b" ]),
+// removes trailing commas, and properly auto-closes truncated JSON strings and structures.
+func repairAndSanitizeJSON(raw string) string {
+	clean := extractJSONBoundary(raw)
+
+	// Check if root object is already closed
+	inString := false
+	escape := false
+	depth := 0
+	rootClosedAt := -1
+
+	for i := 0; i < len(clean); i++ {
+		c := clean[i]
+		if escape {
+			escape = false
+			continue
+		}
+		if c == '\\' {
+			escape = true
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if c == '{' {
+			depth++
+		} else if c == '}' {
+			depth--
+			if depth == 0 {
+				rootClosedAt = i
+				break
+			}
+		}
+	}
+
+	if rootClosedAt != -1 {
+		// Complete root object found
+		clean = clean[:rootClosedAt+1]
+	}
+
+	// Fix pseudo-arrays: where '{ "item1", "item2" }' was generated instead of '[ "item1", "item2" ]'
+	clean = fixPseudoArrays(clean)
+
+	// Clean trailing commas before closing braces/brackets
+	trailingCommaRe := regexp.MustCompile(`,\s*([}\]])`)
+	clean = trailingCommaRe.ReplaceAllString(clean, "$1")
+
+	// If root object was not closed (e.g. output was truncated mid-generation), close open strings and structures
+	if rootClosedAt == -1 {
+		clean = closeTruncatedJSON(clean)
+		clean = trailingCommaRe.ReplaceAllString(clean, "$1")
+	}
+
+	return clean
+}
+
+// fixPseudoArrays converts pseudo-arrays where an LLM mistakenly output '{ "item1", "item2" }'
+// instead of '[ "item1", "item2" ]' (which causes "invalid character ',' after object key").
+func fixPseudoArrays(input string) string {
+	var buf strings.Builder
+	buf.Grow(len(input))
+
+	inString := false
+	escape := false
+
+	const (
+		braceObject = iota
+		braceArray
+		bracePseudoArray
+	)
+	var stack []int
+
+	for i := 0; i < len(input); i++ {
+		c := input[i]
+
+		if escape {
+			escape = false
+			buf.WriteByte(c)
+			continue
+		}
+
+		if c == '\\' {
+			escape = true
+			buf.WriteByte(c)
+			continue
+		}
+
+		if c == '"' {
+			inString = !inString
+			buf.WriteByte(c)
+			continue
+		}
+
+		if inString {
+			buf.WriteByte(c)
+			continue
+		}
+
+		if c == '[' {
+			stack = append(stack, braceArray)
+			buf.WriteByte('[')
+			continue
+		}
+
+		if c == ']' {
+			if len(stack) > 0 && stack[len(stack)-1] == braceArray {
+				stack = stack[:len(stack)-1]
+			}
+			buf.WriteByte(']')
+			continue
+		}
+
+		if c == '{' {
+			if isPseudoArray(input, i) {
+				stack = append(stack, bracePseudoArray)
+				buf.WriteByte('[')
+			} else {
+				stack = append(stack, braceObject)
+				buf.WriteByte('{')
+			}
+			continue
+		}
+
+		if c == '}' {
+			if len(stack) > 0 {
+				top := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				if top == bracePseudoArray {
+					buf.WriteByte(']')
+					continue
+				}
+			}
+			buf.WriteByte('}')
+			continue
+		}
+
+		buf.WriteByte(c)
+	}
+
+	return buf.String()
+}
+
+// isPseudoArray checks if an opening brace '{' is actually an array/set of values rather than a key-value object
+func isPseudoArray(input string, openBraceIdx int) bool {
+	i := openBraceIdx + 1
+	// Skip whitespace
+	for i < len(input) && (input[i] == ' ' || input[i] == '\t' || input[i] == '\r' || input[i] == '\n') {
+		i++
+	}
+	if i >= len(input) {
+		return false
+	}
+
+	// Empty object {} is valid
+	if input[i] == '}' {
+		return false
+	}
+
+	// Single quote support
+	if input[i] == '\'' {
+		i++
+		for i < len(input) {
+			if input[i] == '\\' {
+				i += 2
+				continue
+			}
+			if input[i] == '\'' {
+				i++
+				break
+			}
+			i++
+		}
+		for i < len(input) && (input[i] == ' ' || input[i] == '\t' || input[i] == '\r' || input[i] == '\n') {
+			i++
+		}
+		if i < len(input) && (input[i] == ',' || input[i] == '}') {
+			return true
+		}
+		return false
+	}
+
+	// If the first token does NOT start with a quote '"'
+	if input[i] != '"' {
+		// Valid object keys in standard JSON MUST be double-quoted strings.
+		// If it's a number, boolean, or array, it's definitely a pseudo-array.
+		return input[i] != '{'
+	}
+
+	// It starts with a quote '"'. Scan to the end of this quoted string.
+	i++
+	for i < len(input) {
+		if input[i] == '\\' {
+			i += 2
+			continue
+		}
+		if input[i] == '"' {
+			i++
+			break
+		}
+		i++
+	}
+
+	// Skip whitespace after closing quote
+	for i < len(input) && (input[i] == ' ' || input[i] == '\t' || input[i] == '\r' || input[i] == '\n') {
+		i++
+	}
+
+	if i >= len(input) {
+		return false
+	}
+
+	// In a valid JSON object, an object key MUST be followed by a colon ':'
+	// If it is followed by ',' or '}', it has NO COLON, meaning it's a list/set of values!
+	if input[i] == ',' || input[i] == '}' {
+		return true
+	}
+
+	return false
+}
+
+// closeTruncatedJSON repairs JSON that was cut off mid-stream by context/token limits
+func closeTruncatedJSON(input string) string {
+	clean := strings.TrimRight(input, " \t\r\n")
+	if clean == "" {
+		return "{}"
+	}
+
+	// 1. Check if unclosed string
+	inString := false
+	escape := false
+	for i := 0; i < len(clean); i++ {
+		c := clean[i]
+		if escape {
+			escape = false
+			continue
+		}
+		if c == '\\' {
+			escape = true
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+		}
+	}
+
+	// If string was cut off mid-way, close it
+	if inString {
+		clean += "\""
+	}
+
+	// 2. Strip dangling keys or unfulfilled colons at the end of the text
+	clean = regexp.MustCompile(`,\s*"[^"\\]*"\s*:\s*$`).ReplaceAllString(clean, "")
+	clean = regexp.MustCompile(`,\s*"[^"\\]*"\s*$`).ReplaceAllString(clean, "")
+	clean = regexp.MustCompile(`,\s*$`).ReplaceAllString(clean, "")
+
+	// 3. Track unclosed braces and brackets
+	inString = false
+	escape = false
+	var stack []byte
+
+	for i := 0; i < len(clean); i++ {
+		c := clean[i]
+		if escape {
+			escape = false
+			continue
+		}
+		if c == '\\' {
+			escape = true
+			continue
+		}
+		if c == '"' {
+			inString = !inString
+			continue
+		}
+		if inString {
+			continue
+		}
+		if c == '{' {
+			stack = append(stack, '}')
+		} else if c == '[' {
+			stack = append(stack, ']')
+		} else if c == '}' || c == ']' {
+			if len(stack) > 0 && stack[len(stack)-1] == c {
+				stack = stack[:len(stack)-1]
+			}
+		}
+	}
+
+	// Close all remaining open structures in reverse order
+	for i := len(stack) - 1; i >= 0; i-- {
+		clean += string(stack[i])
+	}
+
+	return clean
+}
+
+// extractRegexFallback performs resilient regex extraction of key fields if JSON unmarshal fails completely
+func extractRegexFallback(cleanText string, rawOutput string) *InterrogateResult {
+	danbooruRe := regexp.MustCompile(`(?s)"danbooru_prompt"\s*:\s*"((?:\\.|[^"\\])*)"`)
+	danbooruMatches := danbooruRe.FindStringSubmatch(cleanText)
+	if len(danbooruMatches) == 0 {
+		danbooruMatches = danbooruRe.FindStringSubmatch(rawOutput)
+	}
+
+	naturalRe := regexp.MustCompile(`(?s)"natural_prompt"\s*:\s*"((?:\\.|[^"\\])*)"`)
+	naturalMatches := naturalRe.FindStringSubmatch(cleanText)
+	if len(naturalMatches) == 0 {
+		naturalMatches = naturalRe.FindStringSubmatch(rawOutput)
+	}
+
+	var extractedDanbooru, extractedNatural string
+	if len(danbooruMatches) > 1 {
+		extractedDanbooru = strings.ReplaceAll(danbooruMatches[1], `\"`, `"`)
+	}
+	if len(naturalMatches) > 1 {
+		extractedNatural = strings.ReplaceAll(naturalMatches[1], `\"`, `"`)
+	}
+
+	// If neither prompt was found, we cannot salvage an interrogation
+	if extractedDanbooru == "" && extractedNatural == "" {
+		return nil
+	}
+
+	charRe := regexp.MustCompile(`"character"\s*:\s*"([^"]*)"`)
+	charMatches := charRe.FindStringSubmatch(cleanText)
+	extractedChar := "original"
+	if len(charMatches) > 1 && strings.TrimSpace(charMatches[1]) != "" {
+		extractedChar = charMatches[1]
+	}
+
+	modelRe := regexp.MustCompile(`"recommended_model"\s*:\s*"([^"]*)"`)
+	modelMatches := modelRe.FindStringSubmatch(cleanText)
+	extractedModel := "Illustrious-XL"
+	if len(modelMatches) > 1 && strings.TrimSpace(modelMatches[1]) != "" {
+		extractedModel = modelMatches[1]
+	}
+
+	samplerRe := regexp.MustCompile(`"recommended_sampler"\s*:\s*"([^"]*)"`)
+	samplerMatches := samplerRe.FindStringSubmatch(cleanText)
+	extractedSampler := "Euler a"
+	if len(samplerMatches) > 1 && strings.TrimSpace(samplerMatches[1]) != "" {
+		extractedSampler = samplerMatches[1]
+	}
+
+	negRe := regexp.MustCompile(`"negative_prompt"\s*:\s*"((?:\\.|[^"\\])*)"`)
+	negMatches := negRe.FindStringSubmatch(cleanText)
+	extractedNeg := "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature"
+	if len(negMatches) > 1 && strings.TrimSpace(negMatches[1]) != "" {
+		extractedNeg = strings.ReplaceAll(negMatches[1], `\"`, `"`)
+	}
+
+	// Try extracting observed_facts block using balanced depth tracking
+	var obsFacts interface{}
+	obsIdx := strings.Index(cleanText, `"observed_facts"`)
+	targetText := cleanText
+	if obsIdx == -1 {
+		obsIdx = strings.Index(rawOutput, `"observed_facts"`)
+		targetText = rawOutput
+	}
+	if obsIdx != -1 {
+		if openBrace := strings.Index(targetText[obsIdx:], "{"); openBrace != -1 {
+			absOpen := obsIdx + openBrace
+			depth := 0
+			inStr := false
+			esc := false
+			endBrace := -1
+			for j := absOpen; j < len(targetText); j++ {
+				ch := targetText[j]
+				if esc {
+					esc = false
+					continue
+				}
+				if ch == '\\' {
+					esc = true
+					continue
+				}
+				if ch == '"' {
+					inStr = !inStr
+					continue
+				}
+				if inStr {
+					continue
+				}
+				if ch == '{' {
+					depth++
+				} else if ch == '}' {
+					depth--
+					if depth == 0 {
+						endBrace = j
+						break
+					}
+				}
+			}
+			var obsSnippet string
+			if endBrace != -1 {
+				obsSnippet = targetText[absOpen : endBrace+1]
+			} else {
+				obsSnippet = targetText[absOpen:]
+			}
+			obsRepaired := repairAndSanitizeJSON(obsSnippet)
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(obsRepaired), &m); err == nil {
+				obsFacts = m
+			}
+		}
+	}
+
+	return &InterrogateResult{
+		ObservedFacts:      obsFacts,
+		Character:          extractedChar,
+		DanbooruPrompt:     extractedDanbooru,
+		NegativePrompt:     extractedNeg,
+		NaturalPrompt:      extractedNatural,
+		StyleTags:          []string{"anime", "digital media", "illustration"},
+		RecommendedModel:   extractedModel,
+		RecommendedSampler: extractedSampler,
+		RecommendedSteps:   28,
+		RecommendedCFG:     6.0,
+		SuggestedLoras:     []LoraSuggestion{},
+	}
+}
+
+// stripForbiddenTags removes specific tags (case-insensitive) from a comma-separated prompt,
+// including handling parentheses and weight modifiers (e.g. '(nsfw:1.2)' or '(explicit)').
 func stripForbiddenTags(prompt string, forbidden []string) string {
 	parts := strings.Split(prompt, ",")
 	var cleaned []string
 	forbiddenMap := make(map[string]bool)
 	for _, f := range forbidden {
-		forbiddenMap[strings.ToLower(strings.TrimSpace(f))] = true
-		forbiddenMap[strings.ToLower(strings.ReplaceAll(strings.TrimSpace(f), " ", "_"))] = true
+		fClean := strings.ToLower(strings.TrimSpace(f))
+		forbiddenMap[fClean] = true
+		forbiddenMap[strings.ReplaceAll(fClean, " ", "_")] = true
+		forbiddenMap[strings.ReplaceAll(fClean, "_", " ")] = true
 	}
 	for _, p := range parts {
 		tag := strings.TrimSpace(p)
 		if tag == "" {
 			continue
 		}
+
+		// Strip outer parentheses and weights for check
+		checkTag := tag
+		for strings.HasPrefix(checkTag, "(") && strings.HasSuffix(checkTag, ")") {
+			inner := strings.TrimSpace(checkTag[1 : len(checkTag)-1])
+			if colonIdx := strings.LastIndex(inner, ":"); colonIdx != -1 {
+				checkTag = strings.TrimSpace(inner[:colonIdx])
+			} else {
+				checkTag = inner
+			}
+		}
+		if colonIdx := strings.LastIndex(checkTag, ":"); colonIdx != -1 {
+			checkTag = strings.TrimSpace(checkTag[:colonIdx])
+		}
+
+		checkNorm := strings.ToLower(strings.ReplaceAll(checkTag, " ", "_"))
 		tagNorm := strings.ToLower(strings.ReplaceAll(tag, " ", "_"))
-		if forbiddenMap[tagNorm] || forbiddenMap[strings.ToLower(tag)] {
+		if forbiddenMap[checkNorm] || forbiddenMap[strings.ToLower(checkTag)] || forbiddenMap[tagNorm] || forbiddenMap[strings.ToLower(tag)] {
 			continue
 		}
 		cleaned = append(cleaned, tag)
@@ -684,26 +1441,51 @@ func stripForbiddenTags(prompt string, forbidden []string) string {
 
 // canonicalTagMap maps conversational or verbose VLM descriptions to standard canonical Danbooru tags
 var canonicalTagMap = map[string]string{
+	// Martial arts & Traditional Japanese
 	"white_martial_arts_uniform": "dogi",
 	"martial_arts_uniform":       "dogi",
-	"karate_uniform":            "dogi",
-	"judo_uniform":              "dogi",
-	"traditional_japanese_room": "washitsu",
-	"japanese_room":             "washitsu",
-	"japanese_style_room":       "washitsu",
-	"tatami_floor":              "tatami",
-	"wooden_doors":              "sliding_doors",
-	"shoji_doors":               "shoji",
-	"silver_hairpin":            "hairclip",
-	"hair_pin":                  "hairclip",
-	"blue_hair_tie":             "blue_hairband, hair_ribbon",
-	"black_undershirt":          "black_shirt, undershirt",
-	"athletic_pants":            "track_pants",
-	"sport_pants":               "track_pants",
-	"sports_pants":              "track_pants",
-	"black_belt_strap":          "black_belt",
-	"bare_feet":                 "barefoot",
-	"white_socks":               "socks",
+	"karate_uniform":             "dogi",
+	"judo_uniform":               "dogi",
+	"traditional_japanese_room":  "washitsu",
+	"japanese_room":              "washitsu",
+	"japanese_style_room":        "washitsu",
+	"tatami_floor":               "tatami",
+	"wooden_doors":               "sliding_doors",
+	"shoji_doors":                "shoji",
+
+	// Ears & Hair details
+	"elf_ears":         "pointy_ears",
+	"pointed_ears":     "pointy_ears",
+	"bat_hairpin":      "hair_ornament, bat_hair_ornament",
+	"bat_wing_hairpin": "bat_hair_ornament",
+	"silver_hairpin":   "hairclip",
+	"hair_pin":         "hairclip",
+	"blue_hair_tie":    "blue_hairband, hair_ribbon",
+
+	// Arms & Gloves
+	"long_gloves":  "elbow_gloves",
+	"opera_gloves": "elbow_gloves",
+
+	// Chest & Cutouts
+	"sheer_chest":       "see-through_cleavage",
+	"translucent_chest": "see-through_cleavage",
+	"stomach_cutout":    "navel_cutout, navel",
+	"belly_cutout":      "navel_cutout, navel",
+
+	// Lower body, skirt & legwear
+	"thigh_straps":       "garter_straps",
+	"garter_belt_straps": "garter_straps",
+	"front_flap":         "pelvic_curtain",
+	"loincloth_dress":    "pelvic_curtain",
+
+	// Clothing & accessories
+	"black_undershirt": "black_shirt, undershirt",
+	"athletic_pants":   "track_pants",
+	"sport_pants":      "track_pants",
+	"sports_pants":     "track_pants",
+	"black_belt_strap": "black_belt",
+	"bare_feet":        "barefoot",
+	"white_socks":      "socks",
 }
 
 // filterValidLoras ensures suggested_loras only contains verified canonical character or concept LoRAs
@@ -869,6 +1651,424 @@ func sanitizeDanbooruPrompt(raw string) string {
 	}
 
 	return strings.Join(cleaned, ", ")
+}
+
+// splitPromptTags splits a comma-separated prompt into trimmed, non-empty tag strings
+func splitPromptTags(prompt string) []string {
+	var tags []string
+	for _, p := range strings.Split(prompt, ",") {
+		t := strings.TrimSpace(p)
+		if t != "" {
+			tags = append(tags, t)
+		}
+	}
+	return tags
+}
+
+// toObservedFacts converts an interface{} (map[string]interface{} or ObservedFacts) into an ObservedFacts struct
+func toObservedFacts(obs interface{}) ObservedFacts {
+	if obs == nil {
+		return ObservedFacts{}
+	}
+	if of, ok := obs.(ObservedFacts); ok {
+		return of
+	}
+	if ofPtr, ok := obs.(*ObservedFacts); ok && ofPtr != nil {
+		return *ofPtr
+	}
+	return ObservedFacts{
+		CameraAndPose:           extractObservedFact(obs, "camera_and_pose"),
+		HairAndFace:             extractObservedFact(obs, "hair_and_face"),
+		UpperAndLowerClothing:   extractObservedFact(obs, "upper_and_lower_clothing"),
+		HandsAndLimbsVisibility: extractObservedFact(obs, "hands_and_limbs_visibility"),
+		ExposureAndRatingAudit:  extractObservedFact(obs, "exposure_and_rating_audit"),
+		NsfwAndAnatomyAudit:     extractObservedFact(obs, "nsfw_and_anatomy_audit"),
+		Environment:             extractObservedFact(obs, "environment"),
+	}
+}
+
+// harvestCanonicalTagsFromText scans observed_facts and natural_prompt for visual keywords,
+// mapping them to canonical Danbooru tags if not already present in existingTags.
+// Respects Occlusion Guard (no gloves if obscured/hidden) and Anti-False-NSFW Gatekeeper.
+func harvestCanonicalTagsFromText(facts ObservedFacts, naturalPrompt string, existingTags []string) []string {
+	// 1. Combine all fact fields and natural prompt into lowercase text
+	textParts := []string{
+		facts.CameraAndPose,
+		facts.HairAndFace,
+		facts.UpperAndLowerClothing,
+		facts.HandsAndLimbsVisibility,
+		facts.ExposureAndRatingAudit,
+		facts.NsfwAndAnatomyAudit,
+		facts.Environment,
+		naturalPrompt,
+	}
+	combinedText := " " + strings.ToLower(strings.Join(textParts, " ")) + " "
+	normalizedText := " " + strings.ReplaceAll(strings.ReplaceAll(combinedText, "-", " "), "_", " ") + " "
+
+	// 2. Occlusion Guard
+	handsVis := strings.ToLower(facts.HandsAndLimbsVisibility)
+	isGlovesObscured := (strings.Contains(handsVis, "obscured") ||
+		strings.Contains(handsVis, "hidden") ||
+		strings.Contains(handsVis, "inside pocket") ||
+		strings.Contains(handsVis, "not visible") ||
+		strings.Contains(handsVis, "no gloves")) &&
+		!strings.Contains(handsVis, "wearing") &&
+		!strings.Contains(handsVis, "glove") &&
+		!strings.Contains(handsVis, "visible")
+
+	clothingAudit := strings.ToLower(facts.UpperAndLowerClothing)
+	isSleevesIntact := (strings.Contains(clothingAudit, "intact sleeves") || strings.Contains(clothingAudit, "continuous sleeves")) &&
+		!strings.Contains(clothingAudit, "bare shoulders") &&
+		!strings.Contains(clothingAudit, "detached")
+
+	// 3. Track existing tags (normalized) to preserve order and avoid duplicates
+	seenTags := make(map[string]bool)
+	var resultTags []string
+
+	for _, t := range existingTags {
+		tClean := strings.TrimSpace(t)
+		if tClean == "" {
+			continue
+		}
+		norm := strings.ToLower(strings.ReplaceAll(tClean, " ", "_"))
+		if !seenTags[norm] {
+			seenTags[norm] = true
+			resultTags = append(resultTags, tClean)
+		}
+	}
+
+	addTag := func(tag string) {
+		tClean := strings.TrimSpace(tag)
+		if tClean == "" {
+			return
+		}
+		norm := strings.ToLower(strings.ReplaceAll(tClean, " ", "_"))
+		if !seenTags[norm] {
+			seenTags[norm] = true
+			resultTags = append(resultTags, tClean)
+		}
+	}
+
+	hasWord := func(kw string) bool {
+		kwClean := strings.ToLower(strings.TrimSpace(kw))
+		if kwClean == "" {
+			return false
+		}
+		pat := `(?i)\b` + regexp.QuoteMeta(kwClean) + `\b`
+		if matched, _ := regexp.MatchString(pat, combinedText); matched {
+			return true
+		}
+		kwSpace := strings.ReplaceAll(strings.ReplaceAll(kwClean, "-", " "), "_", " ")
+		patSpace := `(?i)\b` + regexp.QuoteMeta(kwSpace) + `\b`
+		if matched, _ := regexp.MatchString(patSpace, normalizedText); matched {
+			return true
+		}
+		return false
+	}
+
+	hasAny := func(keywords ...string) bool {
+		for _, kw := range keywords {
+			if hasWord(kw) {
+				return true
+			}
+		}
+		return false
+	}
+
+	// --- 1. Hair & Head ---
+	if hasAny("white hair", "white-haired", "white haired", "white_hair") {
+		addTag("white_hair")
+	}
+	if hasAny("blue hair", "blue-haired", "blue haired", "blue_hair") {
+		addTag("blue_hair")
+	}
+	if hasAny("blonde", "blond", "blonde hair", "blonde-haired", "blonde_hair") {
+		addTag("blonde_hair")
+	}
+	if hasAny("black hair", "black-haired", "black haired", "black_hair") {
+		addTag("black_hair")
+	}
+	if hasAny("pink hair", "pink-haired", "pink haired", "pink_hair") {
+		addTag("pink_hair")
+	}
+	if hasAny("silver hair", "silver-haired", "silver haired", "silver_hair") {
+		addTag("silver_hair")
+	}
+	if hasAny("purple hair", "purple-haired", "purple haired", "purple_hair") {
+		addTag("purple_hair")
+	}
+	if hasAny("long hair", "long-haired", "long haired", "long_hair") {
+		addTag("long_hair")
+	}
+	if hasAny("short hair", "short-haired", "short haired", "short_hair") {
+		addTag("short_hair")
+	}
+	if hasAny("low ponytail", "low_ponytail") {
+		addTag("low_ponytail")
+	} else if hasAny("ponytail", "ponytails", "pony tail") {
+		addTag("ponytail")
+	}
+	if hasAny("single braid", "single_braid") {
+		addTag("single_braid")
+	} else if hasAny("braid", "braids", "braided") {
+		addTag("braid")
+	}
+	if hasAny("twintails", "twintail", "twin tails", "twin tail", "twin-tails") {
+		addTag("twintails")
+	}
+	if hasAny("ahoge") {
+		addTag("ahoge")
+	}
+	if hasAny("hair between eyes", "hair_between_eyes") {
+		addTag("hair_between_eyes")
+	}
+	if hasAny("hairclip", "hairclips", "hair clip", "hair-clip", "hairpin", "hairpins", "hair pin", "hair-pin") {
+		addTag("hairclip")
+	}
+	if hasAny("ribbon", "ribbons", "hair ribbon", "hair-ribbon", "hair_ribbon") {
+		addTag("hair_ribbon")
+	}
+	if hasAny("bat hair ornament", "bat hairpin", "bat-wing hairpin", "bat wing hairpin", "bat clip", "bat hairclip", "bat-wing", "bat ornament") ||
+		(strings.Contains(strings.ToLower(facts.HairAndFace), "bat")) {
+		addTag("bat_hair_ornament")
+	}
+
+	// --- 2. Face & Ears ---
+	if hasAny("blue eyes", "blue-eyed", "blue eyed", "blue_eyes", "blue eye") {
+		addTag("blue_eyes")
+	}
+	if hasAny("red eyes", "red-eyed", "red eyed", "red_eyes", "red eye") {
+		addTag("red_eyes")
+	}
+	if hasAny("green eyes", "green-eyed", "green eyed", "green_eyes", "green eye") {
+		addTag("green_eyes")
+	}
+	if hasAny("yellow eyes", "yellow-eyed", "yellow_eyes", "golden eyes", "golden-eyed", "golden_eyes", "gold eyes") {
+		addTag("yellow_eyes")
+	}
+	if hasAny("purple eyes", "purple-eyed", "purple eyed", "purple_eyes", "purple eye") {
+		addTag("purple_eyes")
+	}
+	if hasAny("pointy ears", "pointed ears", "pointy-eared", "pointy_ears", "elf", "elf girl", "elven") {
+		addTag("pointy_ears")
+	}
+	if hasAny("blush", "blushing", "blushed", "blush on cheeks") {
+		addTag("blush")
+	}
+	if hasAny("smile", "smiling", "smiles", "smiled") {
+		addTag("smile")
+	}
+	if hasAny("open mouth", "open-mouthed", "open_mouth", "mouth open") {
+		addTag("open_mouth")
+	}
+	if hasAny("looking at viewer", "looking_at_viewer", "looks at viewer", "looking at the viewer") {
+		addTag("looking_at_viewer")
+	}
+	if hasAny("looking back", "looking_back", "looks back") {
+		addTag("looking_back")
+	}
+
+	// --- 3. Clothing & Accessories ---
+	if hasAny("choker", "chokers") {
+		addTag("choker")
+	}
+	if hasAny("collar", "collars") {
+		addTag("collar")
+	}
+	if !isSleevesIntact && hasAny("detached sleeves", "detached-sleeves", "detached_sleeves", "detached sleeve") {
+		addTag("detached_sleeves")
+	}
+	if hasAny("bare shoulders", "bare-shoulders", "bare_shoulders", "exposed shoulders") {
+		addTag("bare_shoulders")
+	}
+	if !isGlovesObscured {
+		if hasAny("elbow gloves", "elbow-length gloves", "elbow_gloves", "long gloves", "opera gloves") ||
+			(hasAny("gloves") && hasAny("elbow", "elbows", "covering her arms to the elbow")) {
+			addTag("elbow_gloves")
+		}
+		if hasAny("black gloves", "black_gloves") {
+			addTag("black_gloves")
+		}
+	}
+	if hasAny("see-through", "see through", "see_through", "sheer", "translucent") {
+		addTag("see-through_cleavage")
+	}
+	if hasAny("cleavage") {
+		addTag("cleavage")
+	}
+	if hasAny("large breasts", "large_breasts", "big breasts") {
+		addTag("large_breasts")
+	}
+	if hasAny("medium breasts", "medium_breasts") {
+		addTag("medium_breasts")
+	}
+	if hasAny("navel cutout", "navel-cutout", "navel_cutout", "midsection", "stomach", "navel", "belly cutout") {
+		addTag("navel_cutout")
+		addTag("navel")
+	}
+	if hasAny("pelvic curtain", "pelvic_curtain", "front flap", "loincloth dress") {
+		addTag("pelvic_curtain")
+	}
+	if hasAny("garter", "garters", "garter straps", "garter_straps", "garter belt", "thigh straps") {
+		addTag("garter_straps")
+	}
+	if hasAny("thighhighs", "thigh-highs", "thigh highs", "thigh-high", "thigh high", "thigh-high stockings", "thigh high stockings") {
+		addTag("thighhighs")
+	}
+	if hasAny("dogi", "martial arts", "martial arts uniform", "karate", "karate uniform", "judo") {
+		addTag("dogi")
+	}
+	if hasAny("black belt", "black_belt", "black belt strap") {
+		addTag("black_belt")
+	}
+	if hasAny("track pants", "track_pants", "athletic pants", "sport pants", "sports pants", "sweatpants") {
+		addTag("track_pants")
+	}
+	if hasAny("dress", "dresses") {
+		addTag("dress")
+	}
+
+	// --- 4. Pose & Environment ---
+	if hasAny("sitting", "sits", "sat", "sitting on bed", "knees bent") {
+		addTag("sitting")
+	}
+	if hasAny("standing", "stands") {
+		addTag("standing")
+	}
+	if hasAny("from side", "from_side", "side view") {
+		addTag("from_side")
+	}
+	if hasAny("from behind", "from_behind", "back view") {
+		addTag("from_behind")
+	}
+	if hasAny("front view", "front_view", "facing viewer") {
+		addTag("front_view")
+	}
+	if hasAny("bed", "beds", "on bed", "bed sheet", "bedsheet", "bed covering") {
+		addTag("on_bed")
+		addTag("bed_sheet")
+	}
+	if hasAny("window", "windows") {
+		addTag("window")
+	}
+	if hasAny("blue sky", "clear sky", "clear blue sky") || (hasAny("sky") && hasAny("blue", "clear")) {
+		addTag("blue_sky")
+	}
+	if hasAny("indoors", "indoor", "room", "bedroom") {
+		addTag("indoors")
+	}
+	if hasAny("tatami", "tatami floor") {
+		addTag("tatami")
+		addTag("washitsu")
+	}
+
+	return resultTags
+}
+
+// sanitizeNegativePrompt cleans and normalizes negative prompts, ensuring all tokens are separated by comma and space.
+// If the model produced space-separated negative phrases (e.g. "lowres blurry bad anatomy bad hands missing fingers"),
+// it parses them into standard comma-separated items.
+func sanitizeNegativePrompt(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature"
+	}
+
+	knownPhrases := []string{
+		"poorly drawn hands", "poorly drawn face", "too many fingers", "fused fingers",
+		"missing fingers", "missing arms", "missing legs", "extra fingers", "extra digit",
+		"extra digits", "fewer digits", "extra limbs", "extra arms", "extra legs",
+		"bad anatomy", "bad hands", "bad feet", "bad proportions", "bad quality",
+		"worst quality", "low quality", "normal quality", "jpeg artifacts",
+		"artist name in corner", "artist_name_in_corner", "artist name", "artist_name",
+		"gross proportions", "malformed limbs", "depth of field",
+		"watermark", "signature", "username", "lowres", "low res", "blurry",
+		"deformed", "disfigured", "mutation", "mutated", "amputation", "cropped",
+		"morbid", "text", "error", "duplicate",
+	}
+
+	parts := strings.Split(raw, ",")
+	var resultTokens []string
+	seen := make(map[string]bool)
+
+	addToken := func(t string) {
+		tClean := strings.Trim(strings.TrimSpace(t), ",;:.")
+		if tClean == "" {
+			return
+		}
+		norm := strings.ToLower(tClean)
+		if !seen[norm] {
+			seen[norm] = true
+			resultTokens = append(resultTokens, tClean)
+		}
+	}
+
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed == "" {
+			continue
+		}
+
+		words := strings.Fields(trimmed)
+		if len(words) <= 2 {
+			addToken(trimmed)
+			continue
+		}
+
+		workingText := " " + trimmed + " "
+		workingLower := strings.ToLower(workingText)
+
+		type phraseMatch struct {
+			start int
+			end   int
+			val   string
+		}
+		var matches []phraseMatch
+
+		for _, kp := range knownPhrases {
+			pat := `(?i)\b` + regexp.QuoteMeta(kp) + `\b`
+			re := regexp.MustCompile(pat)
+			locs := re.FindAllStringIndex(workingLower, -1)
+			for _, loc := range locs {
+				matches = append(matches, phraseMatch{
+					start: loc[0],
+					end:   loc[1],
+					val:   strings.TrimSpace(workingText[loc[0]:loc[1]]),
+				})
+			}
+		}
+
+		if len(matches) <= 1 {
+			addToken(trimmed)
+			continue
+		}
+
+		sort.Slice(matches, func(i, j int) bool {
+			if matches[i].start == matches[j].start {
+				return (matches[i].end - matches[i].start) > (matches[j].end - matches[j].start)
+			}
+			return matches[i].start < matches[j].start
+		})
+
+		var filtered []phraseMatch
+		lastEnd := 0
+		for _, m := range matches {
+			if m.start >= lastEnd {
+				filtered = append(filtered, m)
+				lastEnd = m.end
+			}
+		}
+
+		for _, m := range filtered {
+			addToken(m.val)
+		}
+	}
+
+	if len(resultTokens) == 0 {
+		return "worst quality, low quality, normal quality, lowres, blurry, bad anatomy, bad hands, missing fingers, extra digit, fewer digits, watermark, signature"
+	}
+
+	return strings.Join(resultTokens, ", ")
 }
 
 func formatPrettyName(s string) string {
