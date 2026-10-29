@@ -716,17 +716,19 @@ export default function LoraStack() {
                 {/* Preset Templates */}
                 <div className="lora-presets-bar">
                     <span className="lora-presets-label">Preset Cepat:</span>
-                    {DEFAULT_LORA_PRESETS.map((p, idx) => (
-                        <button
-                            key={idx}
-                            type="button"
-                            className="lora-preset-btn"
-                            onClick={() => setStack(p.items)}
-                            title={p.desc}
-                        >
-                            <span>{p.label}</span>
-                        </button>
-                    ))}
+                    <div className="lora-presets-list">
+                        {DEFAULT_LORA_PRESETS.map((p, idx) => (
+                            <button
+                                key={idx}
+                                type="button"
+                                className="lora-preset-btn"
+                                onClick={() => setStack(p.items)}
+                                title={p.desc}
+                            >
+                                <span>{p.label}</span>
+                            </button>
+                        ))}
+                    </div>
                     <button
                         type="button"
                         className="lora-reset-btn"
@@ -751,7 +753,7 @@ export default function LoraStack() {
                                 <span>Active LoRA Layers</span>
                                 <span className="lora-badge-count">{stack.length}</span>
                             </h2>
-                            <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                            <span className="lora-section-subtitle">
                                 {activeLayers.length} Enabled &bull; Layer order top-to-bottom
                             </span>
                         </div>

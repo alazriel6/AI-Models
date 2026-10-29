@@ -240,6 +240,8 @@
     border-radius: 12px;
     background: #141619;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+    -webkit-overflow-scrolling: touch;
+    position: relative;
 }
 
 .unified-matrix-table {
@@ -1123,4 +1125,344 @@
 
 @keyframes compare-spin {
     to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   9. Mobile & Tablet Responsive Optimization
+   ========================================================================== */
+
+/* Tablet (769px - 1080px) */
+@media (min-width: 769px) and (max-width: 1080px) {
+    .compare-page-wrapper {
+        padding: 20px 16px 60px 16px;
+    }
+
+    .matrix-grid-row.cols-2 {
+        grid-template-columns: 180px 1fr 1fr;
+    }
+
+    .matrix-grid-row.cols-3 {
+        grid-template-columns: 180px 1fr 1fr 1fr;
+    }
+
+    .header-label-cell,
+    .cell-label {
+        position: sticky;
+        left: 0;
+        z-index: 10;
+        background: #141619;
+        box-shadow: 2px 0 6px rgba(0, 0, 0, 0.35);
+    }
+
+    .header-label-cell {
+        z-index: 30;
+    }
+}
+
+/* Mobile Devices (<= 768px) */
+@media (max-width: 768px) {
+    .compare-page-wrapper {
+        padding: 14px 10px 60px 10px;
+    }
+
+    .compare-header-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .compare-title-wrap {
+        width: 100%;
+    }
+
+    .compare-main-title {
+        font-size: 18px;
+    }
+
+    .compare-back-link {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+        box-sizing: border-box;
+    }
+
+    /* Control Toolbar */
+    .compare-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px;
+        margin-bottom: 16px;
+    }
+
+    .toolbar-group-left {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .segmented-control {
+        flex: 1;
+        display: flex;
+    }
+
+    .segmented-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 8px;
+        font-size: 11.5px;
+    }
+
+    .diff-toggle-label {
+        flex-shrink: 0;
+        font-size: 11.5px;
+    }
+
+    .toolbar-group-center {
+        width: 100%;
+    }
+
+    .btn-swap-slots {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+    }
+
+    .toolbar-group-right {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .preset-select-dropdown {
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 8px 10px;
+    }
+
+    /* Comparison Table Container */
+    .matrix-scroll-container {
+        border-radius: 8px;
+        margin-bottom: 20px;
+        scrollbar-width: thin;
+        position: relative;
+    }
+
+    .unified-matrix-table {
+        min-width: 0 !important;
+        width: 100% !important;
+    }
+
+    /* 2 Models: Side-by-side fit on screen with compact sticky labels */
+    .matrix-grid-row.cols-2 {
+        grid-template-columns: 105px minmax(115px, 1fr) minmax(115px, 1fr) !important;
+    }
+
+    /* 3 Models: Label sticky + 3 scrollable model slots */
+    .matrix-grid-row.cols-3 {
+        grid-template-columns: 105px minmax(130px, 1fr) minmax(130px, 1fr) minmax(130px, 1fr) !important;
+    }
+
+    /* Sticky Label Column on Mobile */
+    .header-label-cell {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 30 !important;
+        background: #141619 !important;
+        padding: 10px 6px !important;
+        box-shadow: 3px 0 10px rgba(0, 0, 0, 0.55) !important;
+    }
+
+    .cell-label {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 10 !important;
+        background: #141619 !important;
+        padding: 9px 6px !important;
+        font-size: 11px !important;
+        line-height: 1.25 !important;
+        font-weight: 600 !important;
+        box-shadow: 3px 0 10px rgba(0, 0, 0, 0.55) !important;
+        word-break: break-word !important;
+    }
+
+    .header-category-caption {
+        font-size: 9px !important;
+    }
+
+    .header-active-count {
+        font-size: 10.5px !important;
+    }
+
+    .diff-dot-indicator {
+        margin-right: 4px !important;
+        width: 5px !important;
+        height: 5px !important;
+    }
+
+    /* Sticky Header Row on Mobile */
+    .matrix-sticky-header {
+        top: 0 !important;
+        z-index: 25 !important;
+    }
+
+    .header-model-cell {
+        padding: 10px 6px !important;
+        gap: 6px !important;
+    }
+
+    .slot-select-row {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 4px !important;
+    }
+
+    .slot-tag {
+        align-self: flex-start !important;
+        font-size: 8.5px !important;
+        padding: 1px 4px !important;
+    }
+
+    .header-model-dropdown {
+        width: 100% !important;
+        padding: 5px 4px !important;
+        font-size: 10.5px !important;
+    }
+
+    /* Model Portrait Card on Mobile */
+    .compact-model-card {
+        flex-direction: column !important;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 6px !important;
+    }
+
+    .model-thumb-portrait {
+        width: 44px !important;
+        height: 56px !important;
+        border-radius: 6px !important;
+    }
+
+    .compact-model-info {
+        width: 100% !important;
+        align-items: center !important;
+        gap: 2px !important;
+    }
+
+    .compact-model-title {
+        font-size: 11.5px !important;
+        line-height: 1.25 !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        display: -webkit-box !important;
+        -webkit-line-clamp: 2 !important;
+        -webkit-box-orient: vertical !important;
+        overflow: hidden !important;
+    }
+
+    .compact-badge-row {
+        justify-content: center !important;
+        gap: 3px !important;
+    }
+
+    .badge-base-model {
+        font-size: 9px !important;
+        padding: 1px 4px !important;
+    }
+
+    .badge-model-type {
+        font-size: 8.5px !important;
+        padding: 1px 3px !important;
+    }
+
+    .compact-author-meta {
+        font-size: 9.5px !important;
+        justify-content: center !important;
+    }
+
+    .compact-actions-row {
+        width: 100% !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin-top: 2px !important;
+    }
+
+    .micro-btn-action {
+        padding: 3px 6px !important;
+        font-size: 9.5px !important;
+    }
+
+    /* Section Divider Sticky Left */
+    .matrix-section-divider {
+        position: sticky !important;
+        left: 0 !important;
+        z-index: 12 !important;
+        padding: 7px 10px !important;
+    }
+
+    .section-divider-title {
+        font-size: 9.5px !important;
+    }
+
+    /* Cell Values */
+    .cell-value {
+        padding: 9px 6px !important;
+        font-size: 11px !important;
+        line-height: 1.3 !important;
+        min-height: 38px !important;
+        word-break: break-word !important;
+    }
+
+    .cell-value.mono {
+        font-size: 10.5px !important;
+    }
+
+    .vram-tag {
+        font-size: 9.5px !important;
+        padding: 1px 4px !important;
+    }
+
+    .trigger-chip-btn {
+        font-size: 9.5px !important;
+        padding: 2px 5px !important;
+    }
+
+    /* Gallery Section on Mobile */
+    .gallery-section-container {
+        padding: 16px 10px !important;
+    }
+
+    .gallery-section-title {
+        font-size: 12.5px !important;
+    }
+
+    .gallery-section-desc {
+        font-size: 11px !important;
+    }
+}
+
+/* Extra Small Screens (<= 360px) */
+@media (max-width: 360px) {
+    .compare-page-wrapper {
+        padding: 10px 6px 50px 6px;
+    }
+
+    .matrix-grid-row.cols-2 {
+        grid-template-columns: 95px minmax(105px, 1fr) minmax(105px, 1fr) !important;
+    }
+
+    .cell-label {
+        font-size: 10.5px !important;
+        padding: 8px 4px !important;
+    }
+
+    .cell-value {
+        font-size: 10.5px !important;
+        padding: 8px 4px !important;
+    }
 }

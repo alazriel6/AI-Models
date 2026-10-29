@@ -40,6 +40,10 @@ export function FeatureStorytelling() {
   const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  // Mobile simplified view state: active tab (1-6) and showAll toggle to prevent extreme scrolling
+  const [mobileActiveFeature, setMobileActiveFeature] = useState<number>(1);
+  const [mobileShowAllFeatures, setMobileShowAllFeatures] = useState<boolean>(false);
+
   // Interactive LoRA Stack weights state
   const [loraWeights, setLoraWeights] = useState<{ [key: string]: number }>({
     lineart: 0.80,
@@ -462,11 +466,40 @@ export function FeatureStorytelling() {
           </p>
         </div>
 
+        {/* Mobile Interactive Feature Tab Switcher (Visible on <= 768px only) */}
+        <div className="mg-features-mobile-nav" role="tablist" aria-label="Pilih Fitur Generatif">
+          {[
+            { id: 1, label: '01 Komparasi' },
+            { id: 2, label: '02 Prompt Lab' },
+            { id: 3, label: '03 Visualizer' },
+            { id: 4, label: '04 LoRA Stack' },
+            { id: 5, label: '05 Inspector' },
+            { id: 6, label: '06 VAE Calc' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={mobileActiveFeature === tab.id}
+              className={`mg-feature-mobile-chip ${mobileActiveFeature === tab.id ? 'is-active' : ''}`}
+              onClick={() => {
+                setMobileActiveFeature(tab.id);
+                setMobileShowAllFeatures(false);
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* ===================================================================
             FEATURE 01: Model Comparison (/compare)
             Layout: Info Left | Visual Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-compare ${activeStep >= 1 ? 'is-active' : ''}`} id="feat-compare">
+        <div
+          className={`mg-feature-row mg-feature-compare ${activeStep >= 1 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 1 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-compare"
+        >
           <div className="mg-feature-info">
             {/* Step Node 01 */}
             <div className={`mg-step-node-anchor ${activeStep >= 1 ? 'node-active' : ''}`} ref={node1Ref}>
@@ -614,7 +647,10 @@ export function FeatureStorytelling() {
             FEATURE 02: Prompt Studio & Lab (/prompt-lab)
             Layout: Visual Left | Info Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${activeStep >= 2 ? 'is-active' : ''}`} id="feat-promptlab">
+        <div
+          className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${activeStep >= 2 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 2 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-promptlab"
+        >
           <div className="mg-feature-visual mg-visual-promptlab">
             <div className="mg-promptlab-preview">
               <div className="mg-promptlab-bar">
@@ -702,13 +738,21 @@ export function FeatureStorytelling() {
               </div>
             </div>
 
-            <Link to="/prompt-lab" className="mg-btn mg-btn-primary">
-              <span>Buka Prompt Studio &amp; Lab</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
+              <Link to="/prompt-lab" className="mg-btn mg-btn-primary">
+                <span>Buka Prompt Studio &amp; Lab</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
+              <Link to="/negative-vault" className="mg-btn mg-btn-secondary" title="Kelola Negative Vault &amp; Embeddings">
+                <span>Negative Vault</span>
+              </Link>
+              <Link to="/story-merger" className="mg-btn mg-btn-secondary" title="Preset Storyboard &amp; Character Lock">
+                <span>Story Merger</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -716,7 +760,10 @@ export function FeatureStorytelling() {
             FEATURE 03: Generation Gallery (/gallery)
             Layout: Info Left | Visual Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-gallery ${activeStep >= 3 ? 'is-active' : ''}`} id="feat-gallery">
+        <div
+          className={`mg-feature-row mg-feature-gallery ${activeStep >= 3 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 3 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-gallery"
+        >
           <div className="mg-feature-info">
             {/* Step Node 03 */}
             <div className={`mg-step-node-anchor ${activeStep >= 3 ? 'node-active' : ''}`} ref={node3Ref}>
@@ -813,7 +860,10 @@ export function FeatureStorytelling() {
             FEATURE 04: LoRA Stack Builder (/lora-stack)
             Layout: Visual Left | Info Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-reverse mg-feature-lorastack ${activeStep >= 4 ? 'is-active' : ''}`} id="feat-lorastack">
+        <div
+          className={`mg-feature-row mg-feature-reverse mg-feature-lorastack ${activeStep >= 4 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 4 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-lorastack"
+        >
           <div className="mg-feature-visual mg-visual-lorastack">
             <div className="mg-lorastack-preview">
               <div className="mg-lorastack-topbar">
@@ -973,13 +1023,18 @@ export function FeatureStorytelling() {
               </div>
             </div>
 
-            <Link to="/lora-stack" className="mg-btn mg-btn-primary">
-              <span>Buka LoRA Stack Builder</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
+              <Link to="/lora-stack" className="mg-btn mg-btn-primary">
+                <span>Buka LoRA Stack Builder</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
+              <Link to="/workflows" className="mg-btn mg-btn-secondary" title="Buka ComfyUI Workflows">
+                <span>ComfyUI Workflows</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -987,7 +1042,10 @@ export function FeatureStorytelling() {
             FEATURE 05: Metadata Inspector (/inspector)
             Layout: Info Left | Visual Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-inspector ${activeStep >= 5 ? 'is-active' : ''}`} id="feat-inspector">
+        <div
+          className={`mg-feature-row mg-feature-inspector ${activeStep >= 5 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 5 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-inspector"
+        >
           <div className="mg-feature-info">
             {/* Step Node 05 */}
             <div className={`mg-step-node-anchor ${activeStep >= 5 ? 'node-active' : ''}`} ref={node5Ref}>
@@ -1129,7 +1187,10 @@ export function FeatureStorytelling() {
             FEATURE 06: Resolution Calculator (/calculator)
             Layout: Visual Left | Info Right
             =================================================================== */}
-        <div className={`mg-feature-row mg-feature-reverse mg-feature-calculator ${activeStep >= 6 ? 'is-active' : ''}`} id="feat-calculator">
+        <div
+          className={`mg-feature-row mg-feature-reverse mg-feature-calculator ${activeStep >= 6 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 6 ? 'mobile-hidden-feature' : ''}`}
+          id="feat-calculator"
+        >
           <div className="mg-feature-visual mg-visual-calculator">
             <div className="mg-calc-visualizer">
               {/* Aspect Ratio Switcher */}
@@ -1230,14 +1291,37 @@ export function FeatureStorytelling() {
               </div>
             </div>
 
-            <Link to="/calculator" className="mg-btn mg-btn-primary">
-              <span>Hitung Resolusi Optimal</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </Link>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
+              <Link to="/calculator" className="mg-btn mg-btn-primary">
+                <span>Hitung Resolusi Optimal</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                  <polyline points="12 5 19 12 12 19" />
+                </svg>
+              </Link>
+              <Link to="/vram" className="mg-btn mg-btn-secondary" title="Buka VRAM &amp; Hardware Profiler">
+                <span>VRAM Profiler</span>
+              </Link>
+              <Link to="/controlnet" className="mg-btn mg-btn-secondary" title="Buka ControlNet &amp; OpenPose Rig">
+                <span>ControlNet Studio</span>
+              </Link>
+            </div>
           </div>
+        </div>
+
+        {/* Mobile Expand / Collapse All 6 Features Toggle */}
+        <div className="mg-features-mobile-toggle-wrap">
+          <button
+            type="button"
+            className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
+            onClick={() => setMobileShowAllFeatures((prev) => !prev)}
+          >
+            <span>
+              {mobileShowAllFeatures
+                ? 'Gunakan Mode Tab Ringkas (Satu Fitur) ↑'
+                : 'Tampilkan Semua 6 Fitur Sekaligus ↓'}
+            </span>
+          </button>
         </div>
       </div>
 

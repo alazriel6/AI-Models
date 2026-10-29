@@ -22,7 +22,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         title: "Quality & Style",
         placeholder: "Kualitas gambar, style anime, cel shading...",
         chips: [
-            "(anime_coloring:1.15)",
+            "anime_coloring",
             "masterpiece",
             "newest",
             "best quality",
@@ -101,7 +101,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         ],
         nsfwSubgroups: [
             {
-                label: "🔞 Payudara & Dada",
+                label: "Payudara & Anatomi Dada",
                 chips: [
                     "nude",
                     "completely nude",
@@ -124,7 +124,7 @@ export const CATEGORIES: CategoryDefinition[] = [
                 ],
             },
             {
-                label: "🔞 Area Bawah & Kelamin",
+                label: "Area Bawah & Anatomi Intim",
                 chips: [
                     "pussy",
                     "vaginal",
@@ -263,7 +263,7 @@ export const CATEGORIES: CategoryDefinition[] = [
         ],
         nsfwSubgroups: [
             {
-                label: "🔞 Hubungan Badan & Penetrasi",
+                label: "Hubungan Fisik & Pose Intim",
                 chips: [
                     "sex",
                     "heterosexual",
@@ -283,7 +283,7 @@ export const CATEGORIES: CategoryDefinition[] = [
                 ],
             },
             {
-                label: "🔞 Sentuhan, Remasan & Oral",
+                label: "Interaksi & Sentuhan Intim",
                 chips: [
                     "breast rest",
                     "breast grab",
@@ -477,30 +477,30 @@ export const compileCategoriesPrompt = (
     let prefixHeader = "";
     const isNsfw = options?.isNsfw ?? /nsfw|explicit|sex|penetration|nude/i.test(rawJoined);
     if (targetModel === "pony") {
-        prefixHeader = `### 🌟 Model Quality Prefix (Pony V6 Score):\n${
+        prefixHeader = `### Quality Prefix (Pony V6 Score):\n${
             isNsfw
                 ? "score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, rating:explicit, masterpiece, best quality, ultra-detailed"
                 : "score_9, score_8_up, score_7_up, score_6_up, score_5_up, score_4_up, rating:safe, masterpiece, best quality, ultra-detailed"
         }\n\n`;
     } else if (targetModel === "illustrious") {
-        prefixHeader = `### 🌟 Model Quality Prefix (Illustrious-XL):\n${
+        prefixHeader = `### Quality Prefix (Illustrious-XL):\n${
             isNsfw
                 ? "masterpiece, best quality, very aesthetic, ultra-detailed, nsfw, explicit"
                 : "masterpiece, best quality, very aesthetic, ultra-detailed"
         }\n\n`;
     } else if (targetModel === "animagine") {
-        prefixHeader = `### 🌟 Model Quality Prefix (Animagine XL 3.1):\n${
+        prefixHeader = `### Quality Prefix (Animagine XL 3.1):\n${
             isNsfw
                 ? "masterpiece, best quality, very aesthetic, newest, ultra-detailed, nsfw, explicit"
                 : "masterpiece, best quality, very aesthetic, newest, ultra-detailed"
         }\n\n`;
     } else if (targetModel === "novelai") {
-        prefixHeader = `### 🌟 Model Quality Prefix (NovelAI V3):\n${
+        prefixHeader = `### Quality Prefix (NovelAI V3):\n${
             isNsfw ? "{masterpiece}, {best quality}, nsfw, explicit" : "{masterpiece}, {best quality}"
         }\n\n`;
     } else if (targetModel === "flux" || targetModel === "midjourney") {
         const fullProse = convertPromptOffline(rawJoined, targetModel, options);
-        return `### 🌟 Full Descriptive Narrative (${targetModel === "flux" ? "Flux.1 Prose" : "Midjourney V6.1"}):\n${fullProse}\n\n` + modelBlocks.join("\n\n");
+        return `### Narrative Prompt (${targetModel === "flux" ? "Flux.1 Prose" : "Midjourney V6.1"}):\n${fullProse}\n\n` + modelBlocks.join("\n\n");
     }
 
     return prefixHeader + modelBlocks.join("\n\n");

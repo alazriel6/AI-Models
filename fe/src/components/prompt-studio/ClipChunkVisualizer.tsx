@@ -162,7 +162,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                 onClick={onOpenPromptFixer || onOpenPromptHealer}
                                 title="Buka Prompt Fix (Optimasi urutan token & cegah konflik pose)"
                             >
-                                <span>⚡ Prompt Fix</span>
+                                <span>Prompt Fix</span>
                             </button>
                         )}
                         <div className="clip-arch-selector">
@@ -345,14 +345,14 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                 {hasText ? (
                     <div className={`clip-live-status-card ${isPromptLiveOptimal ? "optimal" : "needs-fix"}`}>
                         <div className="live-status-icon">
-                            {isPromptLiveOptimal ? "✨" : "⚠️"}
+                            {isPromptLiveOptimal ? "✓" : "!"}
                         </div>
                         <div className="live-status-content">
                             <div className="live-status-top">
                                 <span className={`live-status-badge ${isPromptLiveOptimal ? "optimal" : "needs-fix"}`}>
                                     {isPromptLiveOptimal
-                                        ? `✓ STATUS: PROMPT SUDAH BAGUS & OPTIMAL (${liveHealthReport.overallScore}/100)`
-                                        : `⚠️ STATUS: PROMPT BELUM OPTIMAL (SKOR: ${liveHealthReport.overallScore}/100)`}
+                                        ? `STATUS: PROMPT OPTIMAL (${liveHealthReport.overallScore}/100)`
+                                        : `STATUS: PROMPT PERLU PENYESUAIAN (${liveHealthReport.overallScore}/100)`}
                                 </span>
                                 <span className="live-status-meta">
                                     {totalTextTokens} Tokens · {chunks.length} Chunk · Aksi di Chunk {liveHealthReport.primaryActionChunk}
@@ -361,8 +361,8 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
 
                             <p className="live-status-desc">
                                 {isPromptLiveOptimal
-                                    ? "✓ Prompt Anda berada dalam kondisi prima! Seluruh aksi penting berada di Chunk 1 dengan 100% full cross-attention, tanpa konflik pose atau pemborosan token."
-                                    : `⚠️ Prompt ini berisiko meleset saat digenerate: ${
+                                    ? "Prompt Anda berada dalam kondisi prima. Seluruh aksi penting berada di Chunk 1 dengan 100% full cross-attention, tanpa konflik pose atau pemborosan token."
+                                    : `Perhatian prompt: ${
                                         liveHealthReport.issues.length > 0
                                             ? liveHealthReport.issues[0].title
                                             : hazards.length > 0
@@ -373,9 +373,9 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
 
                             {isPromptLiveOptimal ? (
                                 <div className="live-status-chips">
-                                    <span className="live-chip optimal">✓ Chunk 1 Aman (100% Retensi)</span>
-                                    <span className="live-chip optimal">✓ Bebas Konflik Pose</span>
-                                    <span className="live-chip optimal">✓ Sintaks Baku Siap Render</span>
+                                    <span className="live-chip optimal">Chunk 1 Aman (100% Retensi)</span>
+                                    <span className="live-chip optimal">Bebas Konflik Pose</span>
+                                    <span className="live-chip optimal">Sintaks Baku Siap Render</span>
                                 </div>
                             ) : (
                                 <div className="live-status-action-row">
@@ -392,7 +392,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                             className="btn-live-prompt-fix"
                                             onClick={onOpenPromptFixer || onOpenPromptHealer}
                                         >
-                                            ⚡ Buka Prompt Fix (Perbaiki Otomatis)
+                                            Prompt Fix (Perbaiki Otomatis)
                                         </button>
                                     )}
                                 </div>
@@ -401,7 +401,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                     </div>
                 ) : (
                     <div className="clip-live-status-card idle">
-                        <div className="live-status-icon">💡</div>
+                        <div className="live-status-icon">i</div>
                         <div className="live-status-content">
                             <span className="live-status-badge idle">STATUS: MENUNGGU INPUT PROMPT</span>
                             <p className="live-status-desc">
@@ -477,7 +477,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                     )}
                                     {isSplit && (
                                         <span className="tag-cut-alert-icon" title="Peringatan: Tag terbelah di batas 75 token!">
-                                            ✂️
+                                            [Split]
                                         </span>
                                     )}
                                 </span>
@@ -504,10 +504,10 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                 <button
                                     type="button"
                                     className="clip-hazard-btn"
-                                    style={{ background: "linear-gradient(135deg, #06b6d4, #3b82f6)", border: "none", color: "#ffffff" }}
+                                    style={{ background: "#2563eb", border: "1px solid #1d4ed8", color: "#ffffff" }}
                                     onClick={onOpenPromptFixer || onOpenPromptHealer}
                                 >
-                                    ⚡ Prompt Fix
+                                    Prompt Fix
                                 </button>
                             )}
                             {onChangePrompt && (
@@ -516,7 +516,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                     className="clip-hazard-btn"
                                     onClick={handleAutoFixHazard}
                                 >
-                                    ⚡ Auto-Align ke Chunk 2
+                                    Auto-Align ke Chunk 2
                                 </button>
                             )}
                         </div>
@@ -712,7 +712,7 @@ export const ClipChunkVisualizer: React.FC<ClipChunkVisualizerProps> = ({
                                     <span className="clip-inspector-label">Alokasi Chunk</span>
                                     <span className="clip-inspector-val">
                                         {selectedTag.isSplitAcrossChunks
-                                            ? `⚠️ TERBELAH: Chunk ${selectedTag.startChunk} ➜ Chunk ${selectedTag.endChunk}`
+                                            ? `TERBELAH: Chunk ${selectedTag.startChunk} ➜ Chunk ${selectedTag.endChunk}`
                                             : `Chunk ${selectedTag.primaryChunk} (${getChunkZoneInfo(selectedTag.primaryChunk).zoneName})`}
                                     </span>
                                 </div>

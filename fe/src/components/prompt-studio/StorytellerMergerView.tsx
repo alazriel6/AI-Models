@@ -57,7 +57,7 @@ export const RIO_SCENE2_PROMPT_DEFAULT =
 const STORY_PRESETS: StoryPreset[] = [
     {
         id: "preset-rio",
-        name: "🏫 Rio Tsukatsuki — Kehidupan Sekolah (Ruang Kelas -> Pintu -> Halaman Sakura -> Rooftop)",
+        name: "Rio Tsukatsuki — Kehidupan Sekolah (Ruang Kelas -> Pintu -> Halaman Sakura -> Rooftop)",
         characterProfileName: "Tsukatsuki Rio (Master Profile)",
         mainPrompt: RIO_MAIN_PROMPT_DEFAULT,
         mainNegative:
@@ -95,7 +95,7 @@ const STORY_PRESETS: StoryPreset[] = [
     },
     {
         id: "preset-cyberpunk",
-        name: "🌃 Cyberpunk Operative — Misi Malam (Rooftop Neon -> Gang Gelap -> Terminal Data)",
+        name: "Cyberpunk Operative — Misi Malam (Rooftop Neon -> Gang Gelap -> Terminal Data)",
         characterProfileName: "Valerie — Cyber Agent (Master Profile)",
         mainPrompt:
             "masterpiece, best quality, 1girl, solo, short neon cyan hair, asymmetric bob cut, glowing amber eyes, serious expression, cyberpunk tactical jacket, black high-collar bodysuit, luminous tech visor on forehead, fingerless gloves, cybernetic arm, neon rim lighting, cinematic shadows, futuristic anime aesthetic, sharp lineart",
@@ -127,7 +127,7 @@ const STORY_PRESETS: StoryPreset[] = [
     },
     {
         id: "preset-fantasy",
-        name: "🏰 Fantasy Elf Mage — Petualangan Sihir (Perpustakaan -> Hutan Mistis -> Balkon Kastil)",
+        name: "Fantasy Elf Mage — Petualangan Sihir (Perpustakaan -> Hutan Mistis -> Balkon Kastil)",
         characterProfileName: "Sylvia Elf Sorceress (Master Profile)",
         mainPrompt:
             "masterpiece, best quality, 1girl, solo, elven mage, long silver hair, braided twintails, pointed elf ears, emerald green eyes, ornate emerald sorceress robe, gold embroidered corset, white ruffled skirt, magic crystal pendant, anime illustration, clean lineart, rich cel shading, glowing arcane particles",
@@ -245,24 +245,157 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
     activeCheckpointName,
 }) => {
     // -------------------------------------------------------------------------
-    // 1. MASTER STATE (PRESET, PROMPT 1 & SCENES)
+    // 1. MASTER STATE (PRESET, PROMPT 1 & SCENES) - With Local Cache Persistence
     // -------------------------------------------------------------------------
-    const [selectedPresetId, setSelectedPresetId] = useState<string>("preset-rio");
-    const [characterProfileName, setCharacterProfileName] = useState<string>("Tsukatsuki Rio (Master Profile)");
-    const [mainPrompt, setMainPrompt] = useState<string>(RIO_MAIN_PROMPT_DEFAULT);
-    const [mainNegative, setMainNegative] = useState<string>(
-        "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra limbs, deformed limbs, blurry, (3d, realistic, photorealistic:1.2), washed out colors, overexposed, underexposed, inconsistent lighting, deformed halo, broken accessories"
-    );
+    const [selectedPresetId, setSelectedPresetId] = useState<string>(() => {
+        try {
+            return localStorage.getItem("storyteller_last_preset_id") || "";
+        } catch {
+            return "";
+        }
+    });
+    const [characterProfileName, setCharacterProfileName] = useState<string>(() => {
+        try {
+            return localStorage.getItem("storyteller_last_char_name") || "";
+        } catch {
+            return "";
+        }
+    });
+    const [mainPrompt, setMainPrompt] = useState<string>(() => {
+        try {
+            const saved = localStorage.getItem("storyteller_last_main_prompt");
+            if (saved !== null) return saved;
+        } catch {}
+        return "";
+    });
+    const [mainNegative, setMainNegative] = useState<string>(() => {
+        try {
+            const saved = localStorage.getItem("storyteller_last_main_negative");
+            if (saved !== null) return saved;
+        } catch {}
+        return "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra limbs, deformed limbs, blurry, (3d, realistic, photorealistic:1.2), washed out colors, overexposed, underexposed, inconsistent lighting, deformed halo, broken accessories";
+    });
 
     // Lock toggles (User-friendly granularity)
-    const [lockCharacter, setLockCharacter] = useState<boolean>(true);
-    const [lockOutfit, setLockOutfit] = useState<boolean>(true);
-    const [lockLighting, setLockLighting] = useState<boolean>(true);
-    const [lockArtStyle, setLockArtStyle] = useState<boolean>(true);
+    const [lockCharacter, setLockCharacter] = useState<boolean>(() => {
+        try {
+            const s = localStorage.getItem("storyteller_lock_char");
+            return s !== null ? s === "true" : true;
+        } catch {
+            return true;
+        }
+    });
+    const [lockOutfit, setLockOutfit] = useState<boolean>(() => {
+        try {
+            const s = localStorage.getItem("storyteller_lock_outfit");
+            return s !== null ? s === "true" : true;
+        } catch {
+            return true;
+        }
+    });
+    const [lockLighting, setLockLighting] = useState<boolean>(() => {
+        try {
+            const s = localStorage.getItem("storyteller_lock_lighting");
+            return s !== null ? s === "true" : true;
+        } catch {
+            return true;
+        }
+    });
+    const [lockArtStyle, setLockArtStyle] = useState<boolean>(() => {
+        try {
+            const s = localStorage.getItem("storyteller_lock_artstyle");
+            return s !== null ? s === "true" : true;
+        } catch {
+            return true;
+        }
+    });
 
     // Scenes list
-    const [scenes, setScenes] = useState<StorySceneItem[]>(() => STORY_PRESETS[0].scenes);
-    const [activeSceneId, setActiveSceneId] = useState<string>(() => STORY_PRESETS[0].scenes[1]?.id || STORY_PRESETS[0].scenes[0].id);
+    const [scenes, setScenes] = useState<StorySceneItem[]>(() => {
+        try {
+            const saved = localStorage.getItem("storyteller_last_scenes");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            }
+        } catch {}
+        return [
+            {
+                id: "scene-1",
+                title: "Scene 1: Anchor Awal",
+                prompt2: "",
+                keepSameLocation: true,
+                notes: "Adegan pembuka karakter.",
+            },
+        ];
+    });
+    const [activeSceneId, setActiveSceneId] = useState<string>(() => {
+        try {
+            return localStorage.getItem("storyteller_last_active_scene_id") || "scene-1";
+        } catch {
+            return "scene-1";
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_preset_id", selectedPresetId);
+        } catch {}
+    }, [selectedPresetId]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_char_name", characterProfileName);
+        } catch {}
+    }, [characterProfileName]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_main_prompt", mainPrompt);
+        } catch {}
+    }, [mainPrompt]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_main_negative", mainNegative);
+        } catch {}
+    }, [mainNegative]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_lock_char", String(lockCharacter));
+        } catch {}
+    }, [lockCharacter]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_lock_outfit", String(lockOutfit));
+        } catch {}
+    }, [lockOutfit]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_lock_lighting", String(lockLighting));
+        } catch {}
+    }, [lockLighting]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_lock_artstyle", String(lockArtStyle));
+        } catch {}
+    }, [lockArtStyle]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_scenes", JSON.stringify(scenes));
+        } catch {}
+    }, [scenes]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("storyteller_last_active_scene_id", activeSceneId);
+        } catch {}
+    }, [activeSceneId]);
 
     // Quick tag inspiration category tab
     const [activeInspCategory, setActiveInspCategory] = useState<"pose" | "background" | "expression" | "camera">("pose");
@@ -629,7 +762,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                ------------------------------------------------------------------ */}
             <header className="sm-top-bar">
                 <div className="sm-top-brand">
-                    <div className="sm-brand-icon-box">🎬</div>
+                    <div className="sm-brand-icon-box">M</div>
                     <div className="sm-brand-meta">
                         <div className="sm-brand-title-row">
                             <h2 className="sm-brand-title">Story &amp; Style Prompt Merger</h2>
@@ -637,10 +770,10 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                                 Checkpoint: {activeCheckpointName || "Anime SDXL / Pony"}
                             </span>
                             <span className="sm-badge-pill success">
-                                🛡️ Anti-Clash 0 Double
+                                Anti-Clash 0 Double
                             </span>
                             <span className="sm-badge-pill warning">
-                                🔒 Karakter &amp; Lighting Terkunci
+                                Karakter &amp; Lighting Terkunci
                             </span>
                         </div>
                         <p className="sm-brand-desc">
@@ -656,7 +789,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                         onClick={() => setShowComfyGuide(!showComfyGuide)}
                         title="Tampilkan panduan pengaturan CFG & Seed di ComfyUI agar wajah tidak berubah"
                     >
-                        📋 {showComfyGuide ? "Tutup Panduan ComfyUI" : "Tips Kestabilan ComfyUI"}
+                        {showComfyGuide ? "Tutup Panduan ComfyUI" : "Tips Kestabilan ComfyUI"}
                     </button>
                     <button
                         type="button"
@@ -664,7 +797,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                         onClick={handleCopyAllScenesBatch}
                         title="Salin prompt seluruh adegan sekaligus untuk render batch di ComfyUI atau WebUI"
                     >
-                        📑 {copiedKey === "batch-all" ? "✓ Tersalin Semua!" : "Salin Semua Scene (Batch)"}
+                        {copiedKey === "batch-all" ? "✓ Tersalin Semua!" : "Salin Semua Scene (Batch)"}
                     </button>
                 </div>
             </header>
@@ -676,7 +809,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                 <div className="sm-comfy-tips-card">
                     <div className="sm-comfy-tips-header">
                         <span className="sm-comfy-tips-title">
-                            💡 4 Kunci Menjaga Karakter 100% Konsisten di Antar Scene (ComfyUI / SD)
+                            4 Kunci Menjaga Karakter 100% Konsisten di Antar Scene (ComfyUI / SD)
                         </span>
                         <button
                             type="button"
@@ -736,7 +869,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                                 {p.name}
                             </option>
                         ))}
-                        <option value="custom">✏️ Cerita Kustom Baru (Kosongkan Field)</option>
+                        <option value="custom">Cerita Kustom Baru (Kosongkan Field)</option>
                     </select>
                 </div>
 
@@ -747,7 +880,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                         onClick={handleResetStory}
                         title="Kembalikan prompt dan scene ke default Rio Tsukatsuki"
                     >
-                        ↺ Muat Ulang Contoh Rio
+                        Muat Ulang Contoh Rio
                     </button>
                     <button
                         type="button"
@@ -755,7 +888,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
                         onClick={handleDownloadStoryTxt}
                         title="Unduh seluruh prompt scene dalam format naskah TXT"
                     >
-                        💾 Unduh File Teks (.txt)
+                        Unduh File Teks (.txt)
                     </button>
                 </div>
             </div>
@@ -766,7 +899,7 @@ export const StorytellerMergerView: React.FC<StorytellerMergerViewProps> = ({
             <div className="sm-timeline-card">
                 <div className="sm-timeline-header">
                     <span className="sm-timeline-title">
-                        🎞️ Alur Cerita Adegan (Storyboard Timeline) — {scenes.length} Scene
+                        Alur Cerita Adegan (Storyboard Timeline) — {scenes.length} Scene
                     </span>
                     <span style={{ fontSize: "11px", color: "var(--sm-text-muted)" }}>
                         Klik adegan di bawah untuk mengatur pose &amp; latarnya:

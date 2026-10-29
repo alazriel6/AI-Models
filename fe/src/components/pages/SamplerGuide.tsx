@@ -940,6 +940,46 @@ export default function SamplerGuide() {
       </header>
 
       {/* Navigation Tabs (Satu Baris, Bebas Emoji, SVG Lucide Monokrom) */}
+      <div className="sg-mobile-tab-switcher-bar">
+        <div className="sg-mobile-tab-select-wrap">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as any)}
+            className="sg-mobile-tab-select"
+            aria-label="Pilih Tab Panduan Sampler"
+          >
+            <option value="directory">1. Direktori &amp; Arsitektur Sampler ({filteredSamplers.length})</option>
+            <option value="plotter">2. Plotter Kurva Sigma (Interactive)</option>
+            <option value="recipes">3. Resep &amp; Matriks Rekomendasi ({CURATED_RECIPES.length})</option>
+            <option value="battle">4. Head-to-Head Battle Arena</option>
+            <option value="wizard">5. Simulator Rekomendasi Pintar</option>
+          </select>
+        </div>
+        <div className="sg-mobile-tab-quick-row">
+          <button
+            type="button"
+            className={`sg-mobile-tab-quick-btn ${activeTab === "directory" ? "active" : ""}`}
+            onClick={() => setActiveTab("directory")}
+          >
+            Direktori ({filteredSamplers.length})
+          </button>
+          <button
+            type="button"
+            className={`sg-mobile-tab-quick-btn ${activeTab === "plotter" ? "active" : ""}`}
+            onClick={() => setActiveTab("plotter")}
+          >
+            Plotter Sigma
+          </button>
+          <button
+            type="button"
+            className={`sg-mobile-tab-quick-btn ${activeTab === "recipes" ? "active" : ""}`}
+            onClick={() => setActiveTab("recipes")}
+          >
+            Resep
+          </button>
+        </div>
+      </div>
+
       <div className="sg-nav-tabs" role="tablist">
         <button
           type="button"
@@ -1044,30 +1084,32 @@ export default function SamplerGuide() {
               />
             </div>
 
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="sg-filter-select"
-            >
-              <option value="all">Semua Sifat (Deterministik / Stokastik)</option>
-              <option value="deterministic">Deterministik</option>
-              <option value="stochastic">Stokastik</option>
-              <option value="flow_matching">Flow Matching</option>
-              <option value="accelerated">Accelerated</option>
-            </select>
+            <div className="sg-controls-filter-row">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="sg-filter-select"
+              >
+                <option value="all">Semua Sifat (Deterministik / Stokastik)</option>
+                <option value="deterministic">Deterministik</option>
+                <option value="stochastic">Stokastik</option>
+                <option value="flow_matching">Flow Matching</option>
+                <option value="accelerated">Accelerated</option>
+              </select>
 
-            <select
-              value={archFilter}
-              onChange={(e) => setArchFilter(e.target.value)}
-              className="sg-filter-select"
-            >
-              <option value="all">Semua Arsitektur Model</option>
-              <option value="SDXL">SDXL</option>
-              <option value="Pony">Pony Diffusion</option>
-              <option value="Illustrious">Illustrious XL</option>
-              <option value="Flux">FLUX.1</option>
-              <option value="SD 1.5">SD 1.5</option>
-            </select>
+              <select
+                value={archFilter}
+                onChange={(e) => setArchFilter(e.target.value)}
+                className="sg-filter-select"
+              >
+                <option value="all">Semua Arsitektur Model</option>
+                <option value="SDXL">SDXL</option>
+                <option value="Pony">Pony Diffusion</option>
+                <option value="Illustrious">Illustrious XL</option>
+                <option value="Flux">FLUX.1</option>
+                <option value="SD 1.5">SD 1.5</option>
+              </select>
+            </div>
 
             <div className="sg-controls-count">
               Menampilkan <strong>{filteredSamplers.length}</strong> sampler
@@ -1177,7 +1219,7 @@ export default function SamplerGuide() {
                     onClick={() => toggleDrawer(sampler.id)}
                   >
                     <span className="sg-drawer-trigger-text">
-                      Lihat Prinsip Numerik &amp; Paper ({sampler.paperTitle.split(" - ")[0] || sampler.paperTitle})
+                      Lihat Prinsip &amp; Paper ({sampler.paperTitle.split(" - ")[0].split(" / ")[0]})
                     </span>
                     <svg
                       className={`sg-drawer-arrow ${expandedDrawers[sampler.id] ? "rotated" : ""}`}
@@ -1233,11 +1275,10 @@ export default function SamplerGuide() {
                     ))}
                   </div>
 
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="sg-card-action-row">
                     <button
                       type="button"
-                      className="sg-studio-btn"
-                      style={{ background: "#18181b", borderColor: "#3f3f46", color: "#38bdf8" }}
+                      className="sg-studio-btn sg-vram-btn"
                       onClick={() => {
                         bridgeToVramProfiler(navigate, {
                           source: "sampler-guide",
@@ -1253,7 +1294,7 @@ export default function SamplerGuide() {
                     </button>
                     <button
                       type="button"
-                      className="sg-studio-btn"
+                      className="sg-studio-btn sg-studio-apply-btn"
                       onClick={() => {
                         bridgeToPromptLab(navigate, {
                           source: "sampler-guide",
@@ -1535,7 +1576,7 @@ export default function SamplerGuide() {
                   <span style={{ color: "#d4d4d8" }}>{recipe.useCase}</span>
                 </div>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px", background: "#09090b", padding: "6px 10px", borderRadius: "6px", border: "1px solid #27272a", marginTop: "2px" }}>
+                <div className="sg-recipe-clip-row">
                   <span><strong style={{ color: "#a1a1aa" }}>CLIP Skip: </strong><code style={{ color: "#fbbf24", background: "#18181b", border: "1px solid #27272a", padding: "1px 6px", borderRadius: "3px" }}>{recipe.clipSkip}</code></span>
                   <span>
                     <strong style={{ color: "#a1a1aa" }}>Model Card: </strong>
@@ -1557,11 +1598,10 @@ export default function SamplerGuide() {
                 <div className="sg-card-footer">
                   <span style={{ fontSize: "11px", color: "#a1a1aa" }}>{recipe.speed}</span>
 
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap" }}>
+                  <div className="sg-card-action-row">
                     <button
                       type="button"
-                      className="sg-studio-btn"
-                      style={{ background: "#18181b", borderColor: "#3f3f46", color: "#38bdf8" }}
+                      className="sg-studio-btn sg-vram-btn"
                       onClick={() => {
                         bridgeToVramProfiler(navigate, {
                           source: "sampler-guide",
@@ -1578,7 +1618,7 @@ export default function SamplerGuide() {
                     </button>
                     <button
                       type="button"
-                      className="sg-btn-primary"
+                      className="sg-btn-primary sg-recipe-apply-btn"
                       onClick={() => {
                         bridgeToPromptLab(navigate, {
                           source: "sampler-guide",
@@ -1651,7 +1691,8 @@ export default function SamplerGuide() {
           </div>
 
           {/* Comparative Table */}
-          <table className="sg-battle-table">
+          <div className="sg-battle-table-wrap">
+            <table className="sg-battle-table">
             <thead>
               <tr>
                 <th className="metric-col">Kriteria Evaluasi</th>
@@ -1741,7 +1782,8 @@ export default function SamplerGuide() {
               </tr>
             </tbody>
           </table>
-        </section>
+        </div>
+      </section>
       )}
 
       {/* =====================================================================

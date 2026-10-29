@@ -47,10 +47,12 @@
   gap: 20px;
   padding: 24px 20px 80px;
   max-width: 1440px;
+  width: 100%;
   margin: 0 auto;
   color: var(--cns-text-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ==========================================================================
@@ -194,13 +196,15 @@
 
 .openpose-rig-container {
   display: grid;
-  grid-template-columns: 1fr 390px;
+  grid-template-columns: minmax(0, 1fr) 390px;
   gap: 20px;
   background: var(--cns-surface-card);
   border: 1px solid var(--cns-border);
   border-radius: 8px;
   padding: 20px;
   box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Left Canvas Panel */
@@ -208,6 +212,9 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .openpose-canvas-toolbar {
@@ -218,6 +225,9 @@
   padding: 10px 14px;
   border-radius: 6px;
   gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .toolbar-top-row {
@@ -2731,11 +2741,11 @@
 
 @media (max-width: 1024px) {
   .openpose-rig-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .preproc-main-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .preproc-list-sidebar {
@@ -2743,11 +2753,11 @@
   }
 
   .dossier-grid-info {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .pipeline-side-by-side-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 14px;
   }
 
@@ -2756,37 +2766,492 @@
   }
 
   .focused-canvas-card {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .card-params-table {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
 @media (max-width: 768px) {
   .controlnet-studio-page {
-    padding: 16px 12px 60px;
+    padding: 12px 4px 50px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
 
   .studio-hero-banner {
-    padding: 20px 16px;
+    padding: 14px 12px;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .banner-badge-row {
+    gap: 6px;
   }
 
   .studio-main-heading {
-    font-size: 20px;
+    font-size: 18px;
+    word-break: break-word;
   }
 
-  .canvas-aspect-selector {
-    display: none;
+  .studio-tagline {
+    font-size: 12px;
+    line-height: 1.45;
   }
 
   .studio-tab-navigation {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
     width: 100%;
+    padding: 4px;
+    box-sizing: border-box;
   }
 
   .studio-tab-btn {
-    flex: 1;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    font-size: 12px;
+    box-sizing: border-box;
+  }
+
+  .studio-tab-btn .tab-count-badge {
+    margin-left: auto;
+  }
+
+  /* OpenPose Rig Container & Workstation */
+  .openpose-rig-container {
+    padding: 12px 8px;
+    gap: 14px;
+    border-radius: 6px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .openpose-canvas-panel {
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .openpose-canvas-toolbar {
+    padding: 8px 8px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .toolbar-top-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .toolbar-left {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .toolbar-right {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .canvas-tool-btn {
+    padding: 7px 4px;
+    font-size: 11px;
+    gap: 4px;
     justify-content: center;
+    text-align: center;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .canvas-tool-btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Toolbar Dimension Row */
+  .toolbar-dimension-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding-top: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .preset-pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .preset-group-label {
+    width: 100%;
+    margin-bottom: 2px;
+    font-size: 10.5px;
+  }
+
+  .aspect-pill {
+    padding: 5px 8px;
+    font-size: 10.5px;
+    white-space: nowrap;
+  }
+
+  .preset-select-dropdown {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 4px;
+    padding: 7px 8px;
+    font-size: 11.5px;
+    box-sizing: border-box;
+  }
+
+  .custom-dim-form {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 8px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .dim-num-input {
+    flex: 1;
+    min-width: 44px;
+    max-width: 72px;
+    padding: 5px 4px;
+    font-size: 11px;
+    box-sizing: border-box;
+  }
+
+  .dim-apply-btn {
+    flex: 1;
+    padding: 6px 10px;
+    text-align: center;
+    justify-content: center;
+    font-size: 11px;
+  }
+
+  .resize-mode-control {
+    width: 100%;
+  }
+
+  .resize-mode-toggle {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 10px;
+    font-size: 11px;
+    box-sizing: border-box;
+  }
+
+  /* Canvas Viewport */
+  .canvas-viewport-wrapper {
+    min-height: 380px;
+    max-height: 520px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .openpose-interactive-canvas {
+    max-height: 490px;
+    max-width: 100%;
+  }
+
+  .canvas-interaction-hint {
+    position: static;
+    transform: none;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    font-size: 10.5px;
+    padding: 6px 8px;
+    line-height: 1.4;
+  }
+
+  /* Bottom Controls & Stick Thickness Bar */
+  .canvas-bottom-controls {
+    padding: 10px 8px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stick-thickness-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .stick-thickness-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .stick-thickness-group .control-label {
+    grid-column: 1 / -1;
+    margin-bottom: 2px;
+    font-size: 11px;
+  }
+
+  .thickness-pill {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 6px;
+    font-size: 11px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+
+  .thickness-live-indicator {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    font-size: 10.5px;
+  }
+
+  .bg-mode-group {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .bg-mode-group .control-label {
+    width: 100%;
+    margin-bottom: 2px;
+    font-size: 11px;
+  }
+
+  .bg-mode-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 6px 8px;
+    font-size: 11px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .reference-opacity-control {
+    width: 100%;
+    justify-content: space-between;
+    padding: 4px 0;
+  }
+
+  .opacity-slider {
+    flex: 1;
+  }
+
+  /* OpenPose Sidebar Panel */
+  .openpose-sidebar-panel {
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .pose-title {
+    font-size: 16px;
+    word-break: break-word;
+  }
+
+  .pose-desc {
+    font-size: 12px;
+  }
+
+  .pose-prompt-card {
+    padding: 10px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .prompt-body {
+    font-size: 11.5px;
+    word-break: break-all;
+  }
+
+  .export-action-box {
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .export-btn {
+    padding: 10px 10px;
+    width: 100%;
+    box-sizing: border-box;
+    gap: 8px;
+  }
+
+  .btn-text-col {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .btn-text-col strong {
+    font-size: 11.5px;
+    word-break: break-word;
+    display: block;
+  }
+
+  .btn-text-col small {
+    font-size: 10px;
+    word-break: break-word;
+    display: block;
+  }
+
+  /* Gallery Section */
+  .pose-gallery-section {
+    padding: 14px 10px;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .gallery-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .gallery-title-col h3 {
+    font-size: 16px;
+  }
+
+  .gallery-title-col p {
+    font-size: 12px;
+  }
+
+  .gallery-search-wrap {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .gallery-categories-pills {
+    gap: 4px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+
+  .gallery-cat-pill {
+    padding: 5px 10px;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .poses-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+    gap: 10px;
+  }
+
+  /* Preprocessor Guide */
+  .preproc-main-layout {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .preproc-list-sidebar {
+    max-height: 320px;
+    overflow-y: auto;
+  }
+
+  .preproc-item-card {
+    padding: 10px 10px;
+  }
+
+  .pipeline-card {
+    padding: 12px 10px;
+  }
+
+  .focused-canvas-card {
+    padding: 12px 10px;
+  }
+
+  /* Model Matrix */
+  .matrix-filter-bar {
+    padding: 10px 8px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .matrix-search-box {
+    min-width: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .matrix-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .canvas-tool-btn {
+    padding: 6px 2px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .aspect-pill {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+
+  .stick-thickness-group {
+    grid-template-columns: 1fr;
+  }
+
+  .poses-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 360px) {
+  .canvas-tool-btn {
+    font-size: 9.5px;
+    padding: 5px 1px;
+    gap: 2px;
+  }
+
+  .canvas-tool-btn svg {
+    width: 12px;
+    height: 12px;
   }
 }

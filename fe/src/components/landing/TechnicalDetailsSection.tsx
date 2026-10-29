@@ -289,7 +289,7 @@ export function TechnicalDetailsSection() {
         {/* Header */}
         <div className="mg-tech-header">
           <div className="mg-editorial-tag">
-            <span className="mg-tag-num">04</span>
+            <span className="mg-tag-num">05</span>
             <span className="mg-tag-line" />
             <span className="mg-tag-text">INFERENCE BENCHMARKS &amp; ARCHITECTURE</span>
           </div>
@@ -597,6 +597,32 @@ export function TechnicalDetailsSection() {
                     </p>
                   </div>
                 </div>
+
+                {/* Dedicated Interactive Workstation Bridges */}
+                <div className="mg-tech-tool-bridge">
+                  <div className="mg-tech-bridge-text">
+                    <svg className="mg-tech-bridge-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2" y="2" width="20" height="20" rx="4" />
+                      <line x1="6" y1="18" x2="6" y2="15" />
+                      <line x1="10" y1="18" x2="10" y2="11" />
+                      <line x1="14" y1="18" x2="14" y2="8" />
+                      <line x1="18" y1="18" x2="18" y2="13" />
+                    </svg>
+                    <span>
+                      Ingin menghitung alokasi VRAM presisi untuk resolusi kustom, batch multi-image, dan offloading FP8 / GGUF?
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <Link to="/vram" className="mg-tech-bridge-action">
+                      <span>Buka VRAM Profiler</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Link>
+                    <Link to="/telemetry" className="mg-tech-bridge-action">
+                      <span>Live ComfyUI Telemetry</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Link>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -711,6 +737,30 @@ export function TechnicalDetailsSection() {
                       </button>
                     </div>
                     <code>{activePreset.negativePrompt}</code>
+                  </div>
+                </div>
+
+                {/* Dedicated Interactive Workstation Bridges */}
+                <div className="mg-tech-tool-bridge">
+                  <div className="mg-tech-bridge-text">
+                    <svg className="mg-tech-bridge-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="18" y1="20" x2="18" y2="10" />
+                      <line x1="12" y1="20" x2="12" y2="4" />
+                      <line x1="6" y1="20" x2="6" y2="14" />
+                    </svg>
+                    <span>
+                      Pelajari karakteristik konvergensi kurva sigma, atau kelola kamus negative prompt modular &amp; Textual Inversions:
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <Link to="/sampler-guide" className="mg-tech-bridge-action">
+                      <span>Buka Sampler Guide</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Link>
+                    <Link to="/negative-vault" className="mg-tech-bridge-action">
+                      <span>Buka Negative Vault</span>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="9 18 15 12 9 6" /></svg>
+                    </Link>
                   </div>
                 </div>
               </div>

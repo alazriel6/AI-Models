@@ -104,14 +104,14 @@
 .studio-status-pill {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
     font-size: 11px;
     font-weight: 500;
-    color: #34d399;
-    background: rgba(16, 185, 129, 0.08);
-    padding: 1px 7px;
-    border-radius: 999px;
-    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #a1a1aa;
+    background: #16161a;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #27272f;
 }
 
 .studio-status-dot {
@@ -148,7 +148,7 @@
 }
 
 .prompt-lab-subtitle {
-    font-size: 13px;
+    font-size: 12.5px;
     color: var(--pl-text-muted);
     line-height: 1.5;
     margin: 0;
@@ -168,11 +168,11 @@
     gap: 6px;
     font-size: 11px;
     padding: 3px 8px;
-    border-radius: 6px;
-    background: var(--pl-surface-1);
-    border: 1px solid var(--pl-border);
-    color: var(--pl-text-secondary);
-    font-family: var(--pl-font-mono);
+    border-radius: 5px;
+    background: #141418;
+    border: 1px solid #27272f;
+    color: #a1a1aa;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .telemetry-pill strong {
@@ -4708,5 +4708,741 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ==========================================================================
+   Tool Grid Base & Mobile-Only Utilities
+   ========================================================================== */
+
+.prompt-canvas-tools-grid {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.preset-filter-selects-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mobile-only-btn-label {
+    display: none;
+}
+
+/* ==========================================================================
+   Comprehensive Mobile Responsive Overrides (<= 768px)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .mobile-only-btn-label {
+        display: inline;
+    }
+
+    .prompt-lab-container {
+        padding: 12px 10px 48px 10px;
+    }
+
+    /* Header */
+    .prompt-lab-header {
+        margin-bottom: 14px;
+    }
+
+    .prompt-lab-title-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .prompt-lab-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .prompt-lab-title {
+        font-size: 18px;
+        line-height: 1.25;
+    }
+
+    .prompt-lab-header-actions {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .prompt-lab-header-actions .prompt-btn-sm,
+    .prompt-lab-header-actions .prompt-btn-primary {
+        width: 100%;
+        height: 32px;
+        padding: 0 4px;
+        justify-content: center;
+        font-size: 11px;
+        box-sizing: border-box;
+    }
+
+    .prompt-lab-header-actions .prompt-btn-sm span,
+    .prompt-lab-header-actions .prompt-btn-primary span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .prompt-lab-sub-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    .prompt-lab-subtitle {
+        font-size: 11.5px;
+        line-height: 1.45;
+    }
+
+    .studio-telemetry-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        width: 100%;
+    }
+
+    .telemetry-pill {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    /* Unified Workspace Toolbar */
+    .prompt-unified-workspace-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .workspace-toolbar-left {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .checkpoint-bar-select-wrap {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .checkpoint-bar-select {
+        width: 100%;
+        height: 36px;
+        box-sizing: border-box;
+        font-size: 12px;
+    }
+
+    .workspace-toolbar-right {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        border-top: 1px solid var(--pl-border-subtle);
+        padding-top: 8px;
+    }
+
+    .studio-sync-inline-status {
+        font-size: 11px;
+        justify-content: flex-start;
+    }
+
+    .studio-sync-btn-inline {
+        width: 100%;
+        justify-content: center;
+        height: 34px;
+        font-size: 11.5px;
+    }
+
+    /* Canvas Card & Positive Workstation */
+    .prompt-canvas-card {
+        border-radius: 8px;
+    }
+
+    .prompt-canvas-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .prompt-canvas-title-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .canvas-header-chunk-zones {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        width: 100%;
+        margin-top: 2px;
+    }
+
+    .prompt-canvas-actions {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .prompt-view-switcher {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .prompt-view-switcher:has(.matrix-active) {
+        grid-template-columns: repeat(4, 1fr);
+    }
+
+    .prompt-view-btn {
+        justify-content: center;
+        text-align: center;
+        height: 30px;
+        padding: 0 4px;
+        font-size: 11px;
+    }
+
+    .prompt-toolbar-divider {
+        display: none;
+    }
+
+    /* Tools Grid */
+    .prompt-canvas-tools-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .prompt-canvas-tools-grid .prompt-btn-sm {
+        width: 100%;
+        height: 32px;
+        justify-content: center;
+        font-size: 11px;
+        padding: 0 4px;
+        box-sizing: border-box;
+    }
+
+    .prompt-canvas-tools-grid .prompt-btn-sm span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Textarea & Hint */
+    .prompt-textarea {
+        font-size: 12.5px;
+        padding: 10px 12px;
+        min-height: 100px;
+    }
+
+    .prompt-keyboard-hint {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px 10px;
+        font-size: 10.5px;
+    }
+
+    .hint-left {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .hint-matrix-quick {
+        width: 100%;
+        display: flex;
+        gap: 6px;
+    }
+
+    .hint-matrix-quick button {
+        flex: 1;
+        justify-content: center;
+        height: 30px;
+        font-size: 10.5px;
+    }
+
+    /* Live Chunk Ribbon */
+    .canvas-chunk-ribbon {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+
+    .chunk-ribbon-left {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .chunk-ribbon-right {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .chunk-ribbon-right button {
+        width: 100%;
+        justify-content: center;
+        height: 30px;
+        font-size: 10.5px;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    /* Tokenizer View in Canvas */
+    .tokenizer-toolbar-note {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 8px 10px;
+    }
+
+    .tokenizer-note-left {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .tokenizer-note-right {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tokenizer-add-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+        padding: 8px 10px;
+    }
+
+    .tokenizer-add-input {
+        width: 100%;
+        box-sizing: border-box;
+        height: 34px;
+    }
+
+    .tokenizer-add-btn {
+        width: 100%;
+        height: 34px;
+        justify-content: center;
+    }
+
+    .token-weight-popover {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+    }
+
+    /* Negative Prompt Workstation */
+    .neg-presets-sub-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 10px 12px;
+    }
+
+    .neg-presets-sub-left {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .negative-presets-group {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 4px;
+        width: 100%;
+    }
+
+    .neg-quick-btn {
+        width: 100%;
+        text-align: center;
+        padding: 5px 2px;
+        font-size: 10.5px;
+    }
+
+    .neg-mode-selector {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        box-sizing: border-box;
+        padding: 3px 6px;
+    }
+
+    .neg-mode-toggle {
+        flex: 1;
+        text-align: center;
+        padding: 4px 6px;
+    }
+
+    .quick-neg-groups-wrap {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .quick-neg-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .quick-neg-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        width: 100%;
+    }
+
+    /* Sidebar Column */
+    .prompt-sidebar-col {
+        padding: 12px 10px;
+        border-radius: 8px;
+    }
+
+    .prompt-sidebar-nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+        width: 100%;
+    }
+
+    .sidebar-tab-btn {
+        padding: 6px 4px;
+        font-size: 11px;
+        justify-content: center;
+    }
+
+    .preset-search-filter-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .preset-search-input-wrap {
+        width: 100%;
+    }
+
+    .preset-filter-selects-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .preset-arch-select {
+        width: 100%;
+        height: 34px;
+        box-sizing: border-box;
+        font-size: 11px;
+    }
+
+    .preset-new-btn {
+        width: 100%;
+        height: 34px;
+        justify-content: center;
+    }
+
+    .sidebar-char-card-list {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .sidebar-char-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Wildcard Popover */
+    .wildcard-popover-banner {
+        max-height: 320px;
+        overflow-y: auto;
+        padding: 10px;
+    }
+
+    .wildcard-popover-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    /* Toast */
+    .prompt-studio-toast {
+        left: 12px;
+        right: 12px;
+        bottom: 16px;
+        justify-content: center;
+        font-size: 11.5px;
+    }
+}
+
+/* ==========================================================================
+   Small Mobile Devices (<= 480px) & Ultra-Compact (<= 380px)
+   Eliminates all text clipping, button squeezing, and horizontal overflow
+   ========================================================================== */
+
+@media (max-width: 480px) {
+    .prompt-lab-container,
+    .prompt-lab-workspace,
+    .prompt-canvas-col,
+    .prompt-canvas-card,
+    .prompt-sidebar-col,
+    .prompt-unified-workspace-toolbar,
+    .prompt-canvas-header,
+    .prompt-canvas-body {
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    .prompt-lab-container {
+        padding: 8px 6px 48px 6px;
+    }
+
+    .prompt-lab-title {
+        font-size: 16.5px;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    /* 2-Column Grid for Header Actions prevents "Tampilkan Pustaka" & "Simpan Preset" cutoff */
+    .prompt-lab-header-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .prompt-lab-header-actions .prompt-btn-sm,
+    .prompt-lab-header-actions .prompt-btn-primary {
+        height: 34px;
+        padding: 0 6px;
+        font-size: 11px;
+    }
+
+    /* Telemetry wrap */
+    .studio-telemetry-strip {
+        gap: 4px;
+    }
+
+    .telemetry-pill {
+        font-size: 9.5px;
+        padding: 2px 5px;
+    }
+
+    /* Target Checkpoint toolbar */
+    .prompt-unified-workspace-toolbar {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    .checkpoint-bar-select {
+        font-size: 11px;
+        height: 34px;
+    }
+
+    .studio-sync-inline-status {
+        font-size: 10px;
+        line-height: 1.35;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .studio-sync-btn-inline {
+        height: 34px;
+        font-size: 11px;
+    }
+
+    /* Positive Prompt Header */
+    .prompt-canvas-title-wrap {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .canvas-header-chunk-zones {
+        gap: 3px;
+    }
+
+    .canvas-chunk-tag {
+        font-size: 9px;
+        padding: 1px 4px;
+    }
+
+    /* View Switcher */
+    .prompt-view-switcher {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2px;
+    }
+
+    .prompt-view-switcher:has(.matrix-active) {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .prompt-view-btn {
+        height: 32px;
+        padding: 0 2px;
+        font-size: 10.5px;
+    }
+
+    /* 2-Column Tools Grid prevents "Hapus Duplikat" cutoff */
+    .prompt-canvas-tools-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .prompt-canvas-tools-grid .prompt-btn-sm {
+        height: 34px;
+        padding: 0 6px;
+        font-size: 11px;
+    }
+
+    /* Negative architecture presets: 2 columns so "Illustrious Standard" fits 100% */
+    .negative-presets-group {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .neg-quick-btn {
+        height: 32px;
+        font-size: 10.5px;
+        padding: 0 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Negative tools */
+    .prompt-canvas-tools-grid.negative-tools {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+
+    .prompt-canvas-tools-grid.negative-tools .prompt-btn-sm {
+        height: 32px;
+        font-size: 10.5px;
+        padding: 0 2px;
+    }
+
+    /* Chunk Ribbon Right: stack vertically */
+    .chunk-ribbon-right {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        gap: 6px;
+    }
+
+    .chunk-ribbon-right button {
+        width: 100%;
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .chunk-ribbon-pill {
+        font-size: 9.5px;
+        padding: 2px 5px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    /* Sidebar nav */
+    .sidebar-tab-btn {
+        font-size: 9.5px;
+        padding: 6px 2px;
+    }
+
+    .preset-filter-selects-row {
+        gap: 4px;
+    }
+
+    .preset-arch-select {
+        font-size: 10.5px;
+        height: 32px;
+    }
+
+    .preset-new-btn {
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .sidebar-char-card {
+        padding: 6px 8px;
+        gap: 8px;
+    }
+
+    .sidebar-char-thumb-wrap {
+        width: 40px;
+        min-width: 40px;
+        height: 48px;
+    }
+
+    .sidebar-char-name {
+        font-size: 11px;
+        max-width: 140px;
+    }
+
+    .sidebar-char-snippet {
+        font-size: 9.5px;
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 360px) {
+    .prompt-lab-container {
+        padding: 6px 4px 44px 4px;
+    }
+
+    .prompt-lab-title {
+        font-size: 15px;
+    }
+
+    .prompt-lab-header-actions .prompt-btn-sm,
+    .prompt-lab-header-actions .prompt-btn-primary {
+        font-size: 10px;
+        height: 32px;
+    }
+
+    .prompt-canvas-tools-grid .prompt-btn-sm {
+        font-size: 10px;
+        height: 32px;
+    }
+
+    .neg-quick-btn {
+        font-size: 9.5px;
+    }
+
+    .prompt-canvas-tools-grid.negative-tools .prompt-btn-sm {
+        font-size: 9.5px;
     }
 }

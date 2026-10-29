@@ -53,33 +53,13 @@ export function LandingFooter() {
             </ul>
           </div>
 
-          {/* Nav Column 2: Creative Tools */}
+          {/* Nav Column 2: Prompting & Creative Tools */}
           <div className="mg-footer-links-col">
-            <span className="mg-col-heading">CREATIVE TOOLS</span>
+            <span className="mg-col-heading">PROMPTING &amp; CREATIVE TOOLS</span>
             <ul>
               <li>
-                <Link to="/compare" className="mg-footer-link">
-                  Model Comparison
-                </Link>
-              </li>
-              <li>
-                <Link to="/gallery" className="mg-footer-link">
-                  Generation Gallery
-                </Link>
-              </li>
-              <li>
                 <Link to="/prompt-lab" className="mg-footer-link">
-                  Prompt Lab
-                </Link>
-              </li>
-              <li>
-                <Link to="/calculator" className="mg-footer-link">
-                  Resolution Calculator
-                </Link>
-              </li>
-              <li>
-                <Link to="/lora-stack" className="mg-footer-link">
-                  LoRA Stack Builder
+                  Prompt Studio &amp; Lab
                 </Link>
               </li>
               <li>
@@ -88,35 +68,75 @@ export function LandingFooter() {
                 </Link>
               </li>
               <li>
-                <Link to="/inspector" className="mg-footer-link">
-                  Metadata Inspector
+                <Link to="/prompt-deconstructor" className="mg-footer-link">
+                  Prompt Deconstructor
+                </Link>
+              </li>
+              <li>
+                <Link to="/story-merger" className="mg-footer-link">
+                  Character Lock &amp; Story Merger
+                </Link>
+              </li>
+              <li>
+                <Link to="/negative-vault" className="mg-footer-link">
+                  Negative Vault
+                </Link>
+              </li>
+              <li>
+                <Link to="/lora-stack" className="mg-footer-link">
+                  LoRA Stack Builder
+                </Link>
+              </li>
+              <li>
+                <Link to="/gallery" className="mg-footer-link">
+                  Generation Gallery
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Nav Column 3: Resources & Community */}
+          {/* Nav Column 3: Workflows & Hardware Labs */}
           <div className="mg-footer-links-col">
-            <span className="mg-col-heading">RESOURCES</span>
+            <span className="mg-col-heading">WORKFLOWS &amp; HARDWARE</span>
             <ul>
               <li>
-                <Link to="/about" className="mg-footer-link">
-                  About Platform
+                <Link to="/controlnet" className="mg-footer-link">
+                  ControlNet &amp; OpenPose Rig
                 </Link>
               </li>
               <li>
-                <Link to="/models" className="mg-footer-link">
-                  Getting Started
+                <Link to="/vram" className="mg-footer-link">
+                  VRAM &amp; Hardware Profiler
                 </Link>
               </li>
               <li>
-                <Link to="/gallery" className="mg-footer-link">
-                  Community Gallery
+                <Link to="/workflows" className="mg-footer-link">
+                  ComfyUI Workflows
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="mg-footer-link">
-                  Send Feedback
+                <Link to="/telemetry" className="mg-footer-link">
+                  ComfyUI Telemetry &amp; Benchmark
+                </Link>
+              </li>
+              <li>
+                <Link to="/sampler-guide" className="mg-footer-link">
+                  Sampler &amp; Scheduler Guide
+                </Link>
+              </li>
+              <li>
+                <Link to="/calculator" className="mg-footer-link">
+                  Resolution Calculator
+                </Link>
+              </li>
+              <li>
+                <Link to="/compare" className="mg-footer-link">
+                  Model Comparison
+                </Link>
+              </li>
+              <li>
+                <Link to="/inspector" className="mg-footer-link">
+                  Metadata Inspector
                 </Link>
               </li>
             </ul>

@@ -17,7 +17,7 @@ export function FinalCtaSection() {
         <div className="mg-final-inner">
           {/* Editorial Tag */}
           <div className="mg-editorial-tag">
-            <span className="mg-tag-num">05</span>
+            <span className="mg-tag-num">06</span>
             <span className="mg-tag-line" />
             <span className="mg-tag-text">GET STARTED</span>
           </div>
@@ -28,7 +28,7 @@ export function FinalCtaSection() {
 
           <p className="mg-final-desc">
             Explore the library and make your model workflow easier to navigate.
-            Zero cloud lock-in. Full tensor transparency.
+            14 perkakas generatif AI terintegrasi, zero cloud lock-in, dan transparansi SafeTensors tanpa telemetry.
           </p>
 
           {/* Primary CTA Action Buttons */}
@@ -40,6 +40,24 @@ export function FinalCtaSection() {
                 <polyline points="12 5 19 12 12 19" />
               </svg>
             </Link>
+
+            <button
+              type="button"
+              className="mg-btn mg-btn-secondary mg-btn-large"
+              onClick={() => {
+                const target = document.getElementById('tools-arsenal');
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth' });
+                }
+              }}
+            >
+              <span>Explore All 14 Tools</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                <polyline points="2 17 12 22 22 17" />
+                <polyline points="2 12 12 17 22 12" />
+              </svg>
+            </button>
 
             <Link to="/compare" className="mg-btn mg-btn-secondary mg-btn-large">
               <span>Compare Model Architectures</span>

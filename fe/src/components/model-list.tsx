@@ -500,7 +500,7 @@ export default function ModelList() {
     const listContainerRef = useRef<HTMLDivElement>(null);
     const listVirtualizer = useWindowVirtualizer({
         count: filteredCatalog.length,
-        estimateSize: () => 64,
+        estimateSize: () => (typeof window !== "undefined" && window.innerWidth <= 768 ? 84 : 64),
         overscan: 5,
         scrollMargin: listContainerRef.current?.offsetTop ?? 0,
     });
@@ -602,15 +602,34 @@ export default function ModelList() {
                     {catalog.length > 1 && (
                         <div className="model-quick-switcher">
                             <span className="quick-label">Switch:</span>
-                            {catalog.map((m) => (
-                                <button
-                                    key={m.id}
-                                    className={`quick-pill-btn ${selectedModel.id === m.id ? "active" : ""}`}
-                                    onClick={() => handleSelectModel(m)}
-                                >
-                                    {m.name}
-                                </button>
-                            ))}
+                            {/* Desktop Horizontal Pills Row */}
+                            <div className="quick-pills-row">
+                                {catalog.map((m) => (
+                                    <button
+                                        key={m.id}
+                                        className={`quick-pill-btn ${selectedModel.id === m.id ? "active" : ""}`}
+                                        onClick={() => handleSelectModel(m)}
+                                    >
+                                        {m.name}
+                                    </button>
+                                ))}
+                            </div>
+                            {/* Mobile Native Dropdown Picker */}
+                            <select
+                                className="quick-model-select"
+                                value={selectedModel.id}
+                                onChange={(e) => {
+                                    const m = catalog.find((c) => c.id === e.target.value);
+                                    if (m) handleSelectModel(m);
+                                }}
+                                aria-label="Pilih model lain"
+                            >
+                                {catalog.map((m) => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.name} ({m.baseModel})
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     )}
                 </div>
@@ -1824,53 +1843,57 @@ export default function ModelList() {
                                                 </svg>
                                             </div>
                                         )}
-                                        <div>
+                                        <div className="list-model-info">
                                             <h4 className="list-title">{item.name}</h4>
                                             <span className="list-author">by {item.author}</span>
                                         </div>
                                     </div>
 
-                                    <div className="col-type">
-                                        <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
-                                            {item.type.toUpperCase()}
-                                        </span>
-                                    </div>
+                                    <div className="list-meta-and-actions">
+                                        <div className="list-meta-group">
+                                            <div className="col-type">
+                                                <span className={`pill-badge ${item.type === "lora" ? "lora-pill" : "checkpoint-pill"}`}>
+                                                    {item.type.toUpperCase()}
+                                                </span>
+                                            </div>
 
-                                    <div className="col-base">
-                                        <span className="pill-badge base-pill">{item.baseModel}</span>
-                                    </div>
+                                            <div className="col-base">
+                                                <span className="pill-badge base-pill">{item.baseModel}</span>
+                                            </div>
+                                        </div>
 
-                                    <div className="col-stats list-stats-cell">
-                                        <span>Likes: {formatCount(item.likes)}</span>
-                                        <span>·</span>
-                                        <span>Rating: {item.rating.toFixed(1)}</span>
-                                    </div>
+                                        <div className="col-stats list-stats-cell">
+                                            <span>Likes: {formatCount(item.likes)}</span>
+                                            <span>·</span>
+                                            <span>Rating: {item.rating.toFixed(1)}</span>
+                                        </div>
 
-                                    <div className="col-size list-size-cell">
-                                        <span>{item.publishedAt || "-"}</span>
-                                    </div>
+                                        <div className="col-size list-size-cell">
+                                            <span>{item.publishedAt || "-"}</span>
+                                        </div>
 
-                                    <div className="col-action" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                        <Link
-                                            to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
-                                            className="list-compare-btn"
-                                            title="Bandingkan model ini di Model Comparison Tool"
-                                            onClick={(e) => e.stopPropagation()}
-                                        >
-                                            ⚔️ Adu
-                                        </Link>
-                                        <button
-                                            type="button"
-                                            className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                toggleModel(item.id);
-                                            }}
-                                            title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
-                                        >
-                                            <StarIcon filled={isModelFav(item.id)} size={13} />
-                                        </button>
-                                        <button className="list-view-btn">Inspect →</button>
+                                        <div className="col-action">
+                                            <Link
+                                                to={`/compare?m1=${encodeURIComponent(item.slug || item.id)}`}
+                                                className="list-compare-btn"
+                                                title="Bandingkan model ini di Model Comparison Tool"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                ⚔️ Adu
+                                            </Link>
+                                            <button
+                                                type="button"
+                                                className={`list-fav-btn ${isModelFav(item.id) ? "favorited" : ""}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleModel(item.id);
+                                                }}
+                                                title={isModelFav(item.id) ? "Hapus dari Favorit" : "Simpan ke Favorit"}
+                                            >
+                                                <StarIcon filled={isModelFav(item.id)} size={13} />
+                                            </button>
+                                            <button className="list-view-btn">Inspect →</button>
+                                        </div>
                                     </div>
                                 </div>
                             );

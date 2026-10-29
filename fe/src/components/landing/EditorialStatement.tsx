@@ -1,8 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 
+const STATEMENT_TABS = [
+  { id: '01', label: '01.01 Checkpoints' },
+  { id: '02', label: '01.02 Prompt Tags' },
+  { id: '03', label: '01.03 VRAM Budgets' },
+  { id: 'specs', label: 'Standards Spec' },
+] as const;
+
+type StatementTabId = (typeof STATEMENT_TABS)[number]['id'];
+
 export function EditorialStatement() {
   const sectionRef = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+
+  // Mobile simplified view state: active tab and showAll toggle to prevent extreme scrolling
+  const [mobileActiveTab, setMobileActiveTab] = useState<StatementTabId>('01');
+  const [mobileShowAll, setMobileShowAll] = useState(false);
 
   useEffect(() => {
     const el = sectionRef.current;
@@ -79,6 +92,25 @@ export function EditorialStatement() {
           </h2>
         </div>
 
+        {/* Mobile Interactive Tab Switcher (Visible on <= 768px only) */}
+        <div className="mg-statement-mobile-nav" role="tablist" aria-label="Pilih Pilar Arsitektur">
+          {STATEMENT_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={mobileActiveTab === tab.id}
+              className={`mg-statement-mobile-chip ${mobileActiveTab === tab.id ? 'is-active' : ''}`}
+              onClick={() => {
+                setMobileActiveTab(tab.id);
+                setMobileShowAll(false);
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         {/* Asymmetric 2-Column Editorial Grid */}
         <div className="mg-statement-grid">
           {/* Left Column: Thesis & Deep Explanation */}
@@ -90,14 +122,16 @@ export function EditorialStatement() {
               and author-verified generation parameters.
             </p>
 
-            <p className="mg-statement-body">
+            <p className={`mg-statement-body ${!mobileShowAll ? 'mg-body-mobile-collapsed' : ''}`}>
               Built on the open SafeTensors standard developed by Hugging Face for secure, zero-copy
               model storage. Instead of executing arbitrary Python pickle bytecode, Models Guide parses
               header metadata directly without loading multi-gigabyte weight tensors into system RAM.
             </p>
 
             {/* Model Architecture Quick Audit Pill Matrix with Scanner Beam */}
-            <div className="mg-statement-audits">
+            <div
+              className={`mg-statement-audits ${!mobileShowAll && mobileActiveTab !== 'specs' ? 'mobile-hidden-statement' : ''}`}
+            >
               <div className="mg-audit-scanner" aria-hidden="true" />
               <div className="mg-audit-header-bar">
                 <span className="mg-audit-status-badge">
@@ -124,7 +158,10 @@ export function EditorialStatement() {
 
           {/* Right Column: Architectural Pillar Cards */}
           <div className="mg-statement-right">
-            <div className="mg-pillar-card" style={{ '--card-idx': '0' } as React.CSSProperties}>
+            <div
+              className={`mg-pillar-card ${!mobileShowAll && mobileActiveTab !== '01' ? 'mobile-hidden-statement' : ''}`}
+              style={{ '--card-idx': '0' } as React.CSSProperties}
+            >
               <div className="mg-pillar-reticle tl" />
               <div className="mg-pillar-reticle tr" />
               <div className="mg-pillar-reticle bl" />
@@ -143,7 +180,10 @@ export function EditorialStatement() {
               </p>
             </div>
 
-            <div className="mg-pillar-card" style={{ '--card-idx': '1' } as React.CSSProperties}>
+            <div
+              className={`mg-pillar-card ${!mobileShowAll && mobileActiveTab !== '02' ? 'mobile-hidden-statement' : ''}`}
+              style={{ '--card-idx': '1' } as React.CSSProperties}
+            >
               <div className="mg-pillar-reticle tl" />
               <div className="mg-pillar-reticle tr" />
               <div className="mg-pillar-reticle bl" />
@@ -161,7 +201,10 @@ export function EditorialStatement() {
               </p>
             </div>
 
-            <div className="mg-pillar-card" style={{ '--card-idx': '2' } as React.CSSProperties}>
+            <div
+              className={`mg-pillar-card ${!mobileShowAll && mobileActiveTab !== '03' ? 'mobile-hidden-statement' : ''}`}
+              style={{ '--card-idx': '2' } as React.CSSProperties}
+            >
               <div className="mg-pillar-reticle tl" />
               <div className="mg-pillar-reticle tr" />
               <div className="mg-pillar-reticle bl" />
@@ -179,6 +222,21 @@ export function EditorialStatement() {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Mobile Expand / Collapse View Toggle */}
+        <div className="mg-statement-mobile-toggle-wrap">
+          <button
+            type="button"
+            className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
+            onClick={() => setMobileShowAll((prev) => !prev)}
+          >
+            <span>
+              {mobileShowAll
+                ? 'Sembunyikan Sebagian Pilar ↑'
+                : 'Tampilkan Semua 3 Pilar & Spesifikasi ↓'}
+            </span>
+          </button>
         </div>
 
         {/* Animated Connecting SVG Path Anchor to Model Showcase */}

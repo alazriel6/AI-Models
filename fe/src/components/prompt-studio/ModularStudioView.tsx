@@ -158,6 +158,13 @@ const LucideIcons = {
             <path d="M12 3l1.912 5.885a2 2 0 0 0 1.272 1.272L21 12l-5.816 1.843a2 2 0 0 0-1.272 1.272L12 21l-1.912-5.885a2 2 0 0 0-1.272-1.272L3 12l5.816-1.843a2 2 0 0 0 1.272-1.272L12 3z" />
         </svg>
     ),
+    Database: () => (
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <ellipse cx="12" cy="5" rx="9" ry="3" />
+            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+    ),
     Lock: () => (
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
@@ -543,8 +550,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             const cat = CATEGORIES.find((c) => c.id === layerId);
             showToast(
                 isNowLocked
-                    ? `Layer ${cat?.num || ""}: ${cat?.title || layerId} dikunci 🔒 (tidak tertimpa preset)`
-                    : `Layer ${cat?.num || ""}: ${cat?.title || layerId} dibuka 🔓`
+                    ? `Layer ${cat?.num || ""}: ${cat?.title || layerId} dikunci (tidak tertimpa preset)`
+                    : `Layer ${cat?.num || ""}: ${cat?.title || layerId} dibuka`
             );
             return next;
         });
@@ -883,7 +890,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
     const handleUpdateWithCurrentLayers = () => {
         setEditPendingInputs({ ...inputs });
         setEditPendingLora({ name: loraName, weight: loraWeight, enabled: loraEnabled });
-        showToast("✨ Racikan 10 layer aktif siap diperbarui ke preset ini!");
+        showToast("Racikan 10 layer aktif siap diperbarui ke preset ini!");
     };
 
     // Save edited preset back to DB and LocalStorage
@@ -1010,7 +1017,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
             } catch (e) {
                 console.error("Gagal toggle pin:", e);
             }
-            showToast(!isPinned ? "Preset di-pin ke Preset Cepat 📌" : "Preset di-unpin dari bar.");
+            showToast(!isPinned ? "Preset di-pin ke Preset Cepat." : "Preset di-unpin dari bar.");
             return next;
         });
     };
@@ -1069,7 +1076,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
         }
         const { buckets, lora, totalTags } = deconstructPromptTo10Layers(rawPromptInput);
         applyInputsWithLocks(buckets, lora ? { ...lora, enabled: true } : { name: "", weight: 0.85, enabled: false });
-        showToast(`⚡ ${totalTags} tag berhasil dipecah & dimasukkan ke 10 layer!`);
+        showToast(`${totalTags} tag berhasil diuraikan ke 10 layer!`);
     };
 
     // Deconstructor Action 2: Merge into current layers
@@ -1431,8 +1438,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                     onClick={() => setIsDeconstructorOpen(!isDeconstructorOpen)}
                 >
                     <div className="aps-deconstructor-header-title">
-                        <span className="zap-icon"><LucideIcons.Zap /></span>
-                        <span>⚡ Smart Raw Prompt Intake &amp; Auto-Split 10 Layer</span>
+                        <span className="zap-icon"><LucideIcons.Layers /></span>
+                        <span>Input Prompt Mentah &amp; Auto-Split 10 Layer</span>
                     </div>
                     <button
                         type="button"
@@ -1451,7 +1458,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                     <div className="aps-deconstructor-body">
                         <textarea
                             className="aps-deconstructor-textarea"
-                            placeholder="Tempel (paste) prompt mentah panjang di sini (Danbooru tags atau kalimat deskriptif)... Sistem akan otomatis mendistribusikan setiap tag ke 10 layer yang tepat."
+                            placeholder="Tempel (paste) prompt mentah di sini (Danbooru tags atau kalimat deskriptif)... Sistem akan otomatis mendistribusikan setiap tag ke 10 layer yang tepat."
                             value={rawPromptInput}
                             onChange={(e) => setRawPromptInput(e.target.value)}
                         />
@@ -1462,8 +1469,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 onClick={handleDeconstructReplace}
                                 title="Kosongkan layer yang tidak di-lock dan distribusikan hasil pecahannya ke 10 layer"
                             >
-                                <LucideIcons.Zap />
-                                <span>⚡ Pecah &amp; Isi ke 10 Layer (Replace)</span>
+                                <LucideIcons.Layers />
+                                <span>Pecah &amp; Terapkan (Replace)</span>
                             </button>
                             <button
                                 type="button"
@@ -1472,7 +1479,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 title="Tambahkan tag hasil pecahan tanpa menghapus tag yang sudah ada di masing-masing layer"
                             >
                                 <LucideIcons.Plus />
-                                <span>+ Gabungkan ke Layer Saat Ini (Merge)</span>
+                                <span>Gabungkan Tag (Merge)</span>
                             </button>
                             <button
                                 type="button"
@@ -1481,7 +1488,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 title="Pecah prompt mentah dan langsung simpan seluruh 10 layer sebagai Full-Set Preset"
                             >
                                 <LucideIcons.Bookmark />
-                                <span>💾 Pecah &amp; Langsung Simpan Sebagai Full-Set Preset</span>
+                                <span>Simpan sebagai Full-Set Preset</span>
                             </button>
                         </div>
                     </div>
@@ -1611,7 +1618,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 onClick={() => handleApplyDbPreset(preset)}
                                                 title="Terapkan seluruh 10 layer preset ini sekaligus ke Modular Studio"
                                             >
-                                                ⚡ Terapkan ke 10 Layer
+                                                <LucideIcons.Layers />
+                                                <span>Terapkan ke 10 Layer</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -1619,7 +1627,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 onClick={() => handleApplyStyleAndLightingOnly(preset)}
                                                 title="Ganti style anime, kamera, background, dan lighting tanpa mengubah karakter/outfit aktif"
                                             >
-                                                🎨 Style &amp; Lighting Saja (1, 8, 9, 10)
+                                                <span>Style &amp; Lighting Saja (1, 8, 9, 10)</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -1627,13 +1635,13 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 onClick={() => {
                                                     if (onSwitchToCanvas) {
                                                         onSwitchToCanvas(preset.positive_prompt);
-                                                        showToast(`Preset "${preset.title}" dikirim ke Prompt Lab Canvas! 🚀`);
+                                                        showToast(`Preset "${preset.title}" dikirim ke Prompt Lab Canvas.`);
                                                     }
                                                 }}
                                                 title="Kirim output prompt dari preset ini langsung ke Prompt Lab Canvas"
                                             >
                                                 <LucideIcons.ArrowRight />
-                                                <span>🚀 Masukkan ke Lab Canvas</span>
+                                                <span>Masukkan ke Lab Canvas</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -1780,19 +1788,17 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 >
                                     <div className="aps-cat-title-group">
                                         <span
-                                            className={`aps-status-dot ${hasContent ? "active" : "empty"}`}
+                                            className={`aps-layer-index ${hasContent ? "active" : ""}`}
                                             aria-hidden="true"
-                                        />
+                                        >
+                                            {String(cat.num).padStart(2, "0")}
+                                        </span>
                                         <h3 className="aps-cat-title">{cat.title}</h3>
-                                        {hasContent ? (
+                                        {hasContent && (
                                             <span className="aps-cat-tag-count">
                                                 {activeCount} {isExpanded ? "tag" : "tag aktif"}
                                             </span>
-                                        ) : !isExpanded ? (
-                                            <span className="aps-layer-row-placeholder">
-                                                Klik untuk menambah tag...
-                                            </span>
-                                        ) : null}
+                                        )}
                                         {isNsfwEnabled && (cat.nsfwChips || cat.nsfwSubgroups) && (
                                             <span className="aps-cat-nsfw-badge" title="Tersedia pilihan tag dewasa NSFW">
                                                 <LucideIcons.ShieldAlert />
@@ -1804,18 +1810,29 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     <div className="aps-cat-header-actions" onClick={(e) => e.stopPropagation()}>
                                         {!isExpanded && hasContent && (
                                             <span className="aps-layer-snippet-text">
-                                                {parsedTags.slice(0, 3).join(", ")}{parsedTags.length > 3 ? "..." : ""}
-                                            </span>
-                                        )}
-                                        {!isExpanded && (
-                                            <span className="aps-layer-catalog-badge">
-                                                {totalChipsCount}+ katalog
+                                                {parsedTags.slice(0, 4).join(", ")}{parsedTags.length > 4 ? "..." : ""}
                                             </span>
                                         )}
                                         {lockedLayers[cat.id] && !isExpanded && (
-                                            <span className="aps-layer-catalog-badge" style={{ color: "#60a5fa", borderColor: "#2563eb", background: "#0f172a" }}>
-                                                🔒 Terkunci
+                                            <span className="aps-layer-locked-pill" title="Layer ini terkunci">
+                                                <LucideIcons.Lock />
+                                                <span>Terkunci</span>
                                             </span>
+                                        )}
+                                        {isExpanded && (
+                                            <button
+                                                type="button"
+                                                className="aps-cat-catalog-header-btn"
+                                                onClick={() => {
+                                                    setCatalogTargetLayer(cat.id);
+                                                    setCatalogTargetCategory(cat.id === "identity" && identityMode === "character" ? "character" : "all");
+                                                    setShowDanbooruCatalog(true);
+                                                }}
+                                                title={`Buka katalog Danbooru khusus ${cat.title}`}
+                                            >
+                                                <LucideIcons.BookOpen />
+                                                <span>Katalog ({booruStats?.layers?.[cat.id] || totalChipsCount})</span>
+                                            </button>
                                         )}
                                         {isExpanded && (
                                             <button
@@ -1919,7 +1936,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     </div>
                                 )}
 
-                                {/* Unified Token Input Box (Pills + Inline Type/Autocomplete + Catalog Trigger) */}
+                                {/* Dedicated Prompt Composer Box (Active Pills + Inline Input + Auto-complete) */}
                                 <div className="aps-unified-token-box">
                                     {/* Active Token Pills */}
                                     {parsedTags.map((tagItem, idx) => {
@@ -1934,14 +1951,17 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                     const delta = e.deltaY < 0 ? 0.05 : -0.05;
                                                     handleAdjustTagWeight(e, cat.id, idx, delta);
                                                 }}
-                                                title="Scroll mouse untuk mengatur bobot nilai tag"
+                                                title="Scroll mouse / Klik bobot untuk mengatur nilai tag"
                                             >
                                                 <span className="aps-token-text">{cleanText}</span>
                                                 {weightMatch && (
                                                     <span
                                                         className="aps-token-weight"
-                                                        onClick={(e) => handleAdjustTagWeight(e, cat.id, idx, 0.05)}
-                                                        title="Klik untuk menaikkan bobot"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleAdjustTagWeight(e, cat.id, idx, 0.05);
+                                                        }}
+                                                        title="Klik untuk menaikkan bobot (+0.05)"
                                                     >
                                                         :{weightMatch[1]}
                                                     </span>
@@ -1949,7 +1969,10 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 <button
                                                     type="button"
                                                     className="aps-token-del-btn"
-                                                    onClick={(e) => handleRemoveTagPill(e, cat.id, idx)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveTagPill(e, cat.id, idx);
+                                                    }}
                                                     title="Hapus tag ini"
                                                 >
                                                     <LucideIcons.X />
@@ -1958,7 +1981,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                         );
                                     })}
 
-                                    {/* Inline Autocomplete Input */}
+                                    {/* Inline Autocomplete Input with contextual action */}
                                     <div className="aps-token-input-wrapper">
                                         <BooruAutocompleteInput
                                             as="input"
@@ -1967,8 +1990,8 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                 cat.id === "identity" && identityMode === "character"
                                                     ? "Ketik nama karakter Danbooru (frieren, raiden_shogun, mika)..."
                                                     : parsedTags.length === 0
-                                                    ? cat.placeholder
-                                                    : "+ Ketik tag baru..."
+                                                    ? `+ Ketik tag ${cat.title.toLowerCase()} atau pilih rekomendasi di bawah...`
+                                                    : "+ Ketik tag baru (Enter)..."
                                             }
                                             value={layerInputDrafts[cat.id] || ""}
                                             onChange={(val) => {
@@ -1995,46 +2018,28 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                             category={cat.id === "identity" && identityMode === "character" ? "character" : undefined}
                                             isNsfwEnabled={isNsfwEnabled}
                                         />
-                                    </div>
 
-                                    {/* Inline Actions (Katalog Drawer Trigger & Simpan ke DB) */}
-                                    <div className="aps-token-box-actions">
-                                        {onAddModularTag && (
+                                        {/* Contextual DB Save Button when user types custom tag */}
+                                        {(layerInputDrafts[cat.id] || "").trim() && onAddModularTag && (
                                             <button
                                                 type="button"
-                                                className="aps-token-save-db-btn"
+                                                className="aps-token-inline-save-db-btn"
                                                 onClick={() => {
                                                     const draft = (layerInputDrafts[cat.id] || "").trim();
-                                                    if (!draft) {
-                                                        showToast("Ketik tag di kolom input terlebih dahulu untuk disimpan ke Database!");
-                                                        return;
-                                                    }
+                                                    if (!draft) return;
                                                     onAddModularTag(cat.id, draft);
                                                     setLayerInputDrafts((prev) => ({ ...prev, [cat.id]: "" }));
                                                 }}
-                                                title={`Simpan tag "${layerInputDrafts[cat.id] || ""}" secara permanen ke Database`}
+                                                title={`Simpan "${layerInputDrafts[cat.id]}" ke Database layer ini`}
                                             >
-                                                <LucideIcons.Plus />
-                                                <span>Simpan ke DB</span>
+                                                <LucideIcons.Database />
+                                                <span>+ Simpan ke DB</span>
                                             </button>
                                         )}
-                                        <button
-                                            type="button"
-                                            className="aps-token-catalog-btn"
-                                            onClick={() => {
-                                                setCatalogTargetLayer(cat.id);
-                                                setCatalogTargetCategory(cat.id === "identity" && identityMode === "character" ? "character" : "all");
-                                                setShowDanbooruCatalog(true);
-                                            }}
-                                            title={`Buka katalog Danbooru khusus ${cat.title}`}
-                                        >
-                                            <LucideIcons.BookOpen />
-                                            <span>Katalog{booruStats?.layers?.[cat.id] ? ` (${booruStats.layers[cat.id]})` : ""}</span>
-                                        </button>
                                     </div>
                                 </div>
 
-                                {/* Collapsible Quick-Tag Tray (Hanya ditampilkan pada layer yang sedang difokuskan, ringkas 1-2 baris) */}
+                                {/* Collapsible Quick-Tag Tray */}
                                 {cat.id === "identity" && identityMode === "character" ? (
                                     <div className="aps-char-quick-banner">
                                         <span className="aps-char-quick-text">
@@ -2056,30 +2061,42 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 ) : (
                                     <div className="aps-quick-tag-tray">
                                         <div className="aps-quick-tray-header">
-                                            <span className="aps-quick-tray-label">Rekomendasi Cepat:</span>
-                                            <span className="aps-quick-tray-hint">Klik untuk pasang | Klik kanan untuk bobot</span>
+                                            <div className="aps-quick-tray-title-group">
+                                                <span className="aps-quick-tray-icon">
+                                                    <LucideIcons.Sliders />
+                                                </span>
+                                                <span className="aps-quick-tray-label">Rekomendasi Tag</span>
+                                                <span className="aps-quick-tray-badge">
+                                                    {flatChips.length} tag
+                                                </span>
+                                            </div>
+                                            <span className="aps-quick-tray-hint">Klik pasang · Scroll mouse / klik kanan atur bobot</span>
                                         </div>
 
                                         <div className={`aps-quick-tray-chips ${expandedQuickTray[cat.id] ? "expanded" : ""}`}>
                                             {flatChips.slice(0, expandedQuickTray[cat.id] ? undefined : 14).map((chipItem) => {
                                                 const active = isChipActive(cat.id, chipItem.text);
                                                 const weightLabel = getChipWeightLabel(cat.id, chipItem.text);
+                                                const cleanChipName = chipItem.text.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
+                                                const rawWeightMatch = chipItem.text.match(/:([0-9.]+)\)?$/);
+                                                const defaultWeight = rawWeightMatch ? rawWeightMatch[1] : null;
+                                                const displayWeight = weightLabel || defaultWeight;
 
                                                 return (
                                                     <div
                                                         key={`quick-${cat.id}-${chipItem.text}`}
                                                         className={`aps-chip-item ${active ? "active" : ""}`}
-                                                        onClick={() => onToggleChip(cat.id, chipItem.text)}
+                                                        onClick={() => onToggleChip(cat.id, cleanChipName)}
                                                         onContextMenu={(e) => {
                                                             e.preventDefault();
-                                                            onCycleChipWeight(e, cat.id, chipItem.text);
+                                                            onCycleChipWeight(e, cat.id, cleanChipName);
                                                         }}
-                                                        title="Klik untuk pasang | Klik kanan untuk bobot"
+                                                        title={`${cleanChipName} — Klik untuk ${active ? "hapus" : "pasang"} | Klik kanan bobot`}
                                                     >
-                                                        <span className="aps-chip-text">{chipItem.text}</span>
-                                                        {weightLabel && (
+                                                        <span className="aps-chip-text">{cleanChipName}</span>
+                                                        {displayWeight && (
                                                             <span className="aps-chip-weight-pill">
-                                                                :{weightLabel}
+                                                                :{displayWeight}
                                                             </span>
                                                         )}
                                                         {chipItem.isCustom && chipItem.id && onDeleteModularTag && (
@@ -2105,21 +2122,26 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                                     {cat.nsfwChips.slice(0, expandedQuickTray[cat.id] ? undefined : 6).map((chipText) => {
                                                         const active = isChipActive(cat.id, chipText);
                                                         const weightLabel = getChipWeightLabel(cat.id, chipText);
+                                                        const cleanChipName = chipText.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
+                                                        const rawWeightMatch = chipText.match(/:([0-9.]+)\)?$/);
+                                                        const defaultWeight = rawWeightMatch ? rawWeightMatch[1] : null;
+                                                        const displayWeight = weightLabel || defaultWeight;
+
                                                         return (
                                                             <div
                                                                 key={`quick-nsfw-${cat.id}-${chipText}`}
                                                                 className={`aps-chip-item aps-chip-nsfw ${active ? "active" : ""}`}
-                                                                onClick={() => onToggleChip(cat.id, chipText)}
+                                                                onClick={() => onToggleChip(cat.id, cleanChipName)}
                                                                 onContextMenu={(e) => {
                                                                     e.preventDefault();
-                                                                    onCycleChipWeight(e, cat.id, chipText);
+                                                                    onCycleChipWeight(e, cat.id, cleanChipName);
                                                                 }}
                                                                 title="Tag Dewasa (18+) - Klik untuk pasang | Klik kanan untuk bobot"
                                                             >
-                                                                <span className="aps-chip-text">{chipText}</span>
-                                                                {weightLabel && (
+                                                                <span className="aps-chip-text">{cleanChipName}</span>
+                                                                {displayWeight && (
                                                                     <span className="aps-chip-weight-pill">
-                                                                        :{weightLabel}
+                                                                        :{displayWeight}
                                                                     </span>
                                                                 )}
                                                             </div>
@@ -2204,7 +2226,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                             <div className="aps-model-chips-grid">
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "pony" ? "active pony" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "pony" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("pony"); localStorage.setItem("modular_studio_target_model", "pony"); }}
                                     title="Pony Diffusion V6 XL - Auto-inject score_9 dan Danbooru _"
                                 >
@@ -2212,7 +2234,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "illustrious" ? "active illustrious" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "illustrious" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("illustrious"); localStorage.setItem("modular_studio_target_model", "illustrious"); }}
                                     title="Illustrious-XL - Danbooru berspasi & masterpiece"
                                 >
@@ -2220,7 +2242,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "animagine" ? "active animagine" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "animagine" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("animagine"); localStorage.setItem("modular_studio_target_model", "animagine"); }}
                                     title="Animagine XL 3.1 - Danbooru _ & newest aesthetic"
                                 >
@@ -2228,7 +2250,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "flux" ? "active flux" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "flux" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("flux"); localStorage.setItem("modular_studio_target_model", "flux"); }}
                                     title="Flux.1 (Dev/Schnell) - Kalimat naratif bahasa Inggris alami"
                                 >
@@ -2236,7 +2258,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "noobai" ? "active illustrious" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "noobai" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("noobai"); localStorage.setItem("modular_studio_target_model", "noobai"); }}
                                     title="NoobAI - Standar resmi OnomaAI tanpa score_9"
                                 >
@@ -2244,7 +2266,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "sdxl_realistic" ? "active sdxl" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "sdxl_realistic" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("sdxl_realistic"); localStorage.setItem("modular_studio_target_model", "sdxl_realistic"); }}
                                     title="SDXL Photorealistic - Token DSLR & fotografi tajam"
                                 >
@@ -2252,7 +2274,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "midjourney" ? "active midjourney" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "midjourney" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("midjourney"); localStorage.setItem("modular_studio_target_model", "midjourney"); }}
                                     title="Midjourney V6.1 - Prosa sinematik & parameter render"
                                 >
@@ -2260,7 +2282,7 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 </button>
                                 <button
                                     type="button"
-                                    className={`aps-model-btn ${selectedTargetModel === "raw" ? "active raw" : ""}`}
+                                    className={`aps-model-btn ${selectedTargetModel === "raw" ? "active" : ""}`}
                                     onClick={() => { setSelectedTargetModel("raw"); localStorage.setItem("modular_studio_target_model", "raw"); }}
                                     title="Raw 10-Layer - Format asli tanpa transformasi"
                                 >
@@ -2436,22 +2458,26 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                     .map((chipItem) => {
                                         const active = isChipActive(modalLayerDetail.id, chipItem.text);
                                         const weightLabel = getChipWeightLabel(modalLayerDetail.id, chipItem.text);
+                                        const cleanChipName = chipItem.text.replace(/^\(+|\)+$/g, "").replace(/:[0-9.]+$/, "").trim();
+                                        const rawWeightMatch = chipItem.text.match(/:([0-9.]+)\)?$/);
+                                        const defaultWeight = rawWeightMatch ? rawWeightMatch[1] : null;
+                                        const displayWeight = weightLabel || defaultWeight;
 
                                         return (
                                             <div
                                                 key={`modal-${chipItem.text}`}
                                                 className={`aps-chip-item ${active ? "active" : ""}`}
-                                                onClick={() => onToggleChip(modalLayerDetail.id, chipItem.text)}
+                                                onClick={() => onToggleChip(modalLayerDetail.id, cleanChipName)}
                                                 onContextMenu={(e) => {
                                                     e.preventDefault();
-                                                    onCycleChipWeight(e, modalLayerDetail.id, chipItem.text);
+                                                    onCycleChipWeight(e, modalLayerDetail.id, cleanChipName);
                                                 }}
-                                                title="Klik untuk pasang | Klik kanan untuk bobot"
+                                                title={`${cleanChipName} — Klik pasang | Klik kanan bobot`}
                                             >
-                                                <span className="aps-chip-text">{chipItem.text}</span>
-                                                {weightLabel && (
+                                                <span className="aps-chip-text">{cleanChipName}</span>
+                                                {displayWeight && (
                                                     <span className="aps-chip-weight-pill">
-                                                        :{weightLabel}
+                                                        :{displayWeight}
                                                     </span>
                                                 )}
                                             </div>
@@ -2688,16 +2714,17 @@ export const ModularStudioView: React.FC<ModularStudioViewProps> = ({
                                 <div className="aps-save-preview-box">
                                     <span style={{ color: editPendingInputs ? "#38bdf8" : "#94a3b8" }}>
                                         {editPendingInputs
-                                            ? `✨ Disiapkan untuk diperbarui dengan 10 layer saat ini (${Object.keys(editPendingInputs).filter((k) => editPendingInputs[k]?.trim()).length}/10 Layer Terisi)`
+                                            ? `Disiapkan untuk diperbarui dengan 10 layer saat ini (${Object.keys(editPendingInputs).filter((k) => editPendingInputs[k]?.trim()).length}/10 Layer Terisi)`
                                             : "Preset saat ini menggunakan racikan layer lama."}
                                     </span>
                                     <button
                                         type="button"
                                         className="aps-fullset-btn-styleonly"
-                                        style={{ marginTop: "6px", alignSelf: "flex-start" }}
+                                        style={{ marginTop: "6px", alignSelf: "flex-start", display: "inline-flex", alignItems: "center", gap: "6px" }}
                                         onClick={handleUpdateWithCurrentLayers}
                                     >
-                                        🔄 Ganti dengan Racikan 10 Layer Saat Ini
+                                        <LucideIcons.RefreshCw />
+                                        <span>Ganti dengan Racikan 10 Layer Saat Ini</span>
                                     </button>
                                 </div>
                             </div>

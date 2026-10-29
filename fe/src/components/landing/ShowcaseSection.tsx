@@ -148,6 +148,7 @@ export function ShowcaseSection() {
   const [models, setModels] = useState<Model[]>(VERIFIED_FALLBACK_MODELS);
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
   const [isVisible, setIsVisible] = useState(false);
+  const [mobileShowAll, setMobileShowAll] = useState<boolean>(false);
   const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -312,7 +313,7 @@ export function ShowcaseSection() {
           {filteredModels.map((item, index) => (
             <article
               key={item.id}
-              className="mg-model-card"
+              className={`mg-model-card ${!mobileShowAll && index >= 3 ? 'mg-model-card-mobile-collapsed' : ''}`}
               style={{ animationDelay: `${index * 90}ms` }}
             >
               {/* Card Header & Preview Image */}
@@ -434,6 +435,22 @@ export function ShowcaseSection() {
             </article>
           ))}
         </div>
+
+        {filteredModels.length > 3 && (
+          <div className="mg-showcase-mobile-toggle-wrap">
+            <button
+              type="button"
+              className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
+              onClick={() => setMobileShowAll((prev) => !prev)}
+            >
+              <span>
+                {mobileShowAll
+                  ? 'Sembunyikan Sebagian Model ↑'
+                  : `Tampilkan Semua ${filteredModels.length} Model ↓`}
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

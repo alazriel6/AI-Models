@@ -29,7 +29,12 @@ interface ForestLeaf {
   hue: string; // Subtle moss/amber tone
 }
 
-export function ForestSporeCanvas() {
+interface ForestSporeCanvasProps {
+  palette?: 'default' | 'bioluminescent';
+  className?: string;
+}
+
+export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcase-canvas' }: ForestSporeCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -53,21 +58,36 @@ export function ForestSporeCanvas() {
     const spores: Spore[] = [];
     const leaves: ForestLeaf[] = [];
 
-    // Distinct organic forest color palettes (warm golden amber, emerald-chartreuse bioluminescence, warm cream)
-    const PALETTES = [
-      { r: 245, g: 158, b: 11 },  // Warm Amber
-      { r: 251, g: 191, b: 36 },  // Golden Sunbeam
-      { r: 132, g: 204, b: 22 },  // Forest Chartreuse
-      { r: 52,  g: 211, b: 153 }, // Bioluminescent Moss Green
-      { r: 254, g: 243, b: 199 }, // Pale Golden Pollen
-    ];
+    // Distinct organic forest color palettes
+    const PALETTES = palette === 'bioluminescent'
+      ? [
+          { r: 56,  g: 189, b: 248 }, // Electric Sky / Cyan
+          { r: 96,  g: 165, b: 250 }, // Soft Bioluminescent Blue
+          { r: 52,  g: 211, b: 153 }, // Emerald Spore
+          { r: 45,  g: 212, b: 191 }, // Aquamarine Glow
+          { r: 224, g: 242, b: 254 }, // White-Cyan Starlight
+        ]
+      : [
+          { r: 245, g: 158, b: 11 },  // Warm Amber
+          { r: 251, g: 191, b: 36 },  // Golden Sunbeam
+          { r: 132, g: 204, b: 22 },  // Forest Chartreuse
+          { r: 52,  g: 211, b: 153 }, // Bioluminescent Moss Green
+          { r: 254, g: 243, b: 199 }, // Pale Golden Pollen
+        ];
 
-    const LEAF_COLORS = [
-      'rgba(84, 120, 68, ',   // Moss green
-      'rgba(142, 120, 58, ',  // Sunlit dry leaf
-      'rgba(60, 95, 62, ',    // Deep cedar needle
-      'rgba(180, 145, 65, ',  // Golden beech leaf
-    ];
+    const LEAF_COLORS = palette === 'bioluminescent'
+      ? [
+          'rgba(45, 120, 100, ',  // Deep cypress moss
+          'rgba(30, 85, 110, ',   // Night pine needle
+          'rgba(40, 95, 75, ',    // Fern spore shadow
+          'rgba(56, 189, 248, ',  // Faint cyan illuminated leaf
+        ]
+      : [
+          'rgba(84, 120, 68, ',   // Moss green
+          'rgba(142, 120, 58, ',  // Sunlit dry leaf
+          'rgba(60, 95, 62, ',    // Deep cedar needle
+          'rgba(180, 145, 65, ',  // Golden beech leaf
+        ];
 
     function initSpores() {
       spores.length = 0;
@@ -282,7 +302,7 @@ export function ForestSporeCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="mg-showcase-canvas"
+      className={className}
       aria-hidden="true"
     />
   );

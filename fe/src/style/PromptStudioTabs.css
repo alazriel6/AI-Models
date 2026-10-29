@@ -4,15 +4,24 @@
    Zero AI-Slop | Zero Blurry Transparency | Crisp Zinc Palette
    ========================================================================== */
 
+.studio-tabs-container {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.studio-mobile-switcher-bar {
+    display: none;
+}
+
 .studio-mode-tab-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    background: #121215;
-    border: 1px solid #27272a;
+    gap: 4px;
+    background: #0f0f12;
+    border: 1px solid #232328;
     border-radius: 8px;
-    padding: 6px;
-    margin-bottom: 20px;
+    padding: 4px;
+    margin-bottom: 0;
     box-sizing: border-box;
     overflow-x: auto;
     scrollbar-width: none;
@@ -28,7 +37,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 14px;
+    padding: 7px 12px;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 6px;
@@ -38,12 +47,12 @@
     color: #a1a1aa;
     position: relative;
     user-select: none;
-    font-size: 12.5px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
     flex: 1;
     justify-content: center;
-    min-height: 36px;
+    min-height: 34px;
 }
 
 @media (max-width: 900px) {
@@ -53,15 +62,17 @@
 }
 
 .studio-mode-tab-btn:hover {
-    background: #18181b;
+    background: #18181c;
     color: #f4f4f5;
-    border-color: #27272a;
+    border-color: #27272f;
 }
 
 .studio-mode-tab-btn.active {
-    background: #2563eb;
-    border-color: #1d4ed8;
+    background: #27272a;
+    border-color: #3f3f46;
     color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    font-weight: 600;
 }
 
 .studio-mode-tab-icon {
@@ -82,7 +93,7 @@
 }
 
 .studio-mode-title {
-    font-size: 12.5px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: -0.01em;
     color: inherit;
@@ -91,12 +102,12 @@
 
 .studio-tab-badge {
     font-size: 10.5px;
-    font-weight: 700;
-    padding: 2px 6px;
+    font-weight: 600;
+    padding: 1px 6px;
     border-radius: 4px;
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #d4d4d8;
+    background: #18181c;
+    border: 1px solid #27272f;
+    color: #a1a1aa;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     white-space: nowrap;
     line-height: 14px;
@@ -104,45 +115,20 @@
 }
 
 .studio-mode-tab-btn.active .studio-tab-badge {
-    background: #1d4ed8;
-    border-color: #1e40af;
+    background: #323238;
+    border-color: #44444c;
     color: #ffffff;
 }
 
-.studio-tab-badge.active-layers {
-    background: #18181b;
-    border-color: #27272a;
-    color: #f4f4f5;
-}
-
-.studio-tab-badge.tokens {
-    background: #18181b;
-    border-color: #059669;
-    color: #6ee7b7;
-}
-
-.studio-tab-badge.parser {
-    background: #18181b;
-    border-color: #27272a;
-    color: #d4d4d8;
-}
-
-.studio-tab-badge.presets {
-    background: #18181b;
-    border-color: #27272a;
-    color: #a1a1aa;
-}
-
-.studio-tab-badge.danbooru {
-    background: #18181b;
-    border-color: #2563eb;
-    color: #93c5fd;
-}
-
+.studio-tab-badge.active-layers,
+.studio-tab-badge.tokens,
+.studio-tab-badge.parser,
+.studio-tab-badge.presets,
+.studio-tab-badge.danbooru,
 .studio-tab-badge.story {
-    background: #18181b;
-    border-color: #3f3f46;
-    color: #e4e4e7;
+    background: #18181c;
+    border-color: #27272f;
+    color: #a1a1aa;
 }
 
 /* ==========================================================================
@@ -381,4 +367,160 @@
     background: #27272a;
     border-color: #3f3f46;
     color: #ffffff;
+}
+
+/* ==========================================================================
+   Mobile Responsive Adjustments for Prompt Studio Tabs
+   ========================================================================== */
+@media (max-width: 768px) {
+    .studio-tabs-container {
+        margin-bottom: 14px;
+    }
+
+    .studio-mobile-switcher-bar {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 8px;
+        background: #121215;
+        border: 1px solid #27272a;
+        border-radius: 8px;
+        padding: 8px 10px;
+    }
+
+    .studio-mobile-switcher-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .studio-mobile-label {
+        font-size: 10.5px;
+        font-weight: 700;
+        color: #a1a1aa;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .studio-mobile-active-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #18181c;
+        border: 1px solid #27272f;
+        color: #38bdf8;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .studio-mobile-select-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .studio-mobile-select {
+        width: 100%;
+        height: 38px;
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 6px;
+        color: #f4f4f5;
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 0 32px 0 10px;
+        appearance: none;
+        -webkit-appearance: none;
+        outline: none;
+        cursor: pointer;
+        box-sizing: border-box;
+    }
+
+    .studio-mobile-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .studio-mobile-select-arrow {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        pointer-events: none;
+        color: #71717a;
+    }
+
+    /* Mobile Quick Switcher 2-Pill Bar */
+    .studio-mobile-quick-pills {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin-top: 4px;
+    }
+
+    .studio-mobile-quick-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 32px;
+        padding: 0 8px;
+        background: #18181b;
+        border: 1px solid #27272a;
+        border-radius: 6px;
+        color: #a1a1aa;
+        font-size: 11.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.12s ease;
+    }
+
+    .studio-mobile-quick-btn.active {
+        background: #27272a;
+        border-color: #3b82f6;
+        color: #ffffff;
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .studio-quick-icon {
+        display: inline-flex;
+        align-items: center;
+        color: inherit;
+        flex-shrink: 0;
+    }
+
+    .studio-quick-badge {
+        font-size: 10px;
+        font-weight: 600;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: #202025;
+        color: #d4d4d8;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .studio-mobile-quick-btn.active .studio-quick-badge {
+        background: #1e293b;
+        color: #38bdf8;
+    }
+
+    /* Hide the desktop horizontal tabs bar on mobile to prevent cut-offs */
+    .studio-mode-tab-bar {
+        display: none !important;
+    }
+
+    .studio-library-view-container {
+        padding: 14px 12px;
+    }
+
+    .studio-library-view-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .studio-library-char-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }

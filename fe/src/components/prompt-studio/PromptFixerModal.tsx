@@ -80,7 +80,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
 
     const handleApply = () => {
         onApplyFixed(currentFinalPositive, currentFinalNegative);
-        showToast("⚡ Prompt berhasil diperbaiki & diterapkan ke Canvas Studio!");
+        showToast("Prompt berhasil diperbaiki & diterapkan ke Canvas Studio!");
         onClose();
     };
 
@@ -108,13 +108,13 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                 {/* Header */}
                 <div className="prompt-fixer-header">
                     <div className="prompt-fixer-title-group">
-                        <div className="prompt-fixer-icon">⚡</div>
+                        <div className="prompt-fixer-icon">✓</div>
                         <div className="prompt-fixer-header-text">
                             <div className="prompt-fixer-headline-row">
                                 <h3>Prompt Fix &amp; Auto-Align</h3>
                                 <span className="prompt-fixer-badge-general">Multi-Model Universal Engine</span>
                                 <span className={`prompt-fixer-readiness-chip ${isPromptOptimal ? "optimal" : "needs-fix"}`}>
-                                    {isPromptOptimal ? "✓ Status: Optimal" : "⚠️ Status: Perlu Optimasi"}
+                                    {isPromptOptimal ? "Status: Optimal" : "Status: Perlu Optimasi"}
                                 </span>
                             </div>
                             <p>
@@ -132,11 +132,11 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                     {/* PRIMARY HEALTH STATUS BANNER (CLEAR USER-FRIENDLY FEEDBACK) */}
                     {isPromptOptimal ? (
                         <div className="fixer-status-banner status-optimal">
-                            <div className="status-banner-icon">✨</div>
+                            <div className="status-banner-icon">✓</div>
                             <div className="status-banner-content">
                                 <div className="status-banner-top">
                                     <span className="status-badge optimal">
-                                        ✓ STATUS PROMPT: SANGAT BAGUS &amp; OPTIMAL (SKOR: {healthReport.overallScore}/100)
+                                        STATUS PROMPT: SANGAT BAGUS &amp; OPTIMAL (SKOR: {healthReport.overallScore}/100)
                                     </span>
                                     <span className="status-score-pill optimal">Siap Generate 100%</span>
                                 </div>
@@ -156,11 +156,11 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                         </div>
                     ) : (
                         <div className="fixer-status-banner status-warning">
-                            <div className="status-banner-icon">⚠️</div>
+                            <div className="status-banner-icon">!</div>
                             <div className="status-banner-content">
                                 <div className="status-banner-top">
                                     <span className="status-badge warning">
-                                        ⚠️ STATUS PROMPT: BELUM OPTIMAL (SKOR: {healthReport.overallScore}/100)
+                                        STATUS PROMPT: BELUM OPTIMAL (SKOR: {healthReport.overallScore}/100)
                                     </span>
                                     <span className="status-score-pill warning">Berisiko Meleset Saat Render</span>
                                 </div>
@@ -237,11 +237,11 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                         <div className="fixer-issues-section">
                             <div className="fixer-issues-title-row">
                                 <span className="fixer-issues-title">
-                                    🔍 Rincian Isu Diagnostik ({healthReport.issues.length} Ditemukan)
+                                    Rincian Isu Diagnostik ({healthReport.issues.length} Ditemukan)
                                 </span>
                                 {healthReport.detectedProps.length > 0 && (
                                     <span className="detected-prop-badge">
-                                        📦 Objek/Prop Terdeteksi: <strong>{healthReport.detectedProps.join(", ")}</strong>
+                                        Objek/Prop Terdeteksi: <strong>{healthReport.detectedProps.join(", ")}</strong>
                                     </span>
                                 )}
                             </div>
@@ -257,7 +257,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                         </div>
                                         <p className="fixer-issue-detail">{issue.detail}</p>
                                         <div className="fixer-issue-solution">
-                                            <span className="solution-prefix">💡 Rekomendasi Solusi:</span> {issue.proposedFix}
+                                            <span className="solution-prefix">Rekomendasi Solusi:</span> {issue.proposedFix}
                                         </div>
                                     </div>
                                 ))}
@@ -268,14 +268,14 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                     {/* User-Friendly Tuning Configuration (Toggle Switches) */}
                     <div className="fixer-options-card">
                         <div className="fixer-options-header">
-                            <span className="fixer-options-title">⚙️ Konfigurasi Optimasi Prompt (Bisa Disesuaikan Sesuai Kebutuhan):</span>
+                            <span className="fixer-options-title">Konfigurasi Optimasi Prompt:</span>
                             <span className="fixer-options-help">Setiap sakelar di bawah bekerja otomatis tanpa merusak isi prompt Anda</span>
                         </div>
 
                         {/* Consistency Profile Selector */}
                         <div className="fixer-profile-selector-wrap">
                             <span className="profile-selector-label">
-                                ⚖️ Profil Konsistensi Bobot (Anti-Randomness ComfyUI):
+                                Profil Konsistensi Bobot:
                             </span>
                             <div className="profile-selector-buttons">
                                 <button
@@ -283,14 +283,14 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                     className={`profile-mode-btn ${options.consistencyProfile === "stable" ? "active" : ""}`}
                                     onClick={() => setOptions({ ...options, consistencyProfile: "stable" })}
                                 >
-                                    🟢 Mode Stabil (1.18x Anti-Burn) · Direkomendasikan
+                                    Mode Stabil (1.18x Anti-Burn) · Rekomendasi
                                 </button>
                                 <button
                                     type="button"
                                     className={`profile-mode-btn ${options.consistencyProfile === "aggressive" ? "active" : ""}`}
                                     onClick={() => setOptions({ ...options, consistencyProfile: "aggressive" })}
                                 >
-                                    ⚡ Mode Agresif (1.25x Boost)
+                                    Mode Agresif (1.25x Boost)
                                 </button>
                             </div>
                         </div>
@@ -406,7 +406,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                     {/* ComfyUI Consistency Advisory Card */}
                     <div className="fixer-comfy-advisory-card">
                         <div className="advisory-card-header">
-                            <span className="advisory-icon">💡</span>
+                            <span className="advisory-icon">i</span>
                             <div className="advisory-header-text">
                                 <h5>Kunci Hasil 100% Konsisten di ComfyUI (Mencegah Hasil Acak / Kadang Aneh)</h5>
                                 <p>Jika hasil render suka berubah-ubah di ComfyUI padahal prompt awal sama, berikut 4 kunci kestabilannya:</p>
@@ -436,7 +436,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                     {fixResult.appliedFixes.length > 0 && (
                         <div className="fixer-applied-summary">
                             <span className="applied-summary-label">
-                                ✓ Penyesuaian yang Berhasil Diterapkan ({fixResult.appliedFixes.length}):
+                                Penyesuaian yang Berhasil Diterapkan ({fixResult.appliedFixes.length}):
                             </span>
                             <div className="fixer-applied-fixes">
                                 {fixResult.appliedFixes.map((fix, idx) => (
@@ -457,21 +457,21 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                     className={`fixer-tab-btn ${activeTab === "fixed" ? "active" : ""}`}
                                     onClick={() => setActiveTab("fixed")}
                                 >
-                                    ⚡ Hasil Prompt Optimal
+                                    Hasil Prompt Optimal
                                 </button>
                                 <button
                                     type="button"
                                     className={`fixer-tab-btn ${activeTab === "diff" ? "active" : ""}`}
                                     onClick={() => setActiveTab("diff")}
                                 >
-                                    📊 Perbandingan Bersisian (Diff)
+                                    Perbandingan Bersisian (Diff)
                                 </button>
                                 <button
                                     type="button"
                                     className={`fixer-tab-btn ${activeTab === "original" ? "active" : ""}`}
                                     onClick={() => setActiveTab("original")}
                                 >
-                                    📄 Prompt Asli
+                                    Prompt Asli
                                 </button>
                             </div>
 
@@ -486,7 +486,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                 <div className="prompt-output-block positive">
                                     <div className="prompt-output-header">
                                         <span className="prompt-output-label green">
-                                            🟢 POSITIVE PROMPT ({fixResult.tokensAfter} CLIP Tokens · Chunk {fixResult.chunksAfter})
+                                            POSITIVE PROMPT ({fixResult.tokensAfter} CLIP Tokens · Chunk {fixResult.chunksAfter})
                                         </span>
                                         <div className="prompt-output-actions">
                                             <button
@@ -506,14 +506,14 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                         placeholder="Positive prompt optimal..."
                                     />
                                     <div className="prompt-output-footer">
-                                        <span>💡 <strong>Front-loaded:</strong> Aksi &amp; prop ditempatkan di awal Chunk 1 untuk retensi perhatian 100%.</span>
+                                        <span><strong>Front-loaded:</strong> Aksi &amp; prop ditempatkan di awal Chunk 1 untuk retensi perhatian 100%.</span>
                                     </div>
                                 </div>
 
                                 <div className="prompt-output-block negative" style={{ marginTop: "12px" }}>
                                     <div className="prompt-output-header">
                                         <span className="prompt-output-label red">
-                                            🔴 NEGATIVE PROMPT (Pelindung Anatomi Aktif)
+                                            NEGATIVE PROMPT (Pelindung Anatomi Aktif)
                                         </span>
                                         <div className="prompt-output-actions">
                                             <button
@@ -579,7 +579,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                                 <div className="prompt-output-block neutral">
                                     <div className="prompt-output-header">
                                         <span className="prompt-output-label gray">
-                                            📄 PROMPT ASLI ({fixResult.tokensBefore} CLIP Tokens · Chunk {fixResult.chunksBefore})
+                                            PROMPT ASLI ({fixResult.tokensBefore} CLIP Tokens · Chunk {fixResult.chunksBefore})
                                         </span>
                                         <button
                                             type="button"
@@ -622,7 +622,7 @@ export const PromptFixerModal: React.FC<PromptFixerModalProps> = ({
                             Batal
                         </button>
                         <button type="button" className="fixer-apply-btn" onClick={handleApply}>
-                            <span>⚡ Terapkan ke Canvas Studio</span>
+                            <span>Terapkan ke Canvas Studio</span>
                         </button>
                     </div>
                 </div>

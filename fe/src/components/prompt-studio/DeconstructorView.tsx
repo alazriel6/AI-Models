@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
     CATEGORIES,
     deconstructPromptText,
@@ -173,23 +173,67 @@ export const DeconstructorView: React.FC<DeconstructorViewProps> = ({
     onApplyToCanvas,
     showToast,
 }) => {
-    const [subTab, setSubTab] = useState<"transformer" | "deconstructor">("transformer");
-    const [rawInput, setRawInput] = useState<string>("");
+    const [subTab, setSubTab] = useState<"transformer" | "deconstructor">(() => {
+        try {
+            const s = localStorage.getItem("deconstructor_last_subtab");
+            if (s === "transformer" || s === "deconstructor") return s;
+        } catch {}
+        return "transformer";
+    });
+    const [rawInput, setRawInput] = useState<string>(() => {
+        try {
+            return localStorage.getItem("deconstructor_last_raw_input") || "";
+        } catch {
+            return "";
+        }
+    });
     const [isAiLoading, setIsAiLoading] = useState<boolean>(false);
     const [copiedFormat, setCopiedFormat] = useState<string | null>(null);
-    const [filterMode, setFilterMode] = useState<"all" | "booru" | "prose">("all");
+    const [filterMode, setFilterMode] = useState<"all" | "booru" | "prose">(() => {
+        try {
+            const s = localStorage.getItem("deconstructor_last_filter_mode");
+            if (s === "all" || s === "booru" || s === "prose") return s;
+        } catch {}
+        return "all";
+    });
     const [expandedCardId, setExpandedCardId] = useState<string | null>(null);
 
     // AI Overrides state for individual formats (if user ran AI Deep Transform)
     const [aiOverrides, setAiOverrides] = useState<Record<string, string>>({});
 
-    // 10-Layer deconstruction state
+    // 10-Layer deconstruction state (restores parsedResult if rawInput was cached)
     const [parsedResult, setParsedResult] = useState<{
         buckets: Record<string, string>;
         lora?: { name: string; weight: number };
         totalTags: number;
         classifiedCount: number;
-    } | null>(null);
+    } | null>(() => {
+        try {
+            const saved = localStorage.getItem("deconstructor_last_raw_input");
+            if (saved && saved.trim()) {
+                return deconstructPromptText(saved);
+            }
+        } catch {}
+        return null;
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("deconstructor_last_subtab", subTab);
+        } catch {}
+    }, [subTab]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("deconstructor_last_raw_input", rawInput);
+        } catch {}
+    }, [rawInput]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("deconstructor_last_filter_mode", filterMode);
+        } catch {}
+    }, [filterMode]);
 
     // Auto-detection of input format
     const detected = useMemo(() => {

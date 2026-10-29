@@ -94,6 +94,13 @@
     flex-wrap: wrap;
 }
 
+.lora-presets-list {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .lora-presets-label {
     font-size: 12px;
     font-weight: 600;
@@ -250,6 +257,11 @@
     align-items: center;
     gap: 8px;
     margin: 0;
+}
+
+.lora-section-subtitle {
+    font-size: 12px;
+    color: #94a3b8;
 }
 
 .lora-badge-count {
@@ -1278,4 +1290,464 @@
 
 .lora-saved-del-btn:hover {
     color: #ef4444;
+}
+
+/* ==========================================================================
+   Comprehensive Mobile Responsive Overrides (<= 768px)
+   Matches the Clean Developer Studio Layout in PromptLab
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    .lora-stack-container,
+    .lora-main-grid,
+    .lora-stack-col,
+    .lora-section-card,
+    .lora-layer-card,
+    .lora-sidebar-col,
+    .lora-add-container,
+    .lora-gauge-card,
+    .lora-output-card {
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
+    }
+
+    .lora-stack-container {
+        padding: 12px 10px 48px 10px;
+    }
+
+    /* Header */
+    .lora-header {
+        margin-bottom: 16px;
+    }
+
+    .lora-header-top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .lora-title-group {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .lora-title {
+        font-size: 18px;
+        line-height: 1.25;
+        gap: 10px;
+    }
+
+    .lora-title-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .lora-subtitle {
+        font-size: 12px;
+        line-height: 1.45;
+    }
+
+    /* Architecture Selector Row */
+    .lora-arch-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 12px;
+        margin-top: 10px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .lora-arch-row-label {
+        font-size: 11.5px;
+    }
+
+    .lora-arch-select {
+        width: 100%;
+        height: 36px;
+        box-sizing: border-box;
+        font-size: 12px;
+    }
+
+    .lora-arch-hint {
+        margin-left: 0;
+        font-size: 11px;
+    }
+
+    /* Presets Bar */
+    .lora-presets-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 10px;
+        width: 100%;
+    }
+
+    .lora-presets-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .lora-presets-list .lora-preset-btn {
+        width: 100%;
+        height: 34px;
+        padding: 0 6px;
+        justify-content: center;
+        font-size: 11px;
+        box-sizing: border-box;
+        text-align: center;
+    }
+
+    .lora-reset-btn {
+        width: 100%;
+        height: 34px;
+        justify-content: center;
+        margin-left: 0;
+        font-size: 11.5px;
+        box-sizing: border-box;
+    }
+
+    /* Main Grid */
+    .lora-main-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin-top: 14px;
+    }
+
+    /* Active Layers Section Card */
+    .lora-section-card {
+        padding: 14px 12px;
+        border-radius: 8px;
+    }
+
+    .lora-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .lora-section-title {
+        font-size: 14px;
+    }
+
+    .lora-section-subtitle {
+        font-size: 11px;
+    }
+
+    /* Layer Card */
+    .lora-layer-card {
+        padding: 10px 12px;
+        border-radius: 8px;
+    }
+
+    .lora-layer-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .lora-layer-left {
+        width: 100%;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .lora-layer-meta {
+        flex: 1;
+        min-width: 0;
+        width: 100%;
+    }
+
+    .lora-layer-title-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .lora-layer-name {
+        font-size: 13px;
+        max-width: 100%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .lora-tag-badge {
+        font-size: 9.5px;
+        padding: 1px 5px;
+    }
+
+    .lora-layer-filename {
+        font-size: 11px;
+        word-break: break-all;
+        white-space: normal;
+        line-height: 1.35;
+    }
+
+    .lora-layer-actions {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 1px solid #1e2430;
+        padding-top: 8px;
+        gap: 8px;
+    }
+
+    .lora-toggle-btn {
+        flex: 1;
+        height: 32px;
+        font-size: 11px;
+        text-align: center;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+    }
+
+    .lora-delete-btn {
+        height: 32px;
+        width: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #1c212a;
+        border-radius: 4px;
+    }
+
+    /* Weight Row */
+    .lora-weight-row {
+        padding: 10px 10px;
+    }
+
+    .lora-weight-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+
+    .lora-weight-label {
+        font-size: 11.5px;
+    }
+
+    .lora-weight-input {
+        width: 52px;
+        height: 28px;
+        font-size: 12px;
+        box-sizing: border-box;
+    }
+
+    .lora-slider-track {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .lora-quick-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 8px;
+    }
+
+    .lora-quick-chip {
+        font-size: 10.5px;
+        padding: 3px 7px;
+    }
+
+    .lora-dual-switch {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .lora-dual-toggle-label {
+        font-size: 11px;
+    }
+
+    /* Trigger Words */
+    .lora-triggers-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .lora-trigger-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .lora-trigger-chip {
+        font-size: 11px;
+        padding: 4px 8px;
+        max-width: 100%;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    /* Add LoRA Module */
+    .lora-add-container {
+        padding: 14px 12px;
+        border-radius: 8px;
+    }
+
+    .lora-add-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .lora-add-tab-btn {
+        justify-content: center;
+        font-size: 11px;
+        padding: 6px 4px;
+    }
+
+    .lora-catalog-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px;
+    }
+
+    .lora-catalog-item-info {
+        width: 100%;
+    }
+
+    .lora-catalog-add-btn {
+        width: 100%;
+        height: 32px;
+        justify-content: center;
+    }
+
+    .lora-form-input,
+    .lora-form-select {
+        width: 100%;
+        box-sizing: border-box;
+        height: 36px;
+    }
+
+    .lora-custom-submit-btn {
+        width: 100%;
+        height: 36px;
+        font-size: 12px;
+    }
+
+    .lora-textarea {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+
+    /* Sidebar Column */
+    .lora-sidebar-col {
+        position: static;
+        width: 100%;
+        gap: 14px;
+    }
+
+    .lora-gauge-card {
+        padding: 14px 12px;
+        border-radius: 8px;
+    }
+
+    .lora-gauge-stats {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .lora-gauge-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .lora-gauge-action-btn {
+        justify-content: center;
+        height: 32px;
+        font-size: 10.5px;
+        padding: 0 4px;
+    }
+
+    .lora-output-card {
+        padding: 14px 12px;
+        border-radius: 8px;
+    }
+
+    .lora-output-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding: 3px;
+        gap: 4px;
+    }
+
+    .lora-output-tab-btn {
+        font-size: 10.5px;
+        padding: 5px 8px;
+        flex-shrink: 0;
+    }
+
+    .lora-code-box {
+        font-size: 11px;
+        padding: 10px 12px 38px 12px;
+        word-break: break-all;
+    }
+
+    .lora-copy-code-btn {
+        bottom: 8px;
+        top: auto;
+        right: 8px;
+    }
+
+    .lora-main-cta-btn {
+        height: 38px;
+        font-size: 12.5px;
+        justify-content: center;
+    }
+
+    .lora-sec-cta-btn {
+        height: 36px;
+        font-size: 11.5px;
+        justify-content: center;
+    }
+}
+
+/* Small Mobile Devices (<= 480px) */
+@media (max-width: 480px) {
+    .lora-stack-container {
+        padding: 8px 6px 44px 6px;
+    }
+
+    .lora-title {
+        font-size: 16.5px;
+    }
+
+    .lora-presets-list {
+        grid-template-columns: 1fr;
+    }
+
+    .lora-presets-list .lora-preset-btn {
+        height: 32px;
+    }
+
+    .lora-weight-label {
+        font-size: 11px;
+    }
+
+    .lora-weight-input {
+        width: 48px;
+        font-size: 11.5px;
+    }
+
+    .lora-gauge-actions {
+        grid-template-columns: 1fr;
+    }
 }

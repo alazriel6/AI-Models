@@ -147,6 +147,11 @@ function AppLayout() {
     setToolsDropdownOpen(false);
   };
 
+  const toggleMobileMenu = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setMobileMenuOpen((prev) => !prev);
+  };
+
   const handleMouseEnter = () => {
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -188,7 +193,7 @@ function AppLayout() {
           <button
             type="button"
             className={`nav-burger-btn ${mobileMenuOpen ? 'open' : ''}`}
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            onClick={toggleMobileMenu}
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileMenuOpen}
           >
@@ -247,7 +252,10 @@ function AppLayout() {
               </button>
 
               <div className={`nav-dropdown-menu ${toolsDropdownOpen ? 'show' : ''}`}>
-                <div className="nav-dropdown-header">GENERATIVE UTILITIES</div>
+                <div className="nav-dropdown-header">
+                  <span>GENERATIVE UTILITIES</span>
+                  <span className="nav-dropdown-count">12 TOOLS</span>
+                </div>
                 
                 <NavLink
                   to="/compare"
@@ -455,23 +463,6 @@ function AppLayout() {
                   <span className="nav-tool-info">
                     <span className="nav-tool-name">ControlNet &amp; OpenPose Rig</span>
                     <span className="nav-tool-desc">18-Joint skeleton editor &amp; preprocessor labs</span>
-                  </span>
-                </NavLink>
-
-                <NavLink
-                  to="/story-merger"
-                  className={({ isActive }) => `nav-dropdown-link ${isActive ? 'active' : ''}`}
-                  onClick={closeMobileMenu}
-                >
-                  <span className="nav-tool-icon-box" aria-hidden="true">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <span className="nav-tool-info">
-                    <span className="nav-tool-name">Character Lock &amp; Story Merger</span>
-                    <span className="nav-tool-desc">Deterministic 6-slot prompt merger &amp; storyboard scene presets</span>
                   </span>
                 </NavLink>
               </div>

@@ -18,7 +18,81 @@ export const PromptStudioTabs: React.FC<PromptStudioTabsProps> = ({
     presetCount = 0,
 }) => {
     return (
-        <div className="studio-mode-tab-bar" role="tablist" aria-label="Navigasi Studio Workstation">
+        <div className="studio-tabs-container">
+            {/* Mobile Workstation Switcher Dropdown (Visible on <= 768px) */}
+            <div className="studio-mobile-switcher-bar">
+                <div className="studio-mobile-switcher-header">
+                    <span className="studio-mobile-label">Mode Workstation:</span>
+                    <span className="studio-mobile-active-badge">
+                        {activeTab === "studio" && `${activeCategoryCount}/10 Layer`}
+                        {activeTab === "canvas" && (tokenCount > 0 ? `~${tokenCount} tok` : "Canvas")}
+                        {activeTab === "tokenizer" && (tokenCount > 0 ? `${Math.ceil(tokenCount / 75)} Chunk` : "77-Tok")}
+                        {activeTab === "deconstructor" && "Konverter"}
+                        {activeTab === "library" && `${presetCount} preset`}
+                        {activeTab === "story" && "Studio Lab"}
+                    </span>
+                </div>
+                <div className="studio-mobile-select-wrapper">
+                    <select
+                        className="studio-mobile-select"
+                        value={activeTab}
+                        onChange={(e) => onSelectTab(e.target.value as StudioTabKey)}
+                        aria-label="Pilih Mode Workstation Studio"
+                    >
+                        <option value="studio">1. 10-Layer Modular Studio ({activeCategoryCount}/10)</option>
+                        <option value="canvas">2. Prompt Lab Canvas ({tokenCount > 0 ? `~${tokenCount} tok` : "Canvas"})</option>
+                        <option value="tokenizer">3. CLIP 77-Token Chunks ({tokenCount > 0 ? `${Math.ceil(tokenCount / 75)} Chunk` : "77-Tok"})</option>
+                        <option value="deconstructor">4. Transformer &amp; Deconstructor</option>
+                        <option value="library">5. Character &amp; Presets ({presetCount} preset)</option>
+                        <option value="story">6. Storyboard &amp; 16 Categories</option>
+                    </select>
+                    <div className="studio-mobile-select-arrow" aria-hidden="true">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="6 9 12 15 18 9" />
+                        </svg>
+                    </div>
+                </div>
+
+                {/* Quick 2-Pill Switcher for Primary Modes */}
+                <div className="studio-mobile-quick-pills">
+                    <button
+                        type="button"
+                        className={`studio-mobile-quick-btn ${activeTab === "studio" ? "active" : ""}`}
+                        onClick={() => onSelectTab("studio")}
+                    >
+                        <span className="studio-quick-icon">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polygon points="12 2 2 7 12 12 22 7 12 2" />
+                                <polyline points="2 17 12 22 22 17" />
+                                <polyline points="2 12 12 17 22 12" />
+                            </svg>
+                        </span>
+                        <span>10-Layer Studio</span>
+                        <span className="studio-quick-badge">{activeCategoryCount}/10</span>
+                    </button>
+                    <button
+                        type="button"
+                        className={`studio-mobile-quick-btn ${activeTab === "canvas" ? "active" : ""}`}
+                        onClick={() => onSelectTab("canvas")}
+                    >
+                        <span className="studio-quick-icon">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="4" y1="21" x2="4" y2="14" />
+                                <line x1="4" y1="10" x2="4" y2="3" />
+                                <line x1="12" y1="21" x2="12" y2="12" />
+                                <line x1="12" y1="8" x2="12" y2="3" />
+                                <line x1="20" y1="21" x2="20" y2="16" />
+                                <line x1="20" y1="12" x2="20" y2="3" />
+                            </svg>
+                        </span>
+                        <span>Canvas</span>
+                        <span className="studio-quick-badge">{tokenCount > 0 ? `${tokenCount}t` : "Edit"}</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Horizontal Tabs Bar (Desktop) */}
+            <div className="studio-mode-tab-bar" role="tablist" aria-label="Navigasi Studio Workstation">
             <button
                 type="button"
                 role="tab"
@@ -143,6 +217,7 @@ export const PromptStudioTabs: React.FC<PromptStudioTabsProps> = ({
                     Studio Lab
                 </span>
             </button>
+            </div>
         </div>
     );
 };

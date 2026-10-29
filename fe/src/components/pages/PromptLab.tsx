@@ -230,6 +230,18 @@ const Icons = {
             <path d="M20 4v7a4 4 0 0 1-4 4H4"></path>
         </svg>
     ),
+    Activity: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+        </svg>
+    ),
+    AlertTriangle: () => (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+    ),
 };
 
 const classifyTag = (tokenStr: string): "quality" | "subject" | "outfit" | "scene" | "lighting" | "lora" | "general" => {
@@ -465,13 +477,17 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     const navigate = useNavigate();
     const [activeRecipe, setActiveRecipe] = useState<ActiveGenerationRecipe | null>(null);
 
-    // Studio Workstation Mode Tab ("studio" | "canvas" | "deconstructor" | "library")
+    // Studio Workstation Mode Tab ("studio" | "canvas" | "tokenizer" | "deconstructor" | "library" | "story")
     const [studioTab, setStudioTab] = useState<StudioTabKey>(() => {
         try {
             const params = new URLSearchParams(window.location.search);
             const tabParam = params.get("tab") as StudioTabKey;
             if (tabParam && ["studio", "canvas", "tokenizer", "deconstructor", "library", "story"].includes(tabParam)) {
                 return tabParam;
+            }
+            const savedTab = localStorage.getItem("promptlab_active_studio_tab") as StudioTabKey;
+            if (savedTab && ["studio", "canvas", "tokenizer", "deconstructor", "library", "story"].includes(savedTab)) {
+                return savedTab;
             }
         } catch {
             // fallback
@@ -482,6 +498,7 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     const handleSelectTab = (tab: StudioTabKey) => {
         setStudioTab(tab);
         try {
+            localStorage.setItem("promptlab_active_studio_tab", tab);
             const url = new URL(window.location.href);
             url.searchParams.set("tab", tab);
             window.history.replaceState({}, "", url.toString());
@@ -497,15 +514,77 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         });
     };
 
-    // 10-Layer Modular Studio State
+    // 10-Layer Modular Studio State (Restores user's last input from localStorage cache, or starts clean without hardcoded defaults)
     const [categoryInputs, setCategoryInputs] = useState<Record<string, string>>(() => {
-        const initialText = "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office";
-        return deconstructPromptText(initialText).buckets;
+        try {
+            const saved = localStorage.getItem("modular_studio_last_inputs");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === "object") {
+                    return { ...INITIAL_CATEGORY_INPUTS, ...parsed };
+                }
+            }
+        } catch (e) {
+            console.error("Gagal membaca cached categoryInputs:", e);
+        }
+        return { ...INITIAL_CATEGORY_INPUTS };
     });
-    const [loraName, setLoraName] = useState<string>("tsukatsuki_rio_illustrious");
-    const [loraWeight, setLoraWeight] = useState<number>(0.85);
-    const [loraEnabled, setLoraEnabled] = useState<boolean>(true);
+
+    const [loraName, setLoraName] = useState<string>(() => {
+        try {
+            const saved = localStorage.getItem("modular_studio_last_lora");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed.name || "";
+            }
+        } catch {}
+        return "";
+    });
+
+    const [loraWeight, setLoraWeight] = useState<number>(() => {
+        try {
+            const saved = localStorage.getItem("modular_studio_last_lora");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (typeof parsed.weight === "number") return parsed.weight;
+            }
+        } catch {}
+        return 0.85;
+    });
+
+    const [loraEnabled, setLoraEnabled] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem("modular_studio_last_lora");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return Boolean(parsed.enabled);
+            }
+        } catch {}
+        return false;
+    });
+
     const [modularFormatMode, setModularFormatMode] = useState<"single" | "multiline">("single");
+
+    // Automatically persist user's 10-layer inputs to localStorage on change
+    useEffect(() => {
+        try {
+            localStorage.setItem("modular_studio_last_inputs", JSON.stringify(categoryInputs));
+        } catch (e) {
+            console.error("Gagal simpan categoryInputs ke localStorage:", e);
+        }
+    }, [categoryInputs]);
+
+    // Automatically persist user's LoRA configuration to localStorage on change
+    useEffect(() => {
+        try {
+            localStorage.setItem(
+                "modular_studio_last_lora",
+                JSON.stringify({ name: loraName, weight: loraWeight, enabled: loraEnabled })
+            );
+        } catch (e) {
+            console.error("Gagal simpan LoRA ke localStorage:", e);
+        }
+    }, [loraName, loraWeight, loraEnabled]);
 
     const activeCategoryCount = useMemo(() => {
         return Object.values(categoryInputs).filter((v) => (v || "").trim().length > 0).length;
@@ -522,11 +601,59 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
         } catch {
             // fallback
         }
-        return "masterpiece, best quality, very aesthetic, newest, 1girl, rio tsukatsuki, halo, black hair, long hair, red eyes, ponytail, blazer, black jacket, collared shirt, black necktie, looking at viewer, highly detailed background, seminar office";
+
+        try {
+            const savedCanvasPos = localStorage.getItem("promptlab_last_positive_prompt");
+            if (savedCanvasPos !== null) {
+                return savedCanvasPos;
+            }
+
+            const savedInputs = localStorage.getItem("modular_studio_last_inputs");
+            const savedLora = localStorage.getItem("modular_studio_last_lora");
+            if (savedInputs) {
+                const parsed = JSON.parse(savedInputs);
+                const hasAnyTag = Object.values(parsed).some((v) => typeof v === "string" && v.trim().length > 0);
+                if (hasAnyTag) {
+                    let loraObj: { enabled: boolean; name: string; weight: number } | undefined;
+                    if (savedLora) {
+                        const l = JSON.parse(savedLora);
+                        if (l.enabled && l.name) {
+                            loraObj = { enabled: true, name: l.name, weight: l.weight ?? 0.85 };
+                        }
+                    }
+                    const compiled = compileCategoriesPrompt(parsed, loraObj, "single");
+                    if (compiled.trim()) {
+                        return compiled;
+                    }
+                }
+            }
+        } catch {}
+
+        return "";
     });
-    const [negativePrompt, setNegativePrompt] = useState<string>(
-        "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, deformed halo"
-    );
+
+    const [negativePrompt, setNegativePrompt] = useState<string>(() => {
+        try {
+            const saved = localStorage.getItem("promptlab_last_negative_prompt");
+            if (saved !== null) {
+                return saved;
+            }
+        } catch {}
+        return "worst quality, low quality, bad anatomy, bad hands, missing fingers, extra digits, blurry, watermark, signature, deformed halo";
+    });
+
+    // Auto-persist positive and negative prompts
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_last_positive_prompt", positivePrompt);
+        } catch {}
+    }, [positivePrompt]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_last_negative_prompt", negativePrompt);
+        } catch {}
+    }, [negativePrompt]);
 
     // Sync prompt if URL query param changes
     useEffect(() => {
@@ -549,10 +676,36 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     }, []);
 
     // Active Checkpoint Selection for LoRA Compatibility
-    const [selectedCheckpointId, setSelectedCheckpointId] = useState<string>("");
+    const [selectedCheckpointId, setSelectedCheckpointId] = useState<string>(() => {
+        try {
+            return localStorage.getItem("promptlab_last_checkpoint_id") || "";
+        } catch {
+            return "";
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_last_checkpoint_id", selectedCheckpointId);
+        } catch {}
+    }, [selectedCheckpointId]);
 
     // Active mode in positive prompt: text editor vs interactive tokenizer vs 77-token chunks vs matrix
-    const [viewMode, setViewMode] = useState<"editor" | "tokenizer" | "chunks" | "matrix">("editor");
+    const [viewMode, setViewMode] = useState<"editor" | "tokenizer" | "chunks" | "matrix">(() => {
+        try {
+            const saved = localStorage.getItem("promptlab_last_view_mode") as any;
+            if (saved && ["editor", "tokenizer", "chunks", "matrix"].includes(saved)) {
+                return saved;
+            }
+        } catch {}
+        return "editor";
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_last_view_mode", viewMode);
+        } catch {}
+    }, [viewMode]);
     const [showLiveChunkInline, setShowLiveChunkInline] = useState(false);
 
     // Negative prompt insertion mode: replace or append
@@ -620,9 +773,33 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
     const [sidebarTab, setSidebarTab] = useState<"presets" | "catalog" | "modular">("presets");
 
     // Presets Filtering
-    const [presetCategoryFilter, setPresetCategoryFilter] = useState<string>("anime");
-    const [presetBaseModelFilter, setPresetBaseModelFilter] = useState<string>("all");
+    const [presetCategoryFilter, setPresetCategoryFilter] = useState<string>(() => {
+        try {
+            return localStorage.getItem("promptlab_preset_category_filter") || "anime";
+        } catch {
+            return "anime";
+        }
+    });
+    const [presetBaseModelFilter, setPresetBaseModelFilter] = useState<string>(() => {
+        try {
+            return localStorage.getItem("promptlab_preset_base_model_filter") || "all";
+        } catch {
+            return "all";
+        }
+    });
     const [presetSearch, setPresetSearch] = useState<string>("");
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_preset_category_filter", presetCategoryFilter);
+        } catch {}
+    }, [presetCategoryFilter]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem("promptlab_preset_base_model_filter", presetBaseModelFilter);
+        } catch {}
+    }, [presetBaseModelFilter]);
 
     // Database dynamic presets
     const [presets, setPresets] = useState<PromptPreset[]>([]);
@@ -1212,7 +1389,16 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
 
     const handleClearAllCategories = () => {
         setCategoryInputs({ ...INITIAL_CATEGORY_INPUTS });
+        setLoraName("");
+        setLoraEnabled(false);
         setPositivePrompt("");
+        try {
+            localStorage.setItem("modular_studio_last_inputs", JSON.stringify(INITIAL_CATEGORY_INPUTS));
+            localStorage.setItem(
+                "modular_studio_last_lora",
+                JSON.stringify({ name: "", weight: 0.85, enabled: false })
+            );
+        } catch {}
         showToast("Semua kategori berhasil dikosongkan");
     };
 
@@ -2119,12 +2305,15 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                     showToast={showToast}
                     onLoadPresetData={(newInputs, lora) => {
                         setCategoryInputs(newInputs);
-                        if (lora) {
+                        if (lora && lora.name) {
                             setLoraName(lora.name);
                             setLoraWeight(lora.weight);
                             setLoraEnabled(true);
+                        } else {
+                            setLoraName("");
+                            setLoraEnabled(false);
                         }
-                        const compiled = compileCategoriesPrompt(newInputs, lora ? { enabled: true, ...lora } : undefined, "single");
+                        const compiled = compileCategoriesPrompt(newInputs, lora && lora.name ? { enabled: true, ...lora } : undefined, "single");
                         setPositivePrompt(compiled);
                     }}
                     modularPresets={modularPresets}
@@ -2197,10 +2386,10 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                     type="button"
                                     className={`prompt-token-pill ${posTokenCount > 75 ? "over-chunk" : ""}`}
                                     onClick={() => setViewMode(viewMode === "chunks" ? "editor" : "chunks")}
-                                    style={{ cursor: "pointer", border: "1px solid rgba(6, 182, 212, 0.4)", background: "rgba(6, 182, 212, 0.12)" }}
                                     title="Klik untuk membuka Live CLIP 77-Token Chunk Boundary Profiler"
                                 >
-                                    ⚡ {posTokenCount} CLIP tok · {Math.ceil(posTokenCount / 75) || 1} Chunk
+                                    <Icons.Activity />
+                                    <span>{posTokenCount} CLIP tok · {Math.ceil(posTokenCount / 75) || 1} Chunk</span>
                                 </button>
                                 <div className="canvas-header-chunk-zones">
                                     <span className="canvas-chunk-tag zone-cyan" title="Chunk 1: Zona Prioritas Utama (Tokens 1–75, 100% Retained Attention)">
@@ -2265,68 +2454,71 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                 <span className="prompt-toolbar-divider" aria-hidden="true" />
 
                                 {/* Quick Tools Toolbar */}
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm healer-btn-highlight"
-                                    onClick={() => setIsPromptFixerOpen(true)}
-                                    title="Buka Prompt Fix (Optimasi token, tata Chunk 1, dan bersihkan konflik pose)"
-                                >
-                                    <span style={{ color: "#38bdf8" }}>⚡</span>
-                                    <span>Prompt Fix</span>
-                                </button>
+                                <div className="prompt-canvas-tools-grid">
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm healer-btn-highlight"
+                                        onClick={() => setIsPromptFixerOpen(true)}
+                                        title="Buka Prompt Fix (Optimasi token, tata Chunk 1, dan bersihkan konflik pose)"
+                                    >
+                                        <Icons.Clean />
+                                        <span>Prompt Fix</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => setPositivePrompt(cleanPromptText(positivePrompt))}
-                                    title="Rapikan tanda koma, spasi berlebih, dan tanda baca tak terpakai"
-                                >
-                                    <Icons.Clean />
-                                    <span>Rapikan</span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={() => setPositivePrompt(cleanPromptText(positivePrompt))}
+                                        title="Rapikan tanda koma, spasi berlebih, dan tanda baca tak terpakai"
+                                    >
+                                        <Icons.Clean />
+                                        <span>Rapikan</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={handleDeduplicateTokens}
-                                    title="Hapus token duplikat"
-                                >
-                                    <span>Hapus Duplikat</span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={handleDeduplicateTokens}
+                                        title="Hapus token duplikat"
+                                    >
+                                        <span>Hapus Duplikat</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => setIsWildcardPickerOpen(!isWildcardPickerOpen)}
-                                    title="Sisipkan koleksi wildcard {a|b|c}"
-                                >
-                                    <Icons.Dice />
-                                    <span>Wildcard</span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={() => setIsWildcardPickerOpen(!isWildcardPickerOpen)}
+                                        title="Sisipkan koleksi wildcard {a|b|c}"
+                                    >
+                                        <Icons.Dice />
+                                        <span>Wildcard</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => triggerCopy(positivePrompt, "copy-positive", "Prompt positif disalin!")}
-                                    title="Salin prompt positif ke clipboard"
-                                >
-                                    {copiedKey === "copy-positive" ? <Icons.Check /> : <Icons.Copy />}
-                                    <span>{copiedKey === "copy-positive" ? "Tersalin!" : "Salin"}</span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={() => triggerCopy(positivePrompt, "copy-positive", "Prompt positif disalin!")}
+                                        title="Salin prompt positif ke clipboard"
+                                    >
+                                        {copiedKey === "copy-positive" ? <Icons.Check /> : <Icons.Copy />}
+                                        <span>{copiedKey === "copy-positive" ? "Tersalin!" : "Salin"}</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm danger-hover"
-                                    onClick={() => {
-                                        if (window.confirm("Kosongkan prompt positif?")) {
-                                            setPositivePrompt("");
-                                            showToast("Prompt positif dikosongkan");
-                                        }
-                                    }}
-                                    title="Bersihkan prompt positif"
-                                >
-                                    <Icons.Trash />
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm danger-hover"
+                                        onClick={() => {
+                                            if (window.confirm("Kosongkan prompt positif?")) {
+                                                setPositivePrompt("");
+                                                showToast("Prompt positif dikosongkan");
+                                            }
+                                        }}
+                                        title="Bersihkan prompt positif"
+                                    >
+                                        <Icons.Trash />
+                                        <span className="mobile-only-btn-label">Kosongkan</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -2433,7 +2625,8 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                                     onClick={() => setViewMode("chunks")}
                                                     title="Terdeteksi frasa yang terpotong di batas 75-token. Klik untuk melihat dan merapikan."
                                                 >
-                                                    ⚠️ {posTokenResult.hazards.length} Boundary Hazard!
+                                                    <Icons.AlertTriangle />
+                                                    <span>{posTokenResult.hazards.length} Boundary Hazard!</span>
                                                 </button>
                                             )}
                                         </div>
@@ -2445,7 +2638,8 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                                 onClick={() => setIsPromptFixerOpen(true)}
                                                 title="Optimasi dan tata aksi ke Chunk 1 (100% Retained Attention)"
                                             >
-                                                ⚡ Prompt Fix
+                                                <Icons.Clean />
+                                                <span>Prompt Fix</span>
                                             </button>
                                             <button
                                                 type="button"
@@ -2796,39 +2990,42 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                             </div>
 
                             <div className="prompt-canvas-actions">
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => setNegativePrompt(cleanPromptText(negativePrompt))}
-                                    title="Rapikan tanda koma dan spasi ekstra"
-                                >
-                                    <Icons.Clean />
-                                    <span>Rapikan</span>
-                                </button>
+                                <div className="prompt-canvas-tools-grid negative-tools">
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={() => setNegativePrompt(cleanPromptText(negativePrompt))}
+                                        title="Rapikan tanda koma dan spasi ekstra"
+                                    >
+                                        <Icons.Clean />
+                                        <span>Rapikan</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm"
-                                    onClick={() => triggerCopy(negativePrompt, "copy-negative", "Prompt negatif disalin!")}
-                                    title="Salin prompt negatif ke clipboard"
-                                >
-                                    {copiedKey === "copy-negative" ? <Icons.Check /> : <Icons.Copy />}
-                                    <span>{copiedKey === "copy-negative" ? "Tersalin!" : "Salin"}</span>
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm"
+                                        onClick={() => triggerCopy(negativePrompt, "copy-negative", "Prompt negatif disalin!")}
+                                        title="Salin prompt negatif ke clipboard"
+                                    >
+                                        {copiedKey === "copy-negative" ? <Icons.Check /> : <Icons.Copy />}
+                                        <span>{copiedKey === "copy-negative" ? "Tersalin!" : "Salin"}</span>
+                                    </button>
 
-                                <button
-                                    type="button"
-                                    className="prompt-btn-sm danger-hover"
-                                    onClick={() => {
-                                        if (window.confirm("Kosongkan prompt negatif?")) {
-                                            setNegativePrompt("");
-                                            showToast("Prompt negatif dikosongkan");
-                                        }
-                                    }}
-                                    title="Bersihkan prompt negatif"
-                                >
-                                    <Icons.Trash />
-                                </button>
+                                    <button
+                                        type="button"
+                                        className="prompt-btn-sm danger-hover"
+                                        onClick={() => {
+                                            if (window.confirm("Kosongkan prompt negatif?")) {
+                                                setNegativePrompt("");
+                                                showToast("Prompt negatif dikosongkan");
+                                            }
+                                        }}
+                                        title="Bersihkan prompt negatif"
+                                    >
+                                        <Icons.Trash />
+                                        <span className="mobile-only-btn-label">Kosongkan</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -3006,28 +3203,30 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                                             )}
                                         </div>
 
-                                        <select
-                                            className="preset-arch-select"
-                                            value={presetBaseModelFilter}
-                                            onChange={(e) => setPresetBaseModelFilter(e.target.value)}
-                                            title="Filter Arsitektur"
-                                        >
-                                            <option value="all">Semua Arsitektur</option>
-                                            <option value="Illustrious">Illustrious</option>
-                                            <option value="SDXL">SDXL</option>
-                                            <option value="Pony">Pony</option>
-                                        </select>
+                                        <div className="preset-filter-selects-row">
+                                            <select
+                                                className="preset-arch-select"
+                                                value={presetBaseModelFilter}
+                                                onChange={(e) => setPresetBaseModelFilter(e.target.value)}
+                                                title="Filter Arsitektur"
+                                            >
+                                                <option value="all">Semua Arsitektur</option>
+                                                <option value="Illustrious">Illustrious</option>
+                                                <option value="SDXL">SDXL</option>
+                                                <option value="Pony">Pony</option>
+                                            </select>
 
-                                        <select
-                                            className="preset-arch-select"
-                                            value={presetSort}
-                                            onChange={(e) => setPresetSort(e.target.value as "favorites" | "newest" | "alpha")}
-                                            title="Urutkan preset"
-                                        >
-                                            <option value="favorites">⭐ Favorit Teratas</option>
-                                            <option value="newest">Terbaru</option>
-                                            <option value="alpha">Nama A-Z</option>
-                                        </select>
+                                            <select
+                                                className="preset-arch-select"
+                                                value={presetSort}
+                                                onChange={(e) => setPresetSort(e.target.value as "favorites" | "newest" | "alpha")}
+                                                title="Urutkan preset"
+                                            >
+                                                <option value="favorites">⭐ Favorit Teratas</option>
+                                                <option value="newest">Terbaru</option>
+                                                <option value="alpha">Nama A-Z</option>
+                                            </select>
+                                        </div>
 
                                         <button
                                             type="button"

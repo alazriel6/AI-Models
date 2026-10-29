@@ -290,14 +290,14 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                                     if (showToast) {
                                         showToast(
                                             checked
-                                                ? "🔞 Mode NSFW aktif: Tag dewasa ditampilkan di katalog!"
+                                                ? "Mode NSFW aktif: Tag dewasa ditampilkan di katalog!"
                                                 : "Mode SFW: Tag dewasa disembunyikan."
                                         );
                                     }
                                 }}
                                 className="aps-nsfw-toggle-checkbox"
                             />
-                            <span>🔞 Mode NSFW (18+)</span>
+                            <span>Mode NSFW (18+)</span>
                         </label>
 
                         {/* Sort Selector */}
@@ -416,7 +416,7 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                         </div>
                     ) : tags.length === 0 ? (
                         <div className="booru-catalog-empty">
-                            <span className="booru-empty-icon">🔍</span>
+                            <span className="booru-empty-icon" style={{ fontSize: "18px" }}>∅</span>
                             <p>Tidak ada tag yang cocok dengan pencarian di layer ini.</p>
                             <span className="booru-empty-hint">
                                 Coba ganti kata kunci atau pilih tab <strong>"Semua Layer"</strong>.
@@ -430,10 +430,10 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                         if (displayedTags.length === 0) {
                             return (
                                 <div className="booru-catalog-empty">
-                                    <span className="booru-empty-icon">🛡️</span>
+                                    <span className="booru-empty-icon" style={{ fontSize: "18px" }}>∅</span>
                                     <p>Tidak ada tag yang cocok (Mode SFW aktif — tag dewasa disembunyikan).</p>
                                     <span className="booru-empty-hint">
-                                        Aktifkan <strong>🔞 Mode NSFW (18+)</strong> untuk melihat tag dewasa di kategori ini.
+                                        Aktifkan <strong>Mode NSFW (18+)</strong> untuk melihat tag dewasa di kategori ini.
                                     </span>
                                 </div>
                             );
@@ -461,7 +461,7 @@ export const DanbooruCatalogDrawer: React.FC<DanbooruCatalogDrawerProps> = ({
                                                         </span>
                                                     )}
                                                     {isAdult && (
-                                                        <span className="booru-nsfw-pill">🔞 18+</span>
+                                                        <span className="booru-nsfw-pill">18+</span>
                                                     )}
                                                 </div>
                                                 <div className="booru-card-right">

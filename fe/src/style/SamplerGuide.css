@@ -16,6 +16,7 @@
    ============================================================================ */
 
 .sg-page {
+  width: 100%;
   max-width: 1380px;
   margin: 0 auto;
   padding: 24px 20px 80px;
@@ -23,6 +24,7 @@
   background-color: #09090b;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* ============================================================================
@@ -104,6 +106,10 @@
 /* ============================================================================
    Navigation Tabs (Satu Baris, Bebas Emoji, SVG Lucide Monokrom)
    ============================================================================ */
+.sg-mobile-tab-switcher-bar {
+  display: none;
+}
+
 .sg-nav-tabs {
   display: flex;
   align-items: center;
@@ -226,6 +232,12 @@
   color: #71717a;
 }
 
+.sg-controls-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .sg-filter-select {
   background: #09090b;
   border: 1px solid #27272a;
@@ -259,9 +271,12 @@
    ============================================================================ */
 .sg-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(390px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
   gap: 16px;
   margin-bottom: 28px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sg-card {
@@ -273,6 +288,10 @@
   flex-direction: column;
   gap: 12px;
   transition: border-color 0.15s ease;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .sg-card:hover {
@@ -284,13 +303,18 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  width: 100%;
 }
 
 .sg-card-header-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
 }
 
 .sg-card-title {
@@ -299,6 +323,8 @@
   font-weight: 700;
   color: #f4f4f5;
   letter-spacing: -0.01em;
+  word-break: break-word;
+  min-width: 0;
 }
 
 /* 1 Badge Sifat Solid Tegas */
@@ -310,6 +336,7 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .sg-nature-badge.deterministic {
@@ -340,9 +367,12 @@
 .sg-card-id-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 11.5px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
 }
 
 .sg-id-chip {
@@ -354,6 +384,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .sg-id-chip.comfy {
@@ -374,6 +407,9 @@
 .sg-id-code {
   color: #f4f4f5;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sg-copy-icon {
@@ -397,44 +433,54 @@
 /* 2. Bar Spesifikasi Utama (3 Kolom Saja - Tanpa Duplikasi Sifat Aliran) */
 .sg-specs-strip {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   background: #09090b;
   border-top: 1px solid #27272a;
   border-bottom: 1px solid #27272a;
-  padding: 8px 10px;
+  padding: 8px 6px;
   gap: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sg-specs-strip-col {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 8px;
+  padding: 0 4px;
   border-right: 1px solid #27272a;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .sg-specs-strip-col:first-child {
-  padding-left: 2px;
+  padding-left: 0;
 }
 
 .sg-specs-strip-col:last-child {
   border-right: none;
-  padding-right: 2px;
+  padding-right: 0;
 }
 
 .sg-specs-strip-label {
-  font-size: 11px;
+  font-size: 10px;
   color: #a1a1aa;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sg-specs-strip-val {
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #f4f4f5;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sg-specs-strip-val.steps {
@@ -447,18 +493,23 @@
   font-size: 12px;
   color: #d4d4d8;
   line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .sg-vertical-characteristics {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+  width: 100%;
 }
 
 .sg-char-group {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .sg-char-heading {
@@ -498,6 +549,7 @@
   gap: 6px;
   font-size: 12px;
   line-height: 1.45;
+  min-width: 0;
 }
 
 .sg-bullet {
@@ -514,6 +566,13 @@
   color: #fbbf24;
 }
 
+.sg-char-text {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
+  flex: 1;
+}
+
 .sg-char-text.pros {
   color: #e4e4e7;
 }
@@ -526,10 +585,15 @@
 .sg-drawer-wrap {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  width: 100%;
 }
 
 .sg-drawer-trigger {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: #09090b;
   border: 1px solid #27272a;
   border-radius: 6px;
@@ -544,6 +608,7 @@
   cursor: pointer;
   transition: all 0.12s ease;
   text-align: left;
+  overflow: hidden;
 }
 
 .sg-drawer-trigger:hover {
@@ -560,6 +625,8 @@
 }
 
 .sg-drawer-trigger-text {
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -588,6 +655,9 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .sg-drawer-section {
@@ -648,6 +718,9 @@
   justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .sg-arch-pills {
@@ -655,6 +728,7 @@
   align-items: center;
   gap: 5px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .sg-arch-pill {
@@ -668,6 +742,14 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+.sg-card-action-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .sg-studio-btn {
   background: #27272a;
   border: 1px solid #3f3f46;
@@ -679,14 +761,29 @@
   cursor: pointer;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   transition: all 0.12s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sg-studio-btn:hover {
   background: #2563eb;
   border-color: #1d4ed8;
   color: #ffffff;
+}
+
+.sg-studio-btn.sg-vram-btn {
+  background: #18181b;
+  border-color: #3f3f46;
+  color: #38bdf8;
+}
+
+.sg-studio-btn.sg-vram-btn:hover {
+  background: #27272a;
+  border-color: #38bdf8;
+  color: #7dd3fc;
 }
 
 /* ============================================================================
@@ -931,6 +1028,18 @@
   line-height: 1.5;
 }
 
+.sg-recipe-clip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  background: #09090b;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #27272a;
+  margin-top: 2px;
+}
+
 /* ============================================================================
    Tab 4: Head-to-Head Battle Arena
    ============================================================================ */
@@ -982,12 +1091,19 @@
   justify-content: center;
 }
 
+.sg-battle-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 6px;
+  border: 1px solid #27272a;
+}
+
 .sg-battle-table {
   width: 100%;
   border-collapse: collapse;
   background: #09090b;
-  border: 1px solid #27272a;
-  border-radius: 6px;
+  border: none;
   overflow: hidden;
 }
 
@@ -1232,31 +1348,648 @@
   gap: 8px;
 }
 
-/* Responsive adjustments */
+/* ============================================================================
+   Responsive Design (Mobile-First Polish for <= 768px, <= 480px, <= 360px)
+   ============================================================================ */
+
 @media (max-width: 768px) {
-  .sg-grid {
-    grid-template-columns: 1fr;
+  .sg-page {
+    padding: 12px 4px 48px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
-  .sg-battle-selector-row {
-    grid-template-columns: 1fr;
-  }
-  .sg-battle-vs {
-    margin: 0 auto;
-  }
-  .sg-phase-guides {
-    grid-template-columns: 1fr;
-  }
-  .sg-controls-bar {
+
+  /* Header */
+  .sg-header {
+    padding: 12px 12px;
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    margin-bottom: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
-  .sg-search-wrap {
-    min-width: 100%;
-  }
-  .sg-filter-select {
+
+  .sg-header-left {
+    min-width: 0 !important;
     width: 100%;
   }
+
+  .sg-title {
+    font-size: 16.5px;
+    gap: 8px;
+    word-break: break-word;
+  }
+
+  .sg-title-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sg-subtitle {
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+
+  .sg-header-stats-bar {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: center;
+    font-size: 11px;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+    text-align: center;
+  }
+
+  /* Navigation: Hide wide tab bar, show mobile switcher */
+  .sg-nav-tabs {
+    display: none !important;
+  }
+
+  .sg-mobile-tab-switcher-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-mobile-tab-select-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  .sg-mobile-tab-select {
+    width: 100%;
+    background: #121215;
+    border: 1px solid #2563eb;
+    color: #f4f4f5;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+
+  .sg-mobile-tab-select:focus {
+    border-color: #60a5fa;
+  }
+
+  .sg-mobile-tab-quick-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 0.8fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .sg-mobile-tab-quick-btn {
+    background: #18181b;
+    border: 1px solid #27272a;
+    color: #a1a1aa;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 7px 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.12s ease;
+  }
+
+  .sg-mobile-tab-quick-btn.active {
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: #ffffff;
+  }
+
+  /* Controls Bar */
+  .sg-controls-bar {
+    padding: 10px 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    margin-bottom: 14px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-search-wrap {
+    min-width: 0 !important;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-search-input {
+    font-size: 12.5px;
+    padding: 7px 10px 7px 30px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-controls-filter-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-filter-select {
+    width: 100%;
+    min-width: 0;
+    font-size: 11px;
+    padding: 7px 8px;
+    box-sizing: border-box;
+  }
+
   .sg-controls-count {
     margin-left: 0;
+    text-align: center;
+    font-size: 11px;
+    color: #71717a;
+    width: 100%;
+  }
+
+  /* Sampler Cards */
+  .sg-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-card {
+    padding: 12px 10px;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .sg-card-header-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .sg-card-title {
+    font-size: 15px;
+    word-break: break-word;
+  }
+
+  .sg-nature-badge {
+    font-size: 9.5px;
+    padding: 2px 6px;
+  }
+
+  .sg-card-id-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .sg-id-chip {
+    padding: 2px 6px;
+    font-size: 10.5px;
+    max-width: 100%;
+    word-break: break-all;
+  }
+
+  .sg-specs-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 6px 4px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-specs-strip-col {
+    padding: 0 4px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .sg-specs-strip-label {
+    font-size: 9px;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sg-specs-strip-val {
+    font-size: 11.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sg-card-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-card-action-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 6px;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .sg-studio-btn,
+  .sg-btn-primary {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    padding: 7px 6px;
+    font-size: 11px;
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Drawer */
+  .sg-drawer-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sg-drawer-trigger {
+    font-size: 11px;
+    padding: 6px 8px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .sg-drawer-trigger-text {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sg-drawer-content {
+    padding: 8px 10px;
+    font-size: 11px;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .sg-drawer-paper-link-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+    word-break: break-all;
+  }
+
+  /* Tab 2: Sigma Plotter */
+  .sg-plotter-panel {
+    padding: 14px 10px;
+    margin-bottom: 18px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-plotter-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .sg-plotter-title {
+    font-size: 14.5px;
+  }
+
+  .sg-plotter-desc {
+    font-size: 11.5px;
+  }
+
+  .sg-step-slider-control {
+    width: 100%;
+    box-sizing: border-box;
+    justify-content: space-between;
+    padding: 6px 10px;
+  }
+
+  .sg-step-slider {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    width: auto;
+  }
+
+  .sg-sched-toggles {
+    gap: 5px;
+    margin-bottom: 12px;
+  }
+
+  .sg-sched-toggle-chip {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .sg-graph-wrapper {
+    padding: 8px 4px;
+    overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-graph-svg {
+    height: 220px;
+    min-width: 280px;
+  }
+
+  .sg-phase-guides {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .sg-phase-box {
+    padding: 10px 12px;
+    min-width: 0;
+  }
+
+  /* Tab 3: Recipes */
+  .sg-recipe-clip-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 6px 8px;
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .sg-recipe-why {
+    padding: 8px 10px;
+    font-size: 11.5px;
+    min-width: 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Tab 4: Head-to-Head Battle */
+  .sg-battle-container {
+    padding: 14px 10px;
+    margin-bottom: 18px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-battle-selector-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .sg-battle-col {
+    min-width: 0;
+  }
+
+  .sg-battle-vs {
+    margin: 0 auto;
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .sg-battle-table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 6px;
+    border: 1px solid #27272a;
+    box-sizing: border-box;
+  }
+
+  .sg-battle-table {
+    min-width: 480px;
+  }
+
+  .sg-battle-table th,
+  .sg-battle-table td {
+    padding: 8px 10px;
+    font-size: 11.5px;
+  }
+
+  .sg-battle-table td.metric-col {
+    width: 115px;
+    font-size: 11px;
+    padding: 8px 8px;
+  }
+
+  /* Tab 5: Wizard */
+  .sg-wizard-panel {
+    padding: 14px 10px;
+    margin-bottom: 18px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-wizard-title {
+    font-size: 15px;
+  }
+
+  .sg-wizard-desc {
+    font-size: 11.5px;
+  }
+
+  .sg-wizard-form {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+    min-width: 0;
+  }
+
+  .sg-choice-btn {
+    padding: 8px 10px;
+    font-size: 11.5px;
+    min-width: 0;
+  }
+
+  .sg-result-card {
+    padding: 12px 10px;
+    gap: 10px;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .sg-recipe-big-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .sg-recipe-spec {
+    padding: 8px 10px;
+    min-width: 0;
+  }
+
+  .sg-recipe-spec-title {
+    font-size: 9.5px;
+  }
+
+  .sg-recipe-spec-value {
+    font-size: 12.5px;
+  }
+
+  .sg-recipe-actions {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .sg-recipe-actions .sg-btn-primary,
+  .sg-recipe-actions .sg-btn-secondary {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  /* Toast Notification */
+  .sg-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    justify-content: center;
+    font-size: 11.5px;
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sg-page {
+    padding: 8px 2px 40px;
+  }
+
+  .sg-header {
+    padding: 10px 8px;
+  }
+
+  .sg-title {
+    font-size: 15px;
+  }
+
+  .sg-header-stats-bar {
+    font-size: 10px;
+    padding: 5px 6px;
+    gap: 4px;
+  }
+
+  .sg-mobile-tab-quick-btn {
+    font-size: 10px;
+    padding: 6px 4px;
+  }
+
+  .sg-controls-bar {
+    padding: 8px 6px;
+  }
+
+  .sg-controls-filter-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+  }
+
+  .sg-filter-select {
+    font-size: 10.5px;
+    padding: 6px 4px;
+  }
+
+  .sg-card {
+    padding: 10px 8px;
+  }
+
+  .sg-card-title {
+    font-size: 14px;
+  }
+
+  .sg-nature-badge {
+    font-size: 9px;
+    padding: 1.5px 5px;
+    letter-spacing: 0.02em;
+  }
+
+  .sg-specs-strip-label {
+    font-size: 8.5px;
+  }
+
+  .sg-specs-strip-val {
+    font-size: 10.5px;
+  }
+
+  /* Single column full-width buttons on small mobile devices: zero squeezing! */
+  .sg-card-action-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .sg-studio-btn,
+  .sg-btn-primary {
+    font-size: 11px;
+    padding: 8px 8px;
+  }
+
+  .sg-recipe-big-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .sg-recipe-spec {
+    padding: 6px 8px;
+  }
+
+  .sg-recipe-spec-title {
+    font-size: 9px;
+  }
+
+  .sg-recipe-spec-value {
+    font-size: 11.5px;
+  }
+}
+
+@media (max-width: 360px) {
+  .sg-controls-filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sg-card-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .sg-recipe-big-row {
+    grid-template-columns: 1fr;
   }
 }

@@ -3,6 +3,7 @@ import { HeroSection } from './HeroSection';
 import { EditorialStatement } from './EditorialStatement';
 import { ShowcaseSection } from './ShowcaseSection';
 import { FeatureStorytelling } from './FeatureStorytelling';
+import { ToolsArsenalSection } from './ToolsArsenalSection';
 import { TechnicalDetailsSection } from './TechnicalDetailsSection';
 import { FinalCtaSection } from './FinalCtaSection';
 import { LandingFooter } from './LandingFooter';
@@ -29,6 +30,9 @@ export function LandingPage() {
 
       {/* SECTION E & F: Feature Storytelling & Scroll-Driven Narrative */}
       <FeatureStorytelling />
+
+      {/* SECTION: Complete Tools Arsenal & Interactive Workstations */}
+      <ToolsArsenalSection />
 
       {/* SECTION G: Technical Details, VRAM Matrix & Sampling Baselines */}
       <TechnicalDetailsSection />
