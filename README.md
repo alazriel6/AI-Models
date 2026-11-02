@@ -1,240 +1,151 @@
-# AI Models Guide & Generative Diffusion Workstation
+<div align="center">
 
-A comprehensive parameter workstation, model catalog, and generative engineering suite designed for Stable Diffusion, Illustrious XL, NoobAI, Pony Diffusion, SDXL, and Flux.1 ecosystems.
+<p>
+  <strong>English</strong> · <a href="#">简体中文</a> · <a href="#">日本語</a> · <a href="#">Bahasa Indonesia</a>
+</p>
 
-The project combines an editorial model catalog with client-side utility tools for prompt architecture, LoRA weight aggregation, interactive OpenPose skeleton rigging, ComfyUI workflow management, and hardware VRAM profiling.
+# AI Models: Generative Diffusion Workstation
 
----
+<p>
+  <strong>A unified parameter workstation, model catalog, and generative engineering suite for modern diffusion models.</strong>
+</p>
 
-## Architecture Overview
+<p>
+  Inspect model architectures, compare inference parameters, rig OpenPose skeletons, stack LoRA weights with burnout protection, and inspect image generation metadata.
+</p>
 
-The system is built as a modular full-stack application supporting two execution environments:
+<p>
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=flat&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178c6?style=flat&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Vite-8.x-646cff?style=flat&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Go-1.26-00add8?style=flat&logo=go&logoColor=white" alt="Go" />
+  <img src="https://img.shields.io/badge/PostgreSQL-14+-4169e1?style=flat&logo=postgresql&logoColor=white" alt="PostgreSQL" />
+  <img src="https://img.shields.io/badge/license-MIT-22c55e?style=flat" alt="License" />
+</p>
 
-1. **Full-Stack Mode**: Go REST API powered by Gin, GORM, and PostgreSQL, providing persistent storage for model checkpoints, LoRA weights, showcase galleries, user poses, and custom prompt presets.
-2. **Hybrid Standalone Mode (Frontend-Only)**: The Vite/React application contains self-healing fallback datasets. When deployed without a backend instance (e.g., on Vercel, Netlify, or GitHub Pages), all tools, catalog exploration, parameter comparison, and canvas engines remain fully functional offline.
+<p>
+  <a href="#overview">Overview</a> •
+  <a href="#key-features">Key Features</a> •
+  <a href="#tech-stack">Tech Stack</a> •
+  <a href="#getting-started">Getting Started</a> •
+  <a href="#license">License</a>
+</p>
 
-```
-                          +-------------------------------------------------+
-                          |               Client Browser (SPA)              |
-                          |      React 19 + TypeScript + Vite + Canvas      |
-                          +------------------------+------------------------+
-                                                   |
-                        +--------------------------+--------------------------+
-                        |                                                     |
-             [Backend Available]                                     [Backend Offline / Demo]
-                        |                                                     |
-                        v                                                     v
-          +---------------------------+                         +---------------------------+
-          |      Go Gin REST API      |                         | Built-in Fallback Dataset |
-          |   (Controllers, Services) |                         | (12 Models, 24 Images,    |
-          +-------------+-------------+                         | 120+ OpenPose Skeletons)  |
-                        |                                       +---------------------------+
-                        v
-          +---------------------------+
-          |    PostgreSQL Database    |
-          |  (Models, Poses, Presets) |
-          +---------------------------+
-```
+</div>
 
 ---
 
-## Core Capabilities & Workstation Modules
+## Overview
+
+**AI Models** is an all-in-one workstation and technical catalog designed for creators and engineers working with generative diffusion models (Illustrious XL, NoobAI V-pred, SDXL 1.0, Pony Diffusion V6, SD 1.5, and Flux.1). 
+
+Instead of guessing sampling steps, CFG scales, CLIP skip layers, or tensor weights, this platform centralizes verified parameters, multi-model side-by-side matrices, interactive canvas tools, and metadata extraction into a single, cohesive developer workspace.
+
+---
+
+## Key Features
 
 ### 1. Model Catalog & Comparison Matrix
-- **Registered Model Registry**: Detailed parameter guidelines for checkpoint architectures (Illustrious XL, NoobAI EPS/V-pred, SDXL 1.0, Pony Diffusion V6, SD 1.5, and Flux.1).
-- **Multi-Slot Comparison Matrix**: Side-by-side inspection of up to 3 models simultaneously, analyzing native resolutions, recommended samplers, CFG ranges, CLIP skip levels, and trigger words.
-- **Virtualized Catalog View**: Smooth rendering across high-volume card sets using `@tanstack/react-virtual`.
+- **Architecture Guidelines**: Complete specifications for anime and photorealistic checkpoints, including recommended native resolutions, optimal samplers, and trigger words.
+- **Side-by-Side Matrix**: Compare up to 3 models simultaneously across base architecture, VRAM demands, CLIP skip, scheduler pairing, and hires fix presets.
+- **High-Performance Virtualization**: Virtualized grid and list views powered by TanStack Virtual for instant scrolling across large registries.
 
 ### 2. OpenPose & ControlNet Rig Studio
-- **Interactive Skeleton Rigging**: 18-joint COCO-compliant human armature editor rendered on HTML5 Canvas with real-time limb rotation, joint translation, and multi-pose duo support.
-- **Canvas Rendering & Export**: Real-time rendering with limb color coding, dark/colored canvas preview, and 1-click PNG export ready for direct injection into WebUI, Forge, or ComfyUI ControlNet nodes.
-- **Preprocessor Reference Guide**: Technical cheat-sheets with extraction threshold recommendations for Canny edge, DepthAnything V2, Normalbae, and LineArt.
-- **ControlNet Model Matrix**: Architecture compatibility matrix with verified Hugging Face download repositories and recommended attention weights.
+- **Interactive Skeleton Rigging**: 18-joint COCO-compliant pose editor on HTML5 Canvas with real-time joint manipulation, limb rotation, and multi-character duo support.
+- **Instant Export**: Export clean OpenPose images (black background with colored bones) ready for Automatic1111, Forge, or ComfyUI ControlNet nodes.
+- **Preprocessor Reference Guide**: Technical cheat-sheets with optimal threshold recommendations for Canny, DepthAnything V2, Normalbae, and LineArt.
 
 ### 3. LoRA Stack Builder & Burnout Guard
-- **Weight Aggregator**: Combine multiple LoRA weights in a single stack with dynamic cumulative weight calculations.
-- **Over-Baking / Burnout Guard**: Real-time warning indicators when combined tensor weights exceed safe thresholds (preventing artifact burn and contrast saturation).
-- **Multi-Syntax Exporter**: Instant export to Automatic1111 / Forge `<lora:filename:weight>` syntax, ComfyUI `CR LoRA Stack` format, and raw JSON configurations.
+- **Multi-Layer Weight Aggregation**: Combine multiple LoRA layers with individual strength sliders and automatic trigger word extraction.
+- **Over-Baking / Burnout Guard**: Built-in tensor saturation detection that alerts you before combined weights cause pixel burning or contrast degradation.
+- **Syntax Export**: One-click export to Automatic1111 `<lora:name:weight>` format, ComfyUI node graphs, and raw JSON.
 
 ### 4. Lossless Metadata Inspector
-- **Image Header Chunk Parser**: Extracts generation metadata (`tEXt` / `iTXt` PNG chunks) directly in the browser without uploading raw files to external servers.
-- **Format Normalizer**: Automatically decodes and parses generation parameters from Automatic1111, SD-Forge, NovelAI, and ComfyUI workflow execution graphs.
-- **Workflow Bridge**: 1-click transfer of parsed parameters into the Prompt Lab, LoRA Stack, or Resolution Calculator.
+- **Client-Side Chunk Parsing**: Read `tEXt` and `iTXt` PNG chunks directly in the browser without uploading raw files to external servers.
+- **Format Normalizer**: Automatically parses parameters from Automatic1111, SD-Forge, NovelAI, and ComfyUI workflow execution graphs.
+- **Workflow Bridge**: Send extracted prompts and seeds directly to the Prompt Lab, LoRA Stack, or Resolution Calculator with one click.
 
-### 5. Prompt Matrix & Danbooru Tag Studio
-- **Structured Semantic Composition**: Organized input modules for subject, medium, lighting, camera angle, and style modifiers.
-- **Taxonomy Tag Explorer**: Curated Danbooru character, costume, and aesthetic tags with auto-formatting and weight scaling `(tag:1.2)`.
-- **Negative Vault**: Architecture-specific negative prompt formulas (e.g., score suppression tokens for Pony/NoobAI) and negative embedding syntax.
+### 5. Modular Prompt Matrix & Negative Vault
+- **Structured Token Composer**: Organize prompts by subject, style, lighting, camera angle, and artist modifiers.
+- **Danbooru Taxonomy Explorer**: Filter and append curated character, costume, and aesthetic tags with automatic syntax formatting.
+- **Negative Vault**: Curated negative formulas and embedding triggers tailored specifically to suppress score-based degradation in Pony and NoobAI models.
 
 ### 6. Hardware VRAM & Resolution Profiler
-- **Memory Allocation Estimator**: Estimates dedicated GPU memory consumption across base model parameters, context lengths, batch sizes, and VAE tiling.
-- **Latent Dimension Calculator**: Calculates optimal aspect ratios with automatic 64/8-pixel latent grid snapping to prevent dimensional padding errors.
+- **Memory Allocation Predictor**: Estimate dedicated GPU memory requirements across model parameters, batch sizes, context lengths, and VAE tiling.
+- **Latent Grid Snapping**: Dimension calculator with automatic 64/8-pixel latent grid rounding to avoid generation artifacts.
+
+### 7. ComfyUI Workflow Catalog
+- **Curated Node Presets**: Ready-to-import ComfyUI node graphs for standard text-to-image, FaceDetailer pipelines, and upscaling workflows.
+- **Node Graph Inspector**: Visual inspection of required custom nodes and node dependencies.
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-### Frontend
-- **Framework**: React 19 + TypeScript
-- **Build Tool**: Vite 8
-- **Routing**: React Router v7 (SPA with client-side history API)
-- **Virtualization**: `@tanstack/react-virtual`
-- **Styling**: Vanilla CSS3 (Custom Dark Cyberpunk / Editorial design system, hardware-accelerated transforms)
-
-### Backend
-- **Language**: Go 1.26+
-- **HTTP Engine**: Gin Web Framework
-- **ORM**: GORM (Object Relational Mapping)
-- **Database**: PostgreSQL 14+ (with JSONB support)
-- **Database Migrations**: `golang-migrate`
-
----
-
-## Project Structure
-
-```
-.
-├── be/                         # Go Gin REST API
-│   ├── cmd/
-│   │   └── server/             # Application entrypoint & dependency wiring
-│   ├── internal/
-│   │   ├── config/             # Environment configuration parser
-│   │   ├── database/           # Connection pooling, migrations & seed scripts
-│   │   ├── handlers/           # HTTP controllers
-│   │   ├── middleware/         # CORS, rate limiting & auth validation
-│   │   ├── models/             # GORM entity definitions
-│   │   ├── repositories/       # Database query abstraction
-│   │   ├── routes/             # Route group definitions
-│   │   └── services/           # Business domain logic
-│   ├── migrations/             # Versioned SQL migrations (.up.sql / .down.sql)
-│   ├── storage/                # Local filesystem asset storage
-│   ├── go.mod
-│   └── go.sum
-│
-├── fe/                         # React TypeScript Frontend
-│   ├── public/                 # Static assets & icons
-│   ├── src/
-│   │   ├── api/                # API client adapters with offline fallback logic
-│   │   ├── components/         # Reusable UI components & workstation pages
-│   │   │   ├── common/         # Modals, status banners, virtualized cards
-│   │   │   ├── controlnet/     # OpenPose canvas & preprocessor labs
-│   │   │   ├── landing/        # Interactive showcase & feature storytelling
-│   │   │   └── pages/          # Catalog, Gallery, PromptLab, LoRAStack, etc.
-│   │   ├── data/               # Curated fallback models, gallery, and pose datasets
-│   │   ├── style/              # Modular component stylesheets
-│   │   ├── utils/              # Metadata extraction, math calculation & export tools
-│   │   ├── App.tsx             # Route definitions & global layout
-│   │   └── main.tsx            # Application bootstrapping
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-│
-├── vercel.json                 # Vercel deployment rewrites & cache rules
-└── README.md
-```
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend Framework** | React 19, TypeScript, Vite 8 |
+| **State & Navigation** | React Router v7, TanStack Virtual |
+| **Canvas & Graphic Engines** | HTML5 Canvas API (2D Rigging Engine) |
+| **UI Design System** | Custom Dark Cyberpunk / Editorial CSS3 with glassmorphism |
+| **Backend Framework** | Go 1.26+, Gin Web Framework |
+| **Database & ORM** | PostgreSQL 14+, GORM, golang-migrate |
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
-- **npm** or **pnpm**
-- *(Optional for Backend)*: **Go** v1.22+ and **PostgreSQL** v14+
+- [Node.js](https://nodejs.org/) (v18.0.0 or higher)
+- [npm](https://www.npmjs.com/) or [pnpm](https://pnpm.io/)
+- *(Optional for Backend)*: [Go](https://go.dev/) (v1.22+) and [PostgreSQL](https://www.postgresql.org/) (v14+)
 
 ---
 
-### Frontend Setup (Standalone Mode)
+### Installation & Setup
 
-To run the frontend workstation locally with the built-in verified dataset:
-
+#### 1. Clone the Repository
 ```bash
-# 1. Navigate to the frontend directory
-cd fe
-
-# 2. Install dependencies
-npm install
-
-# 3. Start development server
-npm run dev
+git clone https://github.com/alazriel6/AI-Models.git
+cd AI-Models
 ```
 
+#### 2. Run the Frontend
+The frontend includes built-in verified datasets and runs out of the box with all tools active:
+
+```bash
+cd fe
+npm install
+npm run dev
+```
 Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-To generate a production bundle:
+To compile for production:
 ```bash
 npm run build
 ```
 
 ---
 
-### Backend Setup (Full-Stack Mode)
-
-If you wish to run the Go API and connect a local PostgreSQL database:
+#### 3. (Optional) Run the Backend & Database
+If you wish to run the local Go API server with PostgreSQL persistence:
 
 ```bash
-# 1. Navigate to the backend directory
 cd be
 
-# 2. Copy the sample environment file
+# Copy environment template
 cp .env.example .env
 
-# 3. Configure your database credentials in .env
-# DB_HOST=localhost
-# DB_PORT=5432
-# DB_USER=postgres
-# DB_PASSWORD=your_password
-# DB_NAME=models_guide
-
-# 4. Download Go dependencies
+# Download Go modules
 go mod download
 
-# 5. Run database migrations & start the server
+# Start the Go server
 go run cmd/server/main.go
 ```
-
-The REST API will listen on `http://localhost:8080/api`.
-
----
-
-## Configuration Reference
-
-### Frontend Environment Variables (`fe/.env`)
-
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `VITE_API_URL` | `http://localhost:8080/api` | Base URL for the Go REST API. When unreachable, the app automatically switches to Standalone FE mode. |
-| `VITE_BACKEND_URL` | `http://localhost:8080` | Base URL for backend uploaded media storage. |
-
-### Backend Environment Variables (`be/.env`)
-
-| Variable | Default Value | Description |
-| :--- | :--- | :--- |
-| `PORT` | `8080` | Port for the HTTP API server. |
-| `DB_HOST` | `localhost` | PostgreSQL host address. |
-| `DB_PORT` | `5432` | PostgreSQL port. |
-| `DB_USER` | `postgres` | Database username. |
-| `DB_PASSWORD` | `postgres` | Database password. |
-| `DB_NAME` | `models_guide` | Database name. |
-| `ADMIN_KEY` | `admin123` | Secret authentication key for administrative actions. |
-
----
-
-## Deployment
-
-### Vercel Deployment (Frontend / Live Demo)
-This repository includes pre-configured routing rules in `vercel.json` for client-side Single Page Application (SPA) routing:
-
-1. Import the repository into your Vercel Dashboard.
-2. Set **Root Directory** to `fe`.
-3. Set **Framework Preset** to `Vite`.
-4. Click **Deploy**.
-
-The frontend will run out of the box in **Standalone Mode** using its verified local datasets. If you later deploy the Go backend, simply set the `VITE_API_URL` environment variable in your Vercel project settings to enable live database persistence.
+The backend API server will listen on `http://localhost:8080`.
 
 ---
 
 ## License
 
-This project is open-source software provided under the [MIT License](LICENSE).
-
+This project is licensed under the [MIT License](LICENSE).
