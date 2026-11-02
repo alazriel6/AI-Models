@@ -227,16 +227,19 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
         const pulse = 0.5 + 0.5 * Math.sin(p.pulsePhase);
         const currentAlpha = Math.max(0.04, p.baseAlpha * (0.45 + 0.55 * pulse));
 
-        // Draw soft ambient outer glow halo
-        const haloRadius = p.layer === 2 ? p.radius * 5.5 : p.layer === 1 ? p.radius * 4.0 : p.radius * 2.5;
-        const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, haloRadius);
-        glow.addColorStop(0, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${currentAlpha * 0.85})`);
-        glow.addColorStop(0.35, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${currentAlpha * 0.35})`);
-        glow.addColorStop(1, `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, 0)`);
-
-        ctx.fillStyle = glow;
+        // Draw soft ambient outer glow halo (zero-allocation layered alpha circles)
+        const haloRadius = p.layer === 2 ? p.radius * 5.0 : p.layer === 1 ? p.radius * 3.6 : p.radius * 2.2;
+        
+        // Outer soft glow layer
+        ctx.fillStyle = `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${currentAlpha * 0.18})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, haloRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Mid glow layer
+        ctx.fillStyle = `rgba(${p.color.r}, ${p.color.g}, ${p.color.b}, ${currentAlpha * 0.45})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, haloRadius * 0.55, 0, Math.PI * 2);
         ctx.fill();
 
         // Draw crisp luminescent inner core

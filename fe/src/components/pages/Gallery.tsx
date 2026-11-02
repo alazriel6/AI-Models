@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { getAllImages, getModels, type ModelImage, type Model } from '../../api/models';
+import { getAllImages, getModels, getIsDemoMode, type ModelImage, type Model } from '../../api/models';
 import { resolveImageUrl } from '../../api/client';
 import { WorkflowBridgeMenu } from '../common/WorkflowBridgeMenu';
 import {
@@ -12,6 +12,7 @@ import {
 } from '../../utils/workflowBridge';
 import { useFavorites } from '../../api/favorites';
 import { OptimizedImage } from '../common/OptimizedImage';
+import { BackendStatusBanner } from '../common/BackendStatusBanner';
 import {
   buildA1111ParametersText,
   buildComfyUIWorkflowJSON,
@@ -168,6 +169,7 @@ export default function Gallery() {
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   // Filters & Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -316,6 +318,7 @@ export default function Gallery() {
         setImages(extractedImages);
       }
 
+      setIsDemo(getIsDemoMode());
       setLoading(false);
     }).catch((err) => {
       if (ignore) return;
@@ -1519,6 +1522,14 @@ export default function Gallery() {
           </div>
         )}
       </section>
+
+      {/* Standalone Frontend Banner when backend is offline */}
+      {!loading && isDemo && (
+        <BackendStatusBanner
+          message="Tak terhubung ke BE / Mode Frontend Aktif — Galeri memuat 24 sampel karya generasi anime kurasi lokal."
+          onRetry={() => window.location.reload()}
+        />
+      )}
 
       {/* ===================================================================
           Loading State

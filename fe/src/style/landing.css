@@ -229,7 +229,9 @@
   background-position: center 65%;
   background-repeat: no-repeat;
   filter: saturate(0.95) brightness(0.85) contrast(1.08);
-  transform: scale(1.04) translate(calc(var(--hero-tilt-x, 0px) * -0.3), calc(var(--hero-tilt-y, 0px) * -0.3));
+  transform: scale(1.04) translate3d(calc(var(--hero-tilt-x, 0px) * -0.3), calc(var(--hero-tilt-y, 0px) * -0.3), 0);
+  will-change: transform;
+  backface-visibility: hidden;
   transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.6s ease;
   pointer-events: none;
   z-index: 1;
@@ -1570,8 +1572,7 @@
   background-color: var(--mg-bg-primary);
   position: relative;
   overflow: hidden;
-  content-visibility: auto;
-  contain-intrinsic-size: 800px;
+  contain: paint;
 }
 
 /* 1. Seamless Transition Bridge from Hero Section */
@@ -1653,7 +1654,9 @@
   filter: saturate(0.85) brightness(0.7) contrast(1.1);
   pointer-events: none;
   z-index: 1;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* 3. Subtle Natural Forest Fog & Depth (Neutral, No Blue Tint) */
@@ -1673,7 +1676,9 @@
   z-index: 2;
   opacity: 0.14;
   contain: layout paint;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mg-statement-fog-ribbon.ribbon-1 {
@@ -2085,8 +2090,7 @@
   background-color: var(--mg-bg-secondary);
   position: relative;
   overflow: hidden;
-  content-visibility: auto;
-  contain-intrinsic-size: 1100px;
+  contain: paint;
 }
 
 /* Seamless Transition Bridge from Specification Suite 01 */
@@ -2120,7 +2124,9 @@
   filter: saturate(0.96) brightness(0.74) contrast(1.12);
   pointer-events: none;
   z-index: 1;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Volumetric God Rays Streaming Down Through the Upper Canopy (Cool Daylight & Subtle Cyan) */
@@ -2153,7 +2159,9 @@
   z-index: 2;
   opacity: 0.13;
   contain: layout paint;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mg-showcase-mist-ribbon.mist-1 {
@@ -2670,7 +2678,9 @@
   filter: saturate(0.94) brightness(0.72) contrast(1.15);
   pointer-events: none;
   z-index: 1;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -2682,7 +2692,9 @@
   z-index: 2;
   opacity: 0.12;
   contain: layout paint;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mg-features-mist-ribbon.mist-1 {
@@ -3897,8 +3909,7 @@
   position: relative;
   overflow: hidden;
   border-top: 1px solid var(--mg-border-subtle);
-  content-visibility: auto;
-  contain-intrinsic-size: 650px;
+  contain: paint;
 }
 
 /* Dedicated Nocturnal Boreal Crags & Monoliths Forest Background (Distinct from 01, 02, 03) */
@@ -3920,7 +3931,9 @@
   filter: saturate(0.92) brightness(0.72) contrast(1.16);
   pointer-events: none;
   z-index: 1;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -3932,7 +3945,9 @@
   z-index: 2;
   opacity: 0.11;
   contain: layout paint;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mg-tech-mist-ribbon.mist-1 {
@@ -4930,8 +4945,7 @@
   text-align: center;
   overflow: hidden;
   border-top: 1px solid var(--mg-border-subtle);
-  content-visibility: auto;
-  contain-intrinsic-size: 400px;
+  contain: paint;
 }
 
 /* Dedicated Nocturnal Forest Lake & Reflection Background (Distinct from 01, 02, 03, 04) */
@@ -4953,7 +4967,9 @@
   filter: saturate(0.92) brightness(0.72) contrast(1.15);
   pointer-events: none;
   z-index: 1;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 /* Subtle Natural Forest Ground Mist Ribbons */
@@ -4965,7 +4981,9 @@
   z-index: 2;
   opacity: 0.11;
   contain: layout paint;
-  transform: translateZ(0);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mg-final-mist-ribbon.mist-1 {
@@ -5085,8 +5103,7 @@
   background-color: #07090e;
   border-top: 1px solid #1e293b;
   padding: 64px 0 36px;
-  content-visibility: auto;
-  contain-intrinsic-size: 280px;
+  contain: paint;
 }
 
 .mg-footer-top {

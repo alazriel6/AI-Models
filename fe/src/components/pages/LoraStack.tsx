@@ -4,6 +4,7 @@ import { getModels, type Model } from "../../api/models";
 import { resolveImageUrl } from "../../api/client";
 import { downloadTextAsFile } from "../../utils/exportFormats";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import {
     type WorkflowBridgeData,
     extractLorasFromPrompt,
@@ -740,6 +741,11 @@ export default function LoraStack() {
                     </button>
                 </div>
             </header>
+
+            {/* Standalone Frontend Banner when backend is offline */}
+            <BackendStatusBanner
+                message="Tak terhubung ke BE / Mode Frontend Aktif — Pustaka katalog LoRA berjalan dengan data lokal."
+            />
 
             {/* Main Studio Grid */}
             <div className="lora-main-grid">

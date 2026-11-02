@@ -1,11 +1,12 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { getModels, getModel, type Model as ApiModel } from "../api/models";
+import { getModels, getModel, getIsDemoMode, type Model as ApiModel } from "../api/models";
 import { resolveImageUrl } from "../api/client";
 import { useFavorites } from "../api/favorites";
 import { CivitaiRichDescription } from "./CivitaiRichDescription";
 import { OptimizedImage } from "./common/OptimizedImage";
+import { BackendStatusBanner } from "./common/BackendStatusBanner";
 import "../style/ModelList.css";
 
 export interface ResourceUsed {
@@ -294,7 +295,7 @@ export default function ModelList() {
 
         getModels({ limit: 100 })
             .then((res) => {
-                if (res?.data && Array.isArray(res.data)) {
+                if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
                     setCatalog(res.data.map(mapApiModelToCatalog));
                 } else {
                     setCatalog([]);
@@ -302,7 +303,7 @@ export default function ModelList() {
             })
             .catch((err) => {
                 console.error("Failed to fetch models from backend:", err);
-                setError("Tidak dapat terhubung ke server backend (http://localhost:8080/api/models). Pastikan server backend sedang berjalan.");
+                setError("Gagal memuat katalog model. Silakan periksa koneksi internet atau muat ulang halaman.");
                 setCatalog([]);
             })
             .finally(() => setLoading(false));
@@ -314,7 +315,7 @@ export default function ModelList() {
         getModels({ limit: 100 })
             .then((res) => {
                 if (ignore) return;
-                if (res?.data && Array.isArray(res.data)) {
+                if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
                     setCatalog(res.data.map(mapApiModelToCatalog));
                 } else {
                     setCatalog([]);
@@ -323,7 +324,7 @@ export default function ModelList() {
             .catch((err) => {
                 if (ignore) return;
                 console.error("Failed to fetch models from backend:", err);
-                setError("Tidak dapat terhubung ke server backend (http://localhost:8080/api/models). Pastikan server backend sedang berjalan.");
+                setError("Gagal memuat katalog model. Silakan periksa koneksi internet atau muat ulang halaman.");
                 setCatalog([]);
             })
             .finally(() => {
@@ -1622,34 +1623,70 @@ export default function ModelList() {
                 </div>
             </header>
 
+            {/* Standalone Frontend Banner when backend is offline */}
+            {!loading && getIsDemoMode() && (
+                <BackendStatusBanner
+                    message="Tak terhubung ke BE / Mode Frontend Aktif — Katalog berjalan dengan dataset anime kurasi lokal (12 model terverifikasi)."
+                    onRetry={fetchCatalog}
+                />
+            )}
+
             {/* Loading State */}
             {loading && (
                 <div className="catalog-loading-state">
                     <div className="catalog-spinner"></div>
-                    <p className="loading-text">Loading model data from backend...</p>
+                    <p className="loading-text">Loading model data...</p>
                 </div>
             )}
 
-            {/* Error State with Retry */}
+            {/* Error State with Professional Editorial Card */}
             {!loading && error && (
-                <div className="catalog-error-state">
-                    <h3>Connection Error</h3>
-                    <p>{error}</p>
-                    <button className="retry-btn" onClick={fetchCatalog}>
-                        Retry Connection
-                    </button>
+                <div className="mg-catalog-error-card">
+                    <div className="mg-error-icon-halo">
+                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                        </svg>
+                    </div>
+                    <h3 className="mg-error-heading">Kendala Memuat Katalog</h3>
+                    <p className="mg-error-description">{error}</p>
+                    <div className="mg-error-actions">
+                        <button type="button" className="retry-btn" onClick={fetchCatalog}>
+                            Coba Muat Ulang
+                        </button>
+                    </div>
                 </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State with Action Reset Button */}
             {!loading && !error && filteredCatalog.length === 0 && (
-                <div className="empty-catalog-state">
-                    <h3>No models found</h3>
-                    <p>
-                        {catalog.length === 0
-                            ? "Database has no models registered yet. Add models via Admin console or backend migrations."
-                            : "No models matched the specified filter parameters or search query."}
+                <div className="mg-catalog-empty-card">
+                    <div className="mg-empty-icon-halo">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            <line x1="8" y1="11" x2="14" y2="11" />
+                        </svg>
+                    </div>
+                    <h3 className="mg-empty-heading">Tidak Ada Model yang Cocok</h3>
+                    <p className="mg-empty-description">
+                        {searchQuery
+                            ? `Tidak ada model checkpoint atau LoRA yang sesuai dengan kata kunci "${searchQuery}".`
+                            : "Tidak ada model yang sesuai dengan filter arsitektur yang aktif saat ini."}
                     </p>
+                    {(searchQuery || activeTab !== "all") && (
+                        <button
+                            type="button"
+                            className="mg-empty-reset-btn"
+                            onClick={() => {
+                                setSearchQuery("");
+                                handleTabChange("all");
+                            }}
+                        >
+                            Reset Pencarian &amp; Filter
+                        </button>
+                    )}
                 </div>
             )}
 

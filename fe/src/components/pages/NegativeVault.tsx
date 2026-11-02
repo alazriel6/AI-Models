@@ -10,6 +10,7 @@ import {
   deleteEmbeddingApi,
 } from "../../api/negativeVault";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import { bridgeToPromptLab, type WorkflowBridgeData } from "../../utils/workflowBridge";
 
 // ============================================================================
@@ -1016,6 +1017,11 @@ export default function NegativeVault() {
           </span>
         </div>
       </section>
+
+      {/* Standalone Frontend Banner when backend is offline */}
+      <BackendStatusBanner
+        message="Tak terhubung ke BE / Mode Frontend Aktif — Formula negative prompt & embedding dimuat dari vault lokal."
+      />
 
       {/* Tabs Bar */}
       <div className="nv-tabs-bar">

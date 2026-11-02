@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import { type WorkflowBridgeData } from "../../utils/workflowBridge";
 import { OpenPoseCanvas } from "../controlnet/OpenPoseCanvas";
 import { PreprocessorGuide } from "../controlnet/PreprocessorGuide";
@@ -229,6 +230,11 @@ export default function ControlNetStudio() {
           </button>
         </div>
       </header>
+
+      {/* Standalone Frontend Banner when backend is offline */}
+      <BackendStatusBanner
+        message="Tak terhubung ke BE / Mode Frontend Aktif — Pustaka pose ControlNet (120+ preset) berjalan dengan data lokal."
+      />
 
       {/* Main Content Area */}
       <main className="studio-tab-content">

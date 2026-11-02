@@ -355,17 +355,15 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
         ctx.fillStyle = `rgba(215, 235, 255, ${flashIntensity * 0.15})`;
         ctx.fillRect(0, 0, width, height);
 
-        // Branching Bolt
+        // Branching Bolt (Optimized dual/triple layered stroke with 0 CPU shadowBlur cost)
         if (currentStrike.hasBolt && flashIntensity > 0.2) {
           ctx.save();
           ctx.lineCap = 'round';
           ctx.lineJoin = 'miter';
 
-          ctx.strokeStyle = `rgba(147, 197, 253, ${flashIntensity * 0.85})`;
-          ctx.lineWidth = 4.5;
-          ctx.shadowColor = '#93c5fd';
-          ctx.shadowBlur = 18;
-
+          // Outer soft electric aura
+          ctx.strokeStyle = `rgba(147, 197, 253, ${flashIntensity * 0.28})`;
+          ctx.lineWidth = 9;
           ctx.beginPath();
           for (const seg of currentStrike.segments) {
             ctx.moveTo(seg.x1, seg.y1);
@@ -373,6 +371,17 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
           }
           ctx.stroke();
 
+          // Mid cyan body
+          ctx.strokeStyle = `rgba(147, 197, 253, ${flashIntensity * 0.85})`;
+          ctx.lineWidth = 4.2;
+          ctx.beginPath();
+          for (const seg of currentStrike.segments) {
+            ctx.moveTo(seg.x1, seg.y1);
+            ctx.lineTo(seg.x2, seg.y2);
+          }
+          ctx.stroke();
+
+          // Branch strikes
           if (currentStrike.branches.length > 0) {
             ctx.lineWidth = 2.2;
             for (const branch of currentStrike.branches) {
@@ -385,11 +394,9 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
             }
           }
 
+          // Inner high-voltage white core
           ctx.strokeStyle = `rgba(255, 255, 255, ${Math.min(1, flashIntensity * 1.2)})`;
-          ctx.lineWidth = 1.8;
-          ctx.shadowBlur = 6;
-          ctx.shadowColor = '#ffffff';
-
+          ctx.lineWidth = 1.6;
           ctx.beginPath();
           for (const seg of currentStrike.segments) {
             ctx.moveTo(seg.x1, seg.y1);

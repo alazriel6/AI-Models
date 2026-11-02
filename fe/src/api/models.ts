@@ -1,4 +1,15 @@
 import { apiFetch, API_BASE_URL } from "./client";
+import { FALLBACK_MODELS, FALLBACK_GALLERY_IMAGES } from "../data/fallbackData";
+
+let isDemoMode = false;
+
+export function getIsDemoMode(): boolean {
+    return isDemoMode;
+}
+
+export function setIsDemoMode(active: boolean): void {
+    isDemoMode = active;
+}
 
 export interface Resource {
     id: number;
@@ -152,42 +163,157 @@ export interface ImagesResponse {
     };
 }
 
-export function getModels(params?: { type?: string; base_model?: string; search?: string; page?: number; limit?: number }) {
-    const query = new URLSearchParams();
-    if (params?.type) query.append("type", params.type);
-    if (params?.base_model) query.append("base_model", params.base_model);
-    if (params?.search) query.append("search", params.search);
-    if (params?.page) query.append("page", String(params.page));
-    if (params?.limit) query.append("limit", String(params.limit));
-    const qs = query.toString();
-    return apiFetch<ModelsResponse>(`/models${qs ? `?${qs}` : ""}`);
+function filterFallbackModels(params?: { type?: string; base_model?: string; search?: string; page?: number; limit?: number }): ModelsResponse {
+    let result = [...FALLBACK_MODELS];
+    if (params?.type && params.type !== 'all') {
+        result = result.filter(m => m.type.toLowerCase() === params.type?.toLowerCase());
+    }
+    if (params?.base_model && params.base_model !== 'all') {
+        result = result.filter(m => m.base_model.toLowerCase().includes(params.base_model!.toLowerCase()));
+    }
+    if (params?.search) {
+        const q = params.search.toLowerCase();
+        result = result.filter(m => 
+            m.name.toLowerCase().includes(q) || 
+            m.description.toLowerCase().includes(q) || 
+            m.author.toLowerCase().includes(q) ||
+            m.tags.some(t => t.name.toLowerCase().includes(q))
+        );
+    }
+    const page = params?.page || 1;
+    const limit = params?.limit || 100;
+    const total = result.length;
+    const start = (page - 1) * limit;
+    const paged = result.slice(start, start + limit);
+
+    return {
+        data: paged,
+        pagination: {
+            page,
+            limit,
+            total,
+            total_pages: Math.max(1, Math.ceil(total / limit)),
+        },
+    };
 }
 
-export function getAllImages(params?: {
+function filterFallbackImages(params?: {
     search?: string;
     base_model?: string;
     model_id?: number;
     sort?: string;
     page?: number;
     limit?: number;
-}) {
-    const query = new URLSearchParams();
-    if (params?.search) query.append("search", params.search);
-    if (params?.base_model) query.append("base_model", params.base_model);
-    if (params?.model_id) query.append("model_id", String(params.model_id));
-    if (params?.sort) query.append("sort", params.sort);
-    if (params?.page) query.append("page", String(params.page));
-    if (params?.limit) query.append("limit", String(params.limit));
-    const qs = query.toString();
-    return apiFetch<ImagesResponse>(`/images${qs ? `?${qs}` : ""}`);
+}): ImagesResponse {
+    let result = [...FALLBACK_GALLERY_IMAGES];
+    if (params?.model_id) {
+        result = result.filter(img => img.model_id === params.model_id);
+    }
+    if (params?.base_model && params.base_model !== 'all') {
+        result = result.filter(img => img.model?.base_model.toLowerCase().includes(params.base_model!.toLowerCase()));
+    }
+    if (params?.search) {
+        const q = params.search.toLowerCase();
+        result = result.filter(img => 
+            (img.caption && img.caption.toLowerCase().includes(q)) ||
+            (img.positive_prompt && img.positive_prompt.toLowerCase().includes(q)) ||
+            (img.model?.name && img.model.name.toLowerCase().includes(q)) ||
+            img.tags?.some(t => t.name.toLowerCase().includes(q))
+        );
+    }
+    const page = params?.page || 1;
+    const limit = params?.limit || 100;
+    const total = result.length;
+    const start = (page - 1) * limit;
+    const paged = result.slice(start, start + limit);
+
+    return {
+        data: paged,
+        pagination: {
+            page,
+            limit,
+            total,
+            total_pages: Math.max(1, Math.ceil(total / limit)),
+        },
+    };
 }
 
-export function getModel(idOrSlug: string | number) {
-    return apiFetch<Model>(`/models/${idOrSlug}`);
+export async function getModels(params?: { type?: string; base_model?: string; search?: string; page?: number; limit?: number }): Promise<ModelsResponse> {
+    try {
+        const query = new URLSearchParams();
+        if (params?.type) query.append("type", params.type);
+        if (params?.base_model) query.append("base_model", params.base_model);
+        if (params?.search) query.append("search", params.search);
+        if (params?.page) query.append("page", String(params.page));
+        if (params?.limit) query.append("limit", String(params.limit));
+        const qs = query.toString();
+        const res = await apiFetch<ModelsResponse>(`/models${qs ? `?${qs}` : ""}`);
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+            isDemoMode = false;
+            return res;
+        }
+        isDemoMode = true;
+        return filterFallbackModels(params);
+    } catch {
+        // Backend offline or unreachable (e.g. Vercel live demo) - gracefully fallback to verified models
+        isDemoMode = true;
+        return filterFallbackModels(params);
+    }
 }
 
-export function getImage(id: number | string) {
-    return apiFetch<ModelImage>(`/images/${id}`);
+export async function getAllImages(params?: {
+    search?: string;
+    base_model?: string;
+    model_id?: number;
+    sort?: string;
+    page?: number;
+    limit?: number;
+}): Promise<ImagesResponse> {
+    try {
+        const query = new URLSearchParams();
+        if (params?.search) query.append("search", params.search);
+        if (params?.base_model) query.append("base_model", params.base_model);
+        if (params?.model_id) query.append("model_id", String(params.model_id));
+        if (params?.sort) query.append("sort", params.sort);
+        if (params?.page) query.append("page", String(params.page));
+        if (params?.limit) query.append("limit", String(params.limit));
+        const qs = query.toString();
+        const res = await apiFetch<ImagesResponse>(`/images${qs ? `?${qs}` : ""}`);
+        if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+            isDemoMode = false;
+            return res;
+        }
+        isDemoMode = true;
+        return filterFallbackImages(params);
+    } catch {
+        isDemoMode = true;
+        return filterFallbackImages(params);
+    }
+}
+
+export async function getModel(idOrSlug: string | number): Promise<Model> {
+    try {
+        const res = await apiFetch<Model>(`/models/${idOrSlug}`);
+        if (res && res.id) return res;
+        throw new Error("Model not found");
+    } catch {
+        isDemoMode = true;
+        const found = FALLBACK_MODELS.find(m => String(m.id) === String(idOrSlug) || m.slug === String(idOrSlug));
+        if (found) return found;
+        return FALLBACK_MODELS[0];
+    }
+}
+
+export async function getImage(id: number | string): Promise<ModelImage> {
+    try {
+        const res = await apiFetch<ModelImage>(`/images/${id}`);
+        if (res && res.id) return res;
+        throw new Error("Image not found");
+    } catch {
+        const found = FALLBACK_GALLERY_IMAGES.find(img => String(img.id) === String(id));
+        if (found) return found;
+        return FALLBACK_GALLERY_IMAGES[0];
+    }
 }
 
 export interface RecommendedLoraItem {

@@ -1716,6 +1716,10 @@ textarea {
     font-weight: 600 !important;
     border-radius: 8px !important;
     transition: all 0.18s ease !important;
+    cursor: pointer !important;
+    -webkit-tap-highlight-color: transparent !important;
+    user-select: none !important;
+    touch-action: manipulation !important;
   }
 
   .nav-dropdown-item.open .nav-dropdown-trigger {
@@ -1757,6 +1761,7 @@ textarea {
     border-radius: 4px;
   }
 
+  .nav-dropdown-item.open .nav-dropdown-menu,
   .nav-dropdown-menu.show {
     display: flex !important;
     flex-direction: column !important;
@@ -2113,3 +2118,205 @@ textarea {
     font-size: 11px;
   }
 }
+
+/* ==========================================================================
+   Global Standalone Frontend Banner & Resilience States
+   ========================================================================== */
+
+.catalog-demo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px;
+  margin: 18px 0 16px;
+  background: linear-gradient(90deg, rgba(30, 58, 138, 0.18) 0%, rgba(15, 23, 42, 0.45) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.demo-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.demo-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #38bdf8;
+  box-shadow: 0 0 10px #38bdf8;
+  animation: demoPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes demoPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.2); }
+}
+
+.demo-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+  text-transform: uppercase;
+}
+
+.demo-message {
+  font-size: 13px;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.demo-reconnect-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.demo-reconnect-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.4);
+  color: #ffffff;
+}
+
+@media (max-width: 640px) {
+  .catalog-demo-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 14px;
+  }
+}
+
+/* Polished Editorial Empty State Card */
+.mg-catalog-empty-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.45) 0%, rgba(9, 11, 15, 0.65) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  margin: 24px 0;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+.mg-empty-icon-halo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(59, 130, 246, 0.14) 0%, transparent 70%);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  color: #60a5fa;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+.mg-empty-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f8fafc;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.01em;
+}
+
+.mg-empty-description {
+  font-size: 13.5px;
+  color: #94a3b8;
+  max-width: 480px;
+  margin: 0 0 20px 0;
+  line-height: 1.55;
+}
+
+.mg-empty-reset-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 20px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mg-empty-reset-btn:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
+  color: #ffffff;
+}
+
+/* Polished Editorial Error Card */
+.mg-catalog-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(239, 68, 68, 0.06) 0%, rgba(15, 23, 42, 0.5) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 14px;
+  margin: 24px 0;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+.mg-error-icon-halo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(239, 68, 68, 0.16) 0%, transparent 70%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  margin-bottom: 16px;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.mg-error-heading {
+  font-size: 18px;
+  font-weight: 600;
+  color: #fecaca;
+  margin: 0 0 8px 0;
+}
+
+.mg-error-description {
+  font-size: 13.5px;
+  color: #fca5a5;
+  max-width: 520px;
+  margin: 0 0 20px 0;
+  line-height: 1.5;
+}
+

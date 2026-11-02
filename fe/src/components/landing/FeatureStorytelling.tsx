@@ -16,14 +16,16 @@ export function FeatureStorytelling() {
   const node5Ref = useRef<HTMLDivElement | null>(null);
   const node6Ref = useRef<HTMLDivElement | null>(null);
 
+  // References to the 6 feature rows for direct DOM classList activation (zero React re-render overhead during scroll)
+  const row1Ref = useRef<HTMLDivElement | null>(null);
+  const row2Ref = useRef<HTMLDivElement | null>(null);
+  const row3Ref = useRef<HTMLDivElement | null>(null);
+  const row4Ref = useRef<HTMLDivElement | null>(null);
+  const row5Ref = useRef<HTMLDivElement | null>(null);
+  const row6Ref = useRef<HTMLDivElement | null>(null);
+
   const [pathD, setPathD] = useState<string>('');
   const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 1200, height: 3200 });
-  const [activeStep, setActiveStep] = useState<number>(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      return 6;
-    }
-    return 0;
-  });
 
   // Cached node points and arc lengths along SVG path for zero-offset scroll synchronization
   const nodePointsRef = useRef<{ x: number; y: number }[]>([]);
@@ -188,40 +190,18 @@ export function FeatureStorytelling() {
 
       const lengths: number[] = [0];
 
+      // Fast monotonic vertical binary search on Y: 9 iterations per pin = 54 total calls instead of 700+ calls!
       for (let i = 1; i < pts.length; i++) {
-        const target = pts[i];
-        let bestL = lengths[i - 1];
-        let bestDist = Infinity;
-
-        const startL = lengths[i - 1];
-        const range = total - startL;
-        const samples = 100;
-        const step = range / samples;
-
-        for (let s = 0; s <= samples; s++) {
-          const curL = startL + s * step;
-          const pt = path.getPointAtLength(curL);
-          const dist = (pt.x - target.x) ** 2 + (pt.y - target.y) ** 2;
-          if (dist < bestDist) {
-            bestDist = dist;
-            bestL = curL;
-          }
-        }
-
-        // Binary search refinement
-        let low = Math.max(startL, bestL - step);
-        let high = Math.min(total, bestL + step);
-        for (let iter = 0; iter < 14; iter++) {
-          const mid1 = low + (high - low) / 3;
-          const mid2 = high - (high - low) / 3;
-          const pt1 = path.getPointAtLength(mid1);
-          const pt2 = path.getPointAtLength(mid2);
-          const d1 = (pt1.x - target.x) ** 2 + (pt1.y - target.y) ** 2;
-          const d2 = (pt2.x - target.x) ** 2 + (pt2.y - target.y) ** 2;
-          if (d1 < d2) {
-            high = mid2;
+        const targetY = pts[i].y;
+        let low = lengths[i - 1];
+        let high = total;
+        for (let iter = 0; iter < 9; iter++) {
+          const mid = (low + high) / 2;
+          const pt = path.getPointAtLength(mid);
+          if (pt.y < targetY) {
+            low = mid;
           } else {
-            low = mid1;
+            high = mid;
           }
         }
         lengths.push((low + high) / 2);
@@ -246,6 +226,10 @@ export function FeatureStorytelling() {
   // Synchronized scroll progress tracking
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const rows = [row1Ref.current, row2Ref.current, row3Ref.current, row4Ref.current, row5Ref.current, row6Ref.current];
+      const nodes = [node1Ref.current, node2Ref.current, node3Ref.current, node4Ref.current, node5Ref.current, node6Ref.current];
+      rows.forEach((r) => r?.classList.add('is-active'));
+      nodes.forEach((n) => n?.classList.add('node-active'));
       return;
     }
 
@@ -273,7 +257,27 @@ export function FeatureStorytelling() {
 
       if (activeStepRef.current !== currentStep) {
         activeStepRef.current = currentStep;
-        setActiveStep(currentStep);
+        // Direct DOM update: toggle is-active and node-active with 0 React re-renders!
+        const rows = [row1Ref.current, row2Ref.current, row3Ref.current, row4Ref.current, row5Ref.current, row6Ref.current];
+        const nodes = [node1Ref.current, node2Ref.current, node3Ref.current, node4Ref.current, node5Ref.current, node6Ref.current];
+        for (let i = 0; i < 6; i++) {
+          const row = rows[i];
+          const node = nodes[i];
+          if (row) {
+            if (i + 1 <= currentStep) {
+              row.classList.add('is-active');
+            } else {
+              row.classList.remove('is-active');
+            }
+          }
+          if (node) {
+            if (i + 1 <= currentStep) {
+              node.classList.add('node-active');
+            } else {
+              node.classList.remove('node-active');
+            }
+          }
+        }
       }
 
       // 2. Synchronized path length interpolation between nodes
@@ -497,12 +501,13 @@ export function FeatureStorytelling() {
             Layout: Info Left | Visual Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-compare ${activeStep >= 1 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 1 ? 'mobile-hidden-feature' : ''}`}
+          ref={row1Ref}
+          className={`mg-feature-row mg-feature-compare ${!mobileShowAllFeatures && mobileActiveFeature !== 1 ? 'mobile-hidden-feature' : ''}`}
           id="feat-compare"
         >
           <div className="mg-feature-info">
             {/* Step Node 01 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 1 ? 'node-active' : ''}`} ref={node1Ref}>
+            <div className="mg-step-node-anchor" ref={node1Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">01</span>
@@ -648,7 +653,8 @@ export function FeatureStorytelling() {
             Layout: Visual Left | Info Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${activeStep >= 2 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 2 ? 'mobile-hidden-feature' : ''}`}
+          ref={row2Ref}
+          className={`mg-feature-row mg-feature-reverse mg-feature-promptlab ${!mobileShowAllFeatures && mobileActiveFeature !== 2 ? 'mobile-hidden-feature' : ''}`}
           id="feat-promptlab"
         >
           <div className="mg-feature-visual mg-visual-promptlab">
@@ -705,7 +711,7 @@ export function FeatureStorytelling() {
 
           <div className="mg-feature-info">
             {/* Step Node 02 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 2 ? 'node-active' : ''}`} ref={node2Ref}>
+            <div className="mg-step-node-anchor" ref={node2Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">02</span>
@@ -761,12 +767,13 @@ export function FeatureStorytelling() {
             Layout: Info Left | Visual Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-gallery ${activeStep >= 3 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 3 ? 'mobile-hidden-feature' : ''}`}
+          ref={row3Ref}
+          className={`mg-feature-row mg-feature-gallery ${!mobileShowAllFeatures && mobileActiveFeature !== 3 ? 'mobile-hidden-feature' : ''}`}
           id="feat-gallery"
         >
           <div className="mg-feature-info">
             {/* Step Node 03 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 3 ? 'node-active' : ''}`} ref={node3Ref}>
+            <div className="mg-step-node-anchor" ref={node3Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">03</span>
@@ -861,7 +868,8 @@ export function FeatureStorytelling() {
             Layout: Visual Left | Info Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-reverse mg-feature-lorastack ${activeStep >= 4 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 4 ? 'mobile-hidden-feature' : ''}`}
+          ref={row4Ref}
+          className={`mg-feature-row mg-feature-reverse mg-feature-lorastack ${!mobileShowAllFeatures && mobileActiveFeature !== 4 ? 'mobile-hidden-feature' : ''}`}
           id="feat-lorastack"
         >
           <div className="mg-feature-visual mg-visual-lorastack">
@@ -990,7 +998,7 @@ export function FeatureStorytelling() {
 
           <div className="mg-feature-info">
             {/* Step Node 04 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 4 ? 'node-active' : ''}`} ref={node4Ref}>
+            <div className="mg-step-node-anchor" ref={node4Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">04</span>
@@ -1043,12 +1051,13 @@ export function FeatureStorytelling() {
             Layout: Info Left | Visual Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-inspector ${activeStep >= 5 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 5 ? 'mobile-hidden-feature' : ''}`}
+          ref={row5Ref}
+          className={`mg-feature-row mg-feature-inspector ${!mobileShowAllFeatures && mobileActiveFeature !== 5 ? 'mobile-hidden-feature' : ''}`}
           id="feat-inspector"
         >
           <div className="mg-feature-info">
             {/* Step Node 05 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 5 ? 'node-active' : ''}`} ref={node5Ref}>
+            <div className="mg-step-node-anchor" ref={node5Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">05</span>
@@ -1188,7 +1197,8 @@ export function FeatureStorytelling() {
             Layout: Visual Left | Info Right
             =================================================================== */}
         <div
-          className={`mg-feature-row mg-feature-reverse mg-feature-calculator ${activeStep >= 6 ? 'is-active' : ''} ${!mobileShowAllFeatures && mobileActiveFeature !== 6 ? 'mobile-hidden-feature' : ''}`}
+          ref={row6Ref}
+          className={`mg-feature-row mg-feature-reverse mg-feature-calculator ${!mobileShowAllFeatures && mobileActiveFeature !== 6 ? 'mobile-hidden-feature' : ''}`}
           id="feat-calculator"
         >
           <div className="mg-feature-visual mg-visual-calculator">
@@ -1258,7 +1268,7 @@ export function FeatureStorytelling() {
 
           <div className="mg-feature-info">
             {/* Step Node 06 */}
-            <div className={`mg-step-node-anchor ${activeStep >= 6 ? 'node-active' : ''}`} ref={node6Ref}>
+            <div className="mg-step-node-anchor" ref={node6Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
                 <span className="mg-node-index">06</span>

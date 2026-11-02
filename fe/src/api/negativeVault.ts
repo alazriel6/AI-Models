@@ -1,4 +1,5 @@
 import { apiFetch } from "./client";
+import { FALLBACK_NEGATIVE_PRESETS, FALLBACK_EMBEDDINGS } from "../data/fallbackData";
 
 export interface NegativePresetItem {
   id: number;
@@ -45,21 +46,47 @@ export async function getNegativePresetsApi(params?: {
   category?: string;
   search?: string;
 }): Promise<NegativePresetItem[]> {
-  const query = new URLSearchParams();
+  try {
+    const query = new URLSearchParams();
+    if (params?.architecture && params.architecture !== "all") {
+      query.set("architecture", params.architecture);
+    }
+    if (params?.category && params.category !== "all") {
+      query.set("category", params.category);
+    }
+    if (params?.search) {
+      query.set("search", params.search);
+    }
+
+    const qs = query.toString();
+    const endpoint = `/negative-presets${qs ? `?${qs}` : ""}`;
+    const res = await apiFetch<PresetListResponse>(endpoint);
+    if (res && res.data && res.data.length > 0) {
+      return res.data;
+    }
+    return filterFallbackPresets(params);
+  } catch {
+    return filterFallbackPresets(params);
+  }
+}
+
+function filterFallbackPresets(params?: {
+  architecture?: string;
+  category?: string;
+  search?: string;
+}): NegativePresetItem[] {
+  let list = [...FALLBACK_NEGATIVE_PRESETS];
   if (params?.architecture && params.architecture !== "all") {
-    query.set("architecture", params.architecture);
+    list = list.filter(p => p.architecture === params.architecture || p.architecture === "All");
   }
   if (params?.category && params.category !== "all") {
-    query.set("category", params.category);
+    list = list.filter(p => p.category === params.category);
   }
   if (params?.search) {
-    query.set("search", params.search);
+    const q = params.search.toLowerCase();
+    list = list.filter(p => p.title.toLowerCase().includes(q) || p.prompt.toLowerCase().includes(q) || p.tags.toLowerCase().includes(q));
   }
-
-  const qs = query.toString();
-  const endpoint = `/negative-presets${qs ? `?${qs}` : ""}`;
-  const res = await apiFetch<PresetListResponse>(endpoint);
-  return res.data || [];
+  return list;
 }
 
 export async function createNegativePresetApi(
@@ -91,18 +118,40 @@ export async function getEmbeddingsApi(params?: {
   architecture?: string;
   search?: string;
 }): Promise<EmbeddingResourceItem[]> {
-  const query = new URLSearchParams();
+  try {
+    const query = new URLSearchParams();
+    if (params?.architecture && params.architecture !== "all") {
+      query.set("architecture", params.architecture);
+    }
+    if (params?.search) {
+      query.set("search", params.search);
+    }
+
+    const qs = query.toString();
+    const endpoint = `/embeddings${qs ? `?${qs}` : ""}`;
+    const res = await apiFetch<EmbeddingListResponse>(endpoint);
+    if (res && res.data && res.data.length > 0) {
+      return res.data;
+    }
+    return filterFallbackEmbeddings(params);
+  } catch {
+    return filterFallbackEmbeddings(params);
+  }
+}
+
+function filterFallbackEmbeddings(params?: {
+  architecture?: string;
+  search?: string;
+}): EmbeddingResourceItem[] {
+  let list = [...FALLBACK_EMBEDDINGS];
   if (params?.architecture && params.architecture !== "all") {
-    query.set("architecture", params.architecture);
+    list = list.filter(e => e.architecture === params.architecture);
   }
   if (params?.search) {
-    query.set("search", params.search);
+    const q = params.search.toLowerCase();
+    list = list.filter(e => e.name.toLowerCase().includes(q) || e.filename.toLowerCase().includes(q) || e.suppressed_tags.toLowerCase().includes(q));
   }
-
-  const qs = query.toString();
-  const endpoint = `/embeddings${qs ? `?${qs}` : ""}`;
-  const res = await apiFetch<EmbeddingListResponse>(endpoint);
-  return res.data || [];
+  return list;
 }
 
 export async function createEmbeddingApi(

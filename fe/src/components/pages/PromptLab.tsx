@@ -22,6 +22,7 @@ import {
     type StudioTabKey,
 } from "../prompt-studio/PromptStudioTabs";
 import { WorkflowBridgeBanner } from "../common/WorkflowBridgeBanner";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import {
     type WorkflowBridgeData,
     bridgeToVramProfiler,
@@ -2256,6 +2257,11 @@ export const PromptLab: React.FC<PromptLabProps> = ({ defaultTab = "studio" }) =
                     </div>
                 </div>
             </header>
+
+            {/* Standalone Frontend Banner when backend is offline */}
+            <BackendStatusBanner
+                message="Tak terhubung ke BE / Mode Frontend Aktif — Studio prompt & kamus Danbooru berjalan dengan dataset lokal."
+            />
 
             {/* Master Studio Mode Tabs Switcher */}
             <PromptStudioTabs

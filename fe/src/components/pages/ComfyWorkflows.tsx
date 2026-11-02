@@ -15,6 +15,7 @@ import {
   type CreateWorkflowPayload
 } from "../../api/workflows";
 import { WorkflowSimpleViewer } from "../comfyui/WorkflowSimpleViewer";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import "../../style/comfy-workflows.css";
 
 export default function ComfyWorkflows() {
@@ -438,6 +439,12 @@ export default function ComfyWorkflows() {
           </button>
         </div>
       </header>
+
+      {/* Standalone Frontend Banner when backend is offline */}
+      <BackendStatusBanner
+        message="Tak terhubung ke BE / Mode Frontend Aktif — Preset graph ComfyUI berjalan dengan data lokal."
+        style={{ margin: "14px 20px 0" }}
+      />
 
       {/* =========================================================================
           MASTER-DETAIL WORKSPACE (Sidebar Kiri + Panel Utama Kanan)

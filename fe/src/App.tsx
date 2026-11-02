@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
 import './App.css';
 import { AdminAuthProvider } from './components/admin/AdminAuth';
+import { ScrollToTopButton } from './components/common/ScrollToTopButton';
 
 // Eager load Home for instant initial render
 import Home from './components/pages/Home';
@@ -59,27 +60,52 @@ function PageLoadingFallback() {
   );
 }
 
-function AppLayout() {
+function EditorialNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [toolsDropdownOpen, setToolsDropdownOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
   const location = useLocation();
+  const navRef = useRef<HTMLElement | null>(null);
   const toolsDropdownRef = useRef<HTMLLIElement | null>(null);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Detect scroll for dynamic frosted navbar transition
+  // Optimized passive scroll listener: directly toggles nav-scrolled / nav-top classes on DOM
+  // completely avoiding React re-renders during scrolling!
   useEffect(() => {
     let ticking = false;
+    let isScrolled = window.scrollY > 25;
+
+    if (navRef.current) {
+      if (isScrolled) {
+        navRef.current.classList.add('nav-scrolled');
+        navRef.current.classList.remove('nav-top');
+      } else {
+        navRef.current.classList.add('nav-top');
+        navRef.current.classList.remove('nav-scrolled');
+      }
+    }
+
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
           const scrolled = window.scrollY > 25;
-          setIsScrolled((prev) => (prev !== scrolled ? scrolled : prev));
+          if (scrolled !== isScrolled) {
+            isScrolled = scrolled;
+            if (navRef.current) {
+              if (scrolled) {
+                navRef.current.classList.add('nav-scrolled');
+                navRef.current.classList.remove('nav-top');
+              } else {
+                navRef.current.classList.add('nav-top');
+                navRef.current.classList.remove('nav-scrolled');
+              }
+            }
+          }
           ticking = false;
         });
         ticking = true;
       }
     };
-    handleScroll();
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -106,16 +132,18 @@ function AppLayout() {
 
   // Close tools dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (toolsDropdownRef.current && !toolsDropdownRef.current.contains(e.target as Node)) {
         setToolsDropdownOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
   }, []);
-
-  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clear timeout on unmount
   useEffect(() => {
@@ -152,7 +180,17 @@ function AppLayout() {
     setMobileMenuOpen((prev) => !prev);
   };
 
+  // Only enable mouse hover interactions on desktop viewports (> 992px) with true hover/fine pointer
+  const isDesktopHover = () => {
+    if (typeof window === 'undefined') return false;
+    return (
+      window.innerWidth > 992 &&
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches
+    );
+  };
+
   const handleMouseEnter = () => {
+    if (!isDesktopHover()) return;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
@@ -161,6 +199,7 @@ function AppLayout() {
   };
 
   const handleMouseLeave = () => {
+    if (!isDesktopHover()) return;
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
     }
@@ -170,6 +209,7 @@ function AppLayout() {
   };
 
   const handleTriggerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     if (closeTimeoutRef.current) {
       clearTimeout(closeTimeoutRef.current);
@@ -178,12 +218,11 @@ function AppLayout() {
     setToolsDropdownOpen((prev) => !prev);
   };
 
-  const isHomePage = location.pathname === '/';
   const isToolsActive = ['/compare', '/inspector', '/prompt-lab', '/calculator', '/vram', '/vram-profiler', '/vram-calculator', '/telemetry', '/comfy-telemetry', '/benchmark', '/lora-stack', '/lora', '/lora-builder', '/anime-prompt-studio', '/prompt-deconstructor', '/deconstructor', '/workflows', '/comfyui', '/negative-vault', '/negative-prompt', '/embeddings', '/sampler-guide', '/samplers', '/schedulers', '/controlnet', '/openpose', '/preprocessor', '/story-merger', '/character-lock', '/prompt-merger'].includes(location.pathname);
 
   return (
-    <div className="main-app">  
-      <nav className={`nav-editorial ${isScrolled ? 'nav-scrolled' : 'nav-top'}`}>
+    <>
+      <nav ref={navRef} className="nav-editorial nav-top">
         <div className="nav-container">
           <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
             <h1>Models Guide</h1>
@@ -485,6 +524,17 @@ function AppLayout() {
           aria-hidden="true"
         />
       )}
+    </>
+  );
+}
+
+function AppLayout() {
+  const location = useLocation();
+  const isHomePage = location.pathname === '/';
+
+  return (
+    <div className="main-app">  
+      <EditorialNavbar />
 
       {/* Global Content Container - Full-bleed on landing page, standard container on tool pages */}
       <main className={`content ${isHomePage ? 'content-landing' : ''}`}>
@@ -532,6 +582,9 @@ function AppLayout() {
           </Routes>
         </Suspense>
       </main>
+
+      {/* Global Scroll to Top Button (Responsive on all pages & screen sizes) */}
+      <ScrollToTopButton />
     </div>
   );
 }

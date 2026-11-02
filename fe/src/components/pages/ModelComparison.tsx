@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, type SVGProps } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getModels, getAllImages, type Model, type ModelImage } from "../../api/models";
+import { getModels, getAllImages, getIsDemoMode, type Model, type ModelImage } from "../../api/models";
 import { resolveImageUrl } from "../../api/client";
+import { BackendStatusBanner } from "../common/BackendStatusBanner";
 import "../../style/ModelComparison.css";
 
 /* ==========================================================================
@@ -482,10 +483,37 @@ export default function ModelComparison() {
                 )}
             </div>
 
+            {/* Standalone Frontend Banner when backend is offline */}
+            {!loading && getIsDemoMode() && (
+                <BackendStatusBanner
+                    message="Tak terhubung ke BE / Mode Frontend Aktif — Matriks komparasi berjalan dengan spesifikasi model lokal (NoobAI, Illustrious, SDXL, Pony)."
+                    onRetry={() => window.location.reload()}
+                />
+            )}
+
             {loading ? (
                 <div className="compare-loading-wrapper">
                     <div className="compare-loading-spinner" />
                     <span>Memuat matriks perbandingan model...</span>
+                </div>
+            ) : allModels.length === 0 ? (
+                <div className="mg-catalog-empty-card" style={{ margin: "24px 0" }}>
+                    <div className="mg-empty-icon-halo">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v1" />
+                            <path d="M18 8h4a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-4" />
+                            <circle cx="8" cy="12" r="2" />
+                        </svg>
+                    </div>
+                    <h3 className="mg-empty-heading">Belum Ada Model untuk Dikomparasi</h3>
+                    <p className="mg-empty-description">
+                        Katalog model belum memiliki data terdaftar. Buka katalog model atau impor checkpoint melalui panel Admin.
+                    </p>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "14px" }}>
+                        <Link to="/models" className="mg-empty-reset-btn">
+                            Buka Katalog Model
+                        </Link>
+                    </div>
                 </div>
             ) : (
                 <div className="matrix-scroll-container">
