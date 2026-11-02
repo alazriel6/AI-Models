@@ -1681,7 +1681,7 @@ export default function ModelList() {
                             className="mg-empty-reset-btn"
                             onClick={() => {
                                 setSearchQuery("");
-                                handleTabChange("all");
+                                setActiveTab("all");
                             }}
                         >
                             Reset Pencarian &amp; Filter
