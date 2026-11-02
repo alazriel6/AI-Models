@@ -93,8 +93,8 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
 
     function initSpores() {
       spores.length = 0;
-      // Ambient density based on section size (drastically lightened for mobile)
-      const count = width < 768 ? 10 : Math.min(50, Math.max(28, Math.floor((width * height) / 28000)));
+      // Ambient density based on section size (optimized for smooth 60fps on desktop and mobile)
+      const count = width < 768 ? 10 : Math.min(32, Math.max(20, Math.floor((width * height) / 45000)));
 
       for (let i = 0; i < count; i++) {
         const x = Math.random() * width;

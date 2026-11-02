@@ -141,7 +141,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       drops = [];
       splashes = [];
 
-      const maxCount = width < 768 ? 32 : 290;
+      const maxCount = width < 768 ? 32 : 120;
 
       for (let i = 0; i < maxCount; i++) {
         const rand = Math.random();
@@ -259,8 +259,8 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       // Mode 2 (Hujan) & Mode 3 (Badai)
       const isStorm = currentWeather === 'storm';
       const activeDropCount = isStorm
-        ? (isMobile ? 32 : 290)
-        : (isMobile ? 18 : 145);
+        ? (isMobile ? 32 : 120)
+        : (isMobile ? 18 : 65);
 
       const speedMult = isStorm ? 1.0 : 0.75;
 
