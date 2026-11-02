@@ -819,7 +819,7 @@ export function FeatureStorytelling() {
             <div className="mg-gallery-composition">
               <div className="mg-gallery-card primary-card">
                 <img
-                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/original=true/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg"
+                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=450/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg"
                   alt="Generation Gallery Output"
                   className="mg-gallery-img"
                   loading="lazy"
@@ -845,7 +845,7 @@ export function FeatureStorytelling() {
 
               <div className="mg-gallery-card secondary-card">
                 <img
-                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/37ff4f9a-b8ab-4f1a-a8fa-3ab55dc7d282/original=true/61631201.jpeg"
+                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/37ff4f9a-b8ab-4f1a-a8fa-3ab55dc7d282/width=450/61631201.jpeg"
                   alt="Secondary Generation Output"
                   className="mg-gallery-img"
                   loading="lazy"

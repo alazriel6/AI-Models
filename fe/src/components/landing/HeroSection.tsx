@@ -41,7 +41,7 @@ const DECK_FALLBACK_MODELS: DeckModel[] = [
     author: 'WAI0731',
     description: 'High-performance Illustrious XL checkpoint tuned for crisp anime linework and vibrant contrast.',
     tags: ['Anime', 'Checkpoint', 'Illustrious'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/original=true/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=450/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
   },
   {
     id: 'wai-noob',
@@ -58,7 +58,7 @@ const DECK_FALLBACK_MODELS: DeckModel[] = [
     author: 'WAI0731',
     description: 'Specialized NoobAI baseline fine-tune with score-conditioned weight distributions.',
     tags: ['Anime', 'NoobAI', 'Score-tagged'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/original=true/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
   },
   {
     id: 'raehoshi',
@@ -75,7 +75,7 @@ const DECK_FALLBACK_MODELS: DeckModel[] = [
     author: 'raehoshi',
     description: 'Artistic checkpoint focusing on painterly volumetric lighting and anatomical fidelity.',
     tags: ['Illustration', 'Painterly', 'Anime'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/original=true/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=450/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
   },
 ];
 
@@ -641,8 +641,12 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                         className="mg-card-img"
                         loading={isFront ? 'eager' : 'lazy'}
                         decoding="async"
+                        // @ts-ignore - React 19 supports fetchPriority
+                        fetchPriority={isFront ? 'high' : 'low'}
+                        width={340}
+                        height={480}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/preview-1.png';
+                          (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
                         }}
                       />
 

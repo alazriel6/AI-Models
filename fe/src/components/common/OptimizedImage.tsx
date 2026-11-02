@@ -16,12 +16,12 @@ export interface OptimizedImageProps extends React.ImgHTMLAttributes<HTMLImageEl
  * - Backend /storage/images/ is routed through /storage/thumbnails/
  * - Civitai CDN /original=true/ is swapped for /width=450/ to avoid 10MB+ payload freezes
  */
-export function getOptimizedImageUrl(rawUrl: string, thumbnail: boolean = false): string {
+export function getOptimizedImageUrl(rawUrl: string, thumbnail: boolean = true): string {
     const resolved = resolveImageUrl(rawUrl);
-    if (!thumbnail || !resolved) return resolved;
+    if (!resolved) return "";
 
     // If served from backend storage /storage/images/, route through /storage/thumbnails/
-    if (resolved.includes('/storage/images/')) {
+    if (thumbnail && resolved.includes('/storage/images/')) {
         return resolved.replace('/storage/images/', '/storage/thumbnails/');
     }
 

@@ -84,6 +84,8 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
     let animationFrameId = 0;
     let isVisible = true;
     let isRunning = false;
+    let isScrolling = false;
+    let scrollPauseTimer = 0;
     let width = 0;
     let height = 0;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -120,7 +122,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
 
     const initSunMotes = () => {
       sunMotes = [];
-      const count = width < 768 ? 18 : 36;
+      const count = width < 768 ? 8 : 36;
       for (let i = 0; i < count; i++) {
         sunMotes.push({
           x: Math.random() * width,
@@ -139,7 +141,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       drops = [];
       splashes = [];
 
-      const maxCount = width < 768 ? 130 : 290;
+      const maxCount = width < 768 ? 32 : 290;
 
       for (let i = 0; i < maxCount; i++) {
         const rand = Math.random();
@@ -176,7 +178,7 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
     };
 
     const spawnSplash = (x: number, y: number, layer: number) => {
-      if (layer === 0 || splashes.length > 65) return;
+      if (width < 768 || layer === 0 || splashes.length > 40) return;
       const count = layer === 2 ? 4 : 2;
       for (let i = 0; i < count; i++) {
         const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
@@ -216,6 +218,11 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
         return;
       }
 
+      if (isScrolling) {
+        animationFrameId = requestAnimationFrame(render);
+        return;
+      }
+
       ctx.clearRect(0, 0, width, height);
 
       const currentWeather = weatherRef.current;
@@ -252,8 +259,8 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       // Mode 2 (Hujan) & Mode 3 (Badai)
       const isStorm = currentWeather === 'storm';
       const activeDropCount = isStorm
-        ? (isMobile ? 130 : 290)
-        : (isMobile ? 65 : 145);
+        ? (isMobile ? 32 : 290)
+        : (isMobile ? 18 : 145);
 
       const speedMult = isStorm ? 1.0 : 0.75;
 
@@ -355,8 +362,8 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
         ctx.fillStyle = `rgba(215, 235, 255, ${flashIntensity * 0.15})`;
         ctx.fillRect(0, 0, width, height);
 
-        // Branching Bolt (Optimized dual/triple layered stroke with 0 CPU shadowBlur cost)
-        if (currentStrike.hasBolt && flashIntensity > 0.2) {
+        // Branching Bolt (Optimized dual/triple layered stroke with 0 CPU shadowBlur cost, skipped on mobile)
+        if (currentStrike.hasBolt && flashIntensity > 0.2 && !isMobile) {
           ctx.save();
           ctx.lineCap = 'round';
           ctx.lineJoin = 'miter';
@@ -540,9 +547,22 @@ export function RainCanvas({ weather = 'storm' }: RainCanvasProps) {
       observer.observe(canvas.parentElement);
     }
 
+    const handleTouchScroll = () => {
+      if (width >= 768) return;
+      isScrolling = true;
+      window.clearTimeout(scrollPauseTimer);
+      scrollPauseTimer = window.setTimeout(() => {
+        isScrolling = false;
+      }, 100);
+    };
+    window.addEventListener('scroll', handleTouchScroll, { passive: true });
+    window.addEventListener('touchmove', handleTouchScroll, { passive: true });
+
     return () => {
       stopAnimation();
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleTouchScroll);
+      window.removeEventListener('touchmove', handleTouchScroll);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       observer.disconnect();
     };

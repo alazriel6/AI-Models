@@ -212,7 +212,7 @@ function mapApiModelToCatalog(m: ApiModel): CatalogModel {
         images: m.images && m.images.length > 0
             ? m.images.map((img, idx) => ({
                   id: img.id || idx + 1,
-                  url: resolveImageUrl(img.image_url) || "/images/preview-1.png",
+                  url: resolveImageUrl(img.image_url) || "/images/preview-1.jpg",
                   alt: img.caption || m.name,
                   reactions: { laugh: 0, heart: 0, thumbsUp: 0 },
                   tags: img.tags?.map((t) => t.name) || [],

@@ -6680,3 +6680,48 @@ nav .nav-dropdown-menu a::after {
     opacity: 0.3 !important;
   }
 }
+
+/* ==========================================================================
+   HIGH-PERFORMANCE OFFSCREEN CONTENT VISIBILITY & MOBILE RASTERIZATION BOOST
+   ========================================================================== */
+
+/* Defer layout and rendering of heavy offscreen sections until scrolled */
+.mg-statement,
+.mg-showcase,
+.mg-features,
+.mg-tools-arsenal,
+.mg-technical,
+.mg-final-cta {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px;
+}
+
+/* Eliminate expensive backdrop blur rasterization on mobile touch screens */
+@media (max-width: 768px) {
+  .mg-deck-floating-badge,
+  .mg-deck-card,
+  .mg-hero-spec-pill,
+  .mg-hero-specs-row,
+  .mg-statement-bridge-badge,
+  .mg-statement-audits,
+  .mg-pillar-card,
+  .mg-preset-card,
+  .mg-showcase-card,
+  .mg-arsenal-card,
+  .mg-terminal-frame,
+  .mg-modal-content {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Fast semi-opaque dark backgrounds without GPU blur penalty */
+  .mg-deck-card {
+    will-change: transform;
+    background: rgba(16, 20, 26, 0.96) !important;
+  }
+
+  .mg-statement-audits,
+  .mg-pillar-card {
+    background: rgba(16, 21, 28, 0.94) !important;
+  }
+}

@@ -51,6 +51,8 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
 
     let animId: number;
     let isVisible = true;
+    let isScrolling = false;
+    let scrollPauseTimer = 0;
     let width = 0;
     let height = 0;
     let dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -91,8 +93,8 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
 
     function initSpores() {
       spores.length = 0;
-      // Ambient density based on section size
-      const count = Math.min(50, Math.max(28, Math.floor((width * height) / 28000)));
+      // Ambient density based on section size (drastically lightened for mobile)
+      const count = width < 768 ? 10 : Math.min(50, Math.max(28, Math.floor((width * height) / 28000)));
 
       for (let i = 0; i < count; i++) {
         const x = Math.random() * width;
@@ -121,7 +123,10 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
 
     function initLeaves() {
       leaves.length = 0;
-      // Gentle occasional falling leaf silhouettes (7 total)
+      // Skip leaf physics computations entirely on mobile
+      if (width < 768) return;
+
+      // Gentle occasional falling leaf silhouettes (7 total on desktop)
       const count = 7;
       for (let i = 0; i < count; i++) {
         leaves.push({
@@ -189,6 +194,11 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
     function render(currentTime: number) {
       if (!isVisible) {
         animId = 0;
+        return;
+      }
+
+      if (isScrolling) {
+        animId = requestAnimationFrame(render);
         return;
       }
 
@@ -295,8 +305,21 @@ export function ForestSporeCanvas({ palette = 'default', className = 'mg-showcas
 
     animId = requestAnimationFrame(render);
 
+    const handleTouchScroll = () => {
+      if (width >= 768) return;
+      isScrolling = true;
+      window.clearTimeout(scrollPauseTimer);
+      scrollPauseTimer = window.setTimeout(() => {
+        isScrolling = false;
+      }, 100);
+    };
+    window.addEventListener('scroll', handleTouchScroll, { passive: true });
+    window.addEventListener('touchmove', handleTouchScroll, { passive: true });
+
     return () => {
       if (animId) cancelAnimationFrame(animId);
+      window.removeEventListener('scroll', handleTouchScroll);
+      window.removeEventListener('touchmove', handleTouchScroll);
       observer.disconnect();
       resizeObserver.disconnect();
     };

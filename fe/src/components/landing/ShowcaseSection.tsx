@@ -21,7 +21,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'High-aesthetic anime diffusion checkpoint with balanced contrast, integrated VAE, and optimized prompt adherence.',
     author: 'WAI0731',
     source_url: 'https://civitai.com/models/827184',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/original=true/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=450/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
     likes: 3120,
     rating: 4.9,
     tensor_size: '587',
@@ -40,7 +40,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'V-prediction experimental architecture fine-tune balanced for warm anime color grading and limb stabilization.',
     author: 'WAI0731',
     source_url: 'https://civitai.com/models/989367',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/original=true/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
     likes: 1840,
     rating: 4.8,
     tensor_size: '587',
@@ -59,7 +59,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'Clean line-art checkpoint fine-tuned with curated anime illustrations, robust Danbooru token support, and high dynamic range.',
     author: 'raehoshi',
     source_url: 'https://civitai.com/models/raehoshi',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/original=true/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=450/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
     likes: 4210,
     rating: 5.0,
     tensor_size: '587',
@@ -78,7 +78,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'Specialized rank-32 low-rank adaptation matrix for monochrome screentone hatching and retro 90s aesthetic rendering.',
     author: 'retro_lab',
     source_url: 'https://civitai.com/models/vintage-ink',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/37ff4f9a-b8ab-4f1a-a8fa-3ab55dc7d282/original=true/61631201.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/37ff4f9a-b8ab-4f1a-a8fa-3ab55dc7d282/width=450/61631201.jpeg',
     likes: 980,
     rating: 4.9,
     tensor_size: '144',
@@ -97,7 +97,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'Volumetric rim-lighting and saturated neon color gradient injection with minimal distortion of base model anatomy.',
     author: 'lumina_ai',
     source_url: 'https://civitai.com/models/neon-lighting',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/564eb9d2-544b-4854-8e17-0a349d80c121/original=true/47193855.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/564eb9d2-544b-4854-8e17-0a349d80c121/width=450/47193855.jpeg',
     likes: 1450,
     rating: 4.8,
     tensor_size: '144',
@@ -116,7 +116,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
     description: 'Score-conditioned architecture fine-tune requiring score_9, score_8_up prefixes with strict tag adherences.',
     author: 'Astralite',
     source_url: 'https://civitai.com/models/257080',
-    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/original=true/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    thumbnail_url: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
     likes: 8520,
     rating: 4.9,
     tensor_size: '587',
@@ -325,6 +325,8 @@ export function ShowcaseSection() {
                     className="mg-card-img"
                     loading="lazy"
                     decoding="async"
+                    width={400}
+                    height={240}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://placehold.co/400x240?text=Model+Preview';
                     }}

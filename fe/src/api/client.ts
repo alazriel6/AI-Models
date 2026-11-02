@@ -21,19 +21,16 @@ export function setBackendOffline(val: boolean): void {
  */
 export function resolveImageUrl(url?: string | null): string {
     if (!url) return "";
-    if (
-        url.startsWith("http://") ||
-        url.startsWith("https://") ||
-        url.startsWith("blob:") ||
-        url.startsWith("data:")
-    ) {
-        return url;
-    }
+    let finalUrl = url;
     if (url.startsWith("/storage/") || url.startsWith("storage/")) {
         const clean = url.startsWith("/") ? url : `/${url}`;
-        return `${BACKEND_BASE_URL}${clean}`;
+        finalUrl = `${BACKEND_BASE_URL}${clean}`;
     }
-    return url;
+    // Automatically optimize heavy raw Civitai downloads to compressed width
+    if (finalUrl.includes("image.civitai.com") && finalUrl.includes("/original=true/")) {
+        finalUrl = finalUrl.replace("/original=true/", "/width=450/");
+    }
+    return finalUrl;
 }
 
 export function getAdminToken(): string {
