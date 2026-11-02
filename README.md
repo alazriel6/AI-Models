@@ -31,6 +31,10 @@
   <a href="#license">License</a>
 </p>
 
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/2b182691-ffcc-4a4a-bb82-556746aeed05" alt="AI Models Generative Workstation" width="100%" />
+</p>
+
 </div>
 
 ---
@@ -46,11 +50,13 @@ Instead of guessing sampling steps, CFG scales, CLIP skip layers, or tensor weig
 ## Key Features
 
 ### 1. Model Catalog & Comparison Matrix
+![Model Catalog & Registry](https://github.com/user-attachments/assets/25a6f121-549d-4e89-8e5f-401e33e01858)
 - **Architecture Guidelines**: Complete specifications for anime and photorealistic checkpoints, including recommended native resolutions, optimal samplers, and trigger words.
 - **Side-by-Side Matrix**: Compare up to 3 models simultaneously across base architecture, VRAM demands, CLIP skip, scheduler pairing, and hires fix presets.
 - **High-Performance Virtualization**: Virtualized grid and list views powered by TanStack Virtual for instant scrolling across large registries.
 
 ### 2. OpenPose & ControlNet Rig Studio
+![OpenPose & ControlNet Rig Studio](https://github.com/user-attachments/assets/1837a485-e6e7-4019-bbe8-f70dd4ec1bcd)
 - **Interactive Skeleton Rigging**: 18-joint COCO-compliant pose editor on HTML5 Canvas with real-time joint manipulation, limb rotation, and multi-character duo support.
 - **Instant Export**: Export clean OpenPose images (black background with colored bones) ready for Automatic1111, Forge, or ComfyUI ControlNet nodes.
 - **Preprocessor Reference Guide**: Technical cheat-sheets with optimal threshold recommendations for Canny, DepthAnything V2, Normalbae, and LineArt.
@@ -61,11 +67,13 @@ Instead of guessing sampling steps, CFG scales, CLIP skip layers, or tensor weig
 - **Syntax Export**: One-click export to Automatic1111 `<lora:name:weight>` format, ComfyUI node graphs, and raw JSON.
 
 ### 4. Lossless Metadata Inspector
+![Lossless Metadata Inspector](https://github.com/user-attachments/assets/1f17585c-3956-4708-974e-87406b43dad5)
 - **Client-Side Chunk Parsing**: Read `tEXt` and `iTXt` PNG chunks directly in the browser without uploading raw files to external servers.
 - **Format Normalizer**: Automatically parses parameters from Automatic1111, SD-Forge, NovelAI, and ComfyUI workflow execution graphs.
 - **Workflow Bridge**: Send extracted prompts and seeds directly to the Prompt Lab, LoRA Stack, or Resolution Calculator with one click.
 
 ### 5. Modular Prompt Matrix & Negative Vault
+![Prompt Matrix & Studio Lab](https://github.com/user-attachments/assets/8a372928-8d78-44fb-8c17-2f401beab46a)
 - **Structured Token Composer**: Organize prompts by subject, style, lighting, camera angle, and artist modifiers.
 - **Danbooru Taxonomy Explorer**: Filter and append curated character, costume, and aesthetic tags with automatic syntax formatting.
 - **Negative Vault**: Curated negative formulas and embedding triggers tailored specifically to suppress score-based degradation in Pony and NoobAI models.
