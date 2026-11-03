@@ -11,10 +11,10 @@ const CORRUPT_GLYPHS = ['█', '▓', '▒', '░', '╳', '■', '▲', '▼', 
 // Cyberpunk 2077 UI telemetry diagnostics for block tags
 const UI_BLOCK_SNIPPETS = [
   '0x7F4A_OVERFLOW',
-  'KIROSHI_OPTICS // 2077',
+  'NEURAL_CORE // SOVEREIGN',
   'DATA_PACKET // CORRUPT',
   'FRAME_SYNC // 0.00ms',
-  'NETWATCH_ICE // PASS',
+  'WORKSTATION_ICE // PASS',
   'SAFETENSORS // 0xDEAD',
   'MODEL_GUIDE // KERNEL',
 ];

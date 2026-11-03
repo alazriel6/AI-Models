@@ -534,7 +534,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             >
               人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY
             </span>
-            <span className="mg-cp-micro-status">[VER.2077 // ONLINE]</span>
+            <span className="mg-cp-micro-status">[LOCAL.AI // ONLINE]</span>
           </div>
 
           {/* Tier 2: Checkpoint Archive & SafeTensors Telemetry */}
@@ -573,7 +573,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
       {/* Cyberpunk HUD Corner Brackets & Optical Crosshairs */}
       <div className="mg-cp-hud-corner top-left" aria-hidden="true">
         <span className="mg-cp-hud-bracket">&lceil;</span>
-        <span className="mg-cp-hud-tag">TARGET // 01-SYS [KIROSHI OPTICS]</span>
+        <span className="mg-cp-hud-tag">TARGET // 01-SYS [NEURAL MATRIX]</span>
       </div>
       <div className="mg-cp-hud-corner top-right" aria-hidden="true">
         <span className="mg-cp-hud-tag">PORT 8080 // BUS 0.00ms</span>
@@ -595,20 +595,16 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
               LEFT COLUMN: Telemetry Bar, Punchy Headline, Search & 3-Col Specs
               ================================================================= */}
           <div className="mg-hero-editorial-col">
-            {/* Cyberpunk 2077 Telemetry Header (Ref: Image 1 & 2) */}
+            {/* Category HUD Telemetry Line (No box/card container) */}
             <div className="mg-hero-cyber-pill">
-              <div className="mg-cp-header-row-1">
-                <span className="mg-cp-yellow-badge">MODELS GUIDE // モデルガイド</span>
-                <span className="mg-cp-header-pipe">|</span>
-                <span className="mg-cp-header-dir">
-                  人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY [VER.2077]
-                </span>
-              </div>
-              <div className="mg-cp-header-row-2">
-                <span className="mg-cp-archive-tag">神経ネットワーク // CHECKPOINT ARCHIVE</span>
-                <span className="mg-cp-archive-dash">——</span>
-                <span className="mg-cp-runtime-tag">SAFETENSORS RUNTIME // 0.00 MS SOVEREIGNTY</span>
-              </div>
+              <span className="mg-cyber-pill-glitch">
+                [ ARCHITECTURE // DIRECTORY ]
+              </span>
+              <span className="mg-cp-pill-kana">
+                モデルガイド // 人工知能
+              </span>
+              <span className="mg-cyber-pill-divider" />
+              <span className="mg-cyber-pill-status">● LOCAL GPU SOVEREIGNTY</span>
             </div>
 
             {/* Top Telemetry Bar SYS.01 (Clean HUD telemetry line, no card box) */}
@@ -627,7 +623,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 </span>
               </div>
               <div className="mg-hero-telemetry-pills" role="status" aria-label="Status Runtime Workstation">
-                <span className="mg-hero-status-pill cyan">KIROSHI V2.077</span>
+                <span className="mg-hero-status-pill cyan">TENSOR CORE V4.2</span>
                 <span className="mg-hero-status-pill slate">LOCAL RUNTIME</span>
                 <span className="mg-hero-status-pill green">0.00 MS BUS</span>
                 <span className="mg-hero-status-pill yellow">14 RIGS</span>
@@ -839,7 +835,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                     <span className="reticle-ch br">┘</span>
                     <div className="mg-kiroshi-hud-top">
                       <span className="mg-kiroshi-live-dot" aria-hidden="true" />
-                      <span className="mg-kiroshi-badge">KIROSHI OPTIC // TGT.LOCK</span>
+                      <span className="mg-kiroshi-badge">NEURAL OPTIC // TGT.LOCK</span>
                       <span className="mg-kiroshi-freq">144Hz</span>
                     </div>
                   </div>

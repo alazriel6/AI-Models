@@ -12991,77 +12991,42 @@ nav .nav-dropdown-menu a::after {
   }
 }
 
-/* Cyberpunk 2077 HUD Header (Ref: Image 1 & 2) */
+/* Category Pill (Clean HUD Telemetry Header Line, No Box/Card) */
 .mg-hero-cyber-pill {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   padding: 0;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   background: transparent;
   border: none;
   font-family: var(--mg-font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  clip-path: none;
   box-shadow: none;
 }
 
-.mg-cp-header-row-1 {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.mg-cp-yellow-badge {
-  background: #fcee0a;
-  color: #05080f;
-  font-weight: 900;
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  padding: 3px 10px;
-  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
-  display: inline-block;
-  line-height: 1.25;
-  box-shadow: 0 0 12px rgba(252, 238, 10, 0.45);
-}
-
-.mg-cp-header-pipe {
-  color: rgba(56, 189, 248, 0.6);
-  font-weight: 700;
-  font-size: 11px;
-}
-
-.mg-cp-header-dir {
+.mg-cyber-pill-glitch {
   color: #00f0ff;
-  font-size: 10.5px;
-  letter-spacing: 0.12em;
-  font-weight: 800;
 }
 
-.mg-cp-header-row-2 {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  font-size: 10px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 800;
+.mg-cp-pill-kana {
+  color: #94a3b8;
+  font-size: 9.5px;
 }
 
-.mg-cp-archive-tag {
+.mg-cyber-pill-divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(56, 189, 248, 0.35);
+}
+
+.mg-cyber-pill-status {
   color: #fcee0a;
-}
-
-.mg-cp-archive-dash {
-  color: rgba(56, 189, 248, 0.5);
-}
-
-.mg-cp-runtime-tag {
-  color: #e2e8f0;
 }
 
 /* Audio / Signal Equalizer Bars in Telemetry Bar */
