@@ -37,32 +37,33 @@ export function FeatureStorytelling() {
   const isSectionActiveRef = useRef<boolean>(false);
   const lastOffsetRef = useRef<number>(-1);
 
-  // Active interactive states for feature previews
+  // Feature 01: GPU Optical Comparator State
+  const [loupeSplit, setLoupeSplit] = useState<number>(50);
   const [compareMetric, setCompareMetric] = useState<'resolution' | 'vram' | 'architecture'>('resolution');
-  const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait');
+
+  // Feature 02 & 05: Copied token / toast state
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  // Mobile simplified view state: active tab (1-6) and showAll toggle to prevent extreme scrolling
+  // Feature 03: Multi-GPU VRAM Profiler State
+  const [selectedGpu, setSelectedGpu] = useState<'4060' | '4070' | '4090'>('4070');
+  const [selectedQuant, setSelectedQuant] = useState<'fp16' | 'fp8' | 'gguf'>('fp16');
+
+  // Feature 04: Interactive LoRA Oscilloscope State
+  const [loraWeights, setLoraWeights] = useState<{ core: number; lighting: number; detail: number }>({
+    core: 0.85,
+    lighting: 0.65,
+    detail: 0.45,
+  });
+
+  // Feature 06: Aspect ratio state
+  const [selectedAspect, setSelectedAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait');
+
+  // Mobile simplified view state
   const [mobileActiveFeature, setMobileActiveFeature] = useState<number>(1);
   const [mobileShowAllFeatures, setMobileShowAllFeatures] = useState<boolean>(false);
 
-  // Interactive LoRA Stack weights state
-  const [loraWeights, setLoraWeights] = useState<{ [key: string]: number }>({
-    lineart: 0.80,
-    lighting: 0.65,
-    cyber: 0.45,
-  });
-
-  const totalLoraWeight = Math.round((loraWeights.lineart + loraWeights.lighting + loraWeights.cyber) * 100) / 100;
-  const isLoraOverbaked = totalLoraWeight > 2.2;
-
-  const adjustLoraWeight = (key: string, delta: number) => {
-    setLoraWeights((prev) => {
-      const current = prev[key] ?? 0.5;
-      const next = Math.max(0.1, Math.min(1.5, Math.round((current + delta) * 10) / 10));
-      return { ...prev, [key]: next };
-    });
-  };
+  const totalLoraWeight = Math.round((loraWeights.core + loraWeights.lighting + loraWeights.detail) * 100) / 100;
+  const isLoraOverbaked = totalLoraWeight > 2.1;
 
   // Build dynamic SVG path threading through all feature pins
   const updatePathGeometry = useCallback(() => {
@@ -106,7 +107,7 @@ export function FeatureStorytelling() {
 
     const points: { x: number; y: number }[] = [];
 
-    // 1. Initial point: directly under the section header, aligned on pin 1's vertical axis
+    // 1. Initial point directly under section header
     const header = container.querySelector('.mg-features-header');
     if (header) {
       const hRect = header.getBoundingClientRect();
@@ -132,19 +133,19 @@ export function FeatureStorytelling() {
       d += ` C ${prev.x} ${midY}, ${curr.x} ${midY}, ${curr.x} ${curr.y}`;
     }
 
-    // 4. Smooth graceful terminal curve below the last feature node
+    // 4. Smooth terminal curve below the last feature node
     const last = points[points.length - 1];
     d += ` C ${last.x} ${last.y + 35}, ${last.x} ${last.y + 65}, ${last.x} ${last.y + 90}`;
 
     setPathD(d);
   }, []);
 
-  // Update geometry on mount, resize, font settlement, and layout shifts
+  // Update geometry on mount, resize, and font settlement
   useEffect(() => {
     updatePathGeometry();
 
     const t0 = setTimeout(updatePathGeometry, 60);
-    const t1 = setTimeout(updatePathGeometry, 220);
+    const t1 = setTimeout(updatePathGeometry, 240);
     const t2 = setTimeout(updatePathGeometry, 800);
 
     if (document.fonts) {
@@ -209,7 +210,7 @@ export function FeatureStorytelling() {
 
       nodeLengthsRef.current = lengths;
 
-      // Initialize strokeDasharray and initial strokeDashoffset once on geometry update
+      // Initialize strokeDasharray and initial strokeDashoffset once
       const pathsToInit = [pathRef.current, glowPathRef.current, coreLaserRef.current];
       pathsToInit.forEach((p) => {
         if (p) {
@@ -223,16 +224,8 @@ export function FeatureStorytelling() {
     }
   }, [pathD]);
 
-  // Synchronized scroll progress tracking
+  // Synchronized scroll progress tracking (120FPS GPU composited)
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      const rows = [row1Ref.current, row2Ref.current, row3Ref.current, row4Ref.current, row5Ref.current, row6Ref.current];
-      const nodes = [node1Ref.current, node2Ref.current, node3Ref.current, node4Ref.current, node5Ref.current, node6Ref.current];
-      rows.forEach((r) => r?.classList.add('is-active'));
-      nodes.forEach((n) => n?.classList.add('node-active'));
-      return;
-    }
-
     let rafId: number;
 
     const handleScroll = () => {
@@ -240,14 +233,14 @@ export function FeatureStorytelling() {
       const path = pathRef.current;
       if (!path) return;
 
-      const triggerY = window.innerHeight * 0.52; // Eye-level reading activation line
+      const triggerY = window.innerHeight * 0.52;
       const docTops = pinDocTopsRef.current;
       if (docTops.length < 6) return;
 
       const scrollY = window.scrollY || window.pageYOffset;
       const nodeTops = docTops.map((dt) => dt - scrollY);
 
-      // 1. Determine active step based on eye-level trigger line
+      // Determine active step
       let currentStep = 0;
       nodeTops.forEach((top, idx) => {
         if (top <= triggerY + 30) {
@@ -257,7 +250,7 @@ export function FeatureStorytelling() {
 
       if (activeStepRef.current !== currentStep) {
         activeStepRef.current = currentStep;
-        // Direct DOM update: toggle is-active and node-active with 0 React re-renders!
+        // Direct DOM class manipulation (Zero React re-render during scroll!)
         const rows = [row1Ref.current, row2Ref.current, row3Ref.current, row4Ref.current, row5Ref.current, row6Ref.current];
         const nodes = [node1Ref.current, node2Ref.current, node3Ref.current, node4Ref.current, node5Ref.current, node6Ref.current];
         for (let i = 0; i < 6; i++) {
@@ -280,7 +273,7 @@ export function FeatureStorytelling() {
         }
       }
 
-      // 2. Synchronized path length interpolation between nodes
+      // Synchronized path length interpolation between nodes
       const lengths = nodeLengthsRef.current;
       const totalLength = totalLengthRef.current || (path ? path.getTotalLength() : 0);
       if (totalLength <= 0) return;
@@ -288,7 +281,6 @@ export function FeatureStorytelling() {
       let currentLength = 0;
 
       if (nodeTops[0] > triggerY) {
-        // Approaching Node 1 from header
         const enterY = window.innerHeight * 0.85;
         const progress = Math.min(Math.max((enterY - nodeTops[0]) / (enterY - triggerY), 0), 1);
         const L1 = lengths[1] || (totalLength / 6);
@@ -315,7 +307,7 @@ export function FeatureStorytelling() {
         }
       }
 
-      // Apply stroke dashoffset across layered laser paths
+      // Direct strokeDashoffset update
       const offset = Math.max(0, totalLength - currentLength);
       if (Math.abs(offset - lastOffsetRef.current) > 0.5) {
         lastOffsetRef.current = offset;
@@ -362,23 +354,44 @@ export function FeatureStorytelling() {
   const copyToken = (text: string) => {
     navigator.clipboard?.writeText(text);
     setCopiedToken(text);
-    setTimeout(() => setCopiedToken(null), 2200);
+    setTimeout(() => setCopiedToken(null), 2000);
   };
+
+  // Helper for dynamic SVG Waveform in LoRA Oscilloscope
+  const renderOscilloscopePath = () => {
+    const amp = 15 + totalLoraWeight * 14;
+    const freq = 0.04 + loraWeights.core * 0.03;
+    let d = 'M 0 45';
+    for (let x = 0; x <= 400; x += 8) {
+      const y = 45 + Math.sin(x * freq) * amp * Math.cos(x * 0.015);
+      d += ` L ${x} ${y.toFixed(1)}`;
+    }
+    return d;
+  };
+
+  // GPU Memory calculation for Feature 03
+  const gpuConfigs = {
+    '4060': { name: 'RTX 4060', total: 8 },
+    '4070': { name: 'RTX 4070 Ti', total: 16 },
+    '4090': { name: 'RTX 4090', total: 24 },
+  };
+  const quantScales = {
+    fp16: 6.8,
+    fp8: 4.2,
+    gguf: 3.1,
+  };
+  const currentGpu = gpuConfigs[selectedGpu];
+  const currentVramUsed = quantScales[selectedQuant];
+  const vramUsagePercent = Math.min(100, Math.round((currentVramUsed / currentGpu.total) * 100));
 
   return (
     <section className="mg-features" id="features-narrative">
-      {/* Dedicated Atmospheric Dark Forest Background */}
-      <div className="mg-features-forest-bg" aria-hidden="true" />
-
-      {/* Subtle Natural Forest Ground Mist Ribbons */}
-      <div className="mg-features-mist-ribbon mist-1" aria-hidden="true" />
-      <div className="mg-features-mist-ribbon mist-2" aria-hidden="true" />
-
-      {/* Ambient Vignette & Contrast Depth Lighting */}
       <div className="mg-features-atmosphere" aria-hidden="true" />
 
       <div className="mg-container" ref={containerRef}>
-        {/* Dynamic Multi-Anchor SVG Path connecting through each feature node */}
+        {/* ===================================================================
+            PRESERVED 3-LAYER NATIVE VECTOR STROKE LASER SPINE (NO DROP-SHADOW)
+            =================================================================== */}
         <div className="mg-narrative-spine-wrap" aria-hidden="true">
           {pathD && svgSize.width > 0 && (
             <svg
@@ -388,7 +401,6 @@ export function FeatureStorytelling() {
               viewBox={`0 0 ${svgSize.width} ${svgSize.height}`}
             >
               <defs>
-                {/* Cyberpunk Blue-to-Cyan Electric Gradient */}
                 <linearGradient id="beam-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
                   <stop offset="0%" stopColor="#2563eb" stopOpacity="0.85" />
                   <stop offset="25%" stopColor="#3b82f6" stopOpacity="1" />
@@ -398,7 +410,7 @@ export function FeatureStorytelling() {
                 </linearGradient>
               </defs>
 
-              {/* 1. Inactive Dashed Guide Path */}
+              {/* Inactive Dashed Guide Path */}
               <path
                 d={pathD}
                 fill="none"
@@ -407,7 +419,7 @@ export function FeatureStorytelling() {
                 strokeDasharray="4 6"
               />
 
-              {/* 2. Active Ambient Wide Glow Aura - GPU hardware composited */}
+              {/* Layer 1: Active Ambient Wide Glow Aura (10px cyan 35%) */}
               <path
                 ref={glowPathRef}
                 d={pathD}
@@ -418,7 +430,7 @@ export function FeatureStorytelling() {
                 className="mg-spine-laser-glow"
               />
 
-              {/* 3. Active Traveling Glowing Main Path - GPU hardware composited */}
+              {/* Layer 2: Active Traveling Main Gradient Path (3.5px) */}
               <path
                 ref={pathRef}
                 d={pathD}
@@ -429,18 +441,18 @@ export function FeatureStorytelling() {
                 className="mg-spine-laser-main"
               />
 
-              {/* 4. Active Fiber-Optic Core Laser */}
+              {/* Layer 3: Active Fiber-Optic White Core Laser (1.2px) */}
               <path
                 ref={coreLaserRef}
                 d={pathD}
                 fill="none"
-                stroke="rgba(255, 255, 255, 0.85)"
+                stroke="rgba(255, 255, 255, 0.88)"
                 strokeWidth="1.2"
                 strokeLinecap="round"
                 className="mg-spine-laser-active"
               />
 
-              {/* 5. Continuous Flowing Electric Pulse Stream */}
+              {/* Continuous Flowing Pulse Stream */}
               <path
                 ref={streamRef}
                 d={pathD}
@@ -460,25 +472,25 @@ export function FeatureStorytelling() {
           <div className="mg-editorial-tag">
             <span className="mg-tag-num">03</span>
             <span className="mg-tag-line" />
-            <span className="mg-tag-text">INTEGRATED TOOLSET &amp; WORKFLOW</span>
+            <span className="mg-tag-text">INTEGRATED TOOLSET &amp; WORKSTATIONS</span>
           </div>
           <h2 className="mg-features-title">
-            Suite Utilitas Generatif untuk Kreator AI &amp; Anime
+            Suite Workstation Generatif Interaktif
           </h2>
           <p className="mg-features-subtitle">
-            Rangkaian perkakas lengkap yang dirancang khusus untuk mengoptimalkan workflow generasi visual: mulai dari komparasi arsitektur model, studio prompt 10 layer Danbooru, penumpukan LoRA anti-burnout, inspeksi metadata SafeTensors, hingga kalkulasi resolusi VAE lattice.
+            Ke-6 workstation mekanis berpotongan chamfer hardware: optical comparator berpemotong GPU clip-path, penumpuk LoRA dengan osiloskop harmonik real-time, profiler alokasi VRAM multi-GPU, dan kalkulator lattice snap-64.
           </p>
         </div>
 
-        {/* Mobile Interactive Feature Tab Switcher (Visible on <= 768px only) */}
+        {/* Mobile Tab Switcher */}
         <div className="mg-features-mobile-nav" role="tablist" aria-label="Pilih Fitur Generatif">
           {[
-            { id: 1, label: '01 Komparasi' },
+            { id: 1, label: '01 Comparator' },
             { id: 2, label: '02 Prompt Lab' },
-            { id: 3, label: '03 Visualizer' },
-            { id: 4, label: '04 LoRA Stack' },
+            { id: 3, label: '03 VRAM Profiler' },
+            { id: 4, label: '04 LoRA Wave' },
             { id: 5, label: '05 Inspector' },
-            { id: 6, label: '06 VAE Calc' },
+            { id: 6, label: '06 Snap-64' },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -497,8 +509,7 @@ export function FeatureStorytelling() {
         </div>
 
         {/* ===================================================================
-            FEATURE 01: Model Comparison (/compare)
-            Layout: Info Left | Visual Right
+            FEATURE 01: GPU Clip-Path Optical Comparator (/compare)
             =================================================================== */}
         <div
           ref={row1Ref}
@@ -506,7 +517,6 @@ export function FeatureStorytelling() {
           id="feat-compare"
         >
           <div className="mg-feature-info">
-            {/* Step Node 01 */}
             <div className="mg-step-node-anchor" ref={node1Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -514,33 +524,29 @@ export function FeatureStorytelling() {
               </div>
               <div className="mg-node-meta">
                 <span className="mg-node-type">FEATURE 01</span>
-                <span className="mg-node-title">MODEL COMPARISON</span>
+                <span className="mg-node-title">OPTICAL COMPARATOR</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              Komparasi Model Multi-Slot
+              GPU Clip-Path Optical Comparator
             </h3>
             <p className="mg-feature-copy">
-              Bandingkan karakteristik teknis model, bobot conditioning, arsitektur Text Encoder, dan footprint VRAM secara berdampingan. Temukan perbedaan presisi antara base checkpoint dan varian fine-tune sebelum memulai sesi generate gambar.
+              Bandingkan rendering output Illustrious XL (Epsilon) vs NoobAI-XL (V-Prediction) secara real-time. Lapisan gambar atas dipotong secara murni menggunakan GPU <code className="mg-inline-code">clipPath: inset(...)</code> tanpa layout thrashing.
             </p>
 
             <div className="mg-feature-bullets">
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Multi-slot simultan: sandingkan 2 hingga 3 model sekaligus dalam satu layar komparasi</span>
+                <span>Zero Latency Visual Scrubbing: geser slider pemisah untuk inspeksi detail lineart dan highlight warna</span>
               </div>
               <div className="mg-bullet-item">
                 <span className="mg-bullet-dot" />
-                <span>Highlighter perbedaan parameter: periksa perbedaan resolusi native, clip skip, VRAM requirement, dan recommended sampler secara real-time</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Pintasan terintegrasi ke prompt terverifikasi dan galeri visual sampel dari masing-masing checkpoint</span>
+                <span>Analisis Perbedaan Model: periksa perbedaan resolusi native, clip skip, dan sampling budget</span>
               </div>
             </div>
 
-            <Link to="/compare" className="mg-btn mg-btn-primary">
+            <Link to="/compare" className="mg-btn mg-btn-primary mg-chamfer-sm">
               <span>Buka Model Comparison</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -550,107 +556,73 @@ export function FeatureStorytelling() {
           </div>
 
           <div className="mg-feature-visual mg-visual-compare">
-            <div className="mg-compare-container">
-              {/* Diff selector pill */}
-              <div className="mg-compare-pill-nav">
+            {/* Diff Metric Selector Tabs */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+              {(['resolution', 'vram', 'architecture'] as const).map((mKey) => (
                 <button
+                  key={mKey}
                   type="button"
-                  className={`mg-mini-tab ${compareMetric === 'resolution' ? 'active' : ''}`}
-                  onClick={() => setCompareMetric('resolution')}
+                  className={`mg-mini-tab mg-chamfer-sm ${compareMetric === mKey ? 'active' : ''}`}
+                  onClick={() => setCompareMetric(mKey)}
                 >
-                  Resolusi &amp; Rasio
+                  {mKey === 'resolution' ? 'Resolusi & Rasio' : mKey === 'vram' ? 'VRAM & Memori' : 'Text Encoders'}
                 </button>
-                <button
-                  type="button"
-                  className={`mg-mini-tab ${compareMetric === 'vram' ? 'active' : ''}`}
-                  onClick={() => setCompareMetric('vram')}
-                >
-                  VRAM &amp; Memori
-                </button>
-                <button
-                  type="button"
-                  className={`mg-mini-tab ${compareMetric === 'architecture' ? 'active' : ''}`}
-                  onClick={() => setCompareMetric('architecture')}
-                >
-                  Text Encoders
-                </button>
-              </div>
+              ))}
+            </div>
 
-              {/* Side-by-Side Dual Comparison Cards */}
-              <div className="mg-compare-cards-grid">
-                <div className="mg-compare-card slot-a">
-                  <div className="mg-compare-card-header">
-                    <span className="mg-slot-tag">SLOT A</span>
-                    <h4>Illustrious XL v0.1</h4>
-                    <span className="mg-slot-sub">Checkpoint &bull; Anime Base</span>
-                  </div>
-                  <div className="mg-compare-spec-list">
-                    <div className="mg-spec-row">
-                      <span>Parameters:</span>
-                      <strong>6.6 Billion</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Native Res:</span>
-                      <strong>832 &times; 1216</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Min VRAM:</span>
-                      <strong className="mg-text-success">6 GB (FP16)</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Scheduler:</span>
-                      <strong>Euler a (28 stp)</strong>
-                    </div>
-                  </div>
-                </div>
+            <div className="mg-comparator-container mg-chamfer-lg mg-gpu">
+              {/* Slot A: Base Background Image (Illustrious XL) */}
+              <img
+                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=450/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg"
+                alt="Illustrious XL Output"
+                className="mg-comparator-base-img"
+              />
+              <span className="mg-comparator-badge-left mg-chamfer-sm">SLOT A // ILLUSTRIOUS XL</span>
 
-                <div className="mg-compare-diff-divider">
-                  <span className="mg-vs-badge">VS</span>
-                </div>
+              {/* Slot B: Clipped Foreground Image (NoobAI V-Pred) */}
+              <img
+                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg"
+                alt="NoobAI V-Pred Output"
+                className="mg-comparator-clip-img mg-gpu"
+                style={{
+                  clipPath: `inset(0 ${(100 - loupeSplit).toFixed(1)}% 0 0)`,
+                }}
+              />
+              <span className="mg-comparator-badge-right mg-chamfer-sm">SLOT B // NOOBAI V-PRED</span>
 
-                <div className="mg-compare-card slot-b">
-                  <div className="mg-compare-card-header">
-                    <span className="mg-slot-tag">SLOT B</span>
-                    <h4>Pony Diffusion V6</h4>
-                    <span className="mg-slot-sub">Checkpoint &bull; Score-tagged</span>
-                  </div>
-                  <div className="mg-compare-spec-list">
-                    <div className="mg-spec-row">
-                      <span>Parameters:</span>
-                      <strong>6.6 Billion</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Native Res:</span>
-                      <strong>1024 &times; 1024</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Min VRAM:</span>
-                      <strong className="mg-text-warning">8 GB (FP16)</strong>
-                    </div>
-                    <div className="mg-spec-row">
-                      <span>Scheduler:</span>
-                      <strong>Euler a (30 stp)</strong>
-                    </div>
-                  </div>
+              {/* Cyan Laser Divider Line */}
+              <div
+                className="mg-comparator-laser-divider mg-gpu"
+                style={{ left: `${loupeSplit}%` }}
+              >
+                <div className="mg-comparator-laser-handle mg-chamfer-sm">
+                  <span>◀▶</span>
                 </div>
               </div>
 
-              {/* Bottom live diff status in Indonesian */}
-              <div className="mg-compare-status-bar">
-                <span className="mg-status-indicator" />
-                <span>
-                  {compareMetric === 'resolution' && 'Analisis: Illustrious optimal pada rasio portrait 832×1216; Pony membutuhkan 1024×1024 square native.'}
-                  {compareMetric === 'vram' && 'Analisis: Illustrious lancar di VRAM 6GB dengan --medvram; Pony membutuhkan minimal 8GB untuk full batch.'}
-                  {compareMetric === 'architecture' && 'Analisis: Keduanya memakai Dual OpenCLIP ViT-L dengan bobot conditioning tag Danbooru.'}
-                </span>
-              </div>
+              {/* Invisible interactive scrub input */}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={loupeSplit}
+                onChange={(e) => setLoupeSplit(parseFloat(e.target.value))}
+                className="mg-comparator-slider-input"
+                aria-label="Optical comparator divider slider"
+              />
+            </div>
+
+            <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--mg-font-mono)' }}>
+              <span style={{ color: '#38bdf8', fontWeight: 700 }}>ANALISIS METRIK: </span>
+              {compareMetric === 'resolution' && 'Illustrious optimal pada rasio portrait 832×1216; NoobAI pada 1024×1360.'}
+              {compareMetric === 'vram' && 'Illustrious lancar di VRAM 6GB dengan --medvram; NoobAI stabil di 8GB.'}
+              {compareMetric === 'architecture' && 'Illustrious memakai Epsilon latent prediction; NoobAI memakai V-Prediction.'}
             </div>
           </div>
         </div>
 
         {/* ===================================================================
-            FEATURE 02: Prompt Studio & Lab (/prompt-lab)
-            Layout: Visual Left | Info Right
+            FEATURE 02: SafeTensors Header Inspector & Danbooru Tag Lab
             =================================================================== */}
         <div
           ref={row2Ref}
@@ -658,28 +630,27 @@ export function FeatureStorytelling() {
           id="feat-promptlab"
         >
           <div className="mg-feature-visual mg-visual-promptlab">
-            <div className="mg-promptlab-preview">
+            <div className="mg-promptlab-preview mg-chamfer-lg">
               <div className="mg-promptlab-bar">
-                <span className="mg-bar-label">DANBOORU TOKEN MATRIX</span>
-                <span className="mg-bar-count">8 TAG AKTIF</span>
+                <span className="mg-bar-label">DANBOORU TOKEN MATRIX // CLICK TO COPY</span>
+                <span className="mg-bar-count">8 ACTIVE TAGS</span>
               </div>
 
-              {/* Interactive Token Tag Cloud */}
               <div className="mg-token-cloud">
                 {[
                   { tag: 'masterpiece', weight: '1.0', type: 'quality' },
                   { tag: 'best quality', weight: '1.0', type: 'quality' },
                   { tag: '1girl', weight: '1.0', type: 'subject' },
-                  { tag: 'ho\'olheyak', weight: '1.2', type: 'character' },
+                  { tag: 'silver hair', weight: '1.1', type: 'character' },
                   { tag: 'sidelighting', weight: '1.1', type: 'lighting' },
                   { tag: 'dynamic shadows', weight: '1.0', type: 'lighting' },
                   { tag: 'warm illumination', weight: '1.0', type: 'palette' },
-                  { tag: 'laboratory', weight: '0.9', type: 'environment' },
+                  { tag: 'high-tech laboratory', weight: '0.9', type: 'environment' },
                 ].map((t) => (
                   <button
                     key={t.tag}
                     type="button"
-                    className={`mg-token-pill mg-token-${t.type}`}
+                    className={`mg-token-pill mg-token-${t.type} mg-chamfer-sm`}
                     onClick={() => copyToken(t.weight === '1.0' ? t.tag : `(${t.tag}:${t.weight})`)}
                     title="Klik untuk menyalin tag ke clipboard"
                   >
@@ -689,28 +660,16 @@ export function FeatureStorytelling() {
                 ))}
               </div>
 
-              {copiedToken && (
-                <div className="mg-token-copied-toast">
-                  Tag &ldquo;{copiedToken}&rdquo; berhasil disalin!
-                </div>
-              )}
-
-              {/* Weight Adjustment Simulation */}
-              <div className="mg-promptlab-controls">
+              <div className="mg-promptlab-controls mg-chamfer-sm" style={{ marginTop: '16px' }}>
                 <div className="mg-control-row">
                   <span className="mg-control-label">Sintaks Pembobotan:</span>
                   <code className="mg-syntax-sample">(ho'olheyak:1.20), (sidelighting:1.10)</code>
-                </div>
-                <div className="mg-control-row">
-                  <span className="mg-control-label">Preset Negative:</span>
-                  <span className="mg-preset-chip">Illustrious Standard Clean Anime v2</span>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="mg-feature-info">
-            {/* Step Node 02 */}
             <div className="mg-step-node-anchor" ref={node2Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -718,61 +677,36 @@ export function FeatureStorytelling() {
               </div>
               <div className="mg-node-meta">
                 <span className="mg-node-type">FEATURE 02</span>
-                <span className="mg-node-title">PROMPT STUDIO &amp; LAB</span>
+                <span className="mg-node-title">PROMPT LAB &amp; TAG MATRIX</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              Prompt Studio &amp; Lab Canvas
+              SafeTensors Prompt Studio &amp; Tag Lab
             </h3>
             <p className="mg-feature-copy">
-              Susun prompt anime modular dengan arsitektur 10 layer visual (Karakter, Kostum, Pose, Rambut, Lighting, Komposisi, dsb.). Dilengkapi autokomplit lebih dari 100.000 tag Danbooru, pembobotan kurung real-time, dan fitur deconstruction prompt instan.
+              Susun prompt anime modular dengan arsitektur 10 layer visual. Dilengkapi autokomplit lebih dari 100.000 tag Danbooru, pembobotan kurung real-time, dan ekstraksi metadata biner .safetensors.
             </p>
 
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Autokomplit 100.000+ tag Danbooru: pencarian cepat karakter, outfit, pose, dan artis langsung dari database lokal</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Prompt Deconstructor &amp; AI Transformer: tempelkan prompt acak dari Civitai atau Twitter untuk otomatis dipetakan ke dalam 10 kategori visual</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Visual Token Weighting: atur penekanan kurung (tag:weight) dengan visual slider, tag cleaner otomatis, dan library preset teruji</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
-              <Link to="/prompt-lab" className="mg-btn mg-btn-primary">
-                <span>Buka Prompt Studio &amp; Lab</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-              <Link to="/negative-vault" className="mg-btn mg-btn-secondary" title="Kelola Negative Vault &amp; Embeddings">
-                <span>Negative Vault</span>
-              </Link>
-              <Link to="/story-merger" className="mg-btn mg-btn-secondary" title="Preset Storyboard &amp; Character Lock">
-                <span>Story Merger</span>
-              </Link>
-            </div>
+            <Link to="/prompt-lab" className="mg-btn mg-btn-primary mg-chamfer-sm">
+              <span>Buka Prompt Studio &amp; Lab</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
           </div>
         </div>
 
         {/* ===================================================================
-            FEATURE 03: Generation Gallery (/gallery)
-            Layout: Info Left | Visual Right
+            FEATURE 03: Multi-GPU VRAM Profiler Workstation
             =================================================================== */}
         <div
           ref={row3Ref}
           className={`mg-feature-row mg-feature-gallery ${!mobileShowAllFeatures && mobileActiveFeature !== 3 ? 'mobile-hidden-feature' : ''}`}
-          id="feat-gallery"
+          id="feat-vram-profiler"
         >
           <div className="mg-feature-info">
-            {/* Step Node 03 */}
             <div className="mg-step-node-anchor" ref={node3Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -780,34 +714,19 @@ export function FeatureStorytelling() {
               </div>
               <div className="mg-node-meta">
                 <span className="mg-node-type">FEATURE 03</span>
-                <span className="mg-node-title">GENERATION GALLERY</span>
+                <span className="mg-node-title">VRAM HARDWARE PROFILER</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              Galeri Generasi Terverifikasi
+              Multi-GPU VRAM Profiler &amp; Quantization
             </h3>
             <p className="mg-feature-copy">
-              Jelajahi visual showcase dan gambar kurasi yang dihasilkan langsung oleh tiap checkpoint model di Models Guide. Setiap karya dilengkapi telemetri prompt lengkap yang 100% reproducible: siap disalin dan dijalankan langsung di mesin Anda.
+              Uji ketahanan GPU Anda terhadap beban inferensi SDXL, Illustrious, dan Flux. Pilih kartu grafis dan format kuantisasi untuk melihat visualisasi alokasi memori real-time dan prediksi CUDA OOM.
             </p>
 
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>One-Click Prompt Telemetry: salin positive prompt, negative prompt, seed, sampler, dan upscaling setting dengan satu klik</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Tampilan Lightbox Resolusi Penuh: zoom detail tinggi untuk memeriksa kualitas lineart, rendering mata, dan tekstur gambar</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Filter katalog terpadu: telusuri output berdasarkan base model (Illustrious, NoobAI, SDXL, Pony) dan kategori tag visual</span>
-              </div>
-            </div>
-
-            <Link to="/gallery" className="mg-btn mg-btn-primary">
-              <span>Jelajahi Generation Gallery</span>
+            <Link to="/vram" className="mg-btn mg-btn-primary mg-chamfer-sm">
+              <span>Buka VRAM Profiler</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
@@ -816,56 +735,61 @@ export function FeatureStorytelling() {
           </div>
 
           <div className="mg-feature-visual mg-visual-gallery">
-            <div className="mg-gallery-composition">
-              <div className="mg-gallery-card primary-card">
-                <img
-                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=450/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg"
-                  alt="Generation Gallery Output"
-                  className="mg-gallery-img"
-                  loading="lazy"
-                  decoding="async"
-                  onLoad={() => updatePathGeometry()}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/preview-1.png';
-                  }}
-                />
-                <div className="mg-gallery-overlay">
-                  <div className="mg-overlay-badge">ILLUSTRIOUS XL &bull; SEED: 1574517680</div>
-                  <p className="mg-overlay-prompt">
-                    &ldquo;1girl, ho'olheyak, sidelighting, dynamic shadows, laboratory-like, warm illumination...&rdquo;
-                  </p>
-                  <div className="mg-overlay-meta">
-                    <span>Sampler: Euler a</span>
-                    <span>Steps: 28</span>
-                    <span>CFG: 5.5</span>
-                    <span>Res: 1024 &times; 1360</span>
-                  </div>
+            <div className="mg-vram-profiler-box mg-chamfer-lg">
+              {/* GPU Selector Buttons */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                {(['4060', '4070', '4090'] as const).map((gpuKey) => (
+                  <button
+                    key={gpuKey}
+                    type="button"
+                    className={`mg-aspect-btn mg-chamfer-sm ${selectedGpu === gpuKey ? 'active' : ''}`}
+                    onClick={() => setSelectedGpu(gpuKey)}
+                  >
+                    {gpuConfigs[gpuKey].name} ({gpuConfigs[gpuKey].total}GB)
+                  </button>
+                ))}
+              </div>
+
+              {/* Quantization Mode */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                {(['fp16', 'fp8', 'gguf'] as const).map((qKey) => (
+                  <button
+                    key={qKey}
+                    type="button"
+                    className={`mg-mini-tab mg-chamfer-sm ${selectedQuant === qKey ? 'active' : ''}`}
+                    onClick={() => setSelectedQuant(qKey)}
+                  >
+                    {qKey.toUpperCase()} ({quantScales[qKey]} GB)
+                  </button>
+                ))}
+              </div>
+
+              {/* Memory Allocation Gauge */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#94a3b8', marginBottom: '6px' }}>
+                  <span>ALOKASI VRAM GPU</span>
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>{currentVramUsed} GB / {currentGpu.total} GB ({vramUsagePercent}%)</span>
+                </div>
+                <div className="mg-footprint-track mg-chamfer-sm" style={{ height: '10px' }}>
+                  <div
+                    className="mg-footprint-fill mg-gpu"
+                    style={{
+                      transform: `scaleX(${vramUsagePercent / 100})`,
+                      background: vramUsagePercent > 85 ? 'linear-gradient(90deg, #fcee0a, #ef4444)' : 'linear-gradient(90deg, #38bdf8, #10b981)',
+                    }}
+                  />
                 </div>
               </div>
 
-              <div className="mg-gallery-card secondary-card">
-                <img
-                  src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/37ff4f9a-b8ab-4f1a-a8fa-3ab55dc7d282/width=450/61631201.jpeg"
-                  alt="Secondary Generation Output"
-                  className="mg-gallery-img"
-                  loading="lazy"
-                  decoding="async"
-                  onLoad={() => updatePathGeometry()}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/preview-2.png';
-                  }}
-                />
-                <div className="mg-gallery-mini-badge">
-                  <span>HI-RES 1.5x</span>
-                </div>
+              <div style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#6ee7b7' }}>
+                STATUS: {vramUsagePercent > 85 ? 'PERINGATAN: MENDEKATI LIMIT VRAM' : 'OPTIMAL // ZERO MEMORY PAGING'}
               </div>
             </div>
           </div>
         </div>
 
         {/* ===================================================================
-            FEATURE 04: LoRA Stack Builder (/lora-stack)
-            Layout: Visual Left | Info Right
+            FEATURE 04: Multi-LoRA Harmonic Oscilloscope & ComfyUI Bridge
             =================================================================== */}
         <div
           ref={row4Ref}
@@ -873,131 +797,88 @@ export function FeatureStorytelling() {
           id="feat-lorastack"
         >
           <div className="mg-feature-visual mg-visual-lorastack">
-            <div className="mg-lorastack-preview">
-              <div className="mg-lorastack-topbar">
-                <span className="mg-lorastack-label">MULTI-LAYER LORA COMPOSER</span>
-                <span className={`mg-lorastack-guard-badge ${isLoraOverbaked ? 'warning' : ''}`}>
-                  <span className="mg-guard-pulse" />
-                  {isLoraOverbaked ? 'PERINGATAN: OVER-BAKED' : 'BURNOUT GUARD: AMAN'}
+            <div className="mg-oscilloscope-box mg-chamfer-lg">
+              {/* Top Bar with Burnout Badge */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
+                  HARMONIC OSCILLOSCOPE // COMFYUI BRIDGE
+                </span>
+                <span className={`mg-lorastack-guard-badge mg-chamfer-sm ${isLoraOverbaked ? 'warning' : ''}`}>
+                  {isLoraOverbaked ? 'OVER-BAKED (> 2.1x)' : 'BURNOUT GUARD: SAFE'}
                 </span>
               </div>
 
-              {/* Layer stack items with live controls */}
-              <div className="mg-lorastack-layers">
-                <div className="mg-lora-layer-item">
-                  <div className="mg-lora-layer-header">
-                    <div className="mg-lora-layer-meta">
-                      <span className="mg-lora-layer-num">01</span>
-                      <span className="mg-lora-layer-title">Detailed Anime Lineart v2</span>
-                      <span className="mg-lora-layer-tag">Illustrious</span>
-                    </div>
-                    <div className="mg-lora-weight-control">
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lineart', -0.1)} title="Kurangi bobot">-</button>
-                      <span className="mg-lora-weight-val">{loraWeights.lineart.toFixed(2)}</span>
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lineart', 0.1)} title="Tambah bobot">+</button>
-                    </div>
-                  </div>
-                  <div className="mg-lora-trigger-row">
-                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
-                    <span className="mg-lora-trigger-tag">clean lineart</span>
-                    <span className="mg-lora-trigger-tag">anime aesthetic</span>
-                  </div>
-                </div>
+              {/* Dynamic SVG Waveform */}
+              <svg className="mg-oscilloscope-svg mg-chamfer-sm" viewBox="0 0 400 90">
+                <line x1="0" y1="45" x2="400" y2="45" stroke="rgba(255, 255, 255, 0.1)" strokeDasharray="4 4" />
+                <path
+                  d={renderOscilloscopePath()}
+                  fill="none"
+                  stroke={isLoraOverbaked ? '#ef4444' : '#38bdf8'}
+                  strokeWidth="2.5"
+                  className="mg-gpu"
+                />
+              </svg>
 
-                <div className="mg-lora-layer-item">
-                  <div className="mg-lora-layer-header">
-                    <div className="mg-lora-layer-meta">
-                      <span className="mg-lora-layer-num">02</span>
-                      <span className="mg-lora-layer-title">Warm Sunset Golden Hour</span>
-                      <span className="mg-lora-layer-tag">SDXL / Pony</span>
-                    </div>
-                    <div className="mg-lora-weight-control">
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lighting', -0.1)} title="Kurangi bobot">-</button>
-                      <span className="mg-lora-weight-val">{loraWeights.lighting.toFixed(2)}</span>
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('lighting', 0.1)} title="Tambah bobot">+</button>
-                    </div>
-                  </div>
-                  <div className="mg-lora-trigger-row">
-                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
-                    <span className="mg-lora-trigger-tag">warm lighting</span>
-                    <span className="mg-lora-trigger-tag">golden hour rim light</span>
-                  </div>
-                </div>
-
-                <div className="mg-lora-layer-item">
-                  <div className="mg-lora-layer-header">
-                    <div className="mg-lora-layer-meta">
-                      <span className="mg-lora-layer-num">03</span>
-                      <span className="mg-lora-layer-title">Mecha Cybernetic Accents</span>
-                      <span className="mg-lora-layer-tag">Universal</span>
-                    </div>
-                    <div className="mg-lora-weight-control">
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('cyber', -0.1)} title="Kurangi bobot">-</button>
-                      <span className="mg-lora-weight-val">{loraWeights.cyber.toFixed(2)}</span>
-                      <button type="button" className="mg-weight-btn" onClick={() => adjustLoraWeight('cyber', 0.1)} title="Tambah bobot">+</button>
-                    </div>
-                  </div>
-                  <div className="mg-lora-trigger-row">
-                    <span className="mg-lora-trigger-label">TRIGGERS:</span>
-                    <span className="mg-lora-trigger-tag">cybernetic parts</span>
-                    <span className="mg-lora-trigger-tag">glowing circuits</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Burnout Guard Meter */}
-              <div className="mg-lora-burnout-meter">
-                <div className="mg-meter-header">
-                  <span>TOTAL STACK WEIGHT: <strong>{totalLoraWeight.toFixed(2)} / 2.50</strong></span>
-                  <span className={isLoraOverbaked ? 'mg-text-warning' : 'mg-text-success'}>
-                    {isLoraOverbaked ? 'Risiko Kontras Tinggi' : 'Batas Saturasi Optimal'}
-                  </span>
-                </div>
-                <div className="mg-meter-track">
-                  <div
-                    className={`mg-meter-fill ${isLoraOverbaked ? 'warning' : ''}`}
-                    style={{ width: `${Math.min(100, (totalLoraWeight / 2.5) * 100)}%` }}
+              {/* 3 Weight Sliders */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#cbd5e1' }}>01 STYLE CORE: {loraWeights.core.toFixed(2)}</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.5"
+                    step="0.05"
+                    value={loraWeights.core}
+                    onChange={(e) => setLoraWeights((prev) => ({ ...prev, core: parseFloat(e.target.value) }))}
+                    style={{ width: '150px' }}
                   />
                 </div>
-                <div className="mg-meter-sub">
-                  <span>Target Aman: 0.8 &ndash; 2.0</span>
-                  <span>Ambang Batas: 2.20+</span>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#cbd5e1' }}>02 LIGHTING: {loraWeights.lighting.toFixed(2)}</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.5"
+                    step="0.05"
+                    value={loraWeights.lighting}
+                    onChange={(e) => setLoraWeights((prev) => ({ ...prev, lighting: parseFloat(e.target.value) }))}
+                    style={{ width: '150px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#cbd5e1' }}>03 DETAILER: {loraWeights.detail.toFixed(2)}</span>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="1.5"
+                    step="0.05"
+                    value={loraWeights.detail}
+                    onChange={(e) => setLoraWeights((prev) => ({ ...prev, detail: parseFloat(e.target.value) }))}
+                    style={{ width: '150px' }}
+                  />
                 </div>
               </div>
 
-              {/* Generated Syntax Output */}
-              <div className="mg-lorastack-output">
-                <div className="mg-lorastack-syntax">
-                  {`<lora:anime_lineart_v2:${loraWeights.lineart.toFixed(2)}>, <lora:warm_sunset:${loraWeights.lighting.toFixed(2)}>, <lora:cyber_accents:${loraWeights.cyber.toFixed(2)}>`}
-                </div>
-                <div className="mg-lorastack-actions">
-                  <button
-                    type="button"
-                    className="mg-action-pill"
-                    onClick={() => copyToken(`<lora:anime_lineart_v2:${loraWeights.lineart.toFixed(2)}>, <lora:warm_sunset:${loraWeights.lighting.toFixed(2)}>, <lora:cyber_accents:${loraWeights.cyber.toFixed(2)}>`)}
-                  >
-                    &rarr; Salin Sintaks WebUI (A1111 / Forge)
-                  </button>
-                  <button
-                    type="button"
-                    className="mg-action-pill"
-                    onClick={() => copyToken(JSON.stringify({
-                      loras: [
-                        { name: "anime_lineart_v2", strength_model: loraWeights.lineart, strength_clip: loraWeights.lineart },
-                        { name: "warm_sunset", strength_model: loraWeights.lighting, strength_clip: loraWeights.lighting },
-                        { name: "cyber_accents", strength_model: loraWeights.cyber, strength_clip: loraWeights.cyber },
-                      ]
-                    }, null, 2))}
-                  >
-                    &rarr; Salin Schema ComfyUI
-                  </button>
-                </div>
-              </div>
+              {/* 1-Click Export ComfyUI Workflow JSON */}
+              <button
+                type="button"
+                className="mg-action-pill mg-chamfer-sm"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={() => copyToken(JSON.stringify({
+                  lora_stack: [
+                    { name: 'style_core', strength_model: loraWeights.core, strength_clip: loraWeights.core },
+                    { name: 'lighting_accent', strength_model: loraWeights.lighting, strength_clip: loraWeights.lighting },
+                    { name: 'detail_booster', strength_model: loraWeights.detail, strength_clip: loraWeights.detail },
+                  ]
+                }, null, 2))}
+              >
+                &rarr; EXPORT COMFYUI WORKFLOW JSON
+              </button>
             </div>
           </div>
 
           <div className="mg-feature-info">
-            {/* Step Node 04 */}
             <div className="mg-step-node-anchor" ref={node4Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -1005,50 +886,29 @@ export function FeatureStorytelling() {
               </div>
               <div className="mg-node-meta">
                 <span className="mg-node-type">FEATURE 04</span>
-                <span className="mg-node-title">LORA STACK BUILDER</span>
+                <span className="mg-node-title">LORA OSCILLOSCOPE</span>
               </div>
             </div>
 
             <h3 className="mg-feature-heading">
-              LoRA Stack &amp; Burnout Guard
+              LoRA Stack &amp; Harmonic Oscilloscope
             </h3>
             <p className="mg-feature-copy">
-              Gabungkan beberapa LoRA karakter, pose, dan style secara bersamaan tanpa merusak dynamic range gambar. Sistem otomatis menghitung batas saturasi (over-baking guard) dan menyusun trigger words yang siap diekspor ke berbagai tool.
+              Gabungkan beberapa LoRA karakter, pose, dan lighting. Visualisasi kurva harmonik gelombang SVG mendeteksi burnout dan interferensi bobot secara real-time.
             </p>
 
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Burnout &amp; Over-Baking Guard: pemantauan total akumulasi bobot tensor secara real-time untuk mencegah visual terdistorsi atau warna terbakar</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Auto-Trigger Word Injector: otomatis mengekstrak kata pemicu dari masing-masing LoRA dan menggabungkannya ke prompt utama</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Ekspor multi-format: salin sintaks siap pakai untuk WebUI Automatic1111/Forge (&lt;lora:name:weight&gt;) maupun format node loader ComfyUI</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
-              <Link to="/lora-stack" className="mg-btn mg-btn-primary">
-                <span>Buka LoRA Stack Builder</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-              <Link to="/workflows" className="mg-btn mg-btn-secondary" title="Buka ComfyUI Workflows">
-                <span>ComfyUI Workflows</span>
-              </Link>
-            </div>
+            <Link to="/lora-stack" className="mg-btn mg-btn-primary mg-chamfer-sm">
+              <span>Buka LoRA Stack Builder</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
           </div>
         </div>
 
         {/* ===================================================================
-            FEATURE 05: Metadata Inspector (/inspector)
-            Layout: Info Left | Visual Right
+            FEATURE 05: SafeTensors Metadata Inspector Terminal
             =================================================================== */}
         <div
           ref={row5Ref}
@@ -1056,7 +916,6 @@ export function FeatureStorytelling() {
           id="feat-inspector"
         >
           <div className="mg-feature-info">
-            {/* Step Node 05 */}
             <div className="mg-step-node-anchor" ref={node5Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -1072,29 +931,10 @@ export function FeatureStorytelling() {
               Inspektor Metadata &amp; SafeTensors
             </h3>
             <p className="mg-feature-copy">
-              Bedah parameter inferensi yang tertanam langsung di dalam chunk gambar PNG, JPEG, dan WebP, serta header file SafeTensors. Tanpa upload ke server: semua proses ekstraksi berjalan 100% di browser Anda dengan latensi nol dan privasi penuh.
+              Bedah parameter inferensi yang tertanam di dalam chunk gambar PNG, JPEG, dan header SafeTensors. Tanpa upload ke cloud: 100% diproses di browser Anda.
             </p>
 
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Zero-Upload Client-Side Parsing: ekstraksi header byte-level di browser tanpa membebani kuota data atau mengunggah gambar ke cloud</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Deteksi parameter lengkap: baca prompt positif/negatif, seed, sampler K-Diffusion, steps, CFG scale, LoRA hash, hingga Clip Skip</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Konversi instan workflow ComfyUI: salin struktur node graph JSON atau format teks baku A1111 / WebUI dalam satu klik</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Didukung AI Vision Interrogator: integrasi opsional Google Gemini Vision dan Local Ollama untuk mengidentifikasi style dan tag gambar</span>
-              </div>
-            </div>
-
-            <Link to="/inspector" className="mg-btn mg-btn-primary">
+            <Link to="/inspector" className="mg-btn mg-btn-primary mg-chamfer-sm">
               <span>Inspeksi Metadata Gambar</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -1104,85 +944,46 @@ export function FeatureStorytelling() {
           </div>
 
           <div className="mg-feature-visual mg-visual-inspector">
-            <div className="mg-terminal-window">
+            <div className="mg-terminal-window mg-chamfer-lg">
               <div className="mg-terminal-titlebar">
                 <div className="mg-terminal-dots">
                   <span className="dot dot-red" />
                   <span className="dot dot-yellow" />
                   <span className="dot dot-green" />
                 </div>
-                <span className="mg-terminal-title">metadata_inspector_v2.4 &bull; in-browser_png_chunk_parser</span>
-                <span className="mg-terminal-status">READY (ZERO-UPLOAD)</span>
+                <span className="mg-terminal-title">safetensors_parser_v2 &bull; zero_upload_hex</span>
+                <span className="mg-terminal-status">READY</span>
               </div>
 
               <div className="mg-terminal-body">
                 <div className="mg-term-line mg-term-cmd">
-                  <span className="mg-prompt-sym">$</span> mg-inspect analyze --source sample_diffusion.png
+                  <span className="mg-prompt-sym">$</span> mg-inspect header --format safetensors
                 </div>
                 <div className="mg-term-line mg-term-dim">
-                  [OK] Header chunk tEXt/parameters terdeteksi (1.482 byte) &bull; 0ms latensi server
+                  [OK] Header JSON 587 tensors terverifikasi &bull; 0.00ms server overhead
                 </div>
                 <div className="mg-term-divider" />
 
-                <div className="mg-term-entry">
-                  <span className="mg-entry-key">POSITIVE PROMPT:</span>
-                  <span className="mg-entry-val">
-                    masterpiece, best quality, 1girl, asakura toru, lying on back, white dress, collarbone, parted lips
-                  </span>
-                </div>
-
-                <div className="mg-term-entry">
-                  <span className="mg-entry-key">NEGATIVE PROMPT:</span>
-                  <span className="mg-entry-val">
-                    worst quality, low quality, bad anatomy, bad hands, text, watermark
-                  </span>
-                </div>
-
                 <div className="mg-term-grid-params">
-                  <div className="mg-param-badge">
+                  <div className="mg-param-badge mg-chamfer-sm">
                     <span>STEPS:</span> <strong>30</strong>
                   </div>
-                  <div className="mg-param-badge">
+                  <div className="mg-param-badge mg-chamfer-sm">
                     <span>SAMPLER:</span> <strong>Euler a</strong>
                   </div>
-                  <div className="mg-param-badge">
+                  <div className="mg-param-badge mg-chamfer-sm">
                     <span>CFG:</span> <strong>5.5</strong>
                   </div>
-                  <div className="mg-param-badge">
-                    <span>SEED:</span> <strong>2473992611</strong>
-                  </div>
-                  <div className="mg-param-badge">
-                    <span>SIZE:</span> <strong>1024 &times; 1360</strong>
-                  </div>
-                  <div className="mg-param-badge">
-                    <span>MODEL HASH:</span> <strong>e621bef5</strong>
+                  <div className="mg-param-badge mg-chamfer-sm">
+                    <span>HASH:</span> <strong>0xE621BEF5</strong>
                   </div>
                 </div>
 
-                <div className="mg-term-line mg-term-action">
+                <div className="mg-term-line mg-term-action" style={{ marginTop: '12px' }}>
                   <button
                     type="button"
-                    className="mg-action-pill"
-                    onClick={() => copyToken(JSON.stringify({
-                      "3": {
-                        "inputs": {
-                          "seed": 2473992611,
-                          "steps": 30,
-                          "cfg": 5.5,
-                          "sampler_name": "euler_ancestral",
-                          "scheduler": "normal",
-                          "denoise": 1
-                        },
-                        "class_type": "KSampler"
-                      }
-                    }, null, 2))}
-                  >
-                    &rarr; Ekspor ke ComfyUI JSON
-                  </button>
-                  <button
-                    type="button"
-                    className="mg-action-pill"
-                    onClick={() => copyToken('masterpiece, best quality, 1girl, asakura toru, lying on back, white dress, collarbone, parted lips\nNegative prompt: worst quality, low quality, bad anatomy, bad hands, text, watermark\nSteps: 30, Sampler: Euler a, CFG: 5.5, Seed: 2473992611, Size: 1024x1360, Model hash: e621bef5')}
+                    className="mg-action-pill mg-chamfer-sm"
+                    onClick={() => copyToken('Steps: 30, Sampler: Euler a, CFG: 5.5, Seed: 2473992611, Size: 1024x1360, Model: WAI-illustrious-SDXL')}
                   >
                     &rarr; Salin Format A1111
                   </button>
@@ -1193,8 +994,7 @@ export function FeatureStorytelling() {
         </div>
 
         {/* ===================================================================
-            FEATURE 06: Resolution Calculator (/calculator)
-            Layout: Visual Left | Info Right
+            FEATURE 06: Resolution Calculator & VAE Snap-64 Lattice
             =================================================================== */}
         <div
           ref={row6Ref}
@@ -1202,35 +1002,33 @@ export function FeatureStorytelling() {
           id="feat-calculator"
         >
           <div className="mg-feature-visual mg-visual-calculator">
-            <div className="mg-calc-visualizer">
-              {/* Aspect Ratio Switcher */}
+            <div className="mg-calc-visualizer mg-chamfer-lg">
               <div className="mg-aspect-selector">
                 <button
                   type="button"
-                  className={`mg-aspect-btn ${selectedAspect === 'portrait' ? 'active' : ''}`}
+                  className={`mg-aspect-btn mg-chamfer-sm ${selectedAspect === 'portrait' ? 'active' : ''}`}
                   onClick={() => setSelectedAspect('portrait')}
                 >
                   2:3 Portrait (832 &times; 1216)
                 </button>
                 <button
                   type="button"
-                  className={`mg-aspect-btn ${selectedAspect === 'square' ? 'active' : ''}`}
+                  className={`mg-aspect-btn mg-chamfer-sm ${selectedAspect === 'square' ? 'active' : ''}`}
                   onClick={() => setSelectedAspect('square')}
                 >
                   1:1 Square (1024 &times; 1024)
                 </button>
                 <button
                   type="button"
-                  className={`mg-aspect-btn ${selectedAspect === 'landscape' ? 'active' : ''}`}
+                  className={`mg-aspect-btn mg-chamfer-sm ${selectedAspect === 'landscape' ? 'active' : ''}`}
                   onClick={() => setSelectedAspect('landscape')}
                 >
                   3:2 Cinema (1216 &times; 832)
                 </button>
               </div>
 
-              {/* Dynamic Bounding Box Visualizer */}
               <div className="mg-dimension-box-wrapper">
-                <div className={`mg-dimension-box aspect-${selectedAspect}`}>
+                <div className={`mg-dimension-box aspect-${selectedAspect} mg-chamfer-sm`}>
                   <div className="mg-box-inner">
                     <span className="mg-box-dim-text">
                       {selectedAspect === 'portrait' && '832 × 1216'}
@@ -1240,15 +1038,12 @@ export function FeatureStorytelling() {
                     <span className="mg-box-sub">
                       {selectedAspect === 'portrait' && 'Native Illustrious Portrait • 1.01 MP'}
                       {selectedAspect === 'square' && 'Native SDXL Square • 1.05 MP'}
-                      {selectedAspect === 'landscape' && 'Native Landscape • 1.01 MP'}
+                      {selectedAspect === 'landscape' && 'Native Cinema • 1.01 MP'}
                     </span>
                   </div>
-                  {/* Visual grid ticks */}
-                  <div className="mg-box-grid-markings" aria-hidden="true" />
                 </div>
               </div>
 
-              {/* Math & VAE Verification Strip */}
               <div className="mg-calc-math-strip">
                 <div className="mg-math-item">
                   <span className="mg-math-k">VAE SNAP 64:</span>
@@ -1267,7 +1062,6 @@ export function FeatureStorytelling() {
           </div>
 
           <div className="mg-feature-info">
-            {/* Step Node 06 */}
             <div className="mg-step-node-anchor" ref={node6Ref}>
               <div className="mg-node-pin">
                 <span className="mg-node-ring" />
@@ -1280,56 +1074,33 @@ export function FeatureStorytelling() {
             </div>
 
             <h3 className="mg-feature-heading">
-              Kalkulator Resolusi &amp; VAE Lattice
+              Kalkulator Resolusi &amp; VAE Snap-64 Lattice
             </h3>
             <p className="mg-feature-copy">
-              Tentukan resolusi generasi yang presisi dan kompatibel dengan arsitektur model Anda. Hindari distorsi anatomi, kepala ganda, dan error VRAM Out-of-Memory (OOM) dengan memastikan dimensi gambar selalu selaras pada kelipatan 64-pixel VAE lattice.
+              Hindari distorsi anatomi dan CUDA OOM dengan memastikan dimensi gambar selalu selaras pada kelipatan 64-pixel VAE lattice.
             </p>
 
-            <div className="mg-feature-bullets">
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>VAE Snap-64 Pixel Lattice: perhitungan dimensi matematis berbasis kelipatan 64 pixel untuk SDXL, Illustrious, NoobAI, dan SD 1.5</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Kalkulasi Hi-Res Fix Multiplier: simulasi resolusi upscale 1.5x dan 2.0x dengan estimasi target megapixel (MP) dan beban VRAM</span>
-              </div>
-              <div className="mg-bullet-item">
-                <span className="mg-bullet-dot" />
-                <span>Preset rasio aspek populer: 1:1 Square, 2:3 Portrait anime standar, 16:9 Cinema, hingga 21:9 Ultrawide</span>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '16px' }}>
-              <Link to="/calculator" className="mg-btn mg-btn-primary">
-                <span>Hitung Resolusi Optimal</span>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-              <Link to="/vram" className="mg-btn mg-btn-secondary" title="Buka VRAM &amp; Hardware Profiler">
-                <span>VRAM Profiler</span>
-              </Link>
-              <Link to="/controlnet" className="mg-btn mg-btn-secondary" title="Buka ControlNet &amp; OpenPose Rig">
-                <span>ControlNet Studio</span>
-              </Link>
-            </div>
+            <Link to="/calculator" className="mg-btn mg-btn-primary mg-chamfer-sm">
+              <span>Hitung Resolusi Optimal</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
           </div>
         </div>
 
-        {/* Mobile Expand / Collapse All 6 Features Toggle */}
+        {/* Mobile Expand / Collapse View Toggle */}
         <div className="mg-features-mobile-toggle-wrap">
           <button
             type="button"
-            className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
+            className="mg-btn mg-btn-secondary mg-btn-mobile-expand mg-chamfer-sm"
             onClick={() => setMobileShowAllFeatures((prev) => !prev)}
           >
             <span>
               {mobileShowAllFeatures
                 ? 'Gunakan Mode Tab Ringkas (Satu Fitur) ↑'
-                : 'Tampilkan Semua 6 Fitur Sekaligus ↓'}
+                : 'Tampilkan Semua 6 Workstation Sekaligus ↓'}
             </span>
           </button>
         </div>

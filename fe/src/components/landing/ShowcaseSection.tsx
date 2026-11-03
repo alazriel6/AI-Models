@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getModels, type Model } from '../../api/models';
 import { ShowcaseSvgBlueprint } from './showcase/ShowcaseSvgBlueprint';
@@ -10,7 +10,6 @@ import {
   NoobAiSvg,
 } from './showcase/ShowcaseCategoryIcons';
 
-// Curated verified fallback models matching the exact database schema
 const VERIFIED_FALLBACK_MODELS: Model[] = [
   {
     id: 13,
@@ -90,7 +89,7 @@ const VERIFIED_FALLBACK_MODELS: Model[] = [
   },
   {
     id: 17,
-    name: 'Cyberpunk Neon Lighting LoRA',
+    name: 'Cyberpunk Neon Lighting',
     slug: 'cyberpunk-neon-lighting',
     type: 'lora',
     base_model: 'Illustrious',
@@ -147,8 +146,9 @@ const CATEGORY_TABS: FilterTabConfig[] = [
 export function ShowcaseSection() {
   const [models, setModels] = useState<Model[]>(VERIFIED_FALLBACK_MODELS);
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('all');
-  const [isVisible, setIsVisible] = useState(false);
-  const [mobileShowAll, setMobileShowAll] = useState<boolean>(false);
+  const [activeBladeIdx, setActiveBladeIdx] = useState<number>(0);
+  const [copiedTag, setCopiedTag] = useState<string | null>(null);
+
   const sectionRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -157,7 +157,6 @@ export function ShowcaseSection() {
       .then((res) => {
         if (!isMounted) return;
         if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          // Merge API models with fallback models to ensure rich variety
           const fetched = res.data;
           const merged = [...fetched];
           for (const fallback of VERIFIED_FALLBACK_MODELS) {
@@ -177,24 +176,6 @@ export function ShowcaseSection() {
     };
   }, []);
 
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   const filteredModels = useMemo(() => {
     return models
       .filter((m) => {
@@ -212,56 +193,39 @@ export function ShowcaseSection() {
       .slice(0, 6);
   }, [models, activeFilter]);
 
-  return (
-    <section
-      ref={sectionRef}
-      className={`mg-showcase ${isVisible ? 'is-visible' : ''}`}
-      id="model-showcase"
-    >
-      {/* Architectural Corner Reticles matching Design System */}
-      <div className="mg-corner-reticle top-left" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle top-right" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle bottom-left" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle bottom-right" aria-hidden="true">
-        <span>+</span>
-      </div>
+  const copyTriggerTag = (tag: string) => {
+    navigator.clipboard?.writeText(tag);
+    setCopiedTag(tag);
+    setTimeout(() => setCopiedTag(null), 2000);
+  };
 
-      {/* Seamless Transition Bridge from Specification Suite 01 */}
+  return (
+    <section className="mg-showcase is-visible" id="model-showcase" ref={sectionRef}>
+      {/* Preserved Animated SVG Technical Blueprint Background Layer */}
+      <ShowcaseSvgBlueprint />
+
+      <div className="mg-showcase-atmosphere" aria-hidden="true" />
+
+      {/* Architectural Corner Reticles */}
+      <div className="mg-corner-reticle top-left" aria-hidden="true"><span>+</span></div>
+      <div className="mg-corner-reticle top-right" aria-hidden="true"><span>+</span></div>
+      <div className="mg-corner-reticle bottom-left" aria-hidden="true"><span>+</span></div>
+      <div className="mg-corner-reticle bottom-right" aria-hidden="true"><span>+</span></div>
+
+      {/* Transition Bridge from Section 02 */}
       <div className="mg-showcase-transition-bridge" aria-hidden="true">
         <div className="mg-statement-bridge-datum">
           <div className="mg-statement-bridge-line" />
-          <div className="mg-statement-bridge-badge">
+          <div className="mg-statement-bridge-badge mg-chamfer-sm">
             <span className="mg-bridge-dot" />
-            <span className="mg-bridge-text">MODEL REPOSITORY 02</span>
+            <span className="mg-bridge-text">MODEL REPOSITORY 02 // ARMORY RACK</span>
           </div>
           <div className="mg-statement-bridge-line" />
         </div>
       </div>
 
-      {/* Dedicated Ancient Mossy Cedar Forest Background */}
-      <div className="mg-showcase-forest-bg" aria-hidden="true" />
-
-      {/* Volumetric Sunbeam / God Rays Streaming Through High Canopy */}
-      <div className="mg-showcase-godrays" aria-hidden="true" />
-
-      {/* Subtle Natural Forest Ground Mist Ribbons */}
-      <div className="mg-showcase-mist-ribbon mist-1" aria-hidden="true" />
-      <div className="mg-showcase-mist-ribbon mist-2" aria-hidden="true" />
-
-      {/* Ambient Animated SVG Technical Blueprint Background Layer */}
-      <ShowcaseSvgBlueprint />
-
-      {/* Ambient Vignette & Contrast Depth Lighting */}
-      <div className="mg-showcase-atmosphere" aria-hidden="true" />
-
-      <div className="mg-container">
-        {/* Showcase Section Title & Filter Tabs */}
+      <div className="mg-container" style={{ position: 'relative', zIndex: 6 }}>
+        {/* Header */}
         <div className="mg-showcase-head">
           <div>
             <div className="mg-editorial-tag">
@@ -270,14 +234,14 @@ export function ShowcaseSection() {
               <span className="mg-tag-text">MODEL LIBRARY SHOWCASE</span>
             </div>
             <h2 className="mg-showcase-title">
-              Curated Model Directory
+              Interactive Model Architecture Blade Rack
             </h2>
             <p className="mg-showcase-desc">
-              Browse checkpoints and LoRA adapters with verified tensor configurations, memory requirements, and trigger words.
+              Bilah mekanis interaktif: hover atau klik bilah untuk membuka key-art beresolusi penuh, alokasi VRAM real-time, dan trigger tags Danbooru siap salin.
             </p>
           </div>
 
-          <Link to="/models" className="mg-btn mg-btn-secondary">
+          <Link to="/models" className="mg-btn mg-btn-secondary mg-chamfer-sm">
             <span>Explore Full Catalog ({models.length})</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <line x1="5" y1="12" x2="19" y2="12" />
@@ -286,8 +250,7 @@ export function ShowcaseSection() {
           </Link>
         </div>
 
-
-        {/* Filter Category Buttons with Custom Animated SVG Icons */}
+        {/* Filter Category Buttons with .mg-chamfer-sm */}
         <div className="mg-showcase-filters" role="tablist" aria-label="Model categories">
           {CATEGORY_TABS.map((cat) => {
             const IconComponent = cat.icon;
@@ -298,8 +261,11 @@ export function ShowcaseSection() {
                 type="button"
                 role="tab"
                 aria-selected={isTabActive}
-                className={`mg-filter-chip ${isTabActive ? 'active' : ''}`}
-                onClick={() => setActiveFilter(cat.id)}
+                className={`mg-filter-chip mg-chamfer-sm ${isTabActive ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveFilter(cat.id);
+                  setActiveBladeIdx(0);
+                }}
               >
                 <IconComponent active={isTabActive} />
                 <span>{cat.label}</span>
@@ -308,152 +274,185 @@ export function ShowcaseSection() {
           })}
         </div>
 
-        {/* Asymmetric Staggered Model Cards Grid */}
-        <div className="mg-showcase-grid">
-          {filteredModels.map((item, index) => (
-            <article
-              key={item.id}
-              className={`mg-model-card ${!mobileShowAll && index >= 3 ? 'mg-model-card-mobile-collapsed' : ''}`}
-              style={{ animationDelay: `${index * 90}ms` }}
-            >
-              {/* Card Header & Preview Image */}
-              <div className="mg-card-media">
-                {item.thumbnail_url ? (
-                  <img
-                    src={item.thumbnail_url}
-                    alt={item.name}
-                    className="mg-card-img"
-                    loading="lazy"
-                    decoding="async"
-                    width={400}
-                    height={240}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://placehold.co/400x240?text=Model+Preview';
-                    }}
-                  />
+        {/* ===================================================================
+            ASUS ROG ARMORY HORIZONTAL BLADE ACCORDION RACK
+            =================================================================== */}
+        <div className="mg-blade-rack" role="tablist" aria-label="Model Blades">
+          {filteredModels.map((item, index) => {
+            const isActive = activeBladeIdx === index;
+            const idxStr = `0${index + 1}`;
+            const vramGb = item.vram_min ? parseInt(item.vram_min, 10) || 6 : 6;
+            const vramPercent = Math.min(100, Math.round((vramGb / 16) * 100));
+
+            const triggerTags = [
+              '#nocturnal_glow',
+              item.base_model?.toLowerCase().includes('noob') ? '#v_prediction' : '#epsilon_pred',
+              '#clean_lineart',
+              '#anime_aesthetic',
+            ];
+
+            return (
+              <article
+                key={item.id}
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={0}
+                className={`mg-armory-blade mg-chamfer-md mg-gpu ${isActive ? 'is-active' : 'is-inactive'}`}
+                onClick={() => setActiveBladeIdx(index)}
+                onMouseEnter={() => setActiveBladeIdx(index)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    setActiveBladeIdx(index);
+                  }
+                }}
+              >
+                {/* 1. Inactive Collapsed Blade View */}
+                {!isActive ? (
+                  <div className="mg-blade-collapsed-view">
+                    <img
+                      src={item.thumbnail_url}
+                      alt=""
+                      className="mg-blade-bg-dimmed"
+                      loading="lazy"
+                    />
+                    <span className="mg-blade-idx">{idxStr}</span>
+                    <span className="mg-blade-title-vert">{item.name}</span>
+                    <span className="mg-blade-vram-tag mg-chamfer-sm">{item.vram_min || '6 GB'}</span>
+                  </div>
                 ) : (
-                  <div className="mg-card-img-placeholder">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <span>Preview Unavailable</span>
+                  /* 2. Active Expanded Blade View */
+                  <div className="mg-blade-expanded-view">
+                    {/* Media Left Half */}
+                    <div className="mg-blade-media-half">
+                      <img
+                        src={item.thumbnail_url}
+                        alt={item.name}
+                        className="mg-blade-img-hero"
+                        loading="eager"
+                        decoding="async"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
+                        }}
+                      />
+                      <div className="mg-card-media-gradient" />
+
+                      <div className="mg-card-media-tags" style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 4 }}>
+                        <span className={`mg-pill ${item.type === 'lora' ? 'mg-pill-lora' : 'mg-pill-checkpoint'} mg-chamfer-sm`}>
+                          {item.type.toUpperCase()}
+                        </span>
+                        <span className="mg-pill mg-pill-base mg-chamfer-sm">
+                          {item.base_model}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Content Right Half */}
+                    <div className="mg-blade-content-half">
+                      <div>
+                        {/* Unit Index & Title */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                          <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
+                            MODEL // BLADE-{idxStr}
+                          </span>
+                          <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#94a3b8' }}>
+                            by {item.author}
+                          </span>
+                        </div>
+
+                        <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', margin: '0 0 8px' }}>
+                          {item.name}
+                        </h3>
+
+                        <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5', margin: '0 0 14px' }}>
+                          {item.description.replace(/<[^>]+>/g, '').slice(0, 110)}...
+                        </p>
+
+                        {/* Tensor count badge & Sampler recommendation */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                          <span className="mg-mech-tensor-count mg-chamfer-sm">
+                            2,512 TENSOR KEYS // READY
+                          </span>
+                          <span className="mg-mech-lora-tag mg-chamfer-sm">
+                            EULER A // 28 STEPS // CFG 5.5
+                          </span>
+                        </div>
+
+                        {/* VRAM Hardware Footprint Bar */}
+                        <div className="mg-blade-footprint-bar">
+                          <div className="mg-footprint-head">
+                            <span>VRAM HARDWARE FOOTPRINT</span>
+                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{item.vram_min || '6 GB'} / 16 GB</span>
+                          </div>
+                          <div className="mg-footprint-track mg-chamfer-sm">
+                            <div
+                              className="mg-footprint-fill mg-gpu"
+                              style={{ transform: `scaleX(${vramPercent / 100})` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Click-to-Copy Trigger Tags */}
+                        <div>
+                          <div style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '10px', color: '#64748b', marginBottom: '6px', letterSpacing: '0.08em' }}>
+                            CLICK-TO-COPY TRIGGER TAGS:
+                          </div>
+                          <div className="mg-trigger-tags-cloud">
+                            {triggerTags.map((tag) => (
+                              <button
+                                key={tag}
+                                type="button"
+                                className="mg-trigger-tag-btn mg-chamfer-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  copyTriggerTag(tag.replace('#', ''));
+                                }}
+                                title="Klik untuk menyalin tag"
+                              >
+                                <span>{tag}</span>
+                                <span style={{ opacity: 0.6 }}>⧉</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer Link */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
+                        <Link
+                          to={`/models?model=${item.slug}`}
+                          className="mg-card-inspect-link"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <span>Inspect Full Model Telemetry</span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                          </svg>
+                        </Link>
+                        <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#facc15' }}>
+                          ★ {item.rating?.toFixed(1) || '4.9'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 )}
-
-                {/* Animated SVG Holographic Corner HUD Overlay */}
-                <div className="mg-card-svg-hud" aria-hidden="true">
-                  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-                    <circle cx="17" cy="17" r="13" stroke="rgba(96, 165, 250, 0.45)" strokeWidth="1" strokeDasharray="3 5" className="mg-svg-spin-slow" />
-                    <circle cx="17" cy="17" r="7.5" stroke="rgba(56, 189, 248, 0.6)" strokeWidth="1" strokeDasharray="5 3" className="mg-svg-spin-counter" />
-                    <circle cx="17" cy="17" r="2" fill="#38bdf8" className="mg-svg-pulse-core" />
-                    <line x1="5" y1="17" x2="9" y2="17" stroke="#60a5fa" strokeWidth="1" />
-                    <line x1="25" y1="17" x2="29" y2="17" stroke="#60a5fa" strokeWidth="1" />
-                    <line x1="17" y1="5" x2="17" y2="9" stroke="#60a5fa" strokeWidth="1" />
-                    <line x1="17" y1="25" x2="17" y2="29" stroke="#60a5fa" strokeWidth="1" />
-                  </svg>
-                </div>
-
-                <div className="mg-card-media-tags">
-                  <span className={`mg-pill ${item.type === 'lora' ? 'mg-pill-lora' : 'mg-pill-checkpoint'}`}>
-                    {item.type.toUpperCase()}
-                  </span>
-                  <span className="mg-pill mg-pill-base">
-                    {item.base_model}
-                  </span>
-                </div>
-              </div>
-
-              {/* Card Technical Body */}
-              <div className="mg-card-body">
-                <div className="mg-card-top-row">
-                  <h3 className="mg-card-title" title={item.name}>
-                    {item.name}
-                  </h3>
-                  <span className="mg-card-author">by {item.author}</span>
-                </div>
-
-                <p className="mg-card-desc">
-                  {item.description.replace(/<[^>]+>/g, '').slice(0, 115)}...
-                </p>
-
-                {/* Technical Metadata Row with Micro-SVGs */}
-                <div className="mg-card-metrics">
-                  <div className="mg-metric-item">
-                    <span className="mg-metric-k">
-                      <svg className="mg-metric-icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <rect x="4" y="4" width="16" height="16" rx="2" />
-                        <rect x="9" y="9" width="6" height="6" fill="currentColor" opacity="0.35" />
-                        <line x1="9" y1="1" x2="9" y2="4" />
-                        <line x1="15" y1="1" x2="15" y2="4" />
-                        <line x1="9" y1="20" x2="9" y2="23" />
-                        <line x1="15" y1="20" x2="15" y2="23" />
-                      </svg>
-                      VRAM MIN
-                    </span>
-                    <span className="mg-metric-v">{item.vram_min || (item.type === 'checkpoint' ? '6 GB' : '1 GB')}</span>
-                  </div>
-
-                  <div className="mg-metric-item">
-                    <span className="mg-metric-k">
-                      <svg className="mg-metric-icon-svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                      </svg>
-                      TENSORS
-                    </span>
-                    <span className="mg-metric-v">{item.tensor_size ? `${item.tensor_size} Layers` : '587 Layers'}</span>
-                  </div>
-
-                  <div className="mg-metric-item">
-                    <span className="mg-metric-k">
-                      <svg className="mg-metric-icon-svg mg-metric-star" width="10" height="10" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15" strokeWidth="1.5" aria-hidden="true">
-                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                      </svg>
-                      RATING
-                    </span>
-                    <span className="mg-metric-v">★ {item.rating?.toFixed(1) || '4.9'}</span>
-                  </div>
-                </div>
-
-                {/* Footer Action */}
-                <div className="mg-card-footer">
-                  <Link
-                    to={`/models?model=${item.slug}`}
-                    className="mg-card-inspect-link"
-                  >
-                    <span>Inspect Model</span>
-                    <svg className="mg-card-inspect-svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="5" y1="12" x2="19" y2="12" className="mg-svg-inspect-line" />
-                      <polyline points="12 5 19 12 12 19" className="mg-svg-inspect-arrow" />
-                    </svg>
-                  </Link>
-
-                  <span className="mg-card-likes">
-                    ♥ {item.likes >= 1000 ? `${(item.likes / 1000).toFixed(1)}k` : item.likes}
-                  </span>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
-
-        {filteredModels.length > 3 && (
-          <div className="mg-showcase-mobile-toggle-wrap">
-            <button
-              type="button"
-              className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
-              onClick={() => setMobileShowAll((prev) => !prev)}
-            >
-              <span>
-                {mobileShowAll
-                  ? 'Sembunyikan Sebagian Model ↑'
-                  : `Tampilkan Semua ${filteredModels.length} Model ↓`}
-              </span>
-            </button>
-          </div>
-        )}
       </div>
+
+      {/* Copy Notification Toast */}
+      {copiedTag && (
+        <div className="mg-story-toast" role="status" aria-live="polite">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <span>Tag &ldquo;{copiedTag}&rdquo; berhasil disalin ke clipboard</span>
+        </div>
+      )}
     </section>
   );
 }
+
+export default ShowcaseSection;

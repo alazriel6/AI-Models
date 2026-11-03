@@ -3,18 +3,22 @@ import { Link } from 'react-router-dom';
 export function FinalCtaSection() {
   return (
     <section className="mg-final-cta" id="final-cta">
-      {/* Dedicated Nocturnal Forest Lake & Reflection Background (Distinct from 01, 02, 03, 04) */}
-      <div className="mg-final-forest-bg" aria-hidden="true" />
-
-      {/* Subtle Natural Forest Ground Mist Ribbons */}
-      <div className="mg-final-mist-ribbon mist-1" aria-hidden="true" />
-      <div className="mg-final-mist-ribbon mist-2" aria-hidden="true" />
-
       {/* Ambient Vignette & Contrast Depth Lighting */}
       <div className="mg-final-atmosphere" aria-hidden="true" />
 
       <div className="mg-container">
-        <div className="mg-final-inner">
+        {/* Terminal Chamfered Frame over Dark Forest Lake */}
+        <div
+          className="mg-final-inner mg-chamfer-lg"
+          style={{
+            background: 'rgba(10, 14, 22, 0.88)',
+            border: '1px solid rgba(56, 189, 248, 0.28)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            padding: '52px 36px',
+            boxShadow: '0 24px 60px rgba(0, 0, 0, 0.75), 0 0 30px rgba(56, 189, 248, 0.12)',
+          }}
+        >
           {/* Editorial Tag */}
           <div className="mg-editorial-tag">
             <span className="mg-tag-num">06</span>
@@ -33,7 +37,7 @@ export function FinalCtaSection() {
 
           {/* Primary CTA Action Buttons */}
           <div className="mg-final-actions">
-            <Link to="/models" className="mg-btn mg-btn-primary mg-btn-large">
+            <Link to="/models" className="mg-btn mg-btn-primary mg-btn-large mg-chamfer-sm">
               <span>Explore Full Model Directory</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12" />
@@ -43,7 +47,7 @@ export function FinalCtaSection() {
 
             <button
               type="button"
-              className="mg-btn mg-btn-secondary mg-btn-large"
+              className="mg-btn mg-btn-secondary mg-btn-large mg-chamfer-sm"
               onClick={() => {
                 const target = document.getElementById('tools-arsenal');
                 if (target) {
@@ -59,7 +63,7 @@ export function FinalCtaSection() {
               </svg>
             </button>
 
-            <Link to="/compare" className="mg-btn mg-btn-secondary mg-btn-large">
+            <Link to="/compare" className="mg-btn mg-btn-secondary mg-btn-large mg-chamfer-sm">
               <span>Compare Model Architectures</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M16 3h5v5" />
@@ -75,3 +79,5 @@ export function FinalCtaSection() {
     </section>
   );
 }
+
+export default FinalCtaSection;

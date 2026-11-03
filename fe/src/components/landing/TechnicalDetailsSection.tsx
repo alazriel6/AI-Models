@@ -275,13 +275,6 @@ export function TechnicalDetailsSection() {
 
   return (
     <section className="mg-technical" id="technical-reference">
-      {/* Dedicated Nocturnal Boreal Crags Forest Background */}
-      <div className="mg-tech-forest-bg" aria-hidden="true" />
-
-      {/* Subtle Natural Forest Ground Mist Ribbons */}
-      <div className="mg-tech-mist-ribbon mist-1" aria-hidden="true" />
-      <div className="mg-tech-mist-ribbon mist-2" aria-hidden="true" />
-
       {/* Ambient Vignette & Contrast Depth Lighting */}
       <div className="mg-tech-atmosphere" aria-hidden="true" />
 
@@ -378,7 +371,7 @@ export function TechnicalDetailsSection() {
             =================================================================== */}
         {activeTab === 'hardware' && (
           <div className="mg-tech-tab-pane mg-animate-fade-in">
-            <div className="mg-vram-card">
+            <div className="mg-vram-card mg-chamfer-md">
               <div className="mg-vram-topbar">
                 <div>
                   <div className="mg-vram-title-row">
@@ -821,7 +814,7 @@ export function TechnicalDetailsSection() {
                 </div>
               </div>
 
-              <div className="mg-table-container">
+              <div className="mg-table-container mg-chamfer-md">
                 <table className={`mg-arch-table focus-${focusedArch}`}>
                   <thead>
                     <tr>

@@ -1,0 +1,232 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <!-- =======================================================================
+         CYBERPUNK & SECTION 1 COLOR HARMONY
+         Primary Palette: Section 1 Cyan (#38bdf8), Crisp White (#ffffff), Noir (#05070a)
+         ======================================================================= -->
+
+    <!-- Deep Gritty Noir Background -->
+    <linearGradient id="cpAtmosphere" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#040609" />
+      <stop offset="35%" stop-color="#070b13" />
+      <stop offset="65%" stop-color="#0a101d" />
+      <stop offset="85%" stop-color="#070b14" />
+      <stop offset="100%" stop-color="#030508" />
+    </linearGradient>
+
+    <!-- Section 1 Dominant Cyan Volumetric Ambient Glow -->
+    <radialGradient id="cpCyanAmbient" cx="70%" cy="38%" r="58%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16" />
+      <stop offset="42%" stop-color="#0284c7" stop-opacity="0.06" />
+      <stop offset="100%" stop-color="#040609" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Secondary White/Ice Light Pool -->
+    <radialGradient id="cpWhiteAmbient" cx="30%" cy="45%" r="48%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08" />
+      <stop offset="35%" stop-color="#38bdf8" stop-opacity="0.04" />
+      <stop offset="100%" stop-color="#040609" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Subtle Cyan & Black Hazard Stripes -->
+    <pattern id="cpCyanHazard" width="24" height="24" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="24" height="24" fill="#080c14" />
+      <line x1="0" y1="0" x2="0" y2="24" stroke="#38bdf8" stroke-width="5" opacity="0.65" />
+    </pattern>
+
+    <!-- Cyberpunk Dot Grid Matrix Pattern -->
+    <pattern id="cpMatrixGrid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.1" fill="#38bdf8" opacity="0.10" />
+      <circle cx="22" cy="22" r="0.9" fill="#ffffff" opacity="0.06" />
+      <line x1="0" y1="20" x2="40" y2="20" stroke="rgba(56, 189, 248, 0.02)" stroke-width="0.8" />
+      <line x1="20" y1="0" x2="20" y2="40" stroke="rgba(56, 189, 248, 0.02)" stroke-width="0.8" />
+    </pattern>
+
+    <!-- Barcode Stencil Pattern -->
+    <pattern id="cpBarcode" width="48" height="20" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="2" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="4" y="0" width="1" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="7" y="0" width="3" height="20" fill="#ffffff" opacity="0.85" />
+      <rect x="12" y="0" width="1" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="15" y="0" width="4" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="22" y="0" width="2" height="20" fill="#ffffff" opacity="0.85" />
+      <rect x="26" y="0" width="1" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="30" y="0" width="5" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="38" y="0" width="2" height="20" fill="#38bdf8" opacity="0.75" />
+      <rect x="43" y="0" width="3" height="20" fill="#ffffff" opacity="0.85" />
+    </pattern>
+
+    <!-- Perimeter Vignette Gradients for Immersive Contrast -->
+    <linearGradient id="cpStageVignetteTopBottom" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#040609" stop-opacity="0.95" />
+      <stop offset="15%" stop-color="#040609" stop-opacity="0.30" />
+      <stop offset="50%" stop-color="#040609" stop-opacity="0" />
+      <stop offset="85%" stop-color="#040609" stop-opacity="0.45" />
+      <stop offset="100%" stop-color="#040609" stop-opacity="0.98" />
+    </linearGradient>
+
+    <linearGradient id="cpStageVignetteSides" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#040609" stop-opacity="0.88" />
+      <stop offset="14%" stop-color="#040609" stop-opacity="0.12" />
+      <stop offset="86%" stop-color="#040609" stop-opacity="0.12" />
+      <stop offset="100%" stop-color="#040609" stop-opacity="0.88" />
+    </linearGradient>
+  </defs>
+
+  <!-- =========================================================================
+       1. DEEP NOIR FOUNDATION & SECTION 1 CYAN/WHITE VOLUMETRIC SMOG
+       ========================================================================= -->
+  <rect width="1920" height="1080" fill="url(#cpAtmosphere)" />
+  <rect width="1920" height="1080" fill="url(#cpCyanAmbient)" />
+  <rect width="1920" height="1080" fill="url(#cpWhiteAmbient)" />
+  <rect width="1920" height="1080" fill="url(#cpMatrixGrid)" />
+
+  <!-- =========================================================================
+       2. BRUTALIST MEGASTRUCTURES & CORPORATE MONOLITHS
+       ========================================================================= -->
+  <g id="workstationBrutalism" opacity="0.55">
+    <!-- Megastructure 01 Heavy Block (Left Flank) -->
+    <path d="M 40 620 L 40 240 L 80 200 L 190 200 L 230 240 L 230 620 Z" fill="#070c16" stroke="rgba(56, 189, 248, 0.28)" stroke-width="1.2" />
+    <!-- Architectural Chamfer Ribs -->
+    <line x1="80" y1="200" x2="80" y2="620" stroke="rgba(255, 255, 255, 0.06)" stroke-width="1" />
+    <line x1="190" y1="200" x2="190" y2="620" stroke="rgba(255, 255, 255, 0.06)" stroke-width="1" />
+    <!-- Stencil Decal on Megabuilding -->
+    <rect x="95" y="220" width="85" height="14" fill="#38bdf8" opacity="0.85" />
+    <text x="137" y="231" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" fill="#040609" letter-spacing="2" text-anchor="middle">WORKSTATION // 01</text>
+    <rect x="95" y="240" width="85" height="6" fill="url(#cpCyanHazard)" />
+
+    <!-- Window Light Array -->
+    <g fill="#38bdf8" opacity="0.45">
+      <rect x="90" y="260" width="4" height="6" />
+      <rect x="100" y="260" width="4" height="6" fill="#ffffff" />
+      <rect x="110" y="260" width="4" height="6" />
+      <rect x="120" y="260" width="4" height="6" fill="#38bdf8" />
+      <rect x="90" y="280" width="4" height="6" />
+      <rect x="110" y="280" width="4" height="6" fill="#ffffff" />
+      <rect x="140" y="280" width="4" height="6" />
+      <rect x="150" y="280" width="4" height="6" />
+      <rect x="90" y="340" width="4" height="6" fill="#38bdf8" />
+      <rect x="100" y="340" width="4" height="6" />
+      <rect x="140" y="340" width="4" height="6" fill="#ffffff" />
+      <rect x="150" y="340" width="4" height="6" />
+    </g>
+
+    <!-- Japanese Kanji Neon Sign: 電脳 (Cyber / Tech) -->
+    <text x="65" y="380" font-family="'Noto Sans JP', 'Impact', sans-serif" font-size="34" font-weight="900" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.4">電</text>
+    <text x="65" y="425" font-family="'Noto Sans JP', 'Impact', sans-serif" font-size="34" font-weight="900" fill="none" stroke="#38bdf8" stroke-width="1.2" opacity="0.4">脳</text>
+
+    <!-- Mainframe Citadel (Far Right Flank) -->
+    <path d="M 1690 620 L 1690 190 L 1740 150 L 1840 150 L 1890 200 L 1890 620 Z" fill="#070b14" stroke="rgba(56, 189, 248, 0.28)" stroke-width="1.2" />
+    <line x1="1740" y1="150" x2="1740" y2="620" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1" />
+    <line x1="1840" y1="150" x2="1840" y2="620" stroke="rgba(255, 255, 255, 0.05)" stroke-width="1" />
+    <!-- Header Decal -->
+    <rect x="1745" y="170" width="90" height="14" fill="#38bdf8" opacity="0.9" />
+    <text x="1790" y="181" font-family="'JetBrains Mono', monospace" font-size="8.5" font-weight="900" fill="#040609" letter-spacing="2" text-anchor="middle">MAINFRAME // SEC.04</text>
+    <rect x="1745" y="190" width="90" height="6" fill="url(#cpCyanHazard)" />
+
+    <!-- Japanese Kanji Neon Sign: 侍 (Samurai / Mastery) -->
+    <text x="1855" y="330" font-family="'Noto Sans JP', 'Impact', sans-serif" font-size="38" font-weight="900" fill="none" stroke="#38bdf8" stroke-width="1.5" opacity="0.4">侍</text>
+
+    <!-- Heavy Industrial Scaffolding Pipes & Cable Looms -->
+    <path d="M 0 160 L 320 160 L 360 200 L 640 200" fill="none" stroke="#38bdf8" stroke-width="1.8" opacity="0.5" />
+    <path d="M 1920 160 L 1600 160 L 1560 200 L 1280 200" fill="none" stroke="#38bdf8" stroke-width="1.8" opacity="0.5" />
+    <circle cx="360" cy="200" r="3.5" fill="#38bdf8" />
+    <circle cx="1560" cy="200" r="3.5" fill="#ffffff" />
+  </g>
+
+  <!-- =========================================================================
+       3. STATIC DIGITAL GLITCH SLICES (NO ANNOYING RACING MOTIONS)
+       ========================================================================= -->
+  <g id="staticGlitchArtifacts" opacity="0.4">
+    <!-- Horizontal Digital Glitch Offset Blocks -->
+    <rect x="280" y="310" width="140" height="3" fill="#38bdf8" />
+    <rect x="290" y="315" width="90" height="1.5" fill="#ffffff" />
+    <rect x="1420" y="270" width="160" height="3" fill="#38bdf8" />
+    <rect x="1450" y="275" width="110" height="2" fill="#ffffff" />
+
+    <!-- Disrupted Scanline Slices -->
+    <line x1="0" y1="410" x2="380" y2="410" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="12 4 2 8" />
+    <line x1="1540" y1="410" x2="1920" y2="410" stroke="#38bdf8" stroke-width="0.8" stroke-dasharray="8 6 14 3" />
+    <line x1="200" y1="780" x2="520" y2="780" stroke="rgba(255, 255, 255, 0.25)" stroke-width="1" stroke-dasharray="20 6 4 10" />
+    <line x1="1400" y1="780" x2="1720" y2="780" stroke="rgba(56, 189, 248, 0.35)" stroke-width="1" stroke-dasharray="16 8 6 12" />
+  </g>
+
+  <!-- =========================================================================
+       4. HUD BRACKETS, DIAGNOSTICS & TELEMETRY STAMPS
+       ========================================================================= -->
+  <g id="workstationHudGraphics" font-family="'JetBrains Mono', 'Rajdhani', monospace">
+    <!-- Top Left Diagnostic Console -->
+    <g transform="translate(60, 105)">
+      <path d="M 0 35 L 0 0 L 35 0" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+      <rect x="12" y="8" width="14" height="3" fill="#38bdf8" />
+      <text x="32" y="12" font-size="9" font-weight="900" fill="#38bdf8" letter-spacing="2">MODELS GUIDE // ARCHITECTURE V2.0</text>
+      <text x="12" y="28" font-size="8" fill="#94a3b8" letter-spacing="1.5">LOCAL GPU SOVEREIGNTY // PORT 8080</text>
+    </g>
+
+    <!-- Top Right Barcode Unit -->
+    <g transform="translate(1620, 105)">
+      <path d="M 240 35 L 240 0 L 205 0" fill="none" stroke="#38bdf8" stroke-width="2.5" />
+      <rect x="70" y="6" width="130" height="15" fill="url(#cpBarcode)" />
+      <text x="70" y="32" font-size="8" font-weight="bold" fill="#38bdf8" letter-spacing="2">NEURAL PIPELINE // VERIFIED</text>
+    </g>
+
+    <!-- Mid-Left Targeting Brackets -->
+    <g transform="translate(45, 480)" fill="#38bdf8">
+      <text x="0" y="0" font-size="11" font-weight="900">[ 01 ]</text>
+      <line x1="38" y1="-4" x2="90" y2="-4" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text x="0" y="16" font-size="7.5" fill="#64748b" letter-spacing="1">LOC // LOCAL RUNTIME</text>
+    </g>
+
+    <!-- Mid-Right Targeting Brackets -->
+    <g transform="translate(1780, 480)" fill="#38bdf8">
+      <text x="0" y="0" font-size="11" font-weight="900">[ 02 ]</text>
+      <line x1="38" y1="-4" x2="90" y2="-4" stroke="rgba(56, 189, 248, 0.4)" stroke-width="1" />
+      <text x="0" y="16" font-size="7.5" fill="#64748b" letter-spacing="1">RAM // 64GB SOVEREIGN</text>
+    </g>
+
+    <!-- Optical HUD Crosshairs '+' with Section 1 Cyan Coordinates -->
+    <g font-size="14" font-weight="bold" opacity="0.6">
+      <text x="420" y="270" fill="#38bdf8">+</text>
+      <text x="432" y="273" font-size="7.5" fill="#64748b" font-weight="normal">X:420.91 // Y:108.44</text>
+
+      <text x="1460" y="270" fill="#38bdf8">+</text>
+      <text x="1472" y="273" font-size="7.5" fill="#64748b" font-weight="normal">TENSOR // MATRIX_SYNC</text>
+
+      <text x="360" y="840" fill="#38bdf8">+</text>
+      <text x="1560" y="840" fill="#38bdf8">+</text>
+    </g>
+  </g>
+
+  <!-- =========================================================================
+       5. CLEAN HORIZONTAL ARCHITECTURAL SEAMS (NO RADIAL DOTS OR SPIDER RAYS)
+       ========================================================================= -->
+  <!-- Clean, Straight Horizon Division at y=560 -->
+  <line x1="0" y1="560" x2="1920" y2="560" stroke="#080c16" stroke-width="2.5" />
+  <line x1="120" y1="560" x2="1800" y2="560" stroke="rgba(56, 189, 248, 0.3)" stroke-width="1" />
+
+  <!-- Calm, Non-Converging Horizontal Seams & Ground Grid Lines -->
+  <g stroke="rgba(56, 189, 248, 0.12)" stroke-width="1" fill="none">
+    <line x1="0" y1="640" x2="1920" y2="640" />
+    <line x1="0" y1="740" x2="1920" y2="740" stroke="rgba(56, 189, 248, 0.18)" stroke-width="1.2" />
+    <line x1="0" y1="870" x2="1920" y2="870" stroke="rgba(56, 189, 248, 0.22)" stroke-width="1.4" />
+    <line x1="0" y1="1020" x2="1920" y2="1020" stroke="rgba(56, 189, 248, 0.28)" stroke-width="1.6" />
+
+    <!-- Clean Vertical Construction Seams (Straight & Architectural, Not Radiating) -->
+    <line x1="320" y1="560" x2="320" y2="1080" />
+    <line x1="640" y1="560" x2="640" y2="1080" />
+    <line x1="1280" y1="560" x2="1280" y2="1080" />
+    <line x1="1600" y1="560" x2="1600" y2="1080" />
+  </g>
+
+  <!-- Perimeter Ground Deck Hazard Blocks -->
+  <g transform="translate(0, 1040)">
+    <rect x="220" y="0" width="140" height="8" fill="url(#cpCyanHazard)" />
+    <rect x="1560" y="0" width="140" height="8" fill="url(#cpCyanHazard)" />
+  </g>
+
+  <!-- =========================================================================
+       6. STAGE PERIMETER VIGNETTES
+       ========================================================================= -->
+  <rect width="1920" height="1080" fill="url(#cpStageVignetteTopBottom)" pointer-events="none" />
+  <rect width="1920" height="1080" fill="url(#cpStageVignetteSides)" pointer-events="none" />
+</svg>

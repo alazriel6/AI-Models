@@ -49,8 +49,18 @@ export async function apiFetch<T>(
     options?: RequestInit
 ): Promise<T> {
     const authHeaders = getAuthHeaders();
+    // Normalize endpoint to prevent accidental duplicate /api prefix
+    let cleanEndpoint = endpoint;
+    if (API_BASE_URL.endsWith("/api") && cleanEndpoint.startsWith("/api/")) {
+        cleanEndpoint = cleanEndpoint.slice(4);
+    } else if (API_BASE_URL.endsWith("/api") && cleanEndpoint.startsWith("api/")) {
+        cleanEndpoint = "/" + cleanEndpoint.slice(4);
+    }
+    if (!cleanEndpoint.startsWith("/")) {
+        cleanEndpoint = `/${cleanEndpoint}`;
+    }
     try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        const response = await fetch(`${API_BASE_URL}${cleanEndpoint}`, {
             ...options,
             headers: {
                 "Content-Type": "application/json",

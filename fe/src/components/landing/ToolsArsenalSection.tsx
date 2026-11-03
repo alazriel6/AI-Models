@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../../style/tools-arsenal.css';
 
 export type ToolCategory = 'all' | 'prompt' | 'hardware' | 'workflow' | 'inspection';
 
 export interface ToolItem {
   id: string;
+  wsCode: string;
+  keyMetric: string;
   name: string;
   route: string;
   badge: string;
@@ -20,6 +22,8 @@ export interface ToolItem {
 const TOOLS_CATALOG: ToolItem[] = [
   {
     id: 'controlnet',
+    wsCode: 'WS-01',
+    keyMetric: '18-JOINT RIG',
     name: 'ControlNet & OpenPose Rig',
     route: '/controlnet',
     badge: 'ANATOMY RIG',
@@ -41,6 +45,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'vram',
+    wsCode: 'WS-02',
+    keyMetric: 'GPU TELEMETRY',
     name: 'VRAM & Hardware Profiler',
     route: '/vram',
     badge: 'GPU MEMORY',
@@ -61,6 +67,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'workflows',
+    wsCode: 'WS-03',
+    keyMetric: 'NODE COMPOSER',
     name: 'ComfyUI Workflows',
     route: '/workflows',
     badge: 'NODE GRAPH',
@@ -83,6 +91,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'telemetry',
+    wsCode: 'WS-04',
+    keyMetric: 'WS STREAM 0ms',
     name: 'ComfyUI Telemetry & Benchmark',
     route: '/telemetry',
     badge: 'LIVE WEBSOCKET',
@@ -99,6 +109,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'negative-vault',
+    wsCode: 'WS-05',
+    keyMetric: 'PURITY FILTER',
     name: 'Negative Vault',
     route: '/negative-vault',
     badge: 'QUALITY GUARD',
@@ -116,6 +128,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'sampler-guide',
+    wsCode: 'WS-06',
+    keyMetric: 'SIGMA SCHEDULE',
     name: 'Sampler & Scheduler Guide',
     route: '/sampler-guide',
     badge: 'DIFFUSION MATH',
@@ -135,6 +149,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'story-merger',
+    wsCode: 'WS-07',
+    keyMetric: 'CHARACTER LOCK',
     name: 'Character Lock & Story Merger',
     route: '/story-merger',
     badge: 'STORYBOARD',
@@ -152,6 +168,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'prompt-deconstructor',
+    wsCode: 'WS-08',
+    keyMetric: 'DANBOORU SPLIT',
     name: 'Anime Prompt Deconstructor',
     route: '/prompt-deconstructor',
     badge: 'TAG PARSER',
@@ -172,6 +190,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'prompt-lab',
+    wsCode: 'WS-09',
+    keyMetric: '10-LAYER CANVAS',
     name: 'Prompt Studio & Lab',
     route: '/prompt-lab',
     badge: '10-LAYER STUDIO',
@@ -189,6 +209,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'lora-stack',
+    wsCode: 'WS-10',
+    keyMetric: 'BURNOUT GUARD',
     name: 'LoRA Stack Builder',
     route: '/lora-stack',
     badge: 'WEIGHT MIXER',
@@ -206,6 +228,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'compare',
+    wsCode: 'WS-11',
+    keyMetric: 'OPTICAL SPLIT',
     name: 'Model Comparison',
     route: '/compare',
     badge: 'SPEC DIFF',
@@ -222,6 +246,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'inspector',
+    wsCode: 'WS-12',
+    keyMetric: 'LOCAL PARSER',
     name: 'Metadata Inspector',
     route: '/inspector',
     badge: 'SAFETENSORS',
@@ -240,9 +266,11 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'calculator',
+    wsCode: 'WS-13',
+    keyMetric: 'SNAP-64 LATTICE',
     name: 'Resolution Calculator',
     route: '/calculator',
-    badge: 'SNAP-64 LATTICE',
+    badge: 'SNAP-64',
     category: 'hardware',
     categoryLabel: 'Hardware & Performa',
     description: 'Kalkulator resolusi matematis dengan aturan kelipatan 64-pixel VAE lattice. Hindari distorsi anatomi dan hitung target megapixel Hi-Res Fix 1.5x dan 2.0x untuk berbagai aspect ratio.',
@@ -260,6 +288,8 @@ const TOOLS_CATALOG: ToolItem[] = [
   },
   {
     id: 'gallery',
+    wsCode: 'WS-14',
+    keyMetric: 'REPRODUCIBLE SEED',
     name: 'Generation Gallery',
     route: '/gallery',
     badge: 'SHOWCASE',
@@ -278,9 +308,16 @@ const TOOLS_CATALOG: ToolItem[] = [
 ];
 
 export function ToolsArsenalSection() {
+  const navigate = useNavigate();
+  const [selectedToolId, setSelectedToolId] = useState<string>('controlnet');
   const [activeCategory, setActiveCategory] = useState<ToolCategory>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [mobileExpanded, setMobileExpanded] = useState<boolean>(false);
+
+  // Active Tool for Command Dock
+  const activeTool = useMemo(() => {
+    return TOOLS_CATALOG.find((t) => t.id === selectedToolId) || TOOLS_CATALOG[0];
+  }, [selectedToolId]);
 
   // Filtered tools
   const filteredTools = useMemo(() => {
@@ -294,13 +331,14 @@ export function ToolsArsenalSection() {
         tool.name.toLowerCase().includes(q) ||
         tool.description.toLowerCase().includes(q) ||
         tool.badge.toLowerCase().includes(q) ||
+        tool.wsCode.toLowerCase().includes(q) ||
+        tool.keyMetric.toLowerCase().includes(q) ||
         tool.categoryLabel.toLowerCase().includes(q) ||
         tool.features.some((f) => f.toLowerCase().includes(q))
       );
     });
   }, [activeCategory, searchQuery]);
 
-  // Counts for each category tab
   const categoryCounts = useMemo(() => {
     const counts: Record<ToolCategory, number> = {
       all: TOOLS_CATALOG.length,
@@ -317,13 +355,9 @@ export function ToolsArsenalSection() {
 
   return (
     <section className="mg-tools-arsenal" id="tools-arsenal">
-      {/* Background Atmosphere - Dedicated Ancient Cyber-Canopy Forest */}
-      <div className="mg-tools-forest-bg" aria-hidden="true" />
-      <div className="mg-tools-mist-ribbon mist-1" aria-hidden="true" />
-      <div className="mg-tools-mist-ribbon mist-2" aria-hidden="true" />
       <div className="mg-tools-atmosphere" aria-hidden="true" />
 
-      <div className="mg-container">
+      <div className="mg-container" style={{ position: 'relative', zIndex: 6 }}>
         {/* Section Header */}
         <div className="mg-tools-header">
           <div className="mg-editorial-tag">
@@ -333,16 +367,64 @@ export function ToolsArsenalSection() {
           </div>
           <h2 className="mg-tools-title">
             Seluruh Perkakas &amp;{' '}
-            <span className="mg-tools-title-gradient">Utilitas Generatif</span>
+            <span className="mg-tools-title-gradient">14 Workstation Terintegrasi</span>
           </h2>
           <p className="mg-tools-subtitle">
-            Rangkaian 14 workstation terintegrasi yang dirancang khusus untuk setiap tahap alur kerja AI &amp; anime: mulai dari kontrol pose anatomi 18-joint, simulasi VRAM real-time, integrasi node ComfyUI, telemetri WebSocket, hingga konsistensi karakter storyboard.
+            Pilih workstation untuk memuat kontrol di Active Command Dock, atau klik langsung pada kartu untuk membuka perkakas terkait.
           </p>
+        </div>
+
+        {/* ===================================================================
+            ACTIVE WORKSTATION COMMAND DOCK
+            =================================================================== */}
+        <div className="mg-command-dock mg-chamfer-md">
+          <div className="mg-command-dock-header">
+            <div className="mg-dock-code-badge">
+              <span className="mg-dock-pulse" />
+              <span>COMMAND DOCK // [{activeTool.wsCode}] {activeTool.keyMetric}</span>
+            </div>
+            <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#6ee7b7' }}>
+              ONLINE // ZERO-CLOUD
+            </span>
+          </div>
+
+          <div className="mg-command-dock-grid">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span className="mg-tool-badge-pill mg-chamfer-sm">{activeTool.badge}</span>
+                <span className="mg-tool-cat-pill mg-chamfer-sm">{activeTool.categoryLabel}</span>
+              </div>
+              <h3 className="mg-dock-title">{activeTool.name}</h3>
+              <p className="mg-dock-desc">{activeTool.description}</p>
+
+              <div className="mg-dock-features-list">
+                {activeTool.features.map((feat) => (
+                  <span key={feat} className="mg-dock-feature-pill mg-chamfer-sm">
+                    <span>✓</span>
+                    <span>{feat}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="mg-btn mg-btn-primary mg-chamfer-sm mg-btn-large"
+              onClick={() => navigate(activeTool.route)}
+              style={{ whiteSpace: 'nowrap', padding: '16px 28px', fontSize: '14px' }}
+            >
+              <span>LAUNCH {activeTool.wsCode} ({activeTool.route})</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Search & Category Filter Controls */}
         <div className="mg-tools-controls">
-          <div className="mg-tools-search-box">
+          <div className="mg-tools-search-box mg-chamfer-sm">
             <svg
               className="mg-tools-search-icon"
               width="18"
@@ -361,7 +443,7 @@ export function ToolsArsenalSection() {
             <input
               type="text"
               className="mg-tools-search-input"
-              placeholder="Cari perkakas (misal: OpenPose, VRAM, ComfyUI, Negative, Sampler, Story Merger)..."
+              placeholder="Cari perkakas (misal: OpenPose, VRAM, ComfyUI, Negative, Sampler)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Cari perkakas generatif"
@@ -383,124 +465,87 @@ export function ToolsArsenalSection() {
               type="button"
               role="tab"
               aria-selected={activeCategory === 'all'}
-              className={`mg-tools-tab-btn ${activeCategory === 'all' ? 'active' : ''}`}
+              className={`mg-tools-tab-btn mg-chamfer-sm ${activeCategory === 'all' ? 'active' : ''}`}
               onClick={() => setActiveCategory('all')}
             >
-              <span>Semua Perkakas</span>
-              <span className="mg-tools-tab-count">{categoryCounts.all}</span>
+              <span>Semua ({categoryCounts.all})</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeCategory === 'prompt'}
-              className={`mg-tools-tab-btn ${activeCategory === 'prompt' ? 'active' : ''}`}
+              className={`mg-tools-tab-btn mg-chamfer-sm ${activeCategory === 'prompt' ? 'active' : ''}`}
               onClick={() => setActiveCategory('prompt')}
             >
-              <span>Prompt &amp; Karakter</span>
-              <span className="mg-tools-tab-count">{categoryCounts.prompt}</span>
+              <span>Prompt ({categoryCounts.prompt})</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeCategory === 'hardware'}
-              className={`mg-tools-tab-btn ${activeCategory === 'hardware' ? 'active' : ''}`}
+              className={`mg-tools-tab-btn mg-chamfer-sm ${activeCategory === 'hardware' ? 'active' : ''}`}
               onClick={() => setActiveCategory('hardware')}
             >
-              <span>Hardware &amp; Performa</span>
-              <span className="mg-tools-tab-count">{categoryCounts.hardware}</span>
+              <span>Hardware ({categoryCounts.hardware})</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeCategory === 'workflow'}
-              className={`mg-tools-tab-btn ${activeCategory === 'workflow' ? 'active' : ''}`}
+              className={`mg-tools-tab-btn mg-chamfer-sm ${activeCategory === 'workflow' ? 'active' : ''}`}
               onClick={() => setActiveCategory('workflow')}
             >
-              <span>Alur Kerja &amp; Kontrol</span>
-              <span className="mg-tools-tab-count">{categoryCounts.workflow}</span>
+              <span>Workflow ({categoryCounts.workflow})</span>
             </button>
             <button
               type="button"
               role="tab"
               aria-selected={activeCategory === 'inspection'}
-              className={`mg-tools-tab-btn ${activeCategory === 'inspection' ? 'active' : ''}`}
+              className={`mg-tools-tab-btn mg-chamfer-sm ${activeCategory === 'inspection' ? 'active' : ''}`}
               onClick={() => setActiveCategory('inspection')}
             >
-              <span>Inspeksi &amp; Komparasi</span>
-              <span className="mg-tools-tab-count">{categoryCounts.inspection}</span>
+              <span>Inspeksi ({categoryCounts.inspection})</span>
             </button>
           </div>
         </div>
 
-        {/* Metadata count bar */}
-        <div className="mg-tools-meta-bar">
-          <div className="mg-tools-badge-total">
-            <span className="mg-tools-live-indicator" />
-            <span>
-              Menampilkan {filteredTools.length} dari {TOOLS_CATALOG.length} Workstation Aktif
-            </span>
-          </div>
-          <div>
-            <span>Zero-Cloud Lock-In &bull; Zero-Telemetry</span>
-          </div>
-        </div>
+        {/* 14 Tool Cards Grid */}
+        <div className="mg-tools-grid">
+          {filteredTools.map((tool, idx) => {
+            const isSelected = selectedToolId === tool.id;
 
-        {/* Tools Cards Grid */}
-        {filteredTools.length === 0 ? (
-          <div className="mg-tools-empty">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <h4>Tidak ada perkakas yang cocok</h4>
-            <p>Tidak ditemukan perkakas yang sesuai dengan kriteria pencarian &ldquo;{searchQuery}&rdquo;.</p>
-            <button
-              type="button"
-              className="mg-btn mg-btn-secondary"
-              onClick={() => {
-                setSearchQuery('');
-                setActiveCategory('all');
-              }}
-            >
-              Reset Filter
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="mg-tools-grid">
-            {filteredTools.map((tool, idx) => (
-              <Link
+            return (
+              <div
                 key={tool.id}
-                to={tool.route}
-                className={`mg-tool-card ${!mobileExpanded && idx >= 4 ? 'mg-tool-card-mobile-collapsed' : ''}`}
-                title={`Buka ${tool.name}`}
+                className={`mg-tool-card mg-chamfer-sm ${isSelected ? 'mg-card-active' : ''} ${!mobileExpanded && idx >= 6 ? 'mg-tool-card-mobile-collapsed' : ''}`}
+                onClick={() => setSelectedToolId(tool.id)}
+                style={{
+                  border: isSelected ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.1)',
+                  background: isSelected ? 'rgba(14, 24, 38, 0.92)' : 'rgba(10, 14, 22, 0.84)',
+                  cursor: 'pointer',
+                }}
               >
-                {/* Architectural Corner Reticles */}
-                <span className="mg-tool-reticle tl" aria-hidden="true">+</span>
-                <span className="mg-tool-reticle tr" aria-hidden="true">+</span>
-                <span className="mg-tool-reticle bl" aria-hidden="true">+</span>
-                <span className="mg-tool-reticle br" aria-hidden="true">+</span>
-
-                {/* Card Header */}
+                {/* Header with wsCode & keyMetric */}
                 <div className="mg-tool-card-head">
                   <div className="mg-tool-icon-wrapper" aria-hidden="true">
                     {tool.icon}
                   </div>
                   <div className="mg-tool-badges">
-                    <span className="mg-tool-badge-pill">{tool.badge}</span>
-                    <span className="mg-tool-cat-pill">{tool.categoryLabel}</span>
+                    <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '10px', color: '#38bdf8', fontWeight: 800 }}>
+                      {tool.wsCode}
+                    </span>
+                    <span className="mg-tool-badge-pill mg-chamfer-sm">{tool.keyMetric}</span>
                   </div>
                 </div>
 
-                {/* Card Body */}
+                {/* Body */}
                 <div className="mg-tool-body">
                   <h3 className="mg-tool-name">{tool.name}</h3>
                   <p className="mg-tool-desc">{tool.description}</p>
 
-                  {/* Feature Tags */}
                   <div className="mg-tool-features">
-                    {tool.features.map((feat, idx) => (
-                      <span key={idx} className="mg-tool-feature-tag">
+                    {tool.features.map((feat) => (
+                      <span key={feat} className="mg-tool-feature-tag mg-chamfer-sm">
                         <span className="mg-tool-feature-dot" />
                         <span>{feat}</span>
                       </span>
@@ -508,42 +553,44 @@ export function ToolsArsenalSection() {
                   </div>
                 </div>
 
-                {/* Card Footer Action */}
+                {/* Footer with SPA Link */}
                 <div className="mg-tool-footer">
                   <span className="mg-tool-route-path">{tool.route}</span>
-                  <span className="mg-tool-action-btn">
-                    <span>Buka Tool</span>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <Link
+                    to={tool.route}
+                    className="mg-tool-action-btn mg-chamfer-sm"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span>Launch</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                       <line x1="5" y1="12" x2="19" y2="12" />
                       <polyline points="12 5 19 12 12 19" />
                     </svg>
-                  </span>
+                  </Link>
                 </div>
-              </Link>
-            ))}
-          </div>
+              </div>
+            );
+          })}
+        </div>
 
-          {filteredTools.length > 4 && (
-            <div className="mg-tools-mobile-toggle-wrap">
-              <button
-                type="button"
-                className="mg-btn mg-btn-secondary mg-btn-mobile-expand"
-                onClick={() => setMobileExpanded((prev) => !prev)}
-              >
-                <span>
-                  {mobileExpanded
-                    ? 'Sembunyikan Sebagian Tool ↑'
-                    : `Tampilkan Semua ${filteredTools.length} Workstation ↓`}
-                </span>
-              </button>
-            </div>
-          )}
-        </>
-      )}
+        {filteredTools.length > 6 && (
+          <div className="mg-tools-mobile-toggle-wrap">
+            <button
+              type="button"
+              className="mg-btn mg-btn-secondary mg-btn-mobile-expand mg-chamfer-sm"
+              onClick={() => setMobileExpanded((prev) => !prev)}
+            >
+              <span>
+                {mobileExpanded
+                  ? 'Sembunyikan Sebagian Tool ↑'
+                  : `Tampilkan Semua ${filteredTools.length} Workstation ↓`}
+              </span>
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
 export default ToolsArsenalSection;
-

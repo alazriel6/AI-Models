@@ -1,193 +1,257 @@
-import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { RainCanvas, type WeatherType } from './RainCanvas';
-import { getModels } from '../../api/models';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { apiFetch, resolveImageUrl } from '../../api/client';
+import type { Model, ModelsResponse } from '../../api/models';
+import { CyberDustCanvas } from './CyberDustCanvas';
+import { CyberMenuGlitchOverlay } from './CyberMenuGlitchOverlay';
 
 interface HeroSectionProps {
   onDiscoverClick: () => void;
 }
 
-interface DeckModel {
+interface ChassisModel {
   id: string;
+  unitCode: string;
   name: string;
   slug: string;
-  baseModel: string;
-  type: string;
-  tensorCount: number;
-  vramStr: string;
+  vramBadge: string;
+  vramColor: 'amber' | 'cyan' | 'green' | 'yellow';
+  sha256: string;
+  loraTag: string;
+  tensorBadge: string;
+  prediction: string;
   nativeRes: string;
-  sampler: string;
-  steps: number;
-  cfg: number;
-  author: string;
-  description?: string;
-  tags?: string[];
+  samplerOrGuidanceKey: string;
+  samplerOrGuidanceVal: string;
   thumbnailUrl: string;
+  imagePosition?: string;
 }
 
-const DECK_FALLBACK_MODELS: DeckModel[] = [
+const CHASSIS_FALLBACK_UNITS: ChassisModel[] = [
   {
     id: 'wai-illustrious',
-    name: 'WAI-illustrious-SDXL',
+    unitCode: 'UNIT // 01-ILLUSTRIOUS',
+    name: 'WAI-ILLUSTRIOUS-SDXL',
     slug: 'wai-illustrious-sdxl',
-    baseModel: 'Illustrious XL',
-    type: 'CHECKPOINT',
-    tensorCount: 587,
-    vramStr: '6 GB',
-    nativeRes: '832 × 1216',
-    sampler: 'Euler a',
-    steps: 28,
-    cfg: 5.5,
-    author: 'WAI0731',
-    description: 'High-performance Illustrious XL checkpoint tuned for crisp anime linework and vibrant contrast.',
-    tags: ['Anime', 'Checkpoint', 'Illustrious'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=450/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
+    vramBadge: '6.8 GB FP16',
+    vramColor: 'cyan',
+    sha256: 'SHA256 // CE58B29F',
+    loraTag: '<lora:anime_core:0.85>',
+    tensorBadge: '3.1B TENSORS',
+    prediction: 'EPSILON (V0.1)',
+    nativeRes: '832 × 1216 PX',
+    samplerOrGuidanceKey: 'SAMPLER LOCK',
+    samplerOrGuidanceVal: 'EULER A (28S)',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=600/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
+    imagePosition: 'center 25%',
   },
   {
-    id: 'wai-noob',
-    name: 'WAI-SHUFFLE-NOOB',
+    id: 'noobai-vpred',
+    unitCode: 'UNIT // 02-NOOBAI',
+    name: 'NOOBAI-XL V-PRED',
     slug: 'wai-shuffle-noob',
-    baseModel: 'NoobAI',
-    type: 'CHECKPOINT',
-    tensorCount: 587,
-    vramStr: '6 GB',
-    nativeRes: '1024 × 1360',
-    sampler: 'Euler a',
-    steps: 30,
-    cfg: 6.0,
-    author: 'WAI0731',
-    description: 'Specialized NoobAI baseline fine-tune with score-conditioned weight distributions.',
-    tags: ['Anime', 'NoobAI', 'Score-tagged'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    vramBadge: '7.2 GB FP16',
+    vramColor: 'green',
+    sha256: 'SHA256 // 6942C4B2',
+    loraTag: '<lora:vpred_balance:0.75>',
+    tensorBadge: '3.5B TENSORS',
+    prediction: 'V-PREDICTION',
+    nativeRes: '1024 × 1360 PX',
+    samplerOrGuidanceKey: 'SAMPLER LOCK',
+    samplerOrGuidanceVal: 'EULER A (30S)',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=600/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    imagePosition: 'center 25%',
   },
   {
-    id: 'raehoshi',
-    name: 'Raehoshi Illust XL v2',
+    id: 'raehoshi-illust',
+    unitCode: 'UNIT // 03-RAEHOSHI',
+    name: 'RAEHOSHI ILLUST XL V2',
     slug: 'raehoshi-illust-xl',
-    baseModel: 'Illustrious XL',
-    type: 'CHECKPOINT',
-    tensorCount: 587,
-    vramStr: '8 GB',
-    nativeRes: '832 × 1216',
-    sampler: 'DPM++ 2M',
-    steps: 26,
-    cfg: 5.0,
-    author: 'raehoshi',
-    description: 'Artistic checkpoint focusing on painterly volumetric lighting and anatomical fidelity.',
-    tags: ['Illustration', 'Painterly', 'Anime'],
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=450/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
+    vramBadge: '6.0 GB FP16',
+    vramColor: 'yellow',
+    sha256: 'SHA256 // E621BEF5',
+    loraTag: '<lora:clean_lineart:0.80>',
+    tensorBadge: '2.5B TENSORS',
+    prediction: 'EPSILON (V0.1)',
+    nativeRes: '832 × 1216 PX',
+    samplerOrGuidanceKey: 'SAMPLER LOCK',
+    samplerOrGuidanceVal: 'EULER A (28S)',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=600/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
+    imagePosition: 'center 25%',
   },
 ];
 
 /**
- * Strips raw HTML tags from Civitai descriptions, decodes entities,
- * and filters out leading online generator / donation boilerplate.
+ * Maps a real database model (whether imported from Civitai or user-created blob/storage)
+ * into the high-octane mechanical Chassis deck format.
  */
-function cleanModelDescription(
-  rawDesc?: string,
-  baseModel?: string,
-  _modelName?: string
-): string {
-  if (!rawDesc) {
-    return `Specialized fine-tuned checkpoint for high-fidelity generative rendering on ${baseModel || 'SDXL'}.`;
+function mapModelToChassis(m: Model, index: number): ChassisModel {
+  const vramColors: ('cyan' | 'green' | 'yellow')[] = ['cyan', 'green', 'yellow'];
+  const color = vramColors[index % vramColors.length];
+
+  // Pick thumbnail from thumbnail_url or images array (handles backend blob storage & Civitai)
+  const rawImg =
+    m.thumbnail_url ||
+    (m.images && m.images.length > 0 ? m.images[0].image_path || m.images[0].image_url : '') ||
+    '';
+
+  let resolvedImg = resolveImageUrl(rawImg);
+  if (resolvedImg && resolvedImg.includes('image.civitai.com')) {
+    resolvedImg = resolvedImg.replace(/\/width=\d+\//, '/width=600/');
+  }
+  if (!resolvedImg) {
+    resolvedImg = CHASSIS_FALLBACK_UNITS[index % CHASSIS_FALLBACK_UNITS.length].thumbnailUrl;
   }
 
-  // 1. Normalize HTML line breaks and structural tags to newlines before stripping
-  let text = rawDesc
-    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<\/(p|div|h[1-6]|li)>/gi, '\n')
-    .replace(/<br\s*[\/]?>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ');
+  // Extract version recommended settings if present
+  const version = m.versions && m.versions.length > 0 ? m.versions[0] : null;
+  const rec = (version?.recommended_settings as Record<string, unknown>) || {};
 
-  // 2. Decode common HTML entities
-  text = text
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/\r/g, '');
+  // Compute realistic hexadecimal hash: extract from image UUID if present, or deterministic 8-digit hex
+  let hashStr = '';
+  const uuidMatch = rawImg.match(/([a-f0-9]{8})-[a-f0-9]{4}/i);
+  if (uuidMatch && uuidMatch[1]) {
+    hashStr = uuidMatch[1].toUpperCase();
+  } else {
+    let h = 0x811c9dc5;
+    const str = `${m.id}-${m.slug || m.name || index}`;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 0x01000193);
+    }
+    hashStr = (h >>> 0).toString(16).padStart(8, '0').slice(0, 8).toUpperCase();
+  }
+  const sha256 = `SHA256 // ${hashStr}`;
 
-  // 3. Filter out generic online generator promotions / Patreon plugs
-  const promoPattern = /^(if you want to use more|please visit|visit here|support me|buy me a coffee|patreon|ko-fi|discord|online generation|seaart|tensorart|shakker|liblib|https?:)/i;
-
-  const paragraphs = text
-    .split('\n')
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter((p) => p.length > 0);
-
-  // Look for the first genuine descriptive paragraph
-  let meaningful = paragraphs.find((p) => p.length >= 25 && !promoPattern.test(p));
-
-  if (!meaningful) {
-    meaningful = paragraphs.find((p) => p.length >= 15 && !promoPattern.test(p));
+  // Formulate LoRA or trigger tag (filtering out generic tags like 1girl, solo, masterpiece)
+  let loraTag = `<lora:${m.slug.replace(/-(xl|sdxl).*/i, '')}_core:0.85>`;
+  if (m.type === 'lora') {
+    loraTag = `<lora:${m.slug}:0.85>`;
+  } else if (m.trigger_words && m.trigger_words.length > 0) {
+    const specificTw = m.trigger_words.find((tw) => {
+      const w = tw.trigger_word?.trim().toLowerCase() || '';
+      return w && !['1girl', 'solo', 'masterpiece', 'best quality', 'highres', 'anime'].includes(w);
+    });
+    if (specificTw?.trigger_word) {
+      const tw = specificTw.trigger_word.trim();
+      loraTag = tw.startsWith('<') ? tw : `<${tw}>`;
+    }
+  } else if (m.tags && m.tags.length > 0) {
+    const t = m.tags.find((tag) => !['anime', 'checkpoint', 'illustration'].includes(tag.slug.toLowerCase()));
+    if (t) {
+      loraTag = `<lora:${t.slug}:0.80>`;
+    }
   }
 
-  if (!meaningful || promoPattern.test(meaningful)) {
-    return `Generative checkpoint tuned on ${baseModel || 'Illustrious XL'} with calibrated latent distributions.`;
-  }
+  // Prediction formulation
+  const baseModelLower = (m.base_model || '').toLowerCase();
+  const nameLower = m.name.toLowerCase();
+  const isVpred = baseModelLower.includes('noob') || nameLower.includes('v-pred') || nameLower.includes('vpred');
+  const isFlux = baseModelLower.includes('flux');
+  const prediction = isFlux
+    ? 'FLOW MATCHING'
+    : isVpred
+    ? 'V-PREDICTION'
+    : baseModelLower.includes('sdxl')
+    ? 'SDXL EPSILON'
+    : 'EPSILON (V0.1)';
 
-  if (meaningful.length > 120) {
-    return meaningful.slice(0, 117).trim() + '...';
-  }
+  // Native resolution
+  const width = typeof rec.width === 'number' ? rec.width : isVpred ? 1024 : 832;
+  const height = typeof rec.height === 'number' ? rec.height : isVpred ? 1360 : 1216;
+  const nativeRes = `${width} × ${height} PX`;
 
-  return meaningful;
+  // Sampler settings
+  const samplerName = rec.sampler ? String(rec.sampler).toUpperCase() : 'EULER A';
+  const steps = rec.steps ? String(rec.steps) : isVpred ? '30S' : '28S';
+  const samplerOrGuidanceKey = isFlux ? 'GUIDANCE DISTILL' : 'SAMPLER LOCK';
+  const samplerOrGuidanceVal = isFlux ? 'CFG 1.0 / 3.5' : `${samplerName} (${steps.replace(/[^0-9]/g, '')}S)`;
+
+  // VRAM badge
+  const rawVram = m.vram_recommended || m.vram_min || (isVpred ? '7.2 GB' : '6.8 GB');
+  const vramBadge = rawVram.toUpperCase().includes('FP')
+    ? rawVram
+    : `${rawVram.includes('GB') ? rawVram : `${rawVram} GB`} FP16`;
+
+  // Tensor badge
+  const tensorBadge = m.tensor_size ? `${m.tensor_size} TENSORS` : isFlux ? '12.0B MMDiT' : '3.1B TENSORS';
+
+  // Unit Code
+  const unitSuffix = (m.base_model || 'MODEL').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11);
+  const unitCode = `UNIT // 0${index + 1}-${unitSuffix}`;
+
+  return {
+    id: `db-${m.id || m.slug}`,
+    unitCode,
+    name: m.name.toUpperCase(),
+    slug: m.slug,
+    vramBadge,
+    vramColor: color,
+    sha256,
+    loraTag,
+    tensorBadge,
+    prediction,
+    nativeRes,
+    samplerOrGuidanceKey,
+    samplerOrGuidanceVal,
+    thumbnailUrl: resolvedImg,
+    imagePosition: 'center 20%',
+  };
 }
-
-/**
- * Formats tag slugs into clean Title Case labels and filters redundant meta tags.
- */
-function cleanModelTags(rawTags?: (string | { name?: string })[]): string[] {
-  if (!rawTags || !Array.isArray(rawTags) || rawTags.length === 0) {
-    return ['Fine-tuned', 'SafeTensors', 'High-Res'];
-  }
-
-  const ignored = new Set([
-    'base_model', 'base model', 'checkpoint', 'checkpoints', 'model', 'models',
-    'safetensors', 'sdxl', 'sd 1.5', 'sd xl', 'flux', 'flux.1', 'illustrious', 'illustrious-xl',
-    'noobai', 'noob-ai'
-  ]);
-
-  const cleaned = rawTags
-    .map((t) => {
-      const rawStr = typeof t === 'string' ? t : (t?.name || '');
-      return rawStr
-        .replace(/[_-]+/g, ' ')
-        .trim()
-        .split(' ')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-        .join(' ');
-    })
-    .filter((t) => t.length > 1 && !ignored.has(t.toLowerCase()));
-
-  if (cleaned.length === 0) {
-    return ['Fine-tuned', 'SafeTensors', 'High-Res'];
-  }
-
-  return cleaned.slice(0, 3);
-}
-
-const HERO_QUICK_TAGS = [
-  { label: 'Illustrious XL', target: '/models?search=Illustrious' },
-  { label: 'Checkpoints', target: '/models?tab=checkpoints' },
-  { label: 'LoRA', target: '/models?tab=lora' },
-  { label: 'NoobAI', target: '/models?search=NoobAI' },
-  { label: 'Anime', target: '/models?search=Anime' },
-  { label: 'SDXL', target: '/models?search=SDXL' },
-];
 
 const TYPEWRITER_PHRASES = [
-  'Local Model Guide.',
-  'Generation Gallery.',
-  'Prompt & Settings Lab.',
-  'SafeTensors Catalog.',
+  'SOVEREIGNTY.',
+  'GENERATIVE AI.',
+  'SAFE-TENSORS.',
+  'ILLUSTRIOUS-XL.',
+  'NOOBAI V-PRED.',
+  'WORKSTATION.',
 ];
+
+// Katakana runs & cyber corrupt glyphs matching the reference image (CYBEカASEネノオソC)
+const KATAKANA_RUNS = [
+  ['ネ', 'ノ', 'オ', 'ソ'],
+  ['カ', 'セ', 'ク', 'ソ'],
+  ['テ', 'ノ', 'ツ', 'ク'],
+  ['シ', 'ス', 'テ', 'ﾑ'],
+  ['ハ', 'ッ', 'シ', 'ュ'],
+  ['ネ', 'ッ', 'ト', 'ﾜ'],
+];
+
+const KATAKANA_SINGLES = ['カ', 'Δ', '§', 'ネ', 'ノ', 'オ', 'ソ', 'ア', 'ク', 'ツ'];
+
+function generateCyberCorruptText(text: string): string {
+  if (text.length <= 4) return text;
+  const chars = text.split('');
+
+  // 1. Pick a Katakana run (3 to 4 characters long)
+  const run = KATAKANA_RUNS[Math.floor(Math.random() * KATAKANA_RUNS.length)];
+
+  // 2. Insert run in the middle or second half of the phrase
+  const startIdx = Math.max(1, Math.floor(chars.length * 0.42));
+
+  for (let i = 0; i < run.length; i++) {
+    const target = startIdx + i;
+    if (target < chars.length && chars[target] !== '.' && chars[target] !== ' ') {
+      chars[target] = run[i];
+    }
+  }
+
+  // 3. Place an isolated Katakana earlier (e.g. 'カ' in 'CYBEカASE')
+  if (startIdx >= 3) {
+    const earlyIdx = Math.floor(Math.random() * (startIdx - 1)) + 1;
+    if (chars[earlyIdx] !== ' ' && chars[earlyIdx] !== '-') {
+      chars[earlyIdx] = KATAKANA_SINGLES[Math.floor(Math.random() * KATAKANA_SINGLES.length)];
+    }
+  }
+
+  return chars.join('');
+}
 
 function HeroTypewriter() {
   const [phraseIdx, setPhraseIdx] = useState(0);
   const [displayedText, setDisplayedText] = useState(TYPEWRITER_PHRASES[0]);
+  const [corruptedDisplay, setCorruptedDisplay] = useState(TYPEWRITER_PHRASES[0]);
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
@@ -197,18 +261,50 @@ function HeroTypewriter() {
     if (!isDeleting) {
       if (displayedText.length < fullText.length) {
         timer = setTimeout(() => {
-          setDisplayedText(fullText.slice(0, displayedText.length + 1));
-        }, 80);
+          const nextText = fullText.slice(0, displayedText.length + 1);
+          setDisplayedText(nextText);
+          setCorruptedDisplay(nextText);
+        }, 85);
       } else {
+        // Paused at full phrase: trigger Katakana corruption burst (~700ms)
+        let glitchTimer: ReturnType<typeof setTimeout>;
+        let scrambleInterval: ReturnType<typeof setInterval>;
+        let restoreTimer: ReturnType<typeof setTimeout>;
+
+        // At 550ms: start corruption with live Katakana scramble
+        glitchTimer = setTimeout(() => {
+          setCorruptedDisplay(generateCyberCorruptText(fullText));
+
+          // Real-time Katakana glyph scramble every 80ms
+          scrambleInterval = setInterval(() => {
+            setCorruptedDisplay(generateCyberCorruptText(fullText));
+          }, 80);
+
+          // Restore after 680ms: clean snap-back to English
+          restoreTimer = setTimeout(() => {
+            clearInterval(scrambleInterval);
+            setCorruptedDisplay(fullText);
+          }, 680);
+        }, 550);
+
         timer = setTimeout(() => {
           setIsDeleting(true);
-        }, 2200);
+        }, 2800);
+
+        return () => {
+          clearTimeout(timer);
+          clearTimeout(glitchTimer);
+          clearInterval(scrambleInterval);
+          clearTimeout(restoreTimer);
+        };
       }
     } else {
       if (displayedText.length > 0) {
         timer = setTimeout(() => {
-          setDisplayedText(fullText.slice(0, displayedText.length - 1));
-        }, 40);
+          const nextText = fullText.slice(0, displayedText.length - 1);
+          setDisplayedText(nextText);
+          setCorruptedDisplay(nextText);
+        }, 45);
       } else {
         setIsDeleting(false);
         setPhraseIdx((prev) => (prev + 1) % TYPEWRITER_PHRASES.length);
@@ -221,9 +317,56 @@ function HeroTypewriter() {
 
   return (
     <span className="mg-typewriter-container" aria-live="polite">
-      <span className="mg-hero-title-accent mg-typewriter-text">{displayedText}</span>
+      <span
+        className="mg-typewriter-text mg-cp-micro-glitch yellow"
+        data-text={corruptedDisplay}
+      >
+        {corruptedDisplay}
+      </span>
       <span className="mg-typewriter-cursor" aria-hidden="true" />
     </span>
+  );
+}
+
+function CardCorruptedTitle({ text }: { text: string }) {
+  const [displayText, setDisplayText] = useState(text);
+
+  useEffect(() => {
+    setDisplayText(text);
+
+    let glitchInterval: ReturnType<typeof setInterval>;
+    let restoreTimer: ReturnType<typeof setTimeout>;
+
+    const cycleTimer = setInterval(() => {
+      // 1. Initial corrupt glyph injection
+      setDisplayText(generateCyberCorruptText(text));
+
+      // 2. Rapid Katakana glyph scramble for 450ms
+      glitchInterval = setInterval(() => {
+        setDisplayText(generateCyberCorruptText(text));
+      }, 75);
+
+      // 3. Crisp snap-back to clean original
+      restoreTimer = setTimeout(() => {
+        clearInterval(glitchInterval);
+        setDisplayText(text);
+      }, 480);
+    }, 4200);
+
+    return () => {
+      clearInterval(cycleTimer);
+      clearInterval(glitchInterval);
+      clearTimeout(restoreTimer);
+    };
+  }, [text]);
+
+  return (
+    <h3
+      className="mg-mech-model-name-lg mg-card-title-corrupt"
+      data-text={displayText}
+    >
+      {displayText}
+    </h3>
   );
 }
 
@@ -231,153 +374,46 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
   const navigate = useNavigate();
   const heroRef = useRef<HTMLElement | null>(null);
 
-  const [deckModels, setDeckModels] = useState<DeckModel[]>(DECK_FALLBACK_MODELS);
-  const [weather, setWeather] = useState<WeatherType>(() => {
-    try {
-      const saved = localStorage.getItem('mg_hero_weather');
-      if (saved === 'clear' || saved === 'rain' || saved === 'storm') {
-        return saved;
-      }
-    } catch {
-      // Ignore localStorage access errors
-    }
-    return 'storm';
-  });
-  const [isWeatherHidden, setIsWeatherHidden] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('mg_hero_weather_hidden');
-      if (saved !== null) {
-        return saved === 'true';
-      }
-    } catch {
-      // Ignore localStorage access errors
-    }
-    return false;
-  });
+  // Dynamic Chassis Units: fetches real models from backend/blob/Civitai when active;
+  // auto-falls back to hardcoded models when backend is offline.
+  const [chassisUnits, setChassisUnits] = useState<ChassisModel[]>(CHASSIS_FALLBACK_UNITS);
+  const [isLiveDatabase, setIsLiveDatabase] = useState<boolean>(false);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('mg_hero_weather', weather);
-    } catch {
-      // Ignore
-    }
-  }, [weather]);
+  // Default Unit: 00 (Unit 01)
+  const [activeChassisIdx, setActiveChassisIdx] = useState<number>(0);
+  const [isChassisPaused, setIsChassisPaused] = useState<boolean>(false);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('mg_hero_weather_hidden', String(isWeatherHidden));
-    } catch {
-      // Ignore
-    }
-  }, [isWeatherHidden]);
-
-  const [totalCatalogCount, setTotalCatalogCount] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCardIdx, setActiveCardIdx] = useState(0);
-  const [isDeckPaused, setIsDeckPaused] = useState(false);
-  const [shufflingCardIdx, setShufflingCardIdx] = useState<number | null>(null);
-  const shuffleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const goToCard = (nextIdx: number) => {
-    if (nextIdx === activeCardIdx) return;
-    if (shuffleTimerRef.current) {
-      clearTimeout(shuffleTimerRef.current);
-    }
-    setShufflingCardIdx(activeCardIdx);
-    setActiveCardIdx(nextIdx);
-
-    shuffleTimerRef.current = setTimeout(() => {
-      setShufflingCardIdx(null);
-    }, 580);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (shuffleTimerRef.current) {
-        clearTimeout(shuffleTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Fetch real models from database on mount
+  // Load models from backend API on mount
   useEffect(() => {
     let isMounted = true;
-    getModels({ limit: 6 })
+    apiFetch<ModelsResponse>('/models?limit=3')
       .then((res) => {
         if (!isMounted) return;
-        if (res?.pagination?.total) {
-          setTotalCatalogCount(res.pagination.total);
-        }
         if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
-          const mapped: DeckModel[] = res.data.slice(0, 3).map((m, idx) => {
-            const fallbackItem = DECK_FALLBACK_MODELS[idx] || DECK_FALLBACK_MODELS[0];
-            const fallbackThumbnail = fallbackItem.thumbnailUrl;
-
-            // 1. Dynamic VRAM parsing
-            let vramStr = m.vram_min ? m.vram_min.trim() : (m.type === 'checkpoint' ? '6 GB' : '0.5 GB');
-            if (vramStr && !vramStr.toLowerCase().includes('gb')) {
-              vramStr = `${vramStr} GB`;
-            }
-
-            // 2. Dynamic Resolution from image metadata or version settings
-            let nativeRes = fallbackItem.nativeRes;
-            const primaryImg = m.images && m.images.length > 0 ? m.images[0] : null;
-            const recSettings = m.versions && m.versions.length > 0 ? m.versions[0].recommended_settings : null;
-
-            if (primaryImg && primaryImg.width && primaryImg.height) {
-              nativeRes = `${primaryImg.width} × ${primaryImg.height}`;
-            } else if (recSettings && recSettings.width && recSettings.height) {
-              nativeRes = `${recSettings.width} × ${recSettings.height}`;
-            } else if (m.base_model?.toLowerCase().includes('illustrious')) {
-              nativeRes = '832 × 1216';
-            } else if (m.base_model?.toLowerCase().includes('noob')) {
-              nativeRes = '1024 × 1360';
-            } else {
-              nativeRes = '1024 × 1024';
-            }
-
-            // 3. Dynamic Sampler
-            const sampler = primaryImg?.sampler || recSettings?.sampler || fallbackItem.sampler;
-
-            // 4. Dynamic Steps
-            const steps = primaryImg?.steps || recSettings?.steps || fallbackItem.steps;
-
-            // 5. Dynamic CFG Scale
-            const cfg = primaryImg?.cfg_scale || recSettings?.cfg_scale || fallbackItem.cfg;
-
-            // 6. Dynamic Cleaned Tags (Exclude raw tags like base_model, capitalize nicely)
-            const rawTags = m.tags && Array.isArray(m.tags) ? m.tags.map((t) => t.name) : (fallbackItem.tags || []);
-            const tags = cleanModelTags(rawTags);
-
-            // 7. Dynamic Sanitized Description (Strips HTML tags & filters online generator promo)
-            const description = cleanModelDescription(m.description || fallbackItem.description, m.base_model, m.name);
-
-            return {
-              id: String(m.id),
-              name: m.name,
-              slug: m.slug,
-              baseModel: m.base_model || 'Illustrious XL',
-              type: m.type ? m.type.toUpperCase() : 'CHECKPOINT',
-              tensorCount: m.tensor_size ? parseInt(m.tensor_size, 10) || 587 : 587,
-              vramStr,
-              nativeRes,
-              sampler,
-              steps,
-              cfg,
-              author: m.author || 'Civitai Creator',
-              description,
-              tags,
-              thumbnailUrl: m.thumbnail_url || primaryImg?.image_url || fallbackThumbnail,
-            };
-          });
-
-          if (mapped.length > 0) {
-            setDeckModels(mapped);
+          const dynamicUnits = res.data.slice(0, 3).map((m, idx) => mapModelToChassis(m, idx));
+          // If the user's database has fewer than 3 models, pad with fallback units
+          if (dynamicUnits.length < 3) {
+            const needed = 3 - dynamicUnits.length;
+            const padded = [
+              ...dynamicUnits,
+              ...CHASSIS_FALLBACK_UNITS.slice(dynamicUnits.length, dynamicUnits.length + needed),
+            ];
+            setChassisUnits(padded);
+          } else {
+            setChassisUnits(dynamicUnits);
           }
+          setIsLiveDatabase(true);
+        } else {
+          setChassisUnits(CHASSIS_FALLBACK_UNITS);
+          setIsLiveDatabase(false);
         }
       })
-      .catch((err) => {
-        console.warn('Hero live telemetry used fallback:', err);
+      .catch(() => {
+        // Backend offline / unreachable: auto fallback to hardcoded units
+        if (isMounted) {
+          setChassisUnits(CHASSIS_FALLBACK_UNITS);
+          setIsLiveDatabase(false);
+        }
       });
 
     return () => {
@@ -385,24 +421,88 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
     };
   }, []);
 
-  const handleNextCard = () => {
-    goToCard((activeCardIdx + 1) % deckModels.length);
-  };
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handlePrevCard = () => {
-    goToCard((activeCardIdx - 1 + deckModels.length) % deckModels.length);
-  };
+  // 120FPS Parallax & Mouse Tilt Engine refs
+  const heroRigRef = useRef<HTMLDivElement | null>(null);
+  const targetRotXRef = useRef<number>(0);
+  const targetRotYRef = useRef<number>(0);
+  const currRotXRef = useRef<number>(0);
+  const currRotYRef = useRef<number>(0);
+  const rawScrollPRef = useRef<number>(0);
+  const scrollPRef = useRef<number>(0);
 
-  // Auto-cycle through card deck every 4.5 seconds (pauses when hovering deck)
+  // Auto-cycle chassis every 5 seconds (pausing on hover)
   useEffect(() => {
-    if (isDeckPaused || deckModels.length <= 1) return;
+    if (isChassisPaused) return;
+    const interval = setInterval(() => {
+      setActiveChassisIdx((prev) => (prev + 1) % (chassisUnits.length || 1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isChassisPaused, chassisUnits.length]);
 
-    const timer = setInterval(() => {
-      goToCard((activeCardIdx + 1) % deckModels.length);
-    }, 4500);
+  // 120FPS GPU Parallax & Tilt Lerp Loop (Zero React re-render during motion)
+  useEffect(() => {
+    let rafId: number;
+    let isActive = true;
 
-    return () => clearInterval(timer);
-  }, [isDeckPaused, deckModels.length, activeCardIdx]);
+    const lerpLoop = () => {
+      if (!isActive) return;
+
+      // Pointer tilt spring interpolation
+      currRotXRef.current += (targetRotXRef.current - currRotXRef.current) * 0.12;
+      currRotYRef.current += (targetRotYRef.current - currRotYRef.current) * 0.12;
+
+      // Scroll parallax interpolation
+      scrollPRef.current += (rawScrollPRef.current - scrollPRef.current) * 0.14;
+
+      const sp = scrollPRef.current;
+      const rx = currRotXRef.current;
+      const ry = currRotYRef.current;
+
+      // Apply 3D Perspective Parallax to Hardware Deck Rig
+      if (heroRigRef.current) {
+        heroRigRef.current.style.transform = `perspective(1200px) translate3d(0px, ${(-sp * 45).toFixed(2)}px, ${(sp * 35).toFixed(2)}px) rotateX(${rx.toFixed(2)}deg) rotateY(${ry.toFixed(2)}deg)`;
+      }
+
+      rafId = requestAnimationFrame(lerpLoop);
+    };
+
+    const handleScroll = () => {
+      const hero = heroRef.current;
+      if (!hero) return;
+      const rect = hero.getBoundingClientRect();
+      const progress = Math.max(0, Math.min(1, -rect.top / Math.max(1, window.innerHeight)));
+      rawScrollPRef.current = progress;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    rafId = requestAnimationFrame(lerpLoop);
+
+    return () => {
+      isActive = false;
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Pointer Move Handler for Smooth 3D Tilt
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rig = heroRigRef.current;
+    if (!rig) return;
+    const rect = rig.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width;
+    const ny = (e.clientY - rect.top) / rect.height;
+
+    targetRotXRef.current = (0.5 - ny) * 10;
+    targetRotYRef.current = (nx - 0.5) * 12;
+  };
+
+  const handlePointerLeave = () => {
+    setIsChassisPaused(false);
+    targetRotXRef.current = 0;
+    targetRotYRef.current = 0;
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -413,483 +513,475 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
     }
   };
 
+  const activeChassis = chassisUnits[activeChassisIdx] || chassisUnits[0] || CHASSIS_FALLBACK_UNITS[0];
+
   return (
-    <section className={`mg-hero mg-weather-${weather}`} id="hero" ref={heroRef}>
-      {/* Cinematic atmospheric rain forest background with water reflections */}
-      <div className="mg-hero-forest-bg" aria-hidden="true" />
-      <div className="mg-hero-forest-mist" aria-hidden="true" />
+    <section className="mg-hero mg-hero-cyberpunk" id="hero" ref={heroRef}>
+      {/* 1. Cyberpunk Workstation Backdrop Vector Artwork (Hero.svg) */}
+      <div className="mg-hero-cyber-bg" aria-hidden="true" />
 
-      {/* Cinematic multi-layer canvas rain background */}
-      <RainCanvas weather={weather} />
+      {/* 2. Giant Hollow Watermark + Small Cyberpunk Japanese Glitch Telemetry (Safe Overhead Position) */}
+      <div className="mg-hero-watermark-stage" aria-hidden="true">
+        {/* Dual-Tier Cyberpunk Japanese Micro-Telemetry Cluster (Unobstructed by cards) */}
+        <div className="mg-cp-telemetry-cluster">
+          {/* Tier 1: Models Guide Platform & Neural Architecture */}
+          <div className="mg-cp-micro-bar line-1">
+            <span className="mg-cp-micro-badge-mg">MODELS GUIDE // モデルガイド</span>
+            <span className="mg-cp-micro-divider" />
+            <span
+              className="mg-cp-micro-glitch cyan"
+              data-text="人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY"
+            >
+              人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY
+            </span>
+            <span className="mg-cp-micro-status">[VER.2077 // ONLINE]</span>
+          </div>
 
-      {/* Atmospheric depth lighting, subtle grid, and crosshair reticles */}
-      <div className="mg-hero-atmosphere" aria-hidden="true" />
-      <div className="mg-hero-grid-overlay" aria-hidden="true" />
+          {/* Tier 2: Checkpoint Archive & SafeTensors Telemetry */}
+          <div className="mg-cp-micro-bar line-2">
+            <span
+              className="mg-cp-micro-glitch yellow"
+              data-text="神経ネットワーク // CHECKPOINT ARCHIVE"
+            >
+              神経ネットワーク // CHECKPOINT ARCHIVE
+            </span>
+            <span className="mg-cp-micro-line" />
+            <span
+              className="mg-cp-micro-glitch"
+              data-text="SAFETENSORS RUNTIME // 0.00 MS SOVEREIGNTY"
+            >
+              SAFETENSORS RUNTIME // 0.00 MS SOVEREIGNTY
+            </span>
+            <span className="mg-cp-micro-badge-cyan">自律実行</span>
+          </div>
+        </div>
 
-      {/* Architectural corner reticles */}
-      <div className="mg-corner-reticle top-left" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle top-right" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle bottom-left" aria-hidden="true">
-        <span>+</span>
-      </div>
-      <div className="mg-corner-reticle bottom-right" aria-hidden="true">
-        <span>+</span>
+        {/* Center: Giant Hollow-Outline Watermark (Matching Section 1 Aesthetic) */}
+        <div className="mg-hero-watermark-wrap">
+          <span className="mg-hero-watermark-text">
+            AI GENERATIVE IMAGE //
+          </span>
+        </div>
       </div>
 
-      {/* Hero Content: 2-Column Layered Asymmetric Composition */}
+      {/* 3. Cyberpunk 2077 Main Menu & UI Glitch Overlay (CRT Scanlines & V-Sync Tears) */}
+      <CyberMenuGlitchOverlay />
+
+      {/* 4. Interactive Floating Cyber Spark / Particle Canvas */}
+      <CyberDustCanvas />
+
+      {/* Cyberpunk HUD Corner Brackets & Optical Crosshairs */}
+      <div className="mg-cp-hud-corner top-left" aria-hidden="true">
+        <span className="mg-cp-hud-bracket">&lceil;</span>
+        <span className="mg-cp-hud-tag">TARGET // 01-SYS [KIROSHI OPTICS]</span>
+      </div>
+      <div className="mg-cp-hud-corner top-right" aria-hidden="true">
+        <span className="mg-cp-hud-tag">PORT 8080 // BUS 0.00ms</span>
+        <span className="mg-cp-hud-bracket">&rceil;</span>
+      </div>
+      <div className="mg-cp-hud-corner bottom-left" aria-hidden="true">
+        <span className="mg-cp-hud-bracket">&lfloor;</span>
+        <span className="mg-cp-hud-tag">SAFETENSORS // 人工知能</span>
+      </div>
+      <div className="mg-cp-hud-corner bottom-right" aria-hidden="true">
+        <span className="mg-cp-hud-tag">GPU_TELEMETRY: ONLINE</span>
+        <span className="mg-cp-hud-bracket">&rfloor;</span>
+      </div>
+
+      {/* Hero Content: 2-Column Mechanical Workstation Layout */}
       <div className="mg-hero-container">
-        <div className="mg-hero-split-grid">
-          {/* Left Column: Editorial Typography, Live Status, Search & CTAs */}
+        <div className="mg-hero-split-grid" style={{ alignItems: 'center' }}>
+          {/* =================================================================
+              LEFT COLUMN: Telemetry Bar, Punchy Headline, Search & 3-Col Specs
+              ================================================================= */}
           <div className="mg-hero-editorial-col">
-            {/* Live catalog category pill */}
-            <div className="mg-hero-badge-wrap">
-              <div className="mg-hero-badge">
-                <span className="mg-hero-badge-dot" />
-                <span className="mg-hero-badge-mono">LOCAL LIBRARY</span>
-                <span className="mg-hero-badge-divider">/</span>
-                <span>
-                  {totalCatalogCount !== null ? `${totalCatalogCount} MODELS INDEXED` : 'CURATED MODEL REPOSITORY'}
+            {/* Cyberpunk 2077 Telemetry Header (Ref: Image 1 & 2) */}
+            <div className="mg-hero-cyber-pill">
+              <div className="mg-cp-header-row-1">
+                <span className="mg-cp-yellow-badge">MODELS GUIDE // モデルガイド</span>
+                <span className="mg-cp-header-pipe">|</span>
+                <span className="mg-cp-header-dir">
+                  人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY [VER.2077]
                 </span>
+              </div>
+              <div className="mg-cp-header-row-2">
+                <span className="mg-cp-archive-tag">神経ネットワーク // CHECKPOINT ARCHIVE</span>
+                <span className="mg-cp-archive-dash">——</span>
+                <span className="mg-cp-runtime-tag">SAFETENSORS RUNTIME // 0.00 MS SOVEREIGNTY</span>
               </div>
             </div>
 
-            {/* Editorial Headline with typewriter accent text */}
-            <h1 className="mg-hero-title">
-              <span className="mg-hero-title-line">
-                <span className="mg-hero-title-reveal" style={{ animationDelay: '150ms' }}>
-                  Your Models.
+            {/* Top Telemetry Bar SYS.01 (Clean HUD telemetry line, no card box) */}
+            <div className="mg-hero-telemetry-bar">
+              <div className="mg-hero-telemetry-sys">
+                <div className="mg-hero-signal-bars" aria-hidden="true">
+                  <span className="sig-bar b1" />
+                  <span className="sig-bar b2" />
+                  <span className="sig-bar b3" />
+                  <span className="sig-bar b4" />
+                  <span className="sig-bar b5" />
+                </div>
+                <span className="mg-telemetry-pulse" />
+                <span className="mg-telemetry-title">
+                  SYS.01 // GENERATIVE AI WORKSTATION
                 </span>
-              </span>
-              <span className="mg-hero-title-line">
-                <span className="mg-hero-title-reveal" style={{ animationDelay: '350ms' }}>
+              </div>
+              <div className="mg-hero-telemetry-pills" role="status" aria-label="Status Runtime Workstation">
+                <span className="mg-hero-status-pill cyan">KIROSHI V2.077</span>
+                <span className="mg-hero-status-pill slate">LOCAL RUNTIME</span>
+                <span className="mg-hero-status-pill green">0.00 MS BUS</span>
+                <span className="mg-hero-status-pill yellow">14 RIGS</span>
+              </div>
+            </div>
+
+            {/* Giant Punchy Headline with Typewriter: LOCAL MODEL + Typewriter */}
+            <div className="mg-hero-headline-wrap">
+              <h1 className="mg-hero-title-mech">
+                <span className="mg-hero-title-white">
+                  LOCAL MODEL
+                </span>
+                <span className="mg-hero-title-yellow">
                   <HeroTypewriter />
                 </span>
-              </span>
-            </h1>
+              </h1>
+            </div>
 
-            {/* Supporting Editorial Paragraph */}
-            <p className="mg-hero-subtitle" style={{ animationDelay: '520ms' }}>
-              Jelajahi, bandingkan, dan pahami model generative AI kamu di satu workspace zero-telemetry.
+            {/* Subtitle / Description Paragraph */}
+            <p className="mg-hero-lead-mech">
+              Direktori kurasi arsitektur <strong className="mg-lead-hl">Illustrious XL, NoobAI V-Pred, SDXL, dan Flux.1</strong> yang terintegrasi dengan <strong className="mg-lead-cyan">14 perkakas workstation lokal</strong>—mulai dari pembacaan biner SafeTensors, kalkulasi interferensi LoRA, hingga jembatan node ComfyUI.
             </p>
 
-            {/* Quick Model Search Bar */}
-            <form className="mg-hero-search-bar" onSubmit={handleSearchSubmit} style={{ animationDelay: '680ms' }}>
-              <div className="mg-search-input-wrap">
-                <svg className="mg-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
+            {/* Fast Inline Search Bar with ACCESS Button */}
+            <form className="mg-mech-search-bar" onSubmit={handleSearchSubmit}>
+              <div className="mg-mech-search-wrap mg-chamfer-sm">
+                <div className="mg-search-prefix-group" aria-hidden="true">
+                  <svg className="mg-mech-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                  <span className="mg-search-prefix-tag">QUERY //</span>
+                </div>
                 <input
                   type="text"
-                  className="mg-search-input"
-                  placeholder="Search models, LoRA, creators..."
+                  className="mg-mech-search-input"
+                  placeholder="QUERY CHECKPOINT // TRIGGER WORD // SAFETENSORS HASH..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Search models library"
+                  aria-label="Cari checkpoint dan model SafeTensors"
                 />
-                <button type="submit" className="mg-search-submit-btn">
-                  <span>Search</span>
-                  <span className="mg-key-badge">&crarr;</span>
+                <span className="mg-search-kbd-tag" aria-hidden="true">[ ↵ EXEC ]</span>
+                <button
+                  type="submit"
+                  className="mg-mech-access-btn mg-chamfer-sm"
+                >
+                  ACCESS
                 </button>
               </div>
             </form>
 
-            {/* Quick Tag Chips / Popular Filters */}
-            <div className="mg-hero-quick-filters" style={{ animationDelay: '780ms' }}>
-              <span className="mg-quick-label">POPULAR:</span>
-              <div className="mg-quick-chips-list">
-                {HERO_QUICK_TAGS.map((tag) => (
-                  <button
-                    key={tag.label}
-                    type="button"
-                    className="mg-quick-chip"
-                    onClick={() => navigate(tag.target)}
-                    title={`Browse ${tag.label} in models catalog`}
-                  >
-                    <span>{tag.label}</span>
-                  </button>
-                ))}
+            {/* 3-Column Specifications (Open telemetry grid without card box) */}
+            <div className="mg-mech-specs-panel">
+              <div className="mg-mech-spec-item">
+                <div className="mg-mech-spec-header">
+                  <div className="mg-spec-label-group">
+                    <span className="mg-mech-spec-label">BASE CORES</span>
+                    <span className="mg-mech-spec-jp">基底コア</span>
+                  </div>
+                  <span className="mg-mech-spec-subtag">5 ARCH</span>
+                </div>
+                <span className="mg-mech-spec-value white">05 CORES</span>
+                <div className="mg-spec-segmented-bar" aria-hidden="true">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <span key={i} className={`pod-seg cyan ${i < 7 ? 'lit' : 'dim'}`} />
+                  ))}
+                </div>
               </div>
-            </div>
-
-            {/* Primary & Secondary Action CTAs */}
-            <div className="mg-hero-actions" style={{ animationDelay: '880ms' }}>
-              <Link to="/models" className="mg-btn mg-btn-primary mg-btn-shimmer">
-                <span>Explore Models</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <polyline points="12 5 19 12 12 19" />
-                </svg>
-              </Link>
-
-              <button
-                type="button"
-                className="mg-btn mg-btn-secondary"
-                onClick={() => {
-                  const target = document.getElementById('tools-arsenal');
-                  if (target) {
-                    target.scrollIntoView({ behavior: 'smooth' });
-                  } else {
-                    onDiscoverClick();
-                  }
-                }}
-                aria-label="Scroll down to tools arsenal"
-              >
-                <span>Generative Tools</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <polygon points="12 2 2 7 12 12 22 7 12 2" />
-                  <polyline points="2 17 12 22 22 17" />
-                  <polyline points="2 12 12 17 22 12" />
-                </svg>
-              </button>
-
-              <button
-                type="button"
-                className="mg-btn mg-btn-secondary"
-                onClick={onDiscoverClick}
-                aria-label="Scroll down to discover application features"
-              >
-                <span>Discover Features</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <polyline points="19 12 12 19 5 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Quick Tools Launch Strip */}
-            <div className="mg-hero-tools-strip" style={{ animationDelay: '980ms' }}>
-              <span className="mg-quick-label">TOOLS:</span>
-              <div className="mg-quick-chips-list">
-                <Link to="/controlnet" className="mg-quick-chip mg-tool-chip" title="Buka ControlNet & OpenPose Rig">
-                  <span className="mg-tool-chip-dot" />
-                  <span>ControlNet Rig</span>
-                </Link>
-                <Link to="/vram" className="mg-quick-chip mg-tool-chip" title="Buka VRAM & Hardware Profiler">
-                  <span className="mg-tool-chip-dot" />
-                  <span>VRAM Profiler</span>
-                </Link>
-                <Link to="/workflows" className="mg-quick-chip mg-tool-chip" title="Buka ComfyUI Workflows">
-                  <span className="mg-tool-chip-dot" />
-                  <span>Comfy Workflows</span>
-                </Link>
-                <Link to="/negative-vault" className="mg-quick-chip mg-tool-chip" title="Buka Negative Vault">
-                  <span className="mg-tool-chip-dot" />
-                  <span>Negative Vault</span>
-                </Link>
-                <Link to="/sampler-guide" className="mg-quick-chip mg-tool-chip" title="Buka Sampler & Scheduler Guide">
-                  <span className="mg-tool-chip-dot" />
-                  <span>Sampler Guide</span>
-                </Link>
-                <Link to="/story-merger" className="mg-quick-chip mg-tool-chip" title="Buka Character Lock & Story Merger">
-                  <span className="mg-tool-chip-dot" />
-                  <span>Story Merger</span>
-                </Link>
+              <div className="mg-mech-spec-item">
+                <div className="mg-mech-spec-header">
+                  <div className="mg-spec-label-group">
+                    <span className="mg-mech-spec-label">CREATOR TOOLS</span>
+                    <span className="mg-mech-spec-jp">作成ツール</span>
+                  </div>
+                  <span className="mg-mech-spec-subtag">14 RIGS</span>
+                </div>
+                <span className="mg-mech-spec-value green">14 UNITS</span>
+                <div className="mg-spec-segmented-bar" aria-hidden="true">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <span key={i} className={`pod-seg green ${i < 8 ? 'lit' : 'dim'}`} />
+                  ))}
+                </div>
+              </div>
+              <div className="mg-mech-spec-item">
+                <div className="mg-mech-spec-header">
+                  <div className="mg-spec-label-group">
+                    <span className="mg-mech-spec-label">LOCAL LATENCY</span>
+                    <span className="mg-mech-spec-jp">遅延測定</span>
+                  </div>
+                  <span className="mg-mech-spec-subtag">0.00 MS</span>
+                </div>
+                <div className="mg-spec-latency-row">
+                  <span className="mg-mech-spec-value yellow">0.00 MS</span>
+                  <span className="mg-latency-pulse-tag yellow">[REALTIME]</span>
+                </div>
+                <div className="mg-spec-segmented-bar" aria-hidden="true">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <span key={i} className={`pod-seg yellow ${i < 7 ? 'lit' : 'dim'}`} />
+                  ))}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Right Column: 3D Floating Model Card Deck */}
-          <div
-            className="mg-hero-deck-col"
-            style={{ animationDelay: '600ms' }}
-            onMouseEnter={() => setIsDeckPaused(true)}
-            onMouseLeave={() => setIsDeckPaused(false)}
-          >
-            {/* Ambient Background Glow behind Card Deck */}
-            <div className="mg-deck-ambient-glow" aria-hidden="true" />
-
-            {/* 3D Stack of Cards */}
-            <div className="mg-deck-stack">
-              {deckModels.map((model, idx) => {
-                const total = deckModels.length;
-                const offset = (idx - activeCardIdx + total) % total;
-                const isFront = offset === 0;
-                const isShufflingOut = shufflingCardIdx === idx;
-
-                return (
-                  <div
-                    key={model.id}
-                    className={`mg-deck-card offset-${offset} ${isFront ? 'is-front' : 'is-stacked'} ${isShufflingOut ? 'is-shuffling-out' : ''}`}
-                    onClick={() => {
-                      if (!isFront) {
-                        goToCard(idx);
-                      }
-                    }}
-                    role={isFront ? undefined : 'button'}
-                    tabIndex={isFront ? undefined : 0}
-                    aria-label={isFront ? undefined : `Bring ${model.name} to front`}
-                  >
-                    {/* Optical Corner Reticles */}
-                    <div className="mg-card-reticle tl" aria-hidden="true" />
-                    <div className="mg-card-reticle tr" aria-hidden="true" />
-                    <div className="mg-card-reticle bl" aria-hidden="true" />
-                    <div className="mg-card-reticle br" aria-hidden="true" />
-
-                    {/* Scanline beam sweep on active card */}
-                    {isFront && <div className="mg-card-scanline" aria-hidden="true" />}
-
-                    {/* Card Media Wrapper (Portrait Aspect Ratio) */}
-                    <div className="mg-card-media-wrap">
-                      <img
-                        src={model.thumbnailUrl}
-                        alt={model.name}
-                        className="mg-card-img"
-                        loading={isFront ? 'eager' : 'lazy'}
-                        decoding="async"
-                        // @ts-ignore - React 19 supports fetchPriority
-                        fetchPriority={isFront ? 'high' : 'low'}
-                        width={340}
-                        height={480}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
-                        }}
-                      />
-
-                      {/* Top Badges overlaying image */}
-                      <div className="mg-card-top-badges">
-                        <div className="mg-card-base-pill">
-                          <span className="mg-badge-accent-dot" />
-                          <span>{model.baseModel}</span>
-                        </div>
-                        <span className={`mg-card-type-pill ${model.type?.toLowerCase() === 'lora' ? 'lora' : 'checkpoint'}`}>
-                          {model.type}
-                        </span>
-                      </div>
-
-                      <div className="mg-card-media-gradient" />
-                    </div>
-
-                    {/* Card Bottom Meta & Spec Panel */}
-                    <div className="mg-card-body">
-                      <div className="mg-card-identity">
-                        <h3 className="mg-card-name" title={model.name}>
-                          {model.name}
-                        </h3>
-                        <span className="mg-card-author">
-                          by {model.author}
-                          <svg className="mg-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                            <polyline points="22 4 12 14.01 9 11.01" />
-                          </svg>
-                        </span>
-                      </div>
-
-                      {/* Model Description & Style Badges (Pre-sanitized data) */}
-                      <div className="mg-card-desc-wrap">
-                        {model.description && (
-                          <p className="mg-card-desc-snippet" title={model.description}>
-                            {model.description}
-                          </p>
-                        )}
-                        {model.tags && model.tags.length > 0 && (
-                          <div className="mg-card-tags-cloud">
-                            {model.tags.map((t) => (
-                              <span key={t} className="mg-card-tag-badge">
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Technical Specs Metric Bar */}
-                      <div className="mg-card-specs-grid">
-                        <div className="mg-card-spec-item">
-                          <span className="mg-card-spec-k">VRAM MIN</span>
-                          <span className="mg-card-spec-v">{model.vramStr}</span>
-                        </div>
-                        <div className="mg-card-spec-item">
-                          <span className="mg-card-spec-k">NATIVE RES</span>
-                          <span className="mg-card-spec-v">{model.nativeRes}</span>
-                        </div>
-                        <div className="mg-card-spec-item">
-                          <span className="mg-card-spec-k">SAMPLER</span>
-                          <span className="mg-card-spec-v">{model.sampler}</span>
-                        </div>
-                        <div className="mg-card-spec-item">
-                          <span className="mg-card-spec-k">CFG / STEPS</span>
-                          <span className="mg-card-spec-v">{model.cfg} / {model.steps}</span>
-                        </div>
-                      </div>
-
-                      {/* Card Action Link */}
-                      <div className="mg-card-footer">
-                        <Link
-                          to={`/models?model=${model.slug}`}
-                          className="mg-card-inspect-btn"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span>Inspect SafeTensors File</span>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                            <polyline points="12 5 19 12 12 19" />
-                          </svg>
-                        </Link>
-                        <span className="mg-card-status">{model.tensorCount} LAYERS</span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Deck Navigation Controls */}
-            <div className="mg-deck-controls">
-              <button
-                type="button"
-                className="mg-deck-arrow-btn"
-                onClick={handlePrevCard}
-                aria-label="Previous model card"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="15 18 9 12 15 6" />
+          {/* =================================================================
+              RIGHT COLUMN: Active Chassis Topbar & 3D Mechanical Card Deck
+              ================================================================= */}
+          <div className="mg-mech-deck-column">
+            {/* Topbar: Active Chassis Indicator + Numbered Selector Buttons */}
+            <div className="mg-mech-chassis-topbar">
+              <div className="mg-mech-chassis-label">
+                <svg className="mg-chassis-spin-reticle" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" strokeDasharray="4 4" />
+                  <circle cx="12" cy="12" r="3" fill="#38bdf8" />
                 </svg>
-              </button>
-
-              <div className="mg-deck-pills" role="tablist" aria-label="Model card selection">
-                {deckModels.map((m, idx) => (
+                <span
+                  className="mg-mech-active-label mg-cp-relaxed-glitch"
+                  data-text={`ACTIVE CHASSIS // 0${activeChassisIdx + 1}`}
+                >
+                  ACTIVE CHASSIS // 0{activeChassisIdx + 1}
+                </span>
+                {isLiveDatabase && (
+                  <span className="mg-mech-live-pill" title="Live dynamic data dari database backend / Civitai">
+                    ● LIVE DB
+                  </span>
+                )}
+              </div>
+              <div className="mg-mech-chassis-buttons" role="tablist" aria-label="Pilih Unit Chassis">
+                {chassisUnits.map((u, idx) => (
                   <button
-                    key={m.id}
+                    key={u.id}
                     type="button"
                     role="tab"
-                    aria-selected={activeCardIdx === idx}
-                    className={`mg-deck-pill ${activeCardIdx === idx ? 'active' : ''}`}
-                    onClick={() => goToCard(idx)}
+                    aria-selected={activeChassisIdx === idx}
+                    className={`mg-mech-chassis-num-btn mg-chamfer-sm ${activeChassisIdx === idx ? 'active' : ''}`}
+                    onClick={() => setActiveChassisIdx(idx)}
+                    title={`Pilih ${u.name}`}
                   >
-                    <span className="mg-pill-num">0{idx + 1}</span>
-                    <span className="mg-pill-name">{m.name.split('-')[0] || m.name.split(' ')[0]}</span>
+                    <span className="mg-chassis-btn-idx">0{idx + 1}</span>
+                    <span className="mg-chassis-btn-codename">{idx === 0 ? 'STRIX' : idx === 1 ? 'ZEPHYR' : 'MATRIX'}</span>
                   </button>
                 ))}
               </div>
+            </div>
 
-              <button
-                type="button"
-                className="mg-deck-arrow-btn"
-                onClick={handleNextCard}
-                aria-label="Next model card"
+            {/* 3D Hardware Deck Rig with Parallax & Mouse Tilt */}
+            <div
+              ref={heroRigRef}
+              className="mg-mech-card-deck-rig mg-gpu"
+              onPointerMove={handlePointerMove}
+              onPointerLeave={handlePointerLeave}
+              onMouseEnter={() => setIsChassisPaused(true)}
+            >
+              <div
+                className="mg-hero-mech-card-frame mg-chamfer-lg"
+                onClick={() => navigate(`/models?model=${activeChassis.slug}`)}
+                role="button"
+                tabIndex={0}
+                aria-label={`Inspect ${activeChassis.name}`}
+                style={{ cursor: 'pointer' }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
+                {/* Mechanical Hardware Corner Bolts (ASUS ROG Hardware Rivets) */}
+                <div className="mg-card-hardware-bolts" aria-hidden="true">
+                  <span className="mg-bolt tl">⬢</span>
+                  <span className="mg-bolt tr">⬢</span>
+                  <span className="mg-bolt bl">⬢</span>
+                  <span className="mg-bolt br">⬢</span>
+                </div>
+
+                {/* Decorative Cyberpunk Hazard Line & ROG Matrix Slash Accent */}
+                <div className="mg-card-hazard-strip" aria-hidden="true">
+                  <div className="mg-rog-slash-vent">
+                    <span className="mg-rog-matrix-tag">ROG-MATRIX // V4.8</span>
+                    <div className="mg-rog-slashes">
+                      <span /><span /><span /><span /><span />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card Header Bar */}
+                <div className="mg-mech-card-header-bar">
+                  <div className="mg-mech-header-titles">
+                    <div className="mg-mech-unit-code-row">
+                      <span
+                        className="mg-mech-unit-code mg-cp-micro-glitch cyan"
+                        data-text={activeChassis.unitCode}
+                      >
+                        {activeChassis.unitCode}
+                      </span>
+                      <span className="mg-unit-jp-tag">機体 // ARCH-0{activeChassisIdx + 1}</span>
+                    </div>
+                    <CardCorruptedTitle text={activeChassis.name} />
+                  </div>
+                  <div className="mg-mech-header-right-badges">
+                    <div className={`mg-mech-vram-pill mg-chamfer-sm ${activeChassis.vramColor}`}>
+                      {activeChassis.vramBadge}
+                    </div>
+                    <span className="mg-mech-vram-subtag">FP16 DUAL-CH</span>
+                  </div>
+                </div>
+
+                {/* Framed Landscape Media Area with Kiroshi Optic HUD */}
+                <div className="mg-mech-media-frame mg-chamfer-sm">
+                  {/* Optical HUD Crosshairs & Kiroshi HUD telemetry */}
+                  <div className="mg-card-hud-crosshairs" aria-hidden="true">
+                    <span className="reticle-ch tl">┌</span>
+                    <span className="reticle-ch tr">┐</span>
+                    <span className="reticle-ch bl">└</span>
+                    <span className="reticle-ch br">┘</span>
+                    <div className="mg-kiroshi-hud-top">
+                      <span className="mg-kiroshi-live-dot" aria-hidden="true" />
+                      <span className="mg-kiroshi-badge">KIROSHI OPTIC // TGT.LOCK</span>
+                      <span className="mg-kiroshi-freq">144Hz</span>
+                    </div>
+                  </div>
+
+                  {/* Real-time CRT scanlines & Laser Sweep & Glitch Tear */}
+                  <div className="mg-mech-hologram-scanline" aria-hidden="true" />
+                  <div className="mg-kiroshi-laser-sweep" aria-hidden="true" />
+                  <div className="mg-media-glitch-tear" aria-hidden="true" />
+
+                  <img
+                    src={activeChassis.thumbnailUrl}
+                    alt={activeChassis.name}
+                    className="mg-mech-frame-img"
+                    style={activeChassis.imagePosition ? { objectPosition: activeChassis.imagePosition } : undefined}
+                    loading="eager"
+                    decoding="async"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
+                    }}
+                  />
+
+                  {/* Metadata Overlay Pills */}
+                  <div className="mg-mech-overlay-sha mg-chamfer-sm">
+                    {activeChassis.sha256}
+                  </div>
+
+                  {/* Bottom Tags (LoRA Tag & Parameter Count) */}
+                  <div className="mg-mech-overlay-bottom">
+                    <span className="mg-mech-pill-lora mg-chamfer-sm">
+                      {activeChassis.loraTag}
+                    </span>
+                    <span className="mg-mech-pill-tensor mg-chamfer-sm">
+                      <span className="mg-jp-tensor-mini">テンソル</span> {activeChassis.tensorBadge}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cyberpunk x ROG Armoury Crate Segmented VRAM Footprint Meter */}
+                <div className="mg-hero-card-vram-meter">
+                  <div className="mg-hero-vram-meter-head">
+                    <div className="mg-vram-title-group">
+                      <span className="mg-vram-icon">⚡</span>
+                      <span className="mg-vram-label">GPU VRAM FOOTPRINT</span>
+                      <span className="mg-vram-subtag">// ARMOURY ALLOC</span>
+                    </div>
+                    <div className="mg-vram-val-group">
+                      <span className={`val-${activeChassis.vramColor}`}>{activeChassis.vramBadge}</span>
+                      <span className="mg-vram-status">[SYNC: OK]</span>
+                    </div>
+                  </div>
+                  <div className="mg-hero-vram-segmented-bar" aria-hidden="true">
+                    {Array.from({ length: 16 }).map((_, i) => {
+                      const activeCount =
+                        activeChassis.vramColor === 'green'
+                          ? 13
+                          : activeChassis.vramColor === 'amber' || activeChassis.vramColor === 'yellow'
+                          ? 10
+                          : 12;
+                      const isLit = i < activeCount;
+                      const isPeak = i >= 14;
+                      const isWarn = i >= 11 && i < 14;
+                      return (
+                        <span
+                          key={i}
+                          style={{ '--seg-idx': i } as React.CSSProperties}
+                          className={`mg-vram-seg ${isLit ? 'lit' : 'dim'} ${
+                            isPeak ? 'peak' : isWarn ? 'warn' : 'norm'
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="mg-vram-ticks" aria-hidden="true">
+                    <span>0%</span>
+                    <span>25%</span>
+                    <span>50%</span>
+                    <span>75%</span>
+                    <span className="tick-peak">PEAK 100%</span>
+                  </div>
+                </div>
+
+                {/* Bottom 3-Column Specifications with Cyberpunk / ROG telemetry */}
+                <div className="mg-mech-bottom-specs">
+                  <div className="mg-mech-bottom-col">
+                    <div className="mg-mech-b-head">
+                      <span className="mg-mech-b-key">PREDICTION</span>
+                      <span className="mg-mech-b-jp">予測</span>
+                    </div>
+                    <span className="mg-mech-b-val">{activeChassis.prediction}</span>
+                  </div>
+                  <div className="mg-mech-bottom-col">
+                    <div className="mg-mech-b-head">
+                      <span className="mg-mech-b-key">NATIVE RES</span>
+                      <span className="mg-mech-b-jp">解像度</span>
+                    </div>
+                    <span className="mg-mech-b-val">{activeChassis.nativeRes}</span>
+                  </div>
+                  <div className="mg-mech-bottom-col">
+                    <div className="mg-mech-b-head">
+                      <span className="mg-mech-b-key">{activeChassis.samplerOrGuidanceKey}</span>
+                      <span className="mg-mech-b-jp">サンプラー</span>
+                    </div>
+                    <span className="mg-mech-b-val">{activeChassis.samplerOrGuidanceVal}</span>
+                  </div>
+                </div>
+
+                {/* Interactive Gaming Inspect Bar with ROG Chamfer & Chromatic Glitch */}
+                <div className="mg-hero-card-inspect-bar">
+                  <div className="mg-card-inspect-meta">
+                    <span className="mg-card-inspect-text">TELEMETRY &amp; TENSORS</span>
+                    <span className="mg-rog-sync-tag">
+                      <span className="mg-rog-armed-dot" aria-hidden="true" />
+                      ROG-MATRIX // ARMED
+                    </span>
+                  </div>
+                  <span className="mg-card-inspect-btn mg-chamfer-sm">
+                    [ INSPECT DATA &rarr; ]
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-
       </div>
 
-      {/* Subtle Animated Vertical Scroll Indicator */}
+      {/* Gaming HUD Scroll Indicator */}
       <div
-        className="mg-hero-scroll-indicator"
+        className="mg-hero-scroll-indicator mg-chamfer-sm"
         onClick={onDiscoverClick}
         role="button"
         tabIndex={0}
-        aria-label="Scroll down to features narrative"
+        aria-label="Scroll down to specification overview"
       >
-        <span className="mg-scroll-track">
-          <span className="mg-scroll-thumb" />
-        </span>
-        <span className="mg-scroll-label">SCROLL</span>
-      </div>
-
-      {/* Interactive Weather Controller Widget in Bottom Right */}
-      {isWeatherHidden ? (
-        <button
-          type="button"
-          className="mg-weather-trigger-btn"
-          onClick={() => setIsWeatherHidden(false)}
-          title={`Cuaca: ${weather === 'clear' ? 'Cerah' : weather === 'rain' ? 'Hujan' : 'Badai'} (Klik untuk atur)`}
-          aria-label="Buka Pengaturan Cuaca"
-        >
-          {weather === 'clear' && (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-            </svg>
-          )}
-          {weather === 'rain' && (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-              <path d="M16 14v6M8 14v6M12 16v6" />
-            </svg>
-          )}
-          {weather === 'storm' && (
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-              <path d="m13 15-3 5h4l-1 5" />
-            </svg>
-          )}
-        </button>
-      ) : (
-        <div className="mg-weather-widget" role="group" aria-label="Pengaturan Cuaca">
-          <span className="mg-weather-label">WEATHER</span>
-          <div className="mg-weather-pill">
-            <button
-              type="button"
-              className={`mg-weather-btn ${weather === 'clear' ? 'active' : ''}`}
-              data-weather="clear"
-              onClick={() => setWeather('clear')}
-              title="Cerah (Sunny / Clear Sky)"
-              aria-pressed={weather === 'clear'}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-              </svg>
-              <span>Cerah</span>
-            </button>
-
-            <button
-              type="button"
-              className={`mg-weather-btn ${weather === 'rain' ? 'active' : ''}`}
-              data-weather="rain"
-              onClick={() => setWeather('rain')}
-              title="Hujan Biasa (Normal Rain)"
-              aria-pressed={weather === 'rain'}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
-                <path d="M16 14v6M8 14v6M12 16v6" />
-              </svg>
-              <span>Hujan</span>
-            </button>
-
-            <button
-              type="button"
-              className={`mg-weather-btn ${weather === 'storm' ? 'active' : ''}`}
-              data-weather="storm"
-              onClick={() => setWeather('storm')}
-              title="Hujan Badai (Storm & Lightning)"
-              aria-pressed={weather === 'storm'}
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-                <path d="m13 15-3 5h4l-1 5" />
-              </svg>
-              <span>Badai</span>
-            </button>
-
-            <button
-              type="button"
-              className="mg-weather-hide-btn"
-              onClick={() => setIsWeatherHidden(true)}
-              title="Sembunyikan / Hide"
-              aria-label="Sembunyikan Pengaturan Cuaca"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
+        <div className="mg-hero-scroll-chevrons" aria-hidden="true">
+          <span className="chev c1">&bull;</span>
+          <span className="chev c2">&bull;</span>
+          <span className="chev c3">&bull;</span>
         </div>
-      )}
+        <span className="mg-scroll-label">SCROLL // SYSTEM OVERVIEW</span>
+      </div>
     </section>
   );
 }
+
+export default HeroSection;
