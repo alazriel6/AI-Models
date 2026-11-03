@@ -32,7 +32,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/2b182691-ffcc-4a4a-bb82-556746aeed05" alt="AI Models Generative Workstation" width="100%" />
+  <img width="2541" height="1264" alt="Image" src="https://github.com/user-attachments/assets/23131749-c103-4c0c-b566-95efa1bb98e1" />
 </p>
 
 </div>
