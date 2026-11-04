@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { getModels, type Model } from '../../api/models';
 import { ShowcaseSvgBlueprint } from './showcase/ShowcaseSvgBlueprint';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
 import {
   AllArchitecturesSvg,
   CheckpointsSvg,
@@ -225,6 +226,7 @@ export function ShowcaseSection() {
       </div>
 
       <div className="mg-container" style={{ position: 'relative', zIndex: 6 }}>
+
         {/* Header */}
         <div className="mg-showcase-head">
           <div>
@@ -451,6 +453,14 @@ export function ShowcaseSection() {
           <span>Tag &ldquo;{copiedTag}&rdquo; berhasil disalin ke clipboard</span>
         </div>
       )}
+
+      {/* Cyberpunk Section Shortcut Navigator (Paling Ujung Bawah Section) */}
+      <CyberSectionNavigator
+        targetId="features-narrative"
+        direction="down"
+        label="CORE FEATURES"
+        className="mg-dock-edge bottom"
+      />
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
 import '../../style/tools-arsenal.css';
 
 export type ToolCategory = 'all' | 'prompt' | 'hardware' | 'workflow' | 'inspection';
@@ -358,6 +359,7 @@ export function ToolsArsenalSection() {
       <div className="mg-tools-atmosphere" aria-hidden="true" />
 
       <div className="mg-container" style={{ position: 'relative', zIndex: 6 }}>
+
         {/* Section Header */}
         <div className="mg-tools-header">
           <div className="mg-editorial-tag">
@@ -589,6 +591,14 @@ export function ToolsArsenalSection() {
           </div>
         )}
       </div>
+
+      {/* Cyberpunk Section Shortcut Navigator (Paling Ujung Bawah Section) */}
+      <CyberSectionNavigator
+        targetId="technical-reference"
+        direction="down"
+        label="TECHNICAL MATRIX"
+        className="mg-dock-edge bottom"
+      />
     </section>
   );
 }

@@ -1,138 +1,256 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch, resolveImageUrl } from '../../api/client';
-import type { Model, ModelsResponse } from '../../api/models';
+import { apiFetch } from '../../api/client';
+import type { ModelsResponse, Model } from '../../api/models';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
+import { CyberCorruptWalkingText, CyberSeparateGlitch, generateTypewriterCorruptWord } from './CyberCorruptWalkingText';
+import { SamuraiEmblem } from '../common/SamuraiEmblem';
 
-interface ChassisModel {
+interface TacticalChassisUnit {
   id: string;
+  tabLabel: string;
   unitCode: string;
   name: string;
   slug: string;
   vramBadge: string;
-  vramColor: 'cyan' | 'green' | 'amber';
-  sha256: string;
-  loraTag: string;
-  tensorBadge: string;
+  vramGb: number;
   prediction: string;
   nativeRes: string;
-  samplerOrGuidanceKey: string;
-  samplerOrGuidanceVal: string;
+  samplerStack: string;
+  cfgScale: string;
+  allocText: string;
   thumbnailUrl: string;
-  imagePosition?: string;
+  flowerAccentText: string;
+  activeTargetPct: string;
+  tags: string[];
 }
 
-const CHASSIS_FALLBACK_UNITS: ChassisModel[] = [
+interface SafeTensorsDemoFile {
+  id: string;
+  fileName: string;
+  label: string;
+  format: string;
+  tensors: string;
+  headerSize: string;
+  hash: string;
+  audit: string;
+  architecture: string;
+}
+
+const SAFETENSORS_DEMO_FILES: SafeTensorsDemoFile[] = [
   {
-    id: 'hassaku-illustrious',
-    unitCode: 'UNIT // 01-ILLUSTRIOUS',
-    name: 'HASSAKU XL (ILLUSTRIOUS)',
-    slug: 'wai-illustrious-sdxl',
-    vramBadge: '6.8 GB FP16',
-    vramColor: 'cyan',
-    sha256: 'SHA256 // ETENSORS',
-    loraTag: '<1girl>',
-    tensorBadge: '3.1B TENSORS',
-    prediction: 'EPSILON (V0.1)',
-    nativeRes: '832 × 1216 PX',
-    samplerOrGuidanceKey: 'SAMPLER LOCK',
-    samplerOrGuidanceVal: 'EULER A (25S)',
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=600/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
-    imagePosition: 'center 20%',
+    id: 'hassaku',
+    fileName: 'HASSAKU_XL_v13.safetensors',
+    label: 'Hassaku.safetensors',
+    format: 'FP16',
+    tensors: '2,512',
+    headerSize: '44.2 KB',
+    hash: '0x8F9A...E41C',
+    audit: 'PASSED (ZERO PYTHON PICKLE)',
+    architecture: 'ILLUSTRIOUS XL',
   },
   {
-    id: 'noobai-vpred',
-    unitCode: 'UNIT // 02-NOOBAI',
-    name: 'NOOBAI-XL V-PRED',
-    slug: 'wai-shuffle-noob',
-    vramBadge: '7.2 GB FP16',
-    vramColor: 'green',
-    sha256: 'SHA256 // 6942C4B2',
-    loraTag: '<v-pred:1.0>',
-    tensorBadge: '3.5B TENSORS',
-    prediction: 'V-PREDICTION',
-    nativeRes: '1024 × 1360 PX',
-    samplerOrGuidanceKey: 'SAMPLER LOCK',
-    samplerOrGuidanceVal: 'EULER A (30S)',
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=600/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
-    imagePosition: 'center 25%',
+    id: 'noobai',
+    fileName: 'NOOBAI_XL_EPSILON.safetensors',
+    label: 'NoobAI.safetensors',
+    format: 'FP16 (V-PRED)',
+    tensors: '2,840',
+    headerSize: '52.8 KB',
+    hash: '0x3C4D...901B',
+    audit: 'PASSED (ZERO PYTHON PICKLE)',
+    architecture: 'NOOBAI V-PRED',
   },
   {
-    id: 'raehoshi-illust',
-    unitCode: 'UNIT // 03-RAEHOSHI',
-    name: 'RAEHOSHI ILLUST XL V2',
-    slug: 'raehoshi-illust-xl',
-    vramBadge: '6.0 GB FP16',
-    vramColor: 'amber',
-    sha256: 'SHA256 // E621BEF5',
-    loraTag: '<clean_lineart:0.8>',
-    tensorBadge: '2.5B TENSORS',
-    prediction: 'EPSILON (V0.1)',
-    nativeRes: '832 × 1216 PX',
-    samplerOrGuidanceKey: 'SAMPLER LOCK',
-    samplerOrGuidanceVal: 'EULER A (28S)',
-    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=600/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
-    imagePosition: 'center 25%',
+    id: 'flux',
+    fileName: 'FLUX1_DEV_FP8.safetensors',
+    label: 'Flux1.safetensors',
+    format: 'BF16 / FP8',
+    tensors: '3,120',
+    headerSize: '68.4 KB',
+    hash: '0x7E1F...A225',
+    audit: 'PASSED (ZERO PYTHON PICKLE)',
+    architecture: 'FLUX.1 DEV',
   },
 ];
 
-function mapModelToChassis(m: Model, index: number): ChassisModel {
-  const vramColors: ('cyan' | 'green' | 'amber')[] = ['cyan', 'green', 'amber'];
-  const color = vramColors[index % vramColors.length];
-
-  const rawImg =
-    m.thumbnail_url ||
-    (m.images && m.images.length > 0 ? m.images[0].image_path || m.images[0].image_url : '') ||
-    '';
-
-  let resolvedImg = resolveImageUrl(rawImg);
-  if (resolvedImg && resolvedImg.includes('image.civitai.com')) {
-    resolvedImg = resolvedImg.replace(/\/width=\d+\//, '/width=600/');
-  }
-  if (!resolvedImg) {
-    resolvedImg = CHASSIS_FALLBACK_UNITS[index % CHASSIS_FALLBACK_UNITS.length].thumbnailUrl;
-  }
-
-  const version = m.versions && m.versions.length > 0 ? m.versions[0] : null;
-  const rec = (version?.recommended_settings as Record<string, unknown>) || {};
-
-  let hashStr = '';
-  const uuidMatch = rawImg.match(/([a-f0-9]{8})-[a-f0-9]{4}/i);
-  if (uuidMatch && uuidMatch[1]) {
-    hashStr = uuidMatch[1].toUpperCase();
-  } else {
-    hashStr = 'ETENSORS';
-  }
-
-  const baseTag = (m.base_model || 'SDXL').toUpperCase();
-  const unitCodes = ['01-ILLUSTRIOUS', '02-NOOBAI', '03-RAEHOSHI'];
-
-  return {
-    id: `dynamic-${m.id}`,
-    unitCode: `UNIT // ${unitCodes[index % unitCodes.length]}`,
-    name: m.name.toUpperCase(),
-    slug: m.slug || `${m.id}`,
-    vramBadge: m.vram_min ? `${m.vram_min} FP16` : '6.8 GB FP16',
-    vramColor: color,
-    sha256: `SHA256 // ${hashStr}`,
-    loraTag: m.trigger_words && m.trigger_words[0] ? `<${m.trigger_words[0].trigger_word}>` : '<1girl>',
-    tensorBadge: m.tensor_size ? `${m.tensor_size} TENSORS` : '3.1B TENSORS',
-    prediction: baseTag.includes('NOOB') ? 'V-PREDICTION' : 'EPSILON (V0.1)',
-    nativeRes: rec.width && rec.height ? `${rec.width} × ${rec.height} PX` : '832 × 1216 PX',
-    samplerOrGuidanceKey: 'SAMPLER LOCK',
-    samplerOrGuidanceVal: rec.sampler ? `${String(rec.sampler).toUpperCase()} (${rec.steps || 25}S)` : 'EULER A (25S)',
-    thumbnailUrl: resolvedImg,
-    imagePosition: 'center 20%',
-  };
+interface GpuOption {
+  id: '3060' | '4070' | '4090';
+  name: string;
+  vramTotal: number;
+  vramLabel: string;
+  busWidth: string;
+  accentColor: 'cyan' | 'green' | 'amber';
 }
 
-const STATEMENT_TABS = [
-  { id: '01', label: '01 Model Chassis', path: '/models' },
-  { id: '02', label: '02 SafeTensors Inspector', path: '/inspector' },
-  { id: '03', label: '03 Hardware Sovereignty', path: '/vram-profiler' },
-  { id: 'specs', label: 'Standards Spec', path: '/models' },
-] as const;
+const GPU_OPTIONS: GpuOption[] = [
+  { id: '3060', name: 'RTX 3060', vramTotal: 12, vramLabel: '12 GB GDDR6', busWidth: '192-bit', accentColor: 'cyan' },
+  { id: '4070', name: 'RTX 4070 Ti', vramTotal: 16, vramLabel: '16 GB GDDR6X', busWidth: '256-bit', accentColor: 'green' },
+  { id: '4090', name: 'RTX 4090', vramTotal: 24, vramLabel: '24 GB GDDR6X', busWidth: '384-bit', accentColor: 'amber' },
+];
 
-type StatementTabId = (typeof STATEMENT_TABS)[number]['id'];
+const TACTICAL_ANIME_CHASSIS: TacticalChassisUnit[] = [
+  {
+    id: '01',
+    tabLabel: '01 // ILLUSTRIOUS',
+    unitCode: '01 · ILLUSTRIOUS',
+    name: 'HASSAKU XL (ILLUSTRIOUS)',
+    slug: 'wai-illustrious-sdxl',
+    vramBadge: '6.5 GB FP16',
+    vramGb: 6.5,
+    prediction: 'EPSILON (v1.1)',
+    nativeRes: '832 × 1216 PX',
+    samplerStack: 'EULER A + KARRAS',
+    cfgScale: '5.5 - 7.0',
+    allocText: 'VRAM: 6.46 GB ALLOC',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=600/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
+    flowerAccentText: '✿ TARGET LOCK',
+    activeTargetPct: 'TGT_LOCK 100%',
+    tags: ['#masterpiece', '#score_9', '#detailed_anime_eyes', '#clean_lineart', '#highres'],
+  },
+  {
+    id: '02',
+    tabLabel: '02 // NOOBAI',
+    unitCode: '02 · NOOBAI',
+    name: 'NOOBAI-XL EPSILON',
+    slug: 'wai-shuffle-noob',
+    vramBadge: '7.2 GB FP16',
+    vramGb: 7.2,
+    prediction: 'V-PREDICTION',
+    nativeRes: '1024 × 1360 PX',
+    samplerStack: 'EULER A + SGM UNIFORM',
+    cfgScale: '4.5 - 6.0',
+    allocText: 'VRAM: 7.18 GB ALLOC',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=600/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
+    flowerAccentText: '⚡ OPTIC LOCK',
+    activeTargetPct: 'TGT_LOCK 100%',
+    tags: ['#v_prediction', '#score_9_up', '#source_anime', '#cinematic_lighting', '#masterpiece'],
+  },
+  {
+    id: '03',
+    tabLabel: '03 // SDXL',
+    unitCode: '03 · ILLUSTRIOUS',
+    name: 'WAI-ILLUSTRIOUS V14',
+    slug: 'raehoshi-illust-xl',
+    vramBadge: '6.0 GB FP16',
+    vramGb: 6.0,
+    prediction: 'EPSILON (v1.0)',
+    nativeRes: '832 × 1216 PX',
+    samplerStack: 'DPM++ 2M KARRAS',
+    cfgScale: '5.0 - 6.5',
+    allocText: 'VRAM: 5.92 GB ALLOC',
+    thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=600/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
+    flowerAccentText: '◈ TARGET LOCK',
+    activeTargetPct: 'TGT_LOCK 100%',
+    tags: ['#masterpiece', '#anime_aesthetic', '#crisp_linework', '#rating:general', '#soft_glow'],
+  },
+];
+
+function scrambleText(text: string): string {
+  return generateTypewriterCorruptWord(text)
+    .map((item) => item.char)
+    .join('');
+}
+
+let sharedAudioCtx: AudioContext | null = null;
+
+/**
+ * Procedural Web Audio Sound Generator for mechanical blast gate events:
+ * - 'slam': Heavy hydraulic sub-bass collision + metallic impact
+ * - 'unseal': Pressurized pneumatic air release hiss
+ * - 'latch': Hydraulic damper arrest thud
+ */
+function playGateSound(type: 'slam' | 'unseal' | 'latch') {
+  try {
+    if (typeof window === 'undefined') return;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    if (!sharedAudioCtx) {
+      sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+      return;
+    }
+
+    const now = sharedAudioCtx.currentTime;
+
+    if (type === 'slam') {
+      // Sub-bass heavy metallic slam
+      const osc = sharedAudioCtx.createOscillator();
+      const gain = sharedAudioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(95, now);
+      osc.frequency.exponentialRampToValueAtTime(28, now + 0.35);
+
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.40);
+
+      osc.connect(gain);
+      gain.connect(sharedAudioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.42);
+
+      // High metal clank transient
+      const clank = sharedAudioCtx.createOscillator();
+      const clankGain = sharedAudioCtx.createGain();
+      clank.type = 'sine';
+      clank.frequency.setValueAtTime(420, now);
+      clank.frequency.exponentialRampToValueAtTime(110, now + 0.14);
+
+      clankGain.gain.setValueAtTime(0.18, now);
+      clankGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+      clank.connect(clankGain);
+      clankGain.connect(sharedAudioCtx.destination);
+      clank.start(now);
+      clank.stop(now + 0.16);
+    } else if (type === 'unseal') {
+      // Pressurized pneumatic hiss release
+      const bufferSize = Math.floor(sharedAudioCtx.sampleRate * 0.22);
+      const buffer = sharedAudioCtx.createBuffer(1, bufferSize, sharedAudioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (sharedAudioCtx.sampleRate * 0.07));
+      }
+      const noise = sharedAudioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = sharedAudioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(800, now);
+      filter.frequency.exponentialRampToValueAtTime(300, now + 0.22);
+      filter.Q.value = 2.5;
+
+      const gain = sharedAudioCtx.createGain();
+      gain.gain.setValueAtTime(0.20, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(sharedAudioCtx.destination);
+      noise.start(now);
+    } else if (type === 'latch') {
+      const osc = sharedAudioCtx.createOscillator();
+      const gain = sharedAudioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(110, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.16);
+
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc.connect(gain);
+      gain.connect(sharedAudioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.20);
+    }
+  } catch {
+    // Fail silently on restricted autoplay policy
+  }
+}
 
 export function EditorialStatement() {
   const navigate = useNavigate();
@@ -142,6 +260,10 @@ export function EditorialStatement() {
   const rightGateRef = useRef<HTMLDivElement | null>(null);
   const payloadRef = useRef<HTMLDivElement | null>(null);
 
+  // Screen Trauma Shake & Collision Flash Refs
+  const screenShakeRef = useRef<HTMLDivElement | null>(null);
+  const slamFlashRef = useRef<HTMLDivElement | null>(null);
+
   // Cyberpunk 2077 HUD Center Overlay Refs
   const centerHudRef = useRef<HTMLDivElement | null>(null);
   const ladderFillRef = useRef<HTMLDivElement | null>(null);
@@ -150,13 +272,27 @@ export function EditorialStatement() {
   // Parallax Layer Refs
   const bgGridRef = useRef<HTMLDivElement | null>(null);
 
-  // Dynamic Chassis Units state (Dynamic when backend is connected, graceful fallback when offline)
-  const [chassisUnits, setChassisUnits] = useState<ChassisModel[]>(CHASSIS_FALLBACK_UNITS);
+  // Dynamic Chassis Units state
+  const [chassisUnits, setChassisUnits] = useState<TacticalChassisUnit[]>(TACTICAL_ANIME_CHASSIS);
   const [activeChassisIdx, setActiveChassisIdx] = useState<number>(0);
-  const [isLiveDatabase, setIsLiveDatabase] = useState<boolean>(false);
+  const [isGlitching, setIsGlitching] = useState<boolean>(false);
+  const [glitchDisplayName, setGlitchDisplayName] = useState<string>(TACTICAL_ANIME_CHASSIS[0].name);
 
-  // Mobile tab switcher state
-  const [mobileActiveTab, setMobileActiveTab] = useState<StatementTabId>('01');
+  // Interactive state for Cockpit Deck
+  const [selectedFileIdx, setSelectedFileIdx] = useState<number>(0);
+  const [selectedGpuId, setSelectedGpuId] = useState<'3060' | '4070' | '4090'>('4070');
+  const [copiedTag, setCopiedTag] = useState<string | null>(null);
+
+  const handleCopyTag = useCallback((tag: string) => {
+    const clean = tag.replace(/^#/, '');
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(clean);
+    }
+    setCopiedTag(tag);
+    setTimeout(() => {
+      setCopiedTag((curr) => (curr === tag ? null : curr));
+    }, 1800);
+  }, []);
 
   // Fetch real database models if backend is online
   useEffect(() => {
@@ -164,21 +300,61 @@ export function EditorialStatement() {
     apiFetch<ModelsResponse>('/models?limit=6')
       .then((res) => {
         if (!isMounted || !res || !res.data || res.data.length === 0) return;
-        const dynamicUnits = res.data.slice(0, 3).map((m, idx) => mapModelToChassis(m, idx));
-        if (dynamicUnits.length > 0) {
-          setChassisUnits(dynamicUnits);
-          setIsLiveDatabase(true);
+        const mapped = res.data.slice(0, 3).map((m: Model, idx: number): TacticalChassisUnit => {
+          const fallback = TACTICAL_ANIME_CHASSIS[idx % TACTICAL_ANIME_CHASSIS.length];
+          const baseTag = (m.base_model || '').toUpperCase();
+          const parsedVram = m.vram_min ? parseFloat(m.vram_min) || fallback.vramGb : fallback.vramGb;
+          return {
+            id: `dynamic-${m.id}`,
+            tabLabel: fallback.tabLabel,
+            unitCode: fallback.unitCode,
+            name: m.name.toUpperCase(),
+            slug: m.slug || String(m.id),
+            vramBadge: m.vram_min ? `${m.vram_min} FP16` : fallback.vramBadge,
+            vramGb: parsedVram,
+            prediction: baseTag.includes('NOOB') ? 'V-PREDICTION' : 'EPSILON (v1.1)',
+            nativeRes: fallback.nativeRes,
+            samplerStack: fallback.samplerStack,
+            cfgScale: fallback.cfgScale,
+            allocText: fallback.allocText,
+            thumbnailUrl: m.thumbnail_url || fallback.thumbnailUrl,
+            flowerAccentText: fallback.flowerAccentText,
+            activeTargetPct: 'TGT_LOCK 100%',
+            tags: fallback.tags,
+          };
+        });
+        if (mapped.length > 0) {
+          setChassisUnits(mapped);
+          setGlitchDisplayName(mapped[0].name);
         }
       })
       .catch(() => {
-        if (isMounted) {
-          setIsLiveDatabase(false);
-        }
+        // Fallback array remains active
       });
     return () => {
       isMounted = false;
     };
   }, []);
+
+  const handleChassisTabSwitch = useCallback((targetIdx: number) => {
+    if (targetIdx === activeChassisIdx) return;
+    const targetUnit = chassisUnits[targetIdx] || TACTICAL_ANIME_CHASSIS[targetIdx];
+    if (!targetUnit) return;
+
+    setIsGlitching(true);
+    setGlitchDisplayName(scrambleText(targetUnit.name));
+
+    const scrambleInterval = setInterval(() => {
+      setGlitchDisplayName(scrambleText(targetUnit.name));
+    }, 32);
+
+    setTimeout(() => {
+      clearInterval(scrambleInterval);
+      setActiveChassisIdx(targetIdx);
+      setGlitchDisplayName(targetUnit.name);
+      setIsGlitching(false);
+    }, 150);
+  }, [activeChassisIdx, chassisUnits]);
 
   // Interactive Click-to-Unlock handler
   const handleUnlockClick = useCallback(() => {
@@ -195,7 +371,16 @@ export function EditorialStatement() {
   useEffect(() => {
     let rafId: number;
     let currentP = 0;
+    let lastP = 0;
+    let lastEaseOpen = 0;
     let lastTime = performance.now();
+
+    // Game-feel Trauma & Shake state variables
+    let impactTrauma = 0;
+    let unsealTrauma = 0;
+    let impactStartTime = 0;
+    let unsealStartTime = 0;
+    let slamFlashTimer = 0;
 
     // Perlin Smootherstep (6t^5 - 15t^4 + 10t^3) for zero-jerk acceleration/deceleration
     const smootherstep = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
@@ -217,19 +402,119 @@ export function EditorialStatement() {
         const smoothFactor = 1 - Math.exp(-5.8 * dt);
         currentP += (targetP - currentP) * smoothFactor;
 
+        // Velocity of gate progress
+        const gateVelocity = (currentP - lastP) / dt;
+        lastP = currentP;
+
         // Gate separation across 76% of track
         const rawOpen = Math.max(0, Math.min(1, (currentP - 0.10) / 0.78));
         const easeOpen = smootherstep(rawOpen);
         const isFullyOpen = easeOpen >= 0.995;
 
+        // -------------------------------------------------------------
+        // GAME-FEEL EVENT DETECTIONS (Impact Slam, Unseal Shudder, Latch)
+        // -------------------------------------------------------------
+        // 1. CLOSING IMPACT SLAM: Gates collide shut at the center
+        if (lastEaseOpen > 0.015 && easeOpen <= 0.008 && gateVelocity < -0.01) {
+          const slamForce = Math.min(1.0, 0.45 + Math.abs(gateVelocity) * 1.8);
+          impactTrauma = slamForce;
+          impactStartTime = now;
+          slamFlashTimer = now + 160; // 160ms electromagnetic spark flash
+          playGateSound('slam');
+        }
+
+        // 2. OPENING UNSEAL BREAKAWAY: Hydraulic vacuum seal breaks open
+        if (lastEaseOpen <= 0.005 && easeOpen > 0.005 && gateVelocity > 0.01) {
+          unsealTrauma = Math.min(1.0, 0.5 + Math.abs(gateVelocity) * 1.4);
+          unsealStartTime = now;
+          playGateSound('unseal');
+        }
+
+        // 3. FULL OPEN ARREST LATCH: Hydraulic dampers arrest the door at maximum stroke
+        if (lastEaseOpen < 0.985 && easeOpen >= 0.99 && gateVelocity > 0.01) {
+          impactTrauma = 0.35;
+          impactStartTime = now;
+          playGateSound('latch');
+        }
+
+        lastEaseOpen = easeOpen;
+
+        // -------------------------------------------------------------
+        // PHYSICAL DISPLACEMENT & SHOCKWAVE CALCULATIONS
+        // -------------------------------------------------------------
+        let shockX = 0;
+        let shockY = 0;
+        let shockRot = 0;
+        let gateBounce = 0;
+
+        // Impact Shockwave (Exponentially decaying multi-harmonic vibration + elastic gate bounce)
+        if (impactTrauma > 0.001) {
+          const dtImpact = (now - impactStartTime) / 1000;
+          if (dtImpact < 0.55) {
+            const envelope = Math.exp(-dtImpact * 9.0) * impactTrauma;
+            const wave = Math.sin(dtImpact * 34 * Math.PI * 2);
+            shockY = wave * 7.5 * envelope;
+            shockX = Math.cos(dtImpact * 26 * Math.PI * 2) * 4.2 * envelope;
+            shockRot = wave * 0.35 * envelope;
+            // Physical rebound: massive steel doors bounce slightly outward before sealing
+            gateBounce = Math.max(0, Math.sin(dtImpact * 20 * Math.PI) * 2.2 * envelope);
+          } else {
+            impactTrauma = 0;
+          }
+        }
+
+        // Unseal Breakaway Shudder (High-frequency pneumatic vibration)
+        let unsealX = 0;
+        let unsealY = 0;
+        if (unsealTrauma > 0.001) {
+          const dtUnseal = (now - unsealStartTime) / 1000;
+          if (dtUnseal < 0.35) {
+            const envelope = Math.exp(-dtUnseal * 11.0) * unsealTrauma;
+            const wave = Math.sin(dtUnseal * 48 * Math.PI * 2);
+            unsealY = wave * 5.0 * envelope;
+            unsealX = Math.cos(dtUnseal * 38 * Math.PI * 2) * 3.5 * envelope;
+          } else {
+            unsealTrauma = 0;
+          }
+        }
+
+        // Continuous Industrial Motor Rumble (while sliding actively)
+        const isMoving = Math.abs(gateVelocity) > 0.012 && easeOpen > 0.005 && easeOpen < 0.995;
+        const rumbleIntensity = isMoving ? Math.min(1.0, Math.abs(gateVelocity) * 1.5) : 0;
+        const rumbleY = isMoving ? (Math.sin(now * 0.042) * 1.6 + Math.sin(now * 0.088) * 0.8) * rumbleIntensity : 0;
+        const rumbleX = isMoving ? (Math.cos(now * 0.036) * 1.1 + Math.sin(now * 0.074) * 0.5) * rumbleIntensity : 0;
+        const gateMicroTilt = isMoving ? Math.sin(now * 0.028) * 0.15 * rumbleIntensity : 0;
+
+        // Apply Camera / Screen Trauma Shake to entire sticky stage:
+        const totalScreenX = shockX + unsealX + rumbleX * 0.5;
+        const totalScreenY = shockY + unsealY + rumbleY * 0.5;
+        const totalScreenRot = shockRot;
+
+        if (screenShakeRef.current) {
+          screenShakeRef.current.style.transform = `translate3d(${totalScreenX.toFixed(2)}px, ${totalScreenY.toFixed(2)}px, 0) rotate(${totalScreenRot.toFixed(3)}deg)`;
+        }
+
+        // Slam Electric Arc Flash on the center seam:
+        if (slamFlashRef.current) {
+          const isFlashing = now < slamFlashTimer;
+          slamFlashRef.current.style.opacity = isFlashing ? '0.92' : '0';
+        }
+
         // Blast Gate Assembly Separation:
         // Left Assembly slides to far left (-105%)
         // Right Assembly slides to far right (+105%)
-        // Center is completely cleared!
+        // Plus mechanical rebound bounce, vertical rumble, and micro-tilt
         if (leftGateRef.current && rightGateRef.current) {
-          const tx = (easeOpen * 105).toFixed(3);
-          leftGateRef.current.style.transform = `translate3d(-${tx}%, 0, 0)`;
-          rightGateRef.current.style.transform = `translate3d(${tx}%, 0, 0)`;
+          const txLeft = Math.max(0, easeOpen * 105 + gateBounce).toFixed(3);
+          const txRight = Math.max(0, easeOpen * 105 + gateBounce).toFixed(3);
+
+          const gateLeftY = (rumbleY + shockY * 0.7).toFixed(2);
+          const gateRightY = (-rumbleY - shockY * 0.7).toFixed(2);
+          const rotLeft = (-gateMicroTilt + shockRot * 0.5).toFixed(3);
+          const rotRight = (gateMicroTilt - shockRot * 0.5).toFixed(3);
+
+          leftGateRef.current.style.transform = `translate3d(-${txLeft}%, ${gateLeftY}px, 0) rotate(${rotLeft}deg)`;
+          rightGateRef.current.style.transform = `translate3d(${txRight}%, ${gateRightY}px, 0) rotate(${rotRight}deg)`;
           leftGateRef.current.style.visibility = isFullyOpen ? 'hidden' : 'visible';
           rightGateRef.current.style.visibility = isFullyOpen ? 'hidden' : 'visible';
           leftGateRef.current.style.pointerEvents = isFullyOpen ? 'none' : 'auto';
@@ -240,7 +525,7 @@ export function EditorialStatement() {
         const lockEase = Math.max(0, Math.min(1, currentP / 0.20));
         const lockPct = Math.round(lockEase * 100);
 
-        // Cyberpunk / ROG Center Glitch Core HUD (Completely stationary, zero shake, zero wobble)
+        // Cyberpunk / ROG Center Glitch Core HUD (Stationary, zero wobble)
         if (centerHudRef.current) {
           const hudOpacity = Math.max(0, 1 - easeOpen * 2.8);
           centerHudRef.current.style.opacity = hudOpacity.toFixed(3);
@@ -267,7 +552,7 @@ export function EditorialStatement() {
           bgGridRef.current.style.opacity = gridOpacity;
         }
 
-        // Parallax Layer 3: Payload (EditorialStatement Content with Chamfered Cards)
+        // Parallax Layer 3: Payload (EditorialStatement Content)
         if (payloadRef.current) {
           const scale = (0.90 + easeOpen * 0.10).toFixed(4);
           const opacity = Math.min(1, 0.20 + easeOpen * 0.80).toFixed(3);
@@ -284,371 +569,516 @@ export function EditorialStatement() {
     return () => cancelAnimationFrame(rafId);
   }, []);
 
-  const activeChassis = chassisUnits[activeChassisIdx] || chassisUnits[0] || CHASSIS_FALLBACK_UNITS[0];
+  const activeChassis = chassisUnits[activeChassisIdx] || chassisUnits[0] || TACTICAL_ANIME_CHASSIS[0];
+  const activeDemoFile = SAFETENSORS_DEMO_FILES[selectedFileIdx] || SAFETENSORS_DEMO_FILES[0];
+  const activeGpu = GPU_OPTIONS.find((g) => g.id === selectedGpuId) || GPU_OPTIONS[1];
+
+  // Dynamic VRAM calculations based on selected GPU & active model
+  const baseVram = activeChassis.vramGb || 6.5;
+  const contextBuffer = 1.2;
+  const loraBuffer = 0.4;
+  const totalVramNeeded = baseVram + contextBuffer + loraBuffer;
+  const vramPercent = Math.min(100, Math.round((totalVramNeeded / activeGpu.vramTotal) * 100));
+  const vramHeadroom = Math.max(0, activeGpu.vramTotal - totalVramNeeded);
+  const activeSegments = Math.round((vramPercent / 100) * 12);
 
   return (
     <section className="mg-shutter-track" id="editorial-statement" ref={trackRef}>
       <div className="mg-shutter-sticky">
-        {/* ===================================================================
+        {/* Screen / Camera Trauma Shake Stage (Game-feel Mechanical Physics) */}
+        <div ref={screenShakeRef} className="mg-shutter-shake-stage">
+          {/* Mechanical Seam Slam Electromagnetic Flash */}
+          <div ref={slamFlashRef} className="mg-gate-slam-flash" aria-hidden="true" />
+
+          {/* ===================================================================
             PARALLAX LAYER: 3D PERSPECTIVE CYBER-GRID FLOOR (bgGridRef)
             =================================================================== */}
         <div ref={bgGridRef} className="mg-shutter-bg-grid" aria-hidden="true" />
 
         {/* ===================================================================
-            GIANT HORIZONTAL HOLLOW-OUTLINE WATERMARK TYPOGRAPHY
-            Exact aesthetic matching reference: thin stroke outline, transparent fill
+            HIGH-OCTANE CYBERPUNK BACKGROUND LAYERS & WATERMARK
             =================================================================== */}
-        <div className="mg-shutter-huge-watermark" aria-hidden="true">
+        {/* CRT Scanline Overlay */}
+        <div className="mg-hud-scanlines" aria-hidden="true" />
+
+        {/* Cyber Horizon Glow & High-Tech Cyber Atmosphere (Circular Radar Sweep Removed) */}
+        <div className="mg-hud-ambient-glow" aria-hidden="true" />
+        <div className="mg-hud-horizon-beam" aria-hidden="true" />
+
+        {/* Giant Outline Typography Watermark: MODELS GUIDE */}
+        <div className="mg-hud-watermark" aria-hidden="true">
           <span>MODELS GUIDE</span>
         </div>
+
+        {/* Architectural Corner Reticles */}
+        <div className="mg-corner-reticle top-left" aria-hidden="true"><span>+</span></div>
+        <div className="mg-corner-reticle top-right" aria-hidden="true"><span>+</span></div>
+        <div className="mg-corner-reticle bottom-left" aria-hidden="true"><span>+</span></div>
+        <div className="mg-corner-reticle bottom-right" aria-hidden="true"><span>+</span></div>
 
         {/* ===================================================================
             PARALLAX LAYER 3: INNER PAYLOAD (payloadRef)
             Revealed Local Sovereignty & Architecture Telemetry Vault
-            Cards use Chamfered Cyberpunk Corners
             =================================================================== */}
         <div ref={payloadRef} className="mg-shutter-inner-payload">
-          {/* Seamless Transition Bridge Datum from Hero Section */}
-          <div className="mg-statement-transition-bridge" aria-hidden="true">
-            <div className="mg-statement-bridge-datum">
-              <div className="mg-statement-bridge-line" />
-              <div className="mg-statement-bridge-badge mg-chamfer-sm">
-                <span className="mg-bridge-dot" />
-                <span className="mg-bridge-text">SPECIFICATION SUITE 01</span>
-              </div>
-              <div className="mg-statement-bridge-line" />
-            </div>
-          </div>
-
-          {/* Architectural Corner Reticles */}
-          <div className="mg-corner-reticle top-left" aria-hidden="true"><span>+</span></div>
-          <div className="mg-corner-reticle top-right" aria-hidden="true"><span>+</span></div>
-          <div className="mg-corner-reticle bottom-left" aria-hidden="true"><span>+</span></div>
-          <div className="mg-corner-reticle bottom-right" aria-hidden="true"><span>+</span></div>
-
-          {/* Core Content: Telemetry Vault Command Console */}
-          <div className="mg-statement-core mg-gpu">
-            {/* Top Telemetry Header Bar */}
-            <div className="mg-vault-header-bar">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div className="mg-editorial-tag" style={{ margin: 0 }}>
-                  <span className="mg-tag-num">01</span>
-                  <span className="mg-tag-line" />
-                  <span className="mg-tag-text">LOCAL SOVEREIGNTY &amp; ARCHITECTURE SUITE</span>
-                </div>
-                <div className="mg-vault-status-chip">
-                  <span className="mg-vault-dot-pulse" />
-                  <span>TELEMETRY ONLINE</span>
+          <div className="mg-statement-core mg-hud-tactical-dashboard mg-gpu">
+            {/* -------------------------------------------------------------
+                TOP HEADER BAR:
+                Left: Highlighted cyan badge "SEC 01", monospace title, green status pill
+                Right: 3 tactical action buttons with chamfered corners
+                ------------------------------------------------------------- */}
+            <header className="mg-hud-top-bar">
+              <div className="mg-hud-top-left">
+                <span className="mg-hud-sec-badge mg-chamfer-xs">SEC 01</span>
+                <span className="mg-hud-top-sep" aria-hidden="true">·</span>
+                <h2 className="mg-hud-top-title">
+                  <CyberCorruptWalkingText
+                    text="LOCAL SOVEREIGNTY & ARCHITECTURE SUITE"
+                    accent="yellow"
+                    delayMs={500}
+                    cycleMs={4600}
+                  />
+                </h2>
+                <div className="mg-hud-status-pill mg-chamfer-xs" title="Zero-API browser deserialization; zero telemetry packets sent.">
+                  <span className="mg-hud-pulse-dot green" aria-hidden="true" />
+                  <span>ZERO-API · AIR-GAPPED · 0.00 MS</span>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="mg-vault-btn-link"
-                  onClick={() => navigate('/models')}
-                  title="Buka direktori checkpoint &amp; LoRA"
-                >
-                  <span>Model Library (14+)</span>
-                  <span>&rarr;</span>
-                </button>
-                <button
-                  type="button"
-                  className="mg-vault-btn-link"
-                  onClick={() => navigate('/inspector')}
-                  title="Buka SafeTensors Header Inspector"
-                  style={{ borderColor: 'rgba(16, 185, 129, 0.35)', color: '#10b981', background: 'rgba(16, 185, 129, 0.08)' }}
-                >
-                  <span>SafeTensors Inspector</span>
-                  <span>&rarr;</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Title & Technical Proposition */}
-            <div className="mg-statement-header" style={{ marginBottom: '10px' }}>
-              <h2 className="mg-statement-title" style={{ fontSize: 'clamp(1.4rem, 2.2vw, 2.1rem)', margin: 0 }}>
-                Precision standards, deterministic benchmarks, and zero-copy inspection.
-              </h2>
-            </div>
-
-            {/* 3 Quantitative Audit Telemetry Panels */}
-            <div className="mg-audit-panels-trio" style={{ marginBottom: '10px' }}>
-              <div className="mg-audit-panel-item mg-chamfer-md">
-                <div className="mg-hazard-strip" style={{ height: '3px', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="mg-audit-metric-num">0.00 MS</span>
-                  <span style={{ fontSize: '9px', color: '#38bdf8', fontFamily: 'var(--mg-font-mono)', letterSpacing: '0.1em' }}>LOCAL BUS</span>
+              <div className="mg-hud-top-right">
+                <div className="mg-hud-action-btns">
+                  <button
+                    type="button"
+                    className="mg-hud-action-btn cyan mg-chamfer-xs"
+                    onClick={() => navigate('/models')}
+                    title="Buka direktori model AI"
+                  >
+                    <span className="btn-icon">❖</span>
+                    <span>[ ❖ MODELS CATALOG ]</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mg-hud-action-btn green mg-chamfer-xs"
+                    onClick={() => navigate('/inspector')}
+                    title="Buka SafeTensors Header Inspector"
+                  >
+                    <span className="btn-icon">◈</span>
+                    <span>[ ◈ INSPECTOR ]</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mg-hud-action-btn amber mg-chamfer-xs"
+                    onClick={() => navigate('/vram-profiler')}
+                    title="Buka GPU Profiler &amp; Kalkulator VRAM"
+                  >
+                    <span className="btn-icon">⚙</span>
+                    <span>[ ⚙ PROFILER ]</span>
+                  </button>
                 </div>
-                <span className="mg-audit-metric-desc">Network Overhead</span>
-                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  SafeTensors header parsing 100% lokal di browser tanpa upload bobot file
-                </span>
               </div>
+            </header>
 
-              <div className="mg-audit-panel-item mg-chamfer-md">
-                <div className="mg-hazard-strip" style={{ height: '3px', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="mg-audit-metric-num" style={{ color: '#10b981' }}>100%</span>
-                  <span style={{ fontSize: '9px', color: '#10b981', fontFamily: 'var(--mg-font-mono)', letterSpacing: '0.1em' }}>CVE-SAFE</span>
+            {/* -------------------------------------------------------------
+                ROW 1: INTEGRATED AVIONICS TELEMETRY RIBBON
+                Slim, high-density diagnostic interconnect (No generic KPI cards)
+                ------------------------------------------------------------- */}
+            <div className="mg-hud-telemetry-ribbon mg-chamfer-xs">
+              <div className="mg-ribbon-nodes">
+                <div className="mg-ribbon-node">
+                  <span className="node-tag cyan">DMA-01</span>
+                  <span className="node-val cyan">0.00 MS</span>
+                  <span className="node-sub">ZERO LATENCY MEMORY DESERIALIZATION</span>
                 </div>
-                <span className="mg-audit-metric-desc">Zero-Copy Byte Deserialization</span>
-                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  Inspeksi metadata murni tanpa risiko arbitrary code execution pickle PyTorch
-                </span>
-              </div>
-
-              <div className="mg-audit-panel-item mg-chamfer-md">
-                <div className="mg-hazard-strip" style={{ height: '3px', position: 'absolute', top: 0, left: 0, right: 0 }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span className="mg-audit-metric-num" style={{ color: '#fcee0a' }}>14 UNITS</span>
-                  <span style={{ fontSize: '9px', color: '#fcee0a', fontFamily: 'var(--mg-font-mono)', letterSpacing: '0.1em' }}>ACTIVE RIG</span>
+                <div className="mg-ribbon-sep" aria-hidden="true" />
+                <div className="mg-ribbon-node">
+                  <span className="node-tag green">AUDIT-02</span>
+                  <span className="node-val green">100% IMMUTABLE</span>
+                  <span className="node-sub">PICKLE-FREE AIR-GAPPED CODE SAFETY</span>
                 </div>
-                <span className="mg-audit-metric-desc">Creator Workstations Suite</span>
-                <span style={{ fontSize: '11px', color: '#64748b', marginTop: '2px' }}>
-                  VRAM profiler, node ComfyUI, pose rig 3D &amp; Danbooru anime prompt studio
-                </span>
+                <div className="mg-ribbon-sep" aria-hidden="true" />
+                <div className="mg-ribbon-node">
+                  <span className="node-tag amber">ARSENAL-03</span>
+                  <span className="node-val amber">14 UNITS</span>
+                  <span className="node-sub">VERIFIED MODEL ARCHITECTURES</span>
+                </div>
               </div>
             </div>
 
-            {/* 3 High-Octane Workstation Showcases */}
-            <div className="mg-vault-pillars-grid">
-              {/* CARD 01: ACTIVE CHASSIS MODEL */}
-              <div className="mg-vault-card-chassis mg-chamfer-md">
-                <div className="mg-vault-chassis-topbar">
-                  <div className="mg-vault-chassis-label">
-                    <svg className="mg-vault-chassis-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" strokeWidth="2" aria-hidden="true">
-                      <circle cx="12" cy="12" r="10" strokeDasharray="4 4" />
-                      <circle cx="12" cy="12" r="3" fill="#38bdf8" />
-                    </svg>
-                    <span>ACTIVE CHASSIS: {activeChassis.unitCode}</span>
-                    {isLiveDatabase && (
-                      <span className="mg-vault-live-pill" title="Live dynamic data dari database backend / Civitai">
-                        &bull; LIVE DB
-                      </span>
+            {/* -------------------------------------------------------------
+                ROW 2: ASYMMETRIC DUAL-WING COCKPIT CONSOLE
+                Wing 1: Master Optic Chassis & Inference Stage (~58% width)
+                Wing 2: Tactical Diagnostic & Hardware Deck (~42% width)
+                ------------------------------------------------------------- */}
+            <div className="mg-hud-cockpit-grid">
+              {/* =========================================================
+                  WING 1 (LEFT): MASTER OPTIC CHASSIS & INFERENCE STAGE
+                  ========================================================= */}
+              <div className="mg-cockpit-stage-card mg-chamfer-sm">
+                <div className="mg-card-reticles" aria-hidden="true">
+                  <span className="reticle tl">┌</span>
+                  <span className="reticle tr">┐</span>
+                  <span className="reticle bl">└</span>
+                  <span className="reticle br">┘</span>
+                </div>
+
+                {/* Stage Header: Architecture Switcher Tabs */}
+                <div className="mg-stage-head">
+                  <div className="mg-stage-head-left">
+                    <span className="mg-hud-pulse-dot cyan" aria-hidden="true" />
+                    <span className="mg-stage-unit-tag">CHASSIS STAGE // {activeChassis.tabLabel}</span>
+                  </div>
+                  <div className="mg-stage-head-right">
+                    <div className="mg-hud-tabs" role="tablist" aria-label="Switch Active Chassis">
+                      {chassisUnits.slice(0, 3).map((chassis, idx) => (
+                        <button
+                          key={chassis.id}
+                          type="button"
+                          role="tab"
+                          aria-selected={activeChassisIdx === idx}
+                          className={`mg-hud-tab-btn mg-chamfer-xs ${activeChassisIdx === idx ? 'is-active' : ''}`}
+                          onClick={() => handleChassisTabSwitch(idx)}
+                          title={`Beralih ke ${chassis.name}`}
+                        >
+                          [{chassis.tabLabel}]
+                        </button>
+                      ))}
+                    </div>
+                    <span className="mg-vram-badge cyan mg-chamfer-xs">
+                      {activeChassis.vramBadge}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Model Title Row */}
+                <div className="mg-card-title-row">
+                  <h3 className="mg-card-title cyan">
+                    {isGlitching ? (
+                      <span>{glitchDisplayName}</span>
+                    ) : (
+                      <CyberCorruptWalkingText
+                        text={activeChassis.name}
+                        accent="cyan"
+                        cycleMs={5200}
+                        delayMs={1200}
+                      />
                     )}
-                  </div>
-                  <div className="mg-vault-chassis-btn-group" role="tablist" aria-label="Pilih Unit Chassis">
-                    {chassisUnits.map((u, idx) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        role="tab"
-                        aria-selected={activeChassisIdx === idx}
-                        className={`mg-vault-chassis-num-btn ${activeChassisIdx === idx ? 'active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveChassisIdx(idx);
-                        }}
-                        title={`Pilih ${u.name}`}
-                      >
-                        0{idx + 1}
-                      </button>
-                    ))}
-                  </div>
+                  </h3>
+                  {isGlitching && <CyberSeparateGlitch label="⚡ GLITCH 0x8F" />}
                 </div>
 
-                <div className="mg-vault-chassis-header">
-                  <span className="mg-vault-unit-code">{activeChassis.unitCode}</span>
-                  <span className={`mg-vault-vram-pill ${activeChassis.vramColor}`}>
-                    {activeChassis.vramBadge}
-                  </span>
-                </div>
-
-                <h3 className="mg-vault-model-title" title={activeChassis.name}>
-                  {activeChassis.name}
-                </h3>
-
+                {/* Large Character Viewport Stage */}
                 <div
-                  className="mg-vault-media-box"
+                  className="mg-stage-media-viewport mg-chamfer-sm"
                   onClick={() => navigate(`/models?model=${activeChassis.slug}`)}
-                  title="Klik untuk melihat detail model"
+                  role="button"
+                  tabIndex={0}
+                  title="Klik untuk membuka detail model"
                 >
+                  <div className="mg-banner-hud-crosshairs" aria-hidden="true">
+                    <span className="reticle-ch tl">┌</span>
+                    <span className="reticle-ch tr">┐</span>
+                    <span className="reticle-ch bl">└</span>
+                    <span className="reticle-ch br">┘</span>
+                    <div className="mg-banner-hud-lock mg-chamfer-xs">
+                      <span className="mg-hud-pulse-dot cyan" aria-hidden="true" />
+                      <span className="mg-banner-lock-tag">{activeChassis.activeTargetPct}</span>
+                    </div>
+                  </div>
+
+                  <div className="mg-stage-flower-accent mg-chamfer-xs" aria-hidden="true">
+                    <span className="flower-icon">✿</span>
+                    <span>{activeChassis.flowerAccentText}</span>
+                  </div>
+
+                  <div className="mg-banner-scanlines" aria-hidden="true" />
+                  <div className="mg-banner-laser-sweep" aria-hidden="true" />
+
                   <img
                     src={activeChassis.thumbnailUrl}
                     alt={activeChassis.name}
-                    className="mg-vault-media-img"
-                    style={activeChassis.imagePosition ? { objectPosition: activeChassis.imagePosition } : undefined}
+                    className="mg-stage-img"
                     loading="lazy"
                     decoding="async"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
                     }}
                   />
-                  <div className="mg-vault-media-sha">
-                    {activeChassis.sha256}
-                  </div>
-                  <div className="mg-vault-media-bottom">
-                    <span className="mg-vault-badge-lora">
-                      {activeChassis.loraTag}
+
+                  <div className="mg-stage-bottom-overlay">
+                    <span className="mg-banner-vram-tag mg-chamfer-xs">
+                      {activeChassis.allocText}
                     </span>
-                    <span className="mg-vault-badge-tensor">
-                      {activeChassis.tensorBadge}
+                    <span className="mg-banner-tensor-tag mg-chamfer-xs">
+                      {activeChassis.prediction} · FP16
                     </span>
                   </div>
                 </div>
 
-                <div className="mg-vault-specs-grid">
-                  <div className="mg-vault-spec-col">
-                    <span className="mg-vault-spec-label">PREDICTION</span>
-                    <span className="mg-vault-spec-val">{activeChassis.prediction}</span>
+                {/* Click-to-Copy Danbooru Prompt Tokens Rack */}
+                <div className="mg-stage-prompt-dock">
+                  <div className="mg-prompt-dock-head">
+                    <span className="mg-prompt-dock-label">CLICK-TO-COPY QUALITY TOKENS:</span>
+                    {copiedTag && (
+                      <span className="mg-prompt-copied-alert mg-chamfer-xs">
+                        ✓ COPIED: &quot;{copiedTag}&quot;
+                      </span>
+                    )}
                   </div>
-                  <div className="mg-vault-spec-col">
-                    <span className="mg-vault-spec-label">NATIVE RES</span>
-                    <span className="mg-vault-spec-val">{activeChassis.nativeRes}</span>
-                  </div>
-                  <div className="mg-vault-spec-col">
-                    <span className="mg-vault-spec-label">SAMPLER LOCK</span>
-                    <span className="mg-vault-spec-val">{activeChassis.samplerOrGuidanceVal}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* CARD 02: SAFETENSORS HEADER INSPECTOR */}
-              <div
-                className="mg-vault-card-terminal mg-chamfer-md"
-                onClick={() => navigate('/inspector')}
-                role="button"
-                tabIndex={0}
-                title="Buka SafeTensors Header Inspector"
-              >
-                <div className="mg-vault-chassis-header">
-                  <span className="mg-vault-unit-code" style={{ color: '#10b981' }}>UNIT // 02-INSPECTOR</span>
-                  <span className="mg-vault-vram-pill green">0.00 MS / CVE-SAFE</span>
-                </div>
-
-                <h3 className="mg-vault-model-title">
-                  SAFETENSORS HEADER PARSER
-                </h3>
-
-                <div className="mg-vault-terminal-stream">
-                  <div style={{ color: '#38bdf8' }}>&gt; DESERIALIZE_HEADER(raehoshi_v20.safetensors)</div>
-                  <div>&bull; ZERO-COPY LOCAL STREAM: 100% BROWSER BUS</div>
-                  <div>&bull; SECURITY AUDIT: CVE-SAFE (NO PYTHON PICKLE)</div>
-                  <div style={{ color: '#a7f3d0' }}>&bull; TAGS: score_9, rating_safe, masterpiece, clean</div>
-                  <div style={{ color: '#64748b' }}>&bull; AUTOHASH: SHA256 // CE58B29F &bull; 832&times;1216</div>
-                </div>
-
-                <div className="mg-vault-chip-row">
-                  <span className="mg-vault-code-chip" style={{ color: '#6ee7b7' }}>score_9</span>
-                  <span className="mg-vault-code-chip" style={{ color: '#6ee7b7' }}>rating_safe</span>
-                  <span className="mg-vault-code-chip">832&times;1216</span>
-                  <span className="mg-vault-code-chip">AutoV2</span>
-                </div>
-
-                <div className="mg-vault-action-row">
-                  <span className="mg-vault-action-text emerald">
-                    <span>Launch Header Inspector</span>
-                    <span>&rarr;</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* CARD 03: HARDWARE SOVEREIGNTY & GPU VRAM PROFILER */}
-              <div
-                className="mg-vault-card-vram mg-chamfer-md"
-                onClick={() => navigate('/vram-profiler')}
-                role="button"
-                tabIndex={0}
-                title="Buka GPU VRAM Profiler"
-              >
-                <div className="mg-vault-chassis-header">
-                  <span className="mg-vault-unit-code" style={{ color: '#fcee0a' }}>UNIT // 03-HARDWARE LAB</span>
-                  <span className="mg-vault-vram-pill amber">VRAM MATRIX</span>
-                </div>
-
-                <h3 className="mg-vault-model-title">
-                  HARDWARE SOVEREIGNTY &amp; VRAM
-                </h3>
-
-                <div className="mg-vault-vram-bars">
-                  <div className="mg-vault-gpu-row">
-                    <div className="mg-vault-gpu-meta">
-                      <span>RTX 4090 (24 GB)</span>
-                      <span style={{ color: '#38bdf8' }}>6.8 GB / FP16 (STABLE)</span>
-                    </div>
-                    <div className="mg-vault-gpu-bar-bg">
-                      <div className="mg-vault-gpu-bar-fill" style={{ width: '28%', background: '#38bdf8' }} />
-                    </div>
-                  </div>
-
-                  <div className="mg-vault-gpu-row">
-                    <div className="mg-vault-gpu-meta">
-                      <span>RTX 3060 (12 GB)</span>
-                      <span style={{ color: '#10b981' }}>7.2 GB / V-PRED (OPTIMAL)</span>
-                    </div>
-                    <div className="mg-vault-gpu-bar-bg">
-                      <div className="mg-vault-gpu-bar-fill" style={{ width: '60%', background: '#10b981' }} />
-                    </div>
-                  </div>
-
-                  <div className="mg-vault-gpu-row">
-                    <div className="mg-vault-gpu-meta">
-                      <span>GTX 1660 (6 GB)</span>
-                      <span style={{ color: '#fcee0a' }}>5.8 GB / FP8 (LOW-VRAM)</span>
-                    </div>
-                    <div className="mg-vault-gpu-bar-bg">
-                      <div className="mg-vault-gpu-bar-fill" style={{ width: '96%', background: '#fcee0a' }} />
-                    </div>
+                  <div className="mg-prompt-chips-row">
+                    {activeChassis.tags?.map((tag) => {
+                      const isCopied = copiedTag === tag;
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`mg-prompt-chip mg-chamfer-xs ${isCopied ? 'is-copied' : ''}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyTag(tag);
+                          }}
+                          title={`Klik untuk menyalin token ${tag} ke clipboard`}
+                        >
+                          <span className="chip-hash">{isCopied ? '✓' : '#'}</span>
+                          <span>{tag.replace(/^#/, '')}</span>
+                          <span className="chip-copy-icon">⎘</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="mg-vault-chip-row">
-                  <span className="mg-vault-code-chip">Euler a (28s)</span>
-                  <span className="mg-vault-code-chip">DPM++ 2M</span>
-                  <span className="mg-vault-code-chip">CFG 5.5</span>
-                  <span className="mg-vault-code-chip">FP16 / FP8</span>
+                {/* Technical Specs Grid */}
+                <div className="mg-card-specs-grid mg-chamfer-xs">
+                  <div className="mg-spec-mini-col">
+                    <span className="mg-spec-mini-k">PREDICTION</span>
+                    <span className="mg-spec-mini-v cyan">{activeChassis.prediction}</span>
+                  </div>
+                  <div className="mg-spec-mini-col">
+                    <span className="mg-spec-mini-k">NATIVE RES</span>
+                    <span className="mg-spec-mini-v">{activeChassis.nativeRes}</span>
+                  </div>
+                  <div className="mg-spec-mini-col">
+                    <span className="mg-spec-mini-k">SAMPLER</span>
+                    <span className="mg-spec-mini-v amber">{activeChassis.samplerStack}</span>
+                  </div>
+                  <div className="mg-spec-mini-col">
+                    <span className="mg-spec-mini-k">CFG SCALE</span>
+                    <span className="mg-spec-mini-v">{activeChassis.cfgScale || '5.5 - 7.0'}</span>
+                  </div>
                 </div>
 
-                <div className="mg-vault-action-row">
-                  <span className="mg-vault-action-text" style={{ color: '#fcee0a' }}>
-                    <span>Profile GPU VRAM Rig</span>
-                    <span>&rarr;</span>
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile Tab Switcher */}
-            <div className="mg-statement-mobile-nav" role="tablist" aria-label="Pilih Pilar Arsitektur">
-              {STATEMENT_TABS.map((tab) => (
+                {/* Stage CTA Button */}
                 <button
-                  key={tab.id}
                   type="button"
-                  role="tab"
-                  aria-selected={mobileActiveTab === tab.id}
-                  className={`mg-statement-mobile-chip ${mobileActiveTab === tab.id ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setMobileActiveTab(tab.id);
-                    navigate(tab.path);
-                  }}
+                  className="mg-card-action-btn cyan mg-chamfer-xs"
+                  onClick={() => navigate(`/prompt-lab`)}
+                  title="Buka Prompt Lab untuk model ini"
                 >
-                  {tab.label}
+                  <span className="btn-icon">⌖</span>
+                  <span>[ ⌖ TEST IN PROMPT LAB &amp; WORKFLOWS ]</span>
                 </button>
-              ))}
+              </div>
+
+              {/* =========================================================
+                  WING 2 (RIGHT): TACTICAL DIAGNOSTIC & HARDWARE DECK
+                  ========================================================= */}
+              <div className="mg-cockpit-deck-col">
+                {/* -------------------------------------------------------
+                    SUB-MODULE A: SAFETENSORS AIR-GAPPED HEADER INSPECTOR
+                    ------------------------------------------------------- */}
+                <div className="mg-deck-card mg-chamfer-sm">
+                  <div className="mg-card-reticles" aria-hidden="true">
+                    <span className="reticle tl">┌</span>
+                    <span className="reticle tr">┐</span>
+                    <span className="reticle bl">└</span>
+                    <span className="reticle br">┘</span>
+                  </div>
+
+                  <div className="mg-deck-card-head">
+                    <div className="mg-deck-head-left">
+                      <span className="mg-hud-pulse-dot green" aria-hidden="true" />
+                      <span className="mg-card-unit-title" style={{ color: '#00ff9d' }}>
+                        ● SAFETENSORS HEADER PARSER
+                      </span>
+                    </div>
+                    <div className="mg-deck-file-tabs">
+                      {SAFETENSORS_DEMO_FILES.map((file, idx) => (
+                        <button
+                          key={file.id}
+                          type="button"
+                          className={`mg-file-tab-btn mg-chamfer-xs ${selectedFileIdx === idx ? 'is-active' : ''}`}
+                          onClick={() => setSelectedFileIdx(idx)}
+                          title={`Inspeksi header file ${file.fileName}`}
+                        >
+                          {file.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Terminal Window with dynamic file metadata */}
+                  <div
+                    className="mg-terminal-window compact mg-chamfer-xs"
+                    onClick={() => navigate('/inspector')}
+                    role="button"
+                    tabIndex={0}
+                    title="Klik untuk membuka SafeTensors Inspector lengkap"
+                  >
+                    <div className="mg-term-scanline" aria-hidden="true" />
+                    <div className="mg-term-head">
+                      <span className="term-dot r" />
+                      <span className="term-dot y" />
+                      <span className="term-dot g" />
+                      <span className="term-title">
+                        HEADER_DECODE // {activeDemoFile.fileName}
+                      </span>
+                    </div>
+                    <pre className="mg-term-code-body">
+                      <code>
+                        <span className="c-cyan">{'> '}FILE: {activeDemoFile.fileName}</span>{'\n'}
+                        <span className="c-dim">{'> '}FORMAT: {activeDemoFile.format} · TENSORS: {activeDemoFile.tensors} · HEADER: {activeDemoFile.headerSize}</span>{'\n'}
+                        <span className="c-green">{'> '}AUDIT: {activeDemoFile.audit}</span>{'\n'}
+                        <span className="c-mint">{'> '}ZERO-COPY DESERIALIZE: 0.00 MS MEMORY-MAP</span>{'\n'}
+                        <span className="c-amber">{'> '}SHA256: {activeDemoFile.hash} [DETERMINISTIC]</span>
+                        <span className="mg-term-cursor" aria-hidden="true" />
+                      </code>
+                    </pre>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mg-card-action-btn green mg-chamfer-xs"
+                    onClick={() => navigate('/inspector')}
+                    title="Buka SafeTensors Header Inspector"
+                  >
+                    <span className="btn-icon">⌘</span>
+                    <span>[ ⌘ LAUNCH IN-BROWSER INSPECTOR ]</span>
+                  </button>
+                </div>
+
+                {/* -------------------------------------------------------
+                    SUB-MODULE B: HARDWARE SOVEREIGNTY & REAL-TIME VRAM PROFILER
+                    ------------------------------------------------------- */}
+                <div className="mg-deck-card mg-chamfer-sm">
+                  <div className="mg-card-reticles" aria-hidden="true">
+                    <span className="reticle tl">┌</span>
+                    <span className="reticle tr">┐</span>
+                    <span className="reticle bl">└</span>
+                    <span className="reticle br">┘</span>
+                  </div>
+
+                  <div className="mg-deck-card-head">
+                    <div className="mg-deck-head-left">
+                      <span className="mg-hud-pulse-dot amber" aria-hidden="true" />
+                      <span className="mg-card-unit-title" style={{ color: '#fcee0a' }}>
+                        ● HARDWARE LAB // VRAM ALLOCATION
+                      </span>
+                    </div>
+                    <div className="mg-deck-file-tabs">
+                      {GPU_OPTIONS.map((gpu) => (
+                        <button
+                          key={gpu.id}
+                          type="button"
+                          className={`mg-gpu-tab-btn mg-chamfer-xs ${selectedGpuId === gpu.id ? 'is-active ' + gpu.accentColor : ''}`}
+                          onClick={() => setSelectedGpuId(gpu.id)}
+                          title={`Simulasi alokasi VRAM pada ${gpu.name}`}
+                        >
+                          {gpu.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dynamic Hardware Simulation Telemetry */}
+                  <div
+                    className="mg-gpu-telemetry-box mg-chamfer-xs"
+                    onClick={() => navigate('/vram-profiler')}
+                    role="button"
+                    tabIndex={0}
+                    title="Klik untuk membuka kalkulator VRAM lengkap"
+                  >
+                    <div className="mg-vram-dynamic-row">
+                      <div className="mg-vram-metric">
+                        <span className="vram-metric-k">SIMULATED GPU</span>
+                        <span className="vram-metric-v">{activeGpu.name} ({activeGpu.vramLabel})</span>
+                      </div>
+                      <div className="mg-vram-metric text-right">
+                        <span className="vram-metric-k">ALLOCATED / TOTAL</span>
+                        <span className={`vram-metric-v ${activeGpu.accentColor}`}>
+                          {totalVramNeeded.toFixed(2)} GB / {activeGpu.vramTotal} GB ({vramPercent}%)
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Segmented High-Tech LED Gauge */}
+                    <div className={`mg-hud-segmented-meter large ${activeGpu.accentColor}`}>
+                      {Array.from({ length: 12 }).map((_, i) => (
+                        <span
+                          key={i}
+                          className={`seg ${i < activeSegments ? 'active' : ''}`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Hardware Footprint Breakdown & Headroom */}
+                    <div className="mg-vram-breakdown-row">
+                      <span className="vram-chip">BASE: {(activeChassis.vramGb || 6.5).toFixed(1)} GB</span>
+                      <span className="vram-chip">CTX: +1.2 GB</span>
+                      <span className="vram-chip">LORA: +0.4 GB</span>
+                      <span className="vram-headroom-tag">
+                        HEADROOM: +{vramHeadroom.toFixed(1)} GB
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="mg-card-action-btn amber mg-chamfer-xs"
+                    onClick={() => navigate('/vram-profiler')}
+                    title="Buka GPU Profiler &amp; Kalkulator VRAM"
+                  >
+                    <span className="btn-icon">⚙</span>
+                    <span>[ ⚙ PROFILE HARDWARE VRAM ]</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Standards Specification Footer Row */}
-            <div className="mg-statement-audits mg-chamfer-sm" style={{ marginTop: '10px', padding: '8px 14px' }}>
-              <div className="mg-audit-header-bar">
-                <span className="mg-audit-status-badge">
-                  <span className="mg-audit-pulse-dot" />
-                  STANDARDS SPECIFICATION
-                </span>
-                <span className="mg-audit-mono-meta">OFFICIAL REFS</span>
+            {/* -------------------------------------------------------------
+                ROW 3: BOTTOM FULL-WIDTH SPECIFICATION BAR
+                Balanced 4-column interconnected matrix
+                ------------------------------------------------------------- */}
+            <div className="mg-hud-specs-bar mg-chamfer-sm">
+              <div className="mg-specs-bar-head">
+                <div className="mg-specs-head-left">
+                  <span className="icon">◈</span>
+                  <span className="title">
+                    <CyberCorruptWalkingText
+                      text="STANDARDS SPECIFICATION · DETERMINISTIC AI PROTOCOL"
+                      accent="cyan"
+                      cycleMs={6800}
+                      delayMs={3000}
+                    />
+                  </span>
+                </div>
+                <span className="mg-specs-head-right">OFFICIAL SPECIFICATION · CLIENT AIR-GAPPED</span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginTop: '4px' }}>
-                <div className="mg-audit-item">
-                  <span className="mg-audit-code">SAFETENSORS PROTOCOL</span>
-                  <span className="mg-audit-val">Zero-Copy &amp; Read-Only Deserialization</span>
+              <div className="mg-specs-cols-quad">
+                <div className="mg-specs-col">
+                  <span className="k">SAFETENSORS PROTOCOL</span>
+                  <span className="v">Zero-Copy &amp; Read-Only Deserialization</span>
                 </div>
-                <div className="mg-audit-item">
-                  <span className="mg-audit-code">SUPPORTED BASES</span>
-                  <span className="mg-audit-val">Illustrious-XL &bull; SDXL 1.0 &bull; NoobAI &bull; Flux.1</span>
+                <div className="mg-specs-col">
+                  <span className="k">HARDWARE COMPATIBILITY</span>
+                  <span className="v">Optimized for 8GB, 12GB, 16GB &amp; 24GB GPUs</span>
                 </div>
-                <div className="mg-audit-item">
-                  <span className="mg-audit-code">HASH INTEGRITY</span>
-                  <span className="mg-audit-val">Deterministic AutoV2 &amp; SHA256 Checksums</span>
+                <div className="mg-specs-col">
+                  <span className="k">TOKEN TAXONOMY</span>
+                  <span className="v">Danbooru Tagging &amp; V-Pred Matching</span>
+                </div>
+                <div className="mg-specs-col">
+                  <span className="k">HASH INTEGRITY</span>
+                  <span className="v">Deterministic AutoV2 &amp; SHA256 Checksums</span>
                 </div>
               </div>
             </div>
@@ -844,9 +1274,6 @@ export function EditorialStatement() {
               <span>WEIGHT MATRIX PROTOCOL 01</span>
             </div>
 
-            {/* Background Holographic Radar Arc */}
-            <div className="mg-cp-hud-radar-arc left" aria-hidden="true" />
-
             {/* ==============================================================
                 MANDATORY: LATENT // CORE ANCHORED AT FAR LEFT EDGE
                 ============================================================== */}
@@ -857,8 +1284,8 @@ export function EditorialStatement() {
                 <span>STAGE [02-A]</span>
               </div>
 
-              <h2 className="mg-cp-main-title cyan mg-cp-glitch-text" data-text="LATENT // CORE">
-                LATENT // CORE
+              <h2 className="mg-cp-main-title cyan">
+                <CyberCorruptWalkingText text="LATENT CORE" accent="cyan" cycleMs={5400} delayMs={1500} />
               </h2>
 
               <div className="mg-cp-sub-telemetry cyan">
@@ -871,8 +1298,8 @@ export function EditorialStatement() {
               <div className="mg-cp-matrix-panel">
                 {/* Header */}
                 <div className="mg-cp-matrix-header">
-                  <span className="mg-cp-matrix-title mg-cp-glitch-text" data-text="BASE CHECKPOINT MATRIX // SAFETENSORS">
-                    BASE CHECKPOINT MATRIX // SAFETENSORS
+                  <span className="mg-cp-matrix-title">
+                    <CyberCorruptWalkingText text="BASE CHECKPOINT MATRIX SAFETENSORS" accent="cyan" cycleMs={6200} delayMs={2200} />
                   </span>
                   <span className="mg-cp-matrix-live-dot" aria-hidden="true" />
                 </div>
@@ -1229,9 +1656,6 @@ export function EditorialStatement() {
               <div className="mg-cp-ruler-notch active"><span>&blacktriangleleft;</span></div>
             </div>
 
-            {/* Background Holographic Radar Arc */}
-            <div className="mg-cp-hud-radar-arc right" aria-hidden="true" />
-
             {/* ==============================================================
                 MANDATORY: NEURAL // ENGINE ANCHORED AT FAR RIGHT EDGE
                 ============================================================== */}
@@ -1242,8 +1666,8 @@ export function EditorialStatement() {
                 <span>STAGE [02-B]</span>
               </div>
 
-              <h2 className="mg-cp-main-title emerald mg-cp-glitch-text" data-text="NEURAL // ENGINE">
-                NEURAL // ENGINE
+              <h2 className="mg-cp-main-title emerald">
+                <CyberCorruptWalkingText text="NEURAL ENGINE" accent="green" cycleMs={5400} delayMs={1700} />
               </h2>
 
               <div className="mg-cp-sub-telemetry emerald">
@@ -1323,6 +1747,68 @@ export function EditorialStatement() {
                       <span className="mg-cp-btn-label">PROMPT DECONSTRUCTOR</span>
                       <span className="mg-cp-btn-sub">REVERSE EXIF &amp; SEED EXTRACTOR</span>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Right Samurai Oni Skull Tactical Badge */}
+            <div className="mg-cp-bottom-sec right" aria-label="Cyberpunk Samurai Emblem">
+              <div className="mg-cp-samurai-deck">
+                <div className="mg-cp-samurai-badge-slot">
+                  <SamuraiEmblem size={72} glow={false} className="mg-cp-samurai-decal" />
+                </div>
+                <div className="mg-cp-samurai-telemetry">
+                  <div className="mg-cp-samurai-title-row">
+                    <span className="mg-cp-samurai-code">CHIP // RELIC-2.0</span>
+                    <span className="mg-cp-samurai-pill">SAMURAI</span>
+                  </div>
+                  <div className="mg-cp-samurai-auth-notice">
+                    WAKE UP SAMURAI &bull; NIGHT CITY RELIC ARCH &bull; NEVER FADE AWAY
+                  </div>
+                  <div className="mg-cp-samurai-barcode-row">
+                    <span className="mg-cp-samurai-terminal-prompt">SAMURAI@SILVERHAND : ~ # OVERRIDE_OK</span>
+                    <svg width="180" height="12" viewBox="0 0 180 12" fill="#e51b24" opacity="0.85" aria-hidden="true">
+                      <rect x="0" y="0" width="2" height="12" />
+                      <rect x="4" y="0" width="1" height="12" />
+                      <rect x="7" y="0" width="3" height="12" />
+                      <rect x="12" y="0" width="2" height="12" />
+                      <rect x="16" y="0" width="4" height="12" />
+                      <rect x="22" y="0" width="1" height="12" />
+                      <rect x="25" y="0" width="3" height="12" />
+                      <rect x="30" y="0" width="2" height="12" />
+                      <rect x="34" y="0" width="1" height="12" />
+                      <rect x="38" y="0" width="4" height="12" />
+                      <rect x="44" y="0" width="2" height="12" />
+                      <rect x="48" y="0" width="1" height="12" />
+                      <rect x="52" y="0" width="3" height="12" />
+                      <rect x="57" y="0" width="2" height="12" />
+                      <rect x="61" y="0" width="1" height="12" />
+                      <rect x="66" y="0" width="3" height="12" />
+                      <rect x="72" y="0" width="2" height="12" />
+                      <rect x="77" y="0" width="4" height="12" />
+                      <rect x="83" y="0" width="1" height="12" />
+                      <rect x="86" y="0" width="3" height="12" />
+                      <rect x="91" y="0" width="2" height="12" />
+                      <rect x="95" y="0" width="4" height="12" />
+                      <rect x="101" y="0" width="2" height="12" />
+                      <rect x="105" y="0" width="1" height="12" />
+                      <rect x="108" y="0" width="3" height="12" />
+                      <rect x="113" y="0" width="2" height="12" />
+                      <rect x="117" y="0" width="4" height="12" />
+                      <rect x="123" y="0" width="2" height="12" />
+                      <rect x="127" y="0" width="1" height="12" />
+                      <rect x="130" y="0" width="3" height="12" />
+                      <rect x="135" y="0" width="2" height="12" />
+                      <rect x="140" y="0" width="4" height="12" />
+                      <rect x="146" y="0" width="1" height="12" />
+                      <rect x="150" y="0" width="3" height="12" />
+                      <rect x="155" y="0" width="2" height="12" />
+                      <rect x="160" y="0" width="4" height="12" />
+                      <rect x="166" y="0" width="2" height="12" />
+                      <rect x="171" y="0" width="3" height="12" />
+                      <rect x="176" y="0" width="2" height="12" />
+                    </svg>
                   </div>
                 </div>
               </div>
@@ -1432,13 +1918,13 @@ export function EditorialStatement() {
             <span className="mg-cp-strip-text">LATENT DENOISING OVERRIDE // STEP 28/28</span>
           </div>
 
-          {/* Main Glitch Title (with RGB split data-text attribute) */}
+          {/* Main Glitch Title */}
           <div className="mg-cp-vault-heading-group">
-            <div className="mg-cp-warning-title mg-cp-glitch-text" data-text="LOCAL MODEL ARCHITECTURE SUITE">
-              LOCAL MODEL ARCHITECTURE SUITE
+            <div className="mg-cp-warning-title">
+              <CyberCorruptWalkingText text="LOCAL MODEL ARCHITECTURE SUITE" accent="yellow" cycleMs={4800} delayMs={600} />
             </div>
-            <div className="mg-cp-warning-subtitle mg-cp-glitch-text" data-text="14 AI CREATOR WORKSTATIONS READY">
-              14 AI CREATOR WORKSTATIONS READY
+            <div className="mg-cp-warning-subtitle">
+              <CyberCorruptWalkingText text="14 AI CREATOR WORKSTATIONS READY" accent="cyan" cycleMs={5200} delayMs={1100} />
             </div>
           </div>
 
@@ -1463,6 +1949,17 @@ export function EditorialStatement() {
             <span className="mg-cp-substatus-sep">|</span>
             <span className="mg-cp-substatus-tag pulse">SCROLL TO EXPLORE ARCHITECTURE</span>
           </div>
+        </div>
+
+        {/* ===================================================================
+            DOWNWARD SHORTCUT NAVIGATOR (Paling Ujung Bawah Section)
+            =================================================================== */}
+        <CyberSectionNavigator
+          targetId="model-showcase"
+          direction="down"
+          label="MODEL SHOWCASE"
+          className="mg-dock-edge bottom"
+        />
         </div>
       </div>
     </section>

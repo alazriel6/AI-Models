@@ -7,6 +7,7 @@ export function FinalCtaSection() {
       <div className="mg-final-atmosphere" aria-hidden="true" />
 
       <div className="mg-container">
+
         {/* Terminal Chamfered Frame over Dark Forest Lake */}
         <div
           className="mg-final-inner mg-chamfer-lg"

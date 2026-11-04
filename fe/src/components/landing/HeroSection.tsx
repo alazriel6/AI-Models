@@ -4,6 +4,8 @@ import { apiFetch, resolveImageUrl } from '../../api/client';
 import type { Model, ModelsResponse } from '../../api/models';
 import { CyberDustCanvas } from './CyberDustCanvas';
 import { CyberMenuGlitchOverlay } from './CyberMenuGlitchOverlay';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
+import { CyberCorruptWalkingText } from './CyberCorruptWalkingText';
 
 interface HeroSectionProps {
   onDiscoverClick: () => void;
@@ -526,24 +528,31 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
         <div className="mg-cp-telemetry-cluster">
           {/* Tier 1: Models Guide Platform & Neural Architecture */}
           <div className="mg-cp-micro-bar line-1">
-            <span className="mg-cp-micro-badge-mg">MODELS GUIDE // モデルガイド</span>
+            <span className="mg-cp-micro-badge-mg">MODELS GUIDE</span>
             <span className="mg-cp-micro-divider" />
-            <span
-              className="mg-cp-micro-glitch cyan"
-              data-text="人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY"
-            >
-              人工知能画像生成 // NEURAL ARCHITECTURE DIRECTORY
-            </span>
-            <span className="mg-cp-micro-status">[LOCAL.AI // ONLINE]</span>
+            <CyberCorruptWalkingText
+              text="NEURAL ARCHITECTURE DIRECTORY"
+              className="mg-cp-micro-glitch cyan mg-cp-2077-slice"
+              accent="cyan"
+              delayMs={600}
+              cycleMs={4800}
+            />
+            <CyberCorruptWalkingText
+              text="[LOCAL.AI // ONLINE]"
+              className="mg-cp-micro-status mg-cp-2077-slice"
+              accent="cyan"
+              delayMs={2600}
+              cycleMs={4800}
+            />
           </div>
 
           {/* Tier 2: Checkpoint Archive & SafeTensors Telemetry */}
           <div className="mg-cp-micro-bar line-2">
             <span
               className="mg-cp-micro-glitch yellow"
-              data-text="神経ネットワーク // CHECKPOINT ARCHIVE"
+              data-text="CHECKPOINT ARCHIVE"
             >
-              神経ネットワーク // CHECKPOINT ARCHIVE
+              CHECKPOINT ARCHIVE
             </span>
             <span className="mg-cp-micro-line" />
             <span
@@ -552,7 +561,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             >
               SAFETENSORS RUNTIME // 0.00 MS SOVEREIGNTY
             </span>
-            <span className="mg-cp-micro-badge-cyan">自律実行</span>
+            <span className="mg-cp-micro-badge-cyan">AUTONOMOUS</span>
           </div>
         </div>
 
@@ -581,7 +590,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
       </div>
       <div className="mg-cp-hud-corner bottom-left" aria-hidden="true">
         <span className="mg-cp-hud-bracket">&lfloor;</span>
-        <span className="mg-cp-hud-tag">SAFETENSORS // 人工知能</span>
+        <span className="mg-cp-hud-tag">SAFETENSORS // PROTOCOL</span>
       </div>
       <div className="mg-cp-hud-corner bottom-right" aria-hidden="true">
         <span className="mg-cp-hud-tag">GPU_TELEMETRY: ONLINE</span>
@@ -599,9 +608,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             <div className="mg-hero-cyber-pill">
               <span className="mg-cyber-pill-glitch">
                 [ ARCHITECTURE // DIRECTORY ]
-              </span>
-              <span className="mg-cp-pill-kana">
-                モデルガイド // 人工知能
               </span>
               <span className="mg-cyber-pill-divider" />
               <span className="mg-cyber-pill-status">● LOCAL GPU SOVEREIGNTY</span>
@@ -681,7 +687,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 <div className="mg-mech-spec-header">
                   <div className="mg-spec-label-group">
                     <span className="mg-mech-spec-label">BASE CORES</span>
-                    <span className="mg-mech-spec-jp">基底コア</span>
                   </div>
                   <span className="mg-mech-spec-subtag">5 ARCH</span>
                 </div>
@@ -696,7 +701,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 <div className="mg-mech-spec-header">
                   <div className="mg-spec-label-group">
                     <span className="mg-mech-spec-label">CREATOR TOOLS</span>
-                    <span className="mg-mech-spec-jp">作成ツール</span>
                   </div>
                   <span className="mg-mech-spec-subtag">14 RIGS</span>
                 </div>
@@ -711,7 +715,6 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                 <div className="mg-mech-spec-header">
                   <div className="mg-spec-label-group">
                     <span className="mg-mech-spec-label">LOCAL LATENCY</span>
-                    <span className="mg-mech-spec-jp">遅延測定</span>
                   </div>
                   <span className="mg-mech-spec-subtag">0.00 MS</span>
                 </div>
@@ -813,7 +816,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                       >
                         {activeChassis.unitCode}
                       </span>
-                      <span className="mg-unit-jp-tag">機体 // ARCH-0{activeChassisIdx + 1}</span>
+                      <span className="mg-unit-jp-tag">ARCH-0{activeChassisIdx + 1}</span>
                     </div>
                     <CardCorruptedTitle text={activeChassis.name} />
                   </div>
@@ -868,7 +871,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                       {activeChassis.loraTag}
                     </span>
                     <span className="mg-mech-pill-tensor mg-chamfer-sm">
-                      <span className="mg-jp-tensor-mini">テンソル</span> {activeChassis.tensorBadge}
+                      {activeChassis.tensorBadge}
                     </span>
                   </div>
                 </div>
@@ -922,21 +925,18 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
                   <div className="mg-mech-bottom-col">
                     <div className="mg-mech-b-head">
                       <span className="mg-mech-b-key">PREDICTION</span>
-                      <span className="mg-mech-b-jp">予測</span>
                     </div>
                     <span className="mg-mech-b-val">{activeChassis.prediction}</span>
                   </div>
                   <div className="mg-mech-bottom-col">
                     <div className="mg-mech-b-head">
                       <span className="mg-mech-b-key">NATIVE RES</span>
-                      <span className="mg-mech-b-jp">解像度</span>
                     </div>
                     <span className="mg-mech-b-val">{activeChassis.nativeRes}</span>
                   </div>
                   <div className="mg-mech-bottom-col">
                     <div className="mg-mech-b-head">
                       <span className="mg-mech-b-key">{activeChassis.samplerOrGuidanceKey}</span>
-                      <span className="mg-mech-b-jp">サンプラー</span>
                     </div>
                     <span className="mg-mech-b-val">{activeChassis.samplerOrGuidanceVal}</span>
                   </div>
@@ -961,21 +961,14 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
         </div>
       </div>
 
-      {/* Gaming HUD Scroll Indicator */}
-      <div
-        className="mg-hero-scroll-indicator mg-chamfer-sm"
+      {/* Cyberpunk 2077 Section Shortcut Navigator */}
+      <CyberSectionNavigator
+        targetId="editorial-statement"
+        direction="down"
+        label="SYSTEM OVERVIEW"
+        className="mg-hero-dock"
         onClick={onDiscoverClick}
-        role="button"
-        tabIndex={0}
-        aria-label="Scroll down to specification overview"
-      >
-        <div className="mg-hero-scroll-chevrons" aria-hidden="true">
-          <span className="chev c1">&bull;</span>
-          <span className="chev c2">&bull;</span>
-          <span className="chev c3">&bull;</span>
-        </div>
-        <span className="mg-scroll-label">SCROLL // SYSTEM OVERVIEW</span>
-      </div>
+      />
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
 
 export function FeatureStorytelling() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -1114,6 +1115,14 @@ export function FeatureStorytelling() {
           <span>Berhasil menyalin &ldquo;{copiedToken.length > 36 ? copiedToken.slice(0, 36) + '...' : copiedToken}&rdquo; ke clipboard</span>
         </div>
       )}
+
+      {/* Cyberpunk Section Shortcut Navigator (Paling Ujung Bawah Section) */}
+      <CyberSectionNavigator
+        targetId="tools-arsenal"
+        direction="down"
+        label="TOOLS ARSENAL"
+        className="mg-dock-edge bottom"
+      />
     </section>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { CyberSectionNavigator } from './CyberSectionNavigator';
 
 interface MemoryBreakdown {
   model: number; // GB
@@ -279,6 +280,7 @@ export function TechnicalDetailsSection() {
       <div className="mg-tech-atmosphere" aria-hidden="true" />
 
       <div className="mg-container">
+
         {/* Header */}
         <div className="mg-tech-header">
           <div className="mg-editorial-tag">
@@ -1030,6 +1032,14 @@ export function TechnicalDetailsSection() {
           </div>
         )}
       </div>
+
+      {/* Cyberpunk Section Shortcut Navigator (Paling Ujung Bawah Section) */}
+      <CyberSectionNavigator
+        targetId="final-cta"
+        direction="down"
+        label="WORKSTATION ACCESS"
+        className="mg-dock-edge bottom"
+      />
     </section>
   );
 }
