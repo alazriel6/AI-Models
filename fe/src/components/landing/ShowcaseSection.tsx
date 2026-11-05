@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { getModels, type Model } from '../../api/models';
-import { ShowcaseSvgBlueprint } from './showcase/ShowcaseSvgBlueprint';
-import { CyberSectionNavigator } from './CyberSectionNavigator';
+import { CyberSectionNavigator, scrollToSectionCleanly } from './CyberSectionNavigator';
+import {
+  CyberCorruptWalkingText,
+} from './CyberCorruptWalkingText';
 import {
   AllArchitecturesSvg,
   CheckpointsSvg,
@@ -150,7 +152,122 @@ export function ShowcaseSection() {
   const [activeBladeIdx, setActiveBladeIdx] = useState<number>(0);
   const [copiedTag, setCopiedTag] = useState<string | null>(null);
 
+  // Multi-plane Parallax Layer Refs
   const sectionRef = useRef<HTMLElement | null>(null);
+  const bgRef = useRef<HTMLDivElement | null>(null);
+  const rackRef = useRef<HTMLDivElement | null>(null);
+  const bridgeRef = useRef<HTMLDivElement | null>(null);
+  const hoverTimerRef = useRef<number | null>(null);
+
+  const filteredModels = useMemo(() => {
+    return models
+      .filter((m) => {
+        if (activeFilter === 'all') return true;
+        if (activeFilter === 'checkpoint') return m.type === 'checkpoint';
+        if (activeFilter === 'lora') return m.type === 'lora';
+        if (activeFilter === 'illustrious') {
+          return m.base_model?.toLowerCase().includes('illustrious');
+        }
+        if (activeFilter === 'noobai') {
+          return m.base_model?.toLowerCase().includes('noobai');
+        }
+        return true;
+      })
+      .slice(0, 6);
+  }, [models, activeFilter]);
+
+  // Silky Smooth Mechanical Blade Switch Controller
+  const triggerBladeSwitch = useCallback(
+    (targetIdx: number) => {
+      if (targetIdx === activeBladeIdx) return;
+      setActiveBladeIdx(targetIdx);
+    },
+    [activeBladeIdx]
+  );
+
+  const handleBladeHover = (index: number) => {
+    if (activeBladeIdx === index) return;
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+    }
+    // 80ms intentional debounce for silky-smooth gliding without accidental switches
+    hoverTimerRef.current = window.setTimeout(() => {
+      triggerBladeSwitch(index);
+    }, 80);
+  };
+
+  const handleBladeLeave = () => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+    };
+  }, []);
+
+  // 120FPS Ultra-Smooth Hydraulic Parallax Controller (Matching Section 1 physics)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (mediaQuery.matches) return;
+
+    let rafId: number;
+    let currentP = 0.5;
+    let lastTime = performance.now();
+
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+      lastTime = now;
+
+      const section = sectionRef.current;
+      if (section) {
+        const rect = section.getBoundingClientRect();
+        const vh = window.innerHeight;
+
+        // Viewport bounding window with pre-engagement buffer
+        if (rect.bottom >= -120 && rect.top <= vh + 120) {
+          const totalTravel = vh + rect.height;
+          const targetP = Math.max(0, Math.min(1, (vh - rect.top) / totalTravel));
+
+          // Exponential damping (Factor ~6.5)
+          const smoothFactor = 1 - Math.exp(-6.5 * dt);
+          currentP += (targetP - currentP) * smoothFactor;
+
+          const offset = currentP - 0.5; // normalized offset [-0.5, 0.5]
+
+          // Layer 1: Dedicated Cyberpunk Vector Backdrop (drifts smoothly vertically)
+          if (bgRef.current) {
+            const bgY = (offset * 56).toFixed(2);
+            bgRef.current.style.transform = `translate3d(0, ${bgY}px, 0)`;
+          }
+
+          // Layer 2: Transition Bridge datum
+          if (bridgeRef.current) {
+            const bridgeY = (offset * 16).toFixed(2);
+            bridgeRef.current.style.transform = `translate3d(0, ${bridgeY}px, 0)`;
+          }
+
+          // Layer 3: Blade Armory Rack (counter-movement with dynamic 3D perspective pitch tilt)
+          if (rackRef.current) {
+            const rackY = (offset * -24).toFixed(2);
+            const tiltX = (offset * -2.0).toFixed(2);
+            rackRef.current.style.transform = `perspective(1200px) rotateX(${tiltX}deg) translate3d(0, ${rackY}px, 0)`;
+          }
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -177,22 +294,40 @@ export function ShowcaseSection() {
     };
   }, []);
 
-  const filteredModels = useMemo(() => {
-    return models
-      .filter((m) => {
-        if (activeFilter === 'all') return true;
-        if (activeFilter === 'checkpoint') return m.type === 'checkpoint';
-        if (activeFilter === 'lora') return m.type === 'lora';
-        if (activeFilter === 'illustrious') {
-          return m.base_model?.toLowerCase().includes('illustrious');
+  const [isSectionRevealed, setIsSectionRevealed] = useState(false);
+  const isSectionRevealedRef = useRef(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsSectionRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          if (!isSectionRevealedRef.current) {
+            isSectionRevealedRef.current = true;
+            setIsSectionRevealed(true);
+          }
+        } else {
+          // Reset when scrolled out of view so it re-animates on every revisit!
+          if (isSectionRevealedRef.current) {
+            isSectionRevealedRef.current = false;
+            setIsSectionRevealed(false);
+          }
         }
-        if (activeFilter === 'noobai') {
-          return m.base_model?.toLowerCase().includes('noobai');
-        }
-        return true;
-      })
-      .slice(0, 6);
-  }, [models, activeFilter]);
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -20px 0px' }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const copyTriggerTag = (tag: string) => {
     navigator.clipboard?.writeText(tag);
@@ -201,42 +336,44 @@ export function ShowcaseSection() {
   };
 
   return (
-    <section className="mg-showcase is-visible" id="model-showcase" ref={sectionRef}>
-      {/* Preserved Animated SVG Technical Blueprint Background Layer */}
-      <ShowcaseSvgBlueprint />
+    <section className={`mg-showcase is-visible ${isSectionRevealed ? 'is-revealed' : ''}`} id="model-showcase" ref={sectionRef}>
+      {/* Cyberpunk Vector Backdrop with Parallax */}
+      <div ref={bgRef} className="mg-showcase-cyber-bg" aria-hidden="true" />
 
-      <div className="mg-showcase-atmosphere" aria-hidden="true" />
+      <div className="mg-container" style={{ position: 'relative', zIndex: 6, display: 'flex', flexDirection: 'column', justifyContent: 'center', width: '100%' }}>
 
-      {/* Architectural Corner Reticles */}
-      <div className="mg-corner-reticle top-left" aria-hidden="true"><span>+</span></div>
-      <div className="mg-corner-reticle top-right" aria-hidden="true"><span>+</span></div>
-      <div className="mg-corner-reticle bottom-left" aria-hidden="true"><span>+</span></div>
-      <div className="mg-corner-reticle bottom-right" aria-hidden="true"><span>+</span></div>
-
-      {/* Transition Bridge from Section 02 */}
-      <div className="mg-showcase-transition-bridge" aria-hidden="true">
-        <div className="mg-statement-bridge-datum">
+        {/* Transition Bridge Datum directly inside Section 02 container */}
+        <div
+          ref={bridgeRef}
+          className="mg-statement-bridge-datum mg-reveal-step delay-0"
+          style={{ margin: '0 auto 16px auto', opacity: 0.88, width: '100%', cursor: 'pointer' }}
+          onClick={() => scrollToSectionCleanly('model-showcase')}
+          role="button"
+          tabIndex={0}
+          title="Klik untuk autofokus ke Section 2 (Model Library)"
+        >
           <div className="mg-statement-bridge-line" />
           <div className="mg-statement-bridge-badge mg-chamfer-sm">
             <span className="mg-bridge-dot" />
-            <span className="mg-bridge-text">MODEL REPOSITORY 02 // ARMORY RACK</span>
+            <span className="mg-bridge-text">
+              <CyberCorruptWalkingText text="MODEL REPOSITORY 02 // ARMORY RACK" accent="cyan" cycleMs={6200} delayMs={900} />
+            </span>
           </div>
           <div className="mg-statement-bridge-line" />
         </div>
-      </div>
-
-      <div className="mg-container" style={{ position: 'relative', zIndex: 6 }}>
 
         {/* Header */}
-        <div className="mg-showcase-head">
-          <div>
+        <div className="mg-showcase-head mg-reveal-step delay-1">
+          <div className="mg-showcase-head-info">
             <div className="mg-editorial-tag">
               <span className="mg-tag-num">02</span>
               <span className="mg-tag-line" />
-              <span className="mg-tag-text">MODEL LIBRARY SHOWCASE</span>
+              <span className="mg-tag-text">
+                <span className="mg-tag-text" style={{ fontFamily: 'inherit', fontWeight: 700, letterSpacing: '0.02em' }}>MODEL LIBRARY SHOWCASE</span>
+              </span>
             </div>
             <h2 className="mg-showcase-title">
-              Interactive Model Architecture Blade Rack
+              <CyberCorruptWalkingText text="MODELS LIBRARY" accent="cyan" cycleMs={6000} delayMs={1200} />
             </h2>
             <p className="mg-showcase-desc">
               Bilah mekanis interaktif: hover atau klik bilah untuk membuka key-art beresolusi penuh, alokasi VRAM real-time, dan trigger tags Danbooru siap salin.
@@ -253,7 +390,7 @@ export function ShowcaseSection() {
         </div>
 
         {/* Filter Category Buttons with .mg-chamfer-sm */}
-        <div className="mg-showcase-filters" role="tablist" aria-label="Model categories">
+        <div className="mg-showcase-filters mg-reveal-step delay-2" role="tablist" aria-label="Model categories">
           {CATEGORY_TABS.map((cat) => {
             const IconComponent = cat.icon;
             const isTabActive = activeFilter === cat.id;
@@ -267,6 +404,7 @@ export function ShowcaseSection() {
                 onClick={() => {
                   setActiveFilter(cat.id);
                   setActiveBladeIdx(0);
+                  if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
                 }}
               >
                 <IconComponent active={isTabActive} />
@@ -279,7 +417,7 @@ export function ShowcaseSection() {
         {/* ===================================================================
             ASUS ROG ARMORY HORIZONTAL BLADE ACCORDION RACK
             =================================================================== */}
-        <div className="mg-blade-rack" role="tablist" aria-label="Model Blades">
+        <div ref={rackRef} className="mg-blade-rack" role="tablist" aria-label="Model Blades">
           {filteredModels.map((item, index) => {
             const isActive = activeBladeIdx === index;
             const idxStr = `0${index + 1}`;
@@ -299,145 +437,165 @@ export function ShowcaseSection() {
                 role="tab"
                 aria-selected={isActive}
                 tabIndex={0}
-                className={`mg-armory-blade mg-chamfer-md mg-gpu ${isActive ? 'is-active' : 'is-inactive'}`}
-                onClick={() => setActiveBladeIdx(index)}
-                onMouseEnter={() => setActiveBladeIdx(index)}
+                className={`mg-armory-blade mg-chamfer-md mg-gpu mg-stagger-blade blade-delay-${Math.min(index, 7)} ${isActive ? 'is-active' : 'is-inactive'}`}
+                onClick={() => {
+                  if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+                  triggerBladeSwitch(index);
+                }}
+                onMouseEnter={() => handleBladeHover(index)}
+                onMouseLeave={handleBladeLeave}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
-                    setActiveBladeIdx(index);
+                    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+                    triggerBladeSwitch(index);
                   }
                 }}
               >
-                {/* 1. Inactive Collapsed Blade View */}
-                {!isActive ? (
-                  <div className="mg-blade-collapsed-view">
+                {/* 1. Inactive Collapsed Blade View (Smoothly fades out via CSS) */}
+                <div className="mg-blade-collapsed-view" aria-hidden={isActive}>
+                  <img
+                    src={item.thumbnail_url}
+                    alt=""
+                    className="mg-blade-bg-dimmed"
+                    loading="lazy"
+                  />
+                  <span className="mg-blade-idx">{idxStr}</span>
+                  <span className="mg-blade-title-vert">{item.name}</span>
+                  <span className="mg-blade-vram-tag mg-chamfer-sm">{item.vram_min || '6 GB'}</span>
+                </div>
+
+                {/* 2. Active Expanded Blade View (Smoothly slides in via CSS) */}
+                <div className="mg-blade-expanded-view" aria-hidden={!isActive}>
+                  {/* Media Left Half */}
+                  <div className="mg-blade-media-half">
                     <img
                       src={item.thumbnail_url}
-                      alt=""
-                      className="mg-blade-bg-dimmed"
+                      alt={item.name}
+                      className="mg-blade-img-hero"
                       loading="lazy"
+                      decoding="async"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
+                      }}
                     />
-                    <span className="mg-blade-idx">{idxStr}</span>
-                    <span className="mg-blade-title-vert">{item.name}</span>
-                    <span className="mg-blade-vram-tag mg-chamfer-sm">{item.vram_min || '6 GB'}</span>
-                  </div>
-                ) : (
-                  /* 2. Active Expanded Blade View */
-                  <div className="mg-blade-expanded-view">
-                    {/* Media Left Half */}
-                    <div className="mg-blade-media-half">
-                      <img
-                        src={item.thumbnail_url}
-                        alt={item.name}
-                        className="mg-blade-img-hero"
-                        loading="eager"
-                        decoding="async"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/images/preview-1.jpg';
-                        }}
-                      />
-                      <div className="mg-card-media-gradient" />
+                    <div className="mg-card-media-gradient" />
 
-                      <div className="mg-card-media-tags" style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 4 }}>
-                        <span className={`mg-pill ${item.type === 'lora' ? 'mg-pill-lora' : 'mg-pill-checkpoint'} mg-chamfer-sm`}>
-                          {item.type.toUpperCase()}
-                        </span>
-                        <span className="mg-pill mg-pill-base mg-chamfer-sm">
-                          {item.base_model}
-                        </span>
-                      </div>
+                    <div className="mg-card-media-tags" style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 4 }}>
+                      <span className={`mg-pill ${item.type === 'lora' ? 'mg-pill-lora' : 'mg-pill-checkpoint'} mg-chamfer-sm`}>
+                        {item.type.toUpperCase()}
+                      </span>
+                      <span className="mg-pill mg-pill-base mg-chamfer-sm">
+                        {item.base_model}
+                      </span>
                     </div>
+                  </div>
 
-                    {/* Content Right Half */}
-                    <div className="mg-blade-content-half">
-                      <div>
-                        {/* Unit Index & Title */}
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                          <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
+                  {/* Content Right Half */}
+                  <div className="mg-blade-content-half">
+                    <div>
+                      {/* Unit Index & Title */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#94a3b8', fontWeight: 700 }}>
                             MODEL // BLADE-{idxStr}
                           </span>
-                          <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#94a3b8' }}>
-                            by {item.author}
+                          <span className="mg-blade-telemetry-tag mg-chamfer-sm">
+                            READY // FP16
                           </span>
                         </div>
-
-                        <h3 style={{ fontSize: '20px', fontWeight: 700, color: '#ffffff', margin: '0 0 8px' }}>
-                          {item.name}
-                        </h3>
-
-                        <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5', margin: '0 0 14px' }}>
-                          {item.description.replace(/<[^>]+>/g, '').slice(0, 110)}...
-                        </p>
-
-                        {/* Tensor count badge & Sampler recommendation */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                          <span className="mg-mech-tensor-count mg-chamfer-sm">
-                            2,512 TENSOR KEYS // READY
-                          </span>
-                          <span className="mg-mech-lora-tag mg-chamfer-sm">
-                            EULER A // 28 STEPS // CFG 5.5
-                          </span>
-                        </div>
-
-                        {/* VRAM Hardware Footprint Bar */}
-                        <div className="mg-blade-footprint-bar">
-                          <div className="mg-footprint-head">
-                            <span>VRAM HARDWARE FOOTPRINT</span>
-                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>{item.vram_min || '6 GB'} / 16 GB</span>
-                          </div>
-                          <div className="mg-footprint-track mg-chamfer-sm">
-                            <div
-                              className="mg-footprint-fill mg-gpu"
-                              style={{ transform: `scaleX(${vramPercent / 100})` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Click-to-Copy Trigger Tags */}
-                        <div>
-                          <div style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '10px', color: '#64748b', marginBottom: '6px', letterSpacing: '0.08em' }}>
-                            CLICK-TO-COPY TRIGGER TAGS:
-                          </div>
-                          <div className="mg-trigger-tags-cloud">
-                            {triggerTags.map((tag) => (
-                              <button
-                                key={tag}
-                                type="button"
-                                className="mg-trigger-tag-btn mg-chamfer-sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  copyTriggerTag(tag.replace('#', ''));
-                                }}
-                                title="Klik untuk menyalin tag"
-                              >
-                                <span>{tag}</span>
-                                <span style={{ opacity: 0.6 }}>⧉</span>
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Footer Link */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
-                        <Link
-                          to={`/models?model=${item.slug}`}
-                          className="mg-card-inspect-link"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span>Inspect Full Model Telemetry</span>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                            <polyline points="12 5 19 12 12 19" />
-                          </svg>
-                        </Link>
-                        <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#facc15' }}>
-                          ★ {item.rating?.toFixed(1) || '4.9'}
+                        <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#94a3b8' }}>
+                          by {item.author}
                         </span>
                       </div>
+
+                      <h3
+                        className="mg-blade-card-title"
+                        style={{
+                          fontSize: '22px',
+                          fontWeight: 800,
+                          color: '#ffffff',
+                          margin: '0 0 8px',
+                          fontFamily: "'Rajdhani', var(--mg-font-editorial), sans-serif",
+                          letterSpacing: '0.02em',
+                          textTransform: 'uppercase',
+                          lineHeight: '1.2',
+                        }}
+                      >
+                        {item.name}
+                      </h3>
+
+                      <p style={{ fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5', margin: '0 0 14px' }}>
+                        {item.description.replace(/<[^>]+>/g, '').slice(0, 110)}...
+                      </p>
+
+                      {/* Tensor count badge & Sampler recommendation */}
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px', alignItems: 'center' }}>
+                        <span className="mg-mech-tensor-count mg-chamfer-sm">
+                          2,512 TENSOR KEYS // READY
+                        </span>
+                        <span className="mg-mech-lora-tag mg-chamfer-sm">
+                          EULER A // 28 STEPS // CFG 5.5
+                        </span>
+                      </div>
+
+                      {/* VRAM Hardware Footprint Bar */}
+                      <div className="mg-blade-footprint-bar">
+                        <div className="mg-footprint-head">
+                          <span>VRAM HARDWARE FOOTPRINT</span>
+                          <span style={{ color: '#ffffff', fontWeight: 700 }}>{item.vram_min || '6 GB'} / 16 GB</span>
+                        </div>
+                        <div className="mg-footprint-track mg-chamfer-sm">
+                          <div
+                            className="mg-footprint-fill mg-gpu"
+                            style={{ transform: `scaleX(${vramPercent / 100})` }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Click-to-Copy Trigger Tags */}
+                      <div>
+                        <div style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '10px', color: '#64748b', marginBottom: '6px', letterSpacing: '0.08em' }}>
+                          CLICK-TO-COPY TRIGGER TAGS:
+                        </div>
+                        <div className="mg-trigger-tags-cloud">
+                          {triggerTags.map((tag) => (
+                            <button
+                              key={tag}
+                              type="button"
+                              className="mg-trigger-tag-btn mg-chamfer-sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                copyTriggerTag(tag.replace('#', ''));
+                              }}
+                              title="Klik untuk menyalin tag"
+                            >
+                              <span>{tag}</span>
+                              <span style={{ opacity: 0.6 }}>⧉</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Footer Link */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '12px' }}>
+                      <Link
+                        to={`/models?model=${item.slug}`}
+                        className="mg-card-inspect-link"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <span>Inspect Full Model Telemetry</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </Link>
+                      <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: '11px', color: '#facc15' }}>
+                        ★ {item.rating?.toFixed(1) || '4.9'}
+                      </span>
                     </div>
                   </div>
-                )}
+                </div>
               </article>
             );
           })}
@@ -459,7 +617,7 @@ export function ShowcaseSection() {
         targetId="features-narrative"
         direction="down"
         label="CORE FEATURES"
-        className="mg-dock-edge bottom"
+        className="mg-dock-edge bottom mg-reveal-step delay-7"
       />
     </section>
   );

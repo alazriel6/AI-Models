@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../api/client';
 import type { ModelsResponse, Model } from '../../api/models';
-import { CyberSectionNavigator } from './CyberSectionNavigator';
+import { CyberSectionNavigator, scrollToSectionCleanly } from './CyberSectionNavigator';
 import { CyberCorruptWalkingText, CyberSeparateGlitch, generateTypewriterCorruptWord } from './CyberCorruptWalkingText';
 import { SamuraiEmblem } from '../common/SamuraiEmblem';
 
@@ -22,6 +22,7 @@ interface TacticalChassisUnit {
   thumbnailUrl: string;
   flowerAccentText: string;
   activeTargetPct: string;
+  seed: string;
   tags: string[];
 }
 
@@ -105,6 +106,7 @@ const TACTICAL_ANIME_CHASSIS: TacticalChassisUnit[] = [
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=600/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg',
     flowerAccentText: '✿ TARGET LOCK',
     activeTargetPct: 'TGT_LOCK 100%',
+    seed: '48291042',
     tags: ['#masterpiece', '#score_9', '#detailed_anime_eyes', '#clean_lineart', '#highres'],
   },
   {
@@ -123,6 +125,7 @@ const TACTICAL_ANIME_CHASSIS: TacticalChassisUnit[] = [
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=600/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg',
     flowerAccentText: '⚡ OPTIC LOCK',
     activeTargetPct: 'TGT_LOCK 100%',
+    seed: '91827415',
     tags: ['#v_prediction', '#score_9_up', '#source_anime', '#cinematic_lighting', '#masterpiece'],
   },
   {
@@ -141,6 +144,7 @@ const TACTICAL_ANIME_CHASSIS: TacticalChassisUnit[] = [
     thumbnailUrl: 'https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/e621bef5-8aa3-49b8-9abe-a61aca533159/width=600/e621bef5-8aa3-49b8-9abe-a61aca533159.jpeg',
     flowerAccentText: '◈ TARGET LOCK',
     activeTargetPct: 'TGT_LOCK 100%',
+    seed: '73491206',
     tags: ['#masterpiece', '#anime_aesthetic', '#crisp_linework', '#rating:general', '#soft_glow'],
   },
 ];
@@ -320,6 +324,7 @@ export function EditorialStatement() {
             thumbnailUrl: m.thumbnail_url || fallback.thumbnailUrl,
             flowerAccentText: fallback.flowerAccentText,
             activeTargetPct: 'TGT_LOCK 100%',
+            seed: fallback.seed || '48291042',
             tags: fallback.tags,
           };
         });
@@ -335,6 +340,9 @@ export function EditorialStatement() {
       isMounted = false;
     };
   }, []);
+
+  const [isSectionRevealed, setIsSectionRevealed] = useState(false);
+  const isSectionRevealedRef = useRef(false);
 
   const handleChassisTabSwitch = useCallback((targetIdx: number) => {
     if (targetIdx === activeChassisIdx) return;
@@ -409,7 +417,21 @@ export function EditorialStatement() {
         // Gate separation across 76% of track
         const rawOpen = Math.max(0, Math.min(1, (currentP - 0.10) / 0.78));
         const easeOpen = smootherstep(rawOpen);
-        const isFullyOpen = easeOpen >= 0.995;
+        const isDoorsParted = easeOpen >= 0.44;
+
+        // Reveal elements 1 by 1 the exact moment parallax doors reach full opening stroke!
+        if (isDoorsParted) {
+          if (!isSectionRevealedRef.current) {
+            isSectionRevealedRef.current = true;
+            setIsSectionRevealed(true);
+          }
+        } else if (easeOpen < 0.20 || rect.top > vh + 80 || rect.bottom < -80) {
+          // Reset when doors close or section scrolled away, so every re-open triggers the 1-by-1 cascade again!
+          if (isSectionRevealedRef.current) {
+            isSectionRevealedRef.current = false;
+            setIsSectionRevealed(false);
+          }
+        }
 
         // -------------------------------------------------------------
         // GAME-FEEL EVENT DETECTIONS (Impact Slam, Unseal Shudder, Latch)
@@ -515,10 +537,10 @@ export function EditorialStatement() {
 
           leftGateRef.current.style.transform = `translate3d(-${txLeft}%, ${gateLeftY}px, 0) rotate(${rotLeft}deg)`;
           rightGateRef.current.style.transform = `translate3d(${txRight}%, ${gateRightY}px, 0) rotate(${rotRight}deg)`;
-          leftGateRef.current.style.visibility = isFullyOpen ? 'hidden' : 'visible';
-          rightGateRef.current.style.visibility = isFullyOpen ? 'hidden' : 'visible';
-          leftGateRef.current.style.pointerEvents = isFullyOpen ? 'none' : 'auto';
-          rightGateRef.current.style.pointerEvents = isFullyOpen ? 'none' : 'auto';
+          leftGateRef.current.style.visibility = isDoorsParted ? 'hidden' : 'visible';
+          rightGateRef.current.style.visibility = isDoorsParted ? 'hidden' : 'visible';
+          leftGateRef.current.style.pointerEvents = isDoorsParted ? 'none' : 'auto';
+          rightGateRef.current.style.pointerEvents = isDoorsParted ? 'none' : 'auto';
         }
 
         // Lock unsealing progress during first 20% of scroll (0.0 to 0.20)
@@ -537,7 +559,7 @@ export function EditorialStatement() {
           ladderFillRef.current.style.width = `${lockPct}%`;
           if (loadingTextRef.current) {
             if (lockPct >= 100) {
-              loadingTextRef.current.textContent = isFullyOpen ? 'SYSTEM ONLINE 100%' : 'ACCESS GRANTED 100%';
+              loadingTextRef.current.textContent = isDoorsParted ? 'SYSTEM ONLINE 100%' : 'ACCESS GRANTED 100%';
             } else {
               loadingTextRef.current.textContent = `INITIALIZING ${lockPct}%`;
             }
@@ -555,10 +577,10 @@ export function EditorialStatement() {
         // Parallax Layer 3: Payload (EditorialStatement Content)
         if (payloadRef.current) {
           const scale = (0.90 + easeOpen * 0.10).toFixed(4);
-          const opacity = Math.min(1, 0.20 + easeOpen * 0.80).toFixed(3);
+          const opacity = isDoorsParted ? '1' : Math.min(1, 0.20 + easeOpen * 1.6).toFixed(3);
           payloadRef.current.style.transform = `scale3d(${scale}, ${scale}, 1)`;
           payloadRef.current.style.opacity = opacity;
-          payloadRef.current.style.pointerEvents = isFullyOpen ? 'auto' : 'none';
+          payloadRef.current.style.pointerEvents = isDoorsParted ? 'auto' : 'none';
         }
       }
 
@@ -583,7 +605,7 @@ export function EditorialStatement() {
   const activeSegments = Math.round((vramPercent / 100) * 12);
 
   return (
-    <section className="mg-shutter-track" id="editorial-statement" ref={trackRef}>
+    <section className={`mg-shutter-track ${isSectionRevealed ? 'is-revealed' : ''}`} id="editorial-statement" ref={trackRef}>
       <div className="mg-shutter-sticky">
         {/* Screen / Camera Trauma Shake Stage (Game-feel Mechanical Physics) */}
         <div ref={screenShakeRef} className="mg-shutter-shake-stage">
@@ -596,38 +618,39 @@ export function EditorialStatement() {
         <div ref={bgGridRef} className="mg-shutter-bg-grid" aria-hidden="true" />
 
         {/* ===================================================================
-            HIGH-OCTANE CYBERPUNK BACKGROUND LAYERS & WATERMARK
-            =================================================================== */}
-        {/* CRT Scanline Overlay */}
-        <div className="mg-hud-scanlines" aria-hidden="true" />
-
-        {/* Cyber Horizon Glow & High-Tech Cyber Atmosphere (Circular Radar Sweep Removed) */}
-        <div className="mg-hud-ambient-glow" aria-hidden="true" />
-        <div className="mg-hud-horizon-beam" aria-hidden="true" />
-
-        {/* Giant Outline Typography Watermark: MODELS GUIDE */}
-        <div className="mg-hud-watermark" aria-hidden="true">
-          <span>MODELS GUIDE</span>
-        </div>
-
-        {/* Architectural Corner Reticles */}
-        <div className="mg-corner-reticle top-left" aria-hidden="true"><span>+</span></div>
-        <div className="mg-corner-reticle top-right" aria-hidden="true"><span>+</span></div>
-        <div className="mg-corner-reticle bottom-left" aria-hidden="true"><span>+</span></div>
-        <div className="mg-corner-reticle bottom-right" aria-hidden="true"><span>+</span></div>
-
-        {/* ===================================================================
             PARALLAX LAYER 3: INNER PAYLOAD (payloadRef)
             Revealed Local Sovereignty & Architecture Telemetry Vault
             =================================================================== */}
         <div ref={payloadRef} className="mg-shutter-inner-payload">
-          <div className="mg-statement-core mg-hud-tactical-dashboard mg-gpu">
+          {/* SEC 01 Dedicated Cyberpunk Vector Backdrop */}
+          <div className="mg-payload-cyber-bg" aria-hidden="true" />
+
+          <div className={`mg-statement-core mg-hud-tactical-dashboard mg-gpu ${isSectionRevealed ? 'is-revealed' : ''}`}>
+            {/* Transition Bridge Datum for Section 01 */}
+            <div
+              className="mg-statement-bridge-datum mg-reveal-step delay-0"
+              style={{ margin: '0 auto 14px auto', opacity: 0.88, width: '100%', cursor: 'pointer' }}
+              onClick={() => scrollToSectionCleanly('editorial-statement')}
+              role="button"
+              tabIndex={0}
+              title="Klik untuk autofokus ke Section 1 (Specification Suite)"
+            >
+              <div className="mg-statement-bridge-line" />
+              <div className="mg-statement-bridge-badge mg-chamfer-sm">
+                <span className="mg-bridge-dot" />
+                <span className="mg-bridge-text">
+                  <CyberCorruptWalkingText text="EDITORIAL SPECIFICATION 01 // ARCHITECTURE TELEMETRY" accent="cyan" cycleMs={6000} delayMs={600} />
+                </span>
+              </div>
+              <div className="mg-statement-bridge-line" />
+            </div>
+
             {/* -------------------------------------------------------------
                 TOP HEADER BAR:
                 Left: Highlighted cyan badge "SEC 01", monospace title, green status pill
                 Right: 3 tactical action buttons with chamfered corners
                 ------------------------------------------------------------- */}
-            <header className="mg-hud-top-bar">
+            <header className="mg-hud-top-bar mg-reveal-step delay-1">
               <div className="mg-hud-top-left">
                 <span className="mg-hud-sec-badge mg-chamfer-xs">SEC 01</span>
                 <span className="mg-hud-top-sep" aria-hidden="true">·</span>
@@ -654,7 +677,7 @@ export function EditorialStatement() {
                     title="Buka direktori model AI"
                   >
                     <span className="btn-icon">❖</span>
-                    <span>[ ❖ MODELS CATALOG ]</span>
+                    <span>MODELS CATALOG</span>
                   </button>
                   <button
                     type="button"
@@ -663,7 +686,7 @@ export function EditorialStatement() {
                     title="Buka SafeTensors Header Inspector"
                   >
                     <span className="btn-icon">◈</span>
-                    <span>[ ◈ INSPECTOR ]</span>
+                    <span>INSPECTOR</span>
                   </button>
                   <button
                     type="button"
@@ -672,7 +695,7 @@ export function EditorialStatement() {
                     title="Buka GPU Profiler &amp; Kalkulator VRAM"
                   >
                     <span className="btn-icon">⚙</span>
-                    <span>[ ⚙ PROFILER ]</span>
+                    <span>PROFILER</span>
                   </button>
                 </div>
               </div>
@@ -682,7 +705,7 @@ export function EditorialStatement() {
                 ROW 1: INTEGRATED AVIONICS TELEMETRY RIBBON
                 Slim, high-density diagnostic interconnect (No generic KPI cards)
                 ------------------------------------------------------------- */}
-            <div className="mg-hud-telemetry-ribbon mg-chamfer-xs">
+            <div className="mg-hud-telemetry-ribbon mg-chamfer-xs mg-reveal-step delay-2">
               <div className="mg-ribbon-nodes">
                 <div className="mg-ribbon-node">
                   <span className="node-tag cyan">DMA-01</span>
@@ -713,7 +736,7 @@ export function EditorialStatement() {
               {/* =========================================================
                   WING 1 (LEFT): MASTER OPTIC CHASSIS & INFERENCE STAGE
                   ========================================================= */}
-              <div className="mg-cockpit-stage-card mg-chamfer-sm">
+              <div className="mg-cockpit-stage-card mg-chamfer-sm mg-reveal-step delay-3">
                 <div className="mg-card-reticles" aria-hidden="true">
                   <span className="reticle tl">┌</span>
                   <span className="reticle tr">┐</span>
@@ -739,7 +762,7 @@ export function EditorialStatement() {
                           onClick={() => handleChassisTabSwitch(idx)}
                           title={`Beralih ke ${chassis.name}`}
                         >
-                          [{chassis.tabLabel}]
+                          {chassis.tabLabel}
                         </button>
                       ))}
                     </div>
@@ -751,7 +774,7 @@ export function EditorialStatement() {
 
                 {/* Model Title Row */}
                 <div className="mg-card-title-row">
-                  <h3 className="mg-card-title cyan">
+                  <h3 className="mg-card-title">
                     {isGlitching ? (
                       <span>{glitchDisplayName}</span>
                     ) : (
@@ -779,15 +802,14 @@ export function EditorialStatement() {
                     <span className="reticle-ch tr">┐</span>
                     <span className="reticle-ch bl">└</span>
                     <span className="reticle-ch br">┘</span>
-                    <div className="mg-banner-hud-lock mg-chamfer-xs">
-                      <span className="mg-hud-pulse-dot cyan" aria-hidden="true" />
-                      <span className="mg-banner-lock-tag">{activeChassis.activeTargetPct}</span>
+                    <div className="mg-banner-hud-telemetry top-left mg-chamfer-xs">
+                      <span className="telemetry-label">SEED:</span>
+                      <span className="telemetry-val">{activeChassis.seed || '48291042'}</span>
                     </div>
-                  </div>
-
-                  <div className="mg-stage-flower-accent mg-chamfer-xs" aria-hidden="true">
-                    <span className="flower-icon">✿</span>
-                    <span>{activeChassis.flowerAccentText}</span>
+                    <div className="mg-banner-hud-telemetry top-right mg-chamfer-xs">
+                      <span className="telemetry-label">RES:</span>
+                      <span className="telemetry-val">{activeChassis.nativeRes}</span>
+                    </div>
                   </div>
 
                   <div className="mg-banner-scanlines" aria-hidden="true" />
@@ -851,7 +873,7 @@ export function EditorialStatement() {
                 <div className="mg-card-specs-grid mg-chamfer-xs">
                   <div className="mg-spec-mini-col">
                     <span className="mg-spec-mini-k">PREDICTION</span>
-                    <span className="mg-spec-mini-v cyan">{activeChassis.prediction}</span>
+                    <span className="mg-spec-mini-v">{activeChassis.prediction}</span>
                   </div>
                   <div className="mg-spec-mini-col">
                     <span className="mg-spec-mini-k">NATIVE RES</span>
@@ -859,7 +881,7 @@ export function EditorialStatement() {
                   </div>
                   <div className="mg-spec-mini-col">
                     <span className="mg-spec-mini-k">SAMPLER</span>
-                    <span className="mg-spec-mini-v amber">{activeChassis.samplerStack}</span>
+                    <span className="mg-spec-mini-v">{activeChassis.samplerStack}</span>
                   </div>
                   <div className="mg-spec-mini-col">
                     <span className="mg-spec-mini-k">CFG SCALE</span>
@@ -875,7 +897,7 @@ export function EditorialStatement() {
                   title="Buka Prompt Lab untuk model ini"
                 >
                   <span className="btn-icon">⌖</span>
-                  <span>[ ⌖ TEST IN PROMPT LAB &amp; WORKFLOWS ]</span>
+                  <span>TEST IN PROMPT LAB &amp; WORKFLOWS</span>
                 </button>
               </div>
 
@@ -886,7 +908,7 @@ export function EditorialStatement() {
                 {/* -------------------------------------------------------
                     SUB-MODULE A: SAFETENSORS AIR-GAPPED HEADER INSPECTOR
                     ------------------------------------------------------- */}
-                <div className="mg-deck-card mg-chamfer-sm">
+                <div className="mg-deck-card green mg-chamfer-sm mg-reveal-step delay-4">
                   <div className="mg-card-reticles" aria-hidden="true">
                     <span className="reticle tl">┌</span>
                     <span className="reticle tr">┐</span>
@@ -897,8 +919,8 @@ export function EditorialStatement() {
                   <div className="mg-deck-card-head">
                     <div className="mg-deck-head-left">
                       <span className="mg-hud-pulse-dot green" aria-hidden="true" />
-                      <span className="mg-card-unit-title" style={{ color: '#00ff9d' }}>
-                        ● SAFETENSORS HEADER PARSER
+                      <span className="mg-card-unit-title">
+                        SAFETENSORS HEADER PARSER
                       </span>
                     </div>
                     <div className="mg-deck-file-tabs">
@@ -926,9 +948,7 @@ export function EditorialStatement() {
                   >
                     <div className="mg-term-scanline" aria-hidden="true" />
                     <div className="mg-term-head">
-                      <span className="term-dot r" />
-                      <span className="term-dot y" />
-                      <span className="term-dot g" />
+                      <span className="mg-term-status-badge">■ OK</span>
                       <span className="term-title">
                         HEADER_DECODE // {activeDemoFile.fileName}
                       </span>
@@ -952,14 +972,14 @@ export function EditorialStatement() {
                     title="Buka SafeTensors Header Inspector"
                   >
                     <span className="btn-icon">⌘</span>
-                    <span>[ ⌘ LAUNCH IN-BROWSER INSPECTOR ]</span>
+                    <span>LAUNCH IN-BROWSER INSPECTOR</span>
                   </button>
                 </div>
 
                 {/* -------------------------------------------------------
                     SUB-MODULE B: HARDWARE SOVEREIGNTY & REAL-TIME VRAM PROFILER
                     ------------------------------------------------------- */}
-                <div className="mg-deck-card mg-chamfer-sm">
+                <div className="mg-deck-card amber mg-chamfer-sm mg-reveal-step delay-5">
                   <div className="mg-card-reticles" aria-hidden="true">
                     <span className="reticle tl">┌</span>
                     <span className="reticle tr">┐</span>
@@ -970,8 +990,8 @@ export function EditorialStatement() {
                   <div className="mg-deck-card-head">
                     <div className="mg-deck-head-left">
                       <span className="mg-hud-pulse-dot amber" aria-hidden="true" />
-                      <span className="mg-card-unit-title" style={{ color: '#fcee0a' }}>
-                        ● HARDWARE LAB // VRAM ALLOCATION
+                      <span className="mg-card-unit-title">
+                        HARDWARE LAB // VRAM ALLOCATION
                       </span>
                     </div>
                     <div className="mg-deck-file-tabs">
@@ -1038,7 +1058,7 @@ export function EditorialStatement() {
                     title="Buka GPU Profiler &amp; Kalkulator VRAM"
                   >
                     <span className="btn-icon">⚙</span>
-                    <span>[ ⚙ PROFILE HARDWARE VRAM ]</span>
+                    <span>PROFILE HARDWARE VRAM</span>
                   </button>
                 </div>
               </div>
@@ -1048,7 +1068,7 @@ export function EditorialStatement() {
                 ROW 3: BOTTOM FULL-WIDTH SPECIFICATION BAR
                 Balanced 4-column interconnected matrix
                 ------------------------------------------------------------- */}
-            <div className="mg-hud-specs-bar mg-chamfer-sm">
+            <div className="mg-hud-specs-bar mg-chamfer-sm mg-reveal-step delay-6">
               <div className="mg-specs-bar-head">
                 <div className="mg-specs-head-left">
                   <span className="icon">◈</span>
@@ -1958,7 +1978,7 @@ export function EditorialStatement() {
           targetId="model-showcase"
           direction="down"
           label="MODEL SHOWCASE"
-          className="mg-dock-edge bottom"
+          className="mg-dock-edge bottom mg-reveal-step delay-7"
         />
         </div>
       </div>

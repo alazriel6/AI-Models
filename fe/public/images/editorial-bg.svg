@@ -1,0 +1,306 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" aria-hidden="true">
+  <defs>
+    <style>
+      text {
+        font-family: 'JetBrains Mono', 'SF Mono', Consolas, -apple-system, sans-serif;
+        text-rendering: geometricPrecision;
+        -webkit-font-smoothing: antialiased;
+      }
+    </style>
+
+    <!-- 1. Pitch Black & Deep Obsidian Base -->
+    <linearGradient id="cyber-void" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0305" />
+      <stop offset="28%" stop-color="#050609" />
+      <stop offset="75%" stop-color="#040608" />
+      <stop offset="100%" stop-color="#040b10" />
+    </linearGradient>
+
+    <!-- 2. Left Crimson Ambient Bleed -->
+    <radialGradient id="crimson-bleed" cx="0%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#ff003c" stop-opacity="0.14" />
+      <stop offset="35%" stop-color="#990024" stop-opacity="0.05" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- 3. Bottom-Right Kiroshi Cyan Ambient Glow -->
+    <radialGradient id="cyan-bleed" cx="95%" cy="95%" r="50%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.10" />
+      <stop offset="45%" stop-color="#00f0ff" stop-opacity="0.02" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- 4. Vertical Red Data Rain Gradient -->
+    <linearGradient id="rain-trail" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ff003c" stop-opacity="0" />
+      <stop offset="65%" stop-color="#ff003c" stop-opacity="0.18" />
+      <stop offset="95%" stop-color="#ff003c" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#ff5577" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- 5. Subtle CRT Horizontal Scanline Pattern -->
+    <pattern id="crt-scanline" width="8" height="4" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="8" y2="0" stroke="#ffffff" stroke-width="1" stroke-opacity="0.012" />
+    </pattern>
+
+    <!-- 6. Sparse Micro-Dot Matrix Pattern -->
+    <pattern id="neural-dots" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="16" cy="16" r="0.65" fill="#00f0ff" fill-opacity="0.09" />
+    </pattern>
+
+    <!-- 7. Subtle Technical Grid (64x64) -->
+    <pattern id="sub-grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M 64 0 L 0 0 0 64" fill="none" stroke="#00f0ff" stroke-width="0.5" stroke-opacity="0.035" />
+    </pattern>
+
+    <!-- 8. Reusable Data Rain Drop Nodes -->
+    <g id="data-drop">
+      <line x1="0" y1="0" x2="0" y2="180" stroke="url(#rain-trail)" stroke-width="0.9" stroke-dasharray="3 2 8 3 2 4" />
+      <rect x="-1.5" y="178" width="3" height="3" fill="#ff003c" fill-opacity="0.8" />
+      <rect x="-1" y="140" width="2" height="4" fill="#ff003c" fill-opacity="0.45" />
+      <rect x="-1" y="95" width="2" height="2" fill="#ff003c" fill-opacity="0.25" />
+    </g>
+
+    <g id="data-drop-short">
+      <line x1="0" y1="0" x2="0" y2="110" stroke="url(#rain-trail)" stroke-width="0.7" stroke-dasharray="2 3 5 2" />
+      <rect x="-1" y="109" width="2" height="2" fill="#ff003c" fill-opacity="0.65" />
+    </g>
+  </defs>
+
+  <!-- ================= LAYER 1: BASE & AMBIENCE ================= -->
+  <rect width="1920" height="1080" fill="url(#cyber-void)" />
+  <rect width="1920" height="1080" fill="url(#crimson-bleed)" />
+  <rect width="1920" height="1080" fill="url(#cyan-bleed)" />
+  <rect width="1920" height="1080" fill="url(#sub-grid)" />
+  <rect width="1920" height="1080" fill="url(#neural-dots)" />
+  <rect width="1920" height="1080" fill="url(#crt-scanline)" />
+
+  <!-- ================= LAYER 2: GIANT GHOST WATERMARK TYPOGRAPHY ================= -->
+  <g font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="155" letter-spacing="14" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.02" text-anchor="middle">
+    <text x="980" y="245">NEURAL ARCHITECTURE</text>
+  </g>
+
+  <!-- ================= LAYER 3: EXTENDED FLOOR PERSPECTIVE GRID (FULL HEIGHT TO BOTTOM) ================= -->
+  <g stroke="#00f0ff" stroke-opacity="0.06" stroke-width="0.6">
+    <!-- Horizontal Floor Lines reaching down to the floor edge -->
+    <line x1="0" y1="850" x2="1920" y2="850" stroke-opacity="0.02" />
+    <line x1="0" y1="885" x2="1920" y2="885" stroke-opacity="0.03" />
+    <line x1="0" y1="925" x2="1920" y2="925" stroke-opacity="0.04" />
+    <line x1="0" y1="970" x2="1920" y2="970" stroke-opacity="0.055" />
+    <line x1="0" y1="1020" x2="1920" y2="1020" stroke-opacity="0.075" />
+    <line x1="0" y1="1055" x2="1920" y2="1055" stroke-opacity="0.09" />
+    <line x1="0" y1="1079" x2="1920" y2="1079" stroke-opacity="0.12" stroke-width="0.8" />
+    <!-- Radiating Perspective Rays extending fully to y=1080 -->
+    <line x1="960" y1="780" x2="0" y2="1080" />
+    <line x1="960" y1="780" x2="220" y2="1080" />
+    <line x1="960" y1="780" x2="480" y2="1080" />
+    <line x1="960" y1="780" x2="760" y2="1080" />
+    <line x1="960" y1="780" x2="1160" y2="1080" />
+    <line x1="960" y1="780" x2="1440" y2="1080" />
+    <line x1="960" y1="780" x2="1700" y2="1080" />
+    <line x1="960" y1="780" x2="1920" y2="1080" />
+  </g>
+
+  <!-- ================= LAYER 4: VERTICAL RED MATRIX RAIN (SPARSE) ================= -->
+  <g opacity="0.85">
+    <use href="#data-drop" x="148" y="70" />
+    <use href="#data-drop-short" x="244" y="300" />
+    <use href="#data-drop" x="340" y="20" />
+    <use href="#data-drop-short" x="436" y="520" />
+    <use href="#data-drop" x="564" y="90" />
+    <use href="#data-drop-short" x="660" y="50" />
+    <use href="#data-drop" x="788" y="110" />
+    <use href="#data-drop-short" x="948" y="30" />
+    <use href="#data-drop" x="1140" y="70" />
+    <use href="#data-drop-short" x="1268" y="210" />
+    <use href="#data-drop" x="1428" y="40" />
+    <use href="#data-drop-short" x="1556" y="340" />
+    <use href="#data-drop" x="1684" y="100" />
+    <use href="#data-drop-short" x="1780" y="50" />
+    <use href="#data-drop" x="1844" y="420" />
+    <!-- Bottom Drops extending deeper -->
+    <use href="#data-drop-short" x="180" y="760" opacity="0.5" />
+    <use href="#data-drop-short" x="628" y="800" opacity="0.4" />
+    <use href="#data-drop-short" x="1364" y="730" opacity="0.5" />
+    <use href="#data-drop-short" x="1620" y="780" opacity="0.4" />
+  </g>
+
+  <!-- Micro Hex Labels near Data Drops -->
+  <g font-size="7" fill="#ff003c" fill-opacity="0.5" letter-spacing="1">
+    <text x="153" y="252">0x7F</text>
+    <text x="345" y="202">BD_09</text>
+    <text x="569" y="272">FF</text>
+    <text x="793" y="292">1C</text>
+    <text x="1145" y="252">E9</text>
+    <text x="1433" y="222">55</text>
+    <text x="1689" y="282">A0</text>
+  </g>
+
+  <!-- ================= LAYER 5: SLIM TELEMETRY SPINE (LEFT FLANK) ================= -->
+  <g transform="translate(32, 0)">
+    <!-- Garis Vertikal Terputus -->
+    <line x1="0" y1="130" x2="0" y2="460" stroke="#ff003c" stroke-width="1" stroke-opacity="0.4" />
+    <line x1="0" y1="520" x2="0" y2="980" stroke="#ff003c" stroke-width="1" stroke-opacity="0.3" />
+    
+    <!-- Chamfered Node di Tengah Kiri -->
+    <path d="M 0 460 L 8 468 L 8 512 L 0 520" fill="none" stroke="#ff003c" stroke-width="1.2" stroke-opacity="0.75" />
+    <rect x="3" y="482" width="2" height="16" fill="#fcee0a" fill-opacity="0.85" />
+
+    <!-- Tick Marks -->
+    <g stroke="#ff003c" stroke-width="0.8" stroke-opacity="0.45">
+      <line x1="0" y1="170" x2="5" y2="170" />
+      <line x1="0" y1="200" x2="7" y2="200" />
+      <line x1="0" y1="230" x2="4" y2="230" />
+      <line x1="0" y1="260" x2="5" y2="260" />
+      <line x1="0" y1="780" x2="5" y2="780" />
+      <line x1="0" y1="810" x2="7" y2="810" />
+      <line x1="0" y1="840" x2="4" y2="840" />
+    </g>
+
+    <!-- Memory Address Equalizer Bars -->
+    <g fill="#ff003c" fill-opacity="0.35" transform="translate(10, 280)">
+      <rect x="0" y="0" width="7" height="1.8" />
+      <rect x="0" y="4" width="13" height="1.8" />
+      <rect x="0" y="8" width="5" height="1.8" />
+      <rect x="0" y="12" width="10" height="1.8" />
+      <rect x="0" y="16" width="4" height="1.8" />
+      <rect x="0" y="24" width="9" height="1.8" />
+      <rect x="0" y="28" width="15" height="1.8" />
+      <rect x="0" y="32" width="7" height="1.8" />
+    </g>
+
+    <!-- Vertical Rotated Telemetry Text (Subtle & Crisp) -->
+    <text x="13" y="640" fill="#ff003c" fill-opacity="0.75" font-size="7.5" font-weight="bold" letter-spacing="2.5" transform="rotate(90, 13, 640)">SYS.MEM // ALLOCATION_OK</text>
+    <text x="11" y="930" fill="#ff003c" fill-opacity="0.75" font-size="8" font-weight="bold" letter-spacing="2">V.2.1 // NC_NET</text>
+  </g>
+
+  <!-- ================= TOP-CENTER BADGE & DIRECTORY BAR (SAFE UNDER NAVBAR at y=84) ================= -->
+  <g transform="translate(760, 84)">
+    <rect x="0" y="0" width="76" height="14" rx="1.5" fill="#fcee0a" fill-opacity="0.9" />
+    <text x="38" y="10" fill="#050608" font-weight="900" font-size="7.8" letter-spacing="1" text-anchor="middle">SYS.GUIDE</text>
+    <text x="88" y="10" fill="#00f0ff" fill-opacity="0.85" font-weight="bold" font-size="8.2" letter-spacing="1.5">NEURAL ARCHITECTURE DIRECTORY // [ONLINE]</text>
+  </g>
+
+  <!-- =========================================================================
+       LAYER 6: 4 UNIQUE & ASYMMETRICAL CORNERS (ULTRA-CLEAN MICRO-TYPOGRAPHY)
+       Top clusters moved to y=84 (SAFE BELOW FIXED NAVBAR)
+       Bottom clusters at y=1054 (FLUSH ABOVE EXTENDED BOTTOM)
+       ========================================================================= -->
+
+  <!-- =========================================================================
+       1. TOP-LEFT: SIGNATURE RED BREACH CALLOUT (SAFE AT y=84, UNDER NAVBAR)
+       ========================================================================= -->
+  <g transform="translate(38, 84)">
+    <!-- Corner Framing Bracket -->
+    <path d="M 0 16 L 0 0 L 16 0" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-opacity="0.8" />
+    <rect x="0" y="0" width="2.5" height="2.5" fill="#00f0ff" />
+    
+    <!-- Fine Stepped Guide Line running above -->
+    <path d="M 22 0 L 110 0 L 120 5 L 430 5" fill="none" stroke="#ff003c" stroke-width="0.8" stroke-opacity="0.6" />
+    <circle cx="430" cy="5" r="1.2" fill="#ff003c" fill-opacity="0.8" />
+
+    <!-- Left: 2 Short DB Records (x = 10..185) -->
+    <g fill="#ff003c" letter-spacing="0.5">
+      <text x="10" y="13" fill-opacity="0.95" font-weight="bold" font-size="6.8">TARGET // NC-77 [CORE]</text>
+      <text x="10" y="21" fill-opacity="0.75" font-size="5.6">NIGHT CITY CORP RECORD DATABASE // 00442923402 // -9123/213</text>
+      <text x="10" y="29" fill-opacity="0.55" font-size="5.2">BUFFER: 0x7FFF98E4 · IMMUTABLE_DESERIALIZE</text>
+    </g>
+
+    <!-- Right: Slim Red Callout Box (Reference Match) (x = 205..425) -->
+    <g transform="translate(205, 9)">
+      <rect x="0" y="0" width="220" height="22" fill="#ff003c" fill-opacity="0.05" stroke="#ff003c" stroke-width="0.8" stroke-opacity="0.75" />
+      <!-- Warning Triangle Icon -->
+      <g transform="translate(6, 4.5)" stroke="#fcee0a" stroke-width="0.85" fill="none">
+        <polygon points="5,1 1,9 9,9" stroke-linejoin="round" />
+        <line x1="5" y1="4" x2="5" y2="6.5" stroke-linecap="round" stroke="#fcee0a" />
+        <circle cx="5" cy="7.8" r="0.4" fill="#fcee0a" />
+      </g>
+      <!-- Micro Disclaimer Text -->
+      <g font-size="5.4" fill="#ff003c" fill-opacity="0.85" letter-spacing="0.2">
+        <text x="19" y="8" font-weight="bold" fill="#ff5577">CAUTION // AIR-GAPPED ENFORCED</text>
+        <text x="19" y="15.5">Local host verified. Show no un-exec memos. 0.00 MS.</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- =========================================================================
+       2. TOP-RIGHT: CYAN NETWORK STREAM (SAFE AT y=84, UNDER NAVBAR)
+       ========================================================================= -->
+  <g transform="translate(1882, 84)">
+    <!-- Corner Framing Bracket -->
+    <path d="M 0 16 L 0 0 L -16 0" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-opacity="0.8" />
+    <rect x="-2.5" y="0" width="2.5" height="2.5" fill="#00f0ff" />
+    
+    <!-- Fine Stepped Guide Line to Left -->
+    <path d="M -22 0 L -80 0 L -90 5 L -260 5" fill="none" stroke="#00f0ff" stroke-width="0.8" stroke-opacity="0.5" />
+    <circle cx="-260" cy="5" r="1.2" fill="#00f0ff" fill-opacity="0.8" />
+
+    <!-- Mini Frequency Blocks on Left -->
+    <g transform="translate(-250, 14)">
+      <rect x="0" y="0" width="5" height="4" fill="#00f0ff" fill-opacity="0.9" />
+      <rect x="7" y="0" width="5" height="4" fill="#00f0ff" fill-opacity="0.9" />
+      <rect x="14" y="0" width="5" height="4" fill="#00f0ff" fill-opacity="0.9" />
+      <rect x="21" y="0" width="5" height="4" fill="#00f0ff" fill-opacity="0.5" />
+      <rect x="28" y="0" width="5" height="4" fill="#00f0ff" fill-opacity="0.2" />
+      <text x="38" y="4.5" fill="#00f0ff" font-size="5" fill-opacity="0.7" letter-spacing="0.8">LINK: 10 GbE</text>
+    </g>
+
+    <!-- Right-Aligned Network Telemetry -->
+    <g fill="#00f0ff" letter-spacing="0.5" text-anchor="end">
+      <text x="-10" y="13" fill-opacity="0.95" font-weight="bold" font-size="6.8">PORT 8080 // [127.0.0.1]</text>
+      <text x="-10" y="21" fill-opacity="0.75" font-size="5.6">DMA_STREAM: AIR-GAPPED · BUS 0.00 MS</text>
+      <text x="-10" y="29" fill="#ffffff" fill-opacity="0.5" font-size="5.2">CRC32: 0x9B4C28F1 · ZERO_OUTBOUND</text>
+    </g>
+  </g>
+
+  <!-- =========================================================================
+       3. BOTTOM-LEFT: AMBER FIRMWARE TAG & COMPACT RULE (FLUSH WITH BOTTOM)
+       ========================================================================= -->
+  <g transform="translate(38, 1054)">
+    <!-- Corner Framing Bracket -->
+    <path d="M 0 -14 L 0 0 L 14 0" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-opacity="0.8" />
+    <rect x="0" y="-2.5" width="2.5" height="2.5" fill="#00f0ff" />
+    
+    <!-- Slim Amber Chip Pill Badge -->
+    <g transform="translate(20, -17)">
+      <rect x="0" y="0" width="44" height="12" rx="1" fill="#fcee0a" fill-opacity="0.12" stroke="#fcee0a" stroke-width="0.7" stroke-opacity="0.75" />
+      <text x="22" y="8.5" fill="#fcee0a" font-size="5.6" font-weight="bold" letter-spacing="0.8" text-anchor="middle">FW.4.12</text>
+    </g>
+
+    <!-- Single Clean Cryptographic Checksum Line -->
+    <text x="72" y="-8.5" fill="#ffffff" font-size="5.6" fill-opacity="0.65" letter-spacing="0.8">SYSTEM KERNEL // SOVEREIGN CLUSTER · SHA256: CE58B29F...847E</text>
+
+    <!-- Subtle Dotted Baseline -->
+    <line x1="20" y1="-2" x2="330" y2="-2" stroke="#fcee0a" stroke-width="0.6" stroke-opacity="0.25" stroke-dasharray="3 2 10 2" />
+  </g>
+
+  <!-- =========================================================================
+       4. BOTTOM-RIGHT: OPTICAL VIEWFINDER RETICLE & GPU STATUS (FLUSH WITH BOTTOM)
+       ========================================================================= -->
+  <g transform="translate(1882, 1054)">
+    <!-- Chamfered Viewfinder Corner Bracket -->
+    <path d="M 0 -18 L 0 -5 L -5 0 L -18 0" fill="none" stroke="#00f0ff" stroke-width="1.2" stroke-opacity="0.8" />
+    
+    <!-- Precision Crosshair Reticle -->
+    <g transform="translate(-28, -14)">
+      <circle cx="0" cy="0" r="4" fill="none" stroke="#00f0ff" stroke-width="0.5" stroke-opacity="0.6" stroke-dasharray="1.5 1" />
+      <line x1="-6" y1="0" x2="6" y2="0" stroke="#00f0ff" stroke-width="0.5" stroke-opacity="0.6" />
+      <line x1="0" y1="-6" x2="0" y2="6" stroke="#00f0ff" stroke-width="0.5" stroke-opacity="0.6" />
+      <circle cx="0" cy="0" r="0.8" fill="#fcee0a" />
+    </g>
+
+    <!-- Telemetry Status on Left -->
+    <g fill="#00f0ff" letter-spacing="0.5" text-anchor="end">
+      <text x="-40" y="-11" fill-opacity="0.9" font-weight="bold" font-size="6.8">GPU_TELEMETRY: ONLINE</text>
+      <text x="-40" y="-3.5" fill-opacity="0.65" font-size="5.4">42°C · 31.5 GB/s · ZERO DROPPED FRAMES</text>
+    </g>
+  </g>
+
+  <!-- ================= LAYER 7: SPARSE PRECISION CROSSHAIRS ================= -->
+  <g stroke="#00f0ff" stroke-width="0.7" stroke-opacity="0.3">
+    <path d="M 410 320 L 420 320 M 415 315 L 415 325" />
+    <path d="M 955 540 L 965 540 M 960 535 L 960 545" stroke-opacity="0.15" />
+    <path d="M 1500 280 L 1510 280 M 1505 275 L 1505 285" />
+    <path d="M 1500 780 L 1510 780 M 1505 775 L 1505 785" />
+  </g>
+</svg>

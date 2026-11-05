@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { CyberSectionNavigator } from './CyberSectionNavigator';
+import { CyberSectionNavigator, scrollToSectionCleanly } from './CyberSectionNavigator';
+import { CyberCorruptWalkingText } from './CyberCorruptWalkingText';
 
 export function FeatureStorytelling() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -8,6 +9,7 @@ export function FeatureStorytelling() {
   const glowPathRef = useRef<SVGPathElement | null>(null);
   const coreLaserRef = useRef<SVGPathElement | null>(null);
   const streamRef = useRef<SVGPathElement | null>(null);
+  const sparkGroupRef = useRef<SVGGElement | null>(null);
 
   // References to the 6 step nodes to calculate exact path coordinates
   const node1Ref = useRef<HTMLDivElement | null>(null);
@@ -27,11 +29,11 @@ export function FeatureStorytelling() {
 
   const [pathD, setPathD] = useState<string>('');
   const [svgSize, setSvgSize] = useState<{ width: number; height: number }>({ width: 1200, height: 3200 });
+  const [isSectionRevealed, setIsSectionRevealed] = useState<boolean>(false);
 
   // Cached node points and arc lengths along SVG path for zero-offset scroll synchronization
   const nodePointsRef = useRef<{ x: number; y: number }[]>([]);
   const nodeLengthsRef = useRef<number[]>([0, 0, 0, 0, 0, 0, 0]);
-  const pinsRef = useRef<HTMLElement[]>([]);
   const pinDocTopsRef = useRef<number[]>([]);
   const activeStepRef = useRef<number>(0);
   const totalLengthRef = useRef<number>(0);
@@ -66,7 +68,7 @@ export function FeatureStorytelling() {
   const totalLoraWeight = Math.round((loraWeights.core + loraWeights.lighting + loraWeights.detail) * 100) / 100;
   const isLoraOverbaked = totalLoraWeight > 2.1;
 
-  // Build dynamic SVG path threading through all feature pins
+  // Build dynamic SVG path threading through all feature pins with un-transformed layout coordinates
   const updatePathGeometry = useCallback(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -81,62 +83,69 @@ export function FeatureStorytelling() {
 
     const nodes = [node1Ref, node2Ref, node3Ref, node4Ref, node5Ref, node6Ref];
 
-    // Compute exact subpixel center coordinates for each node's circular pin
+    // Helper to compute resting coordinates strictly relative to container without CSS transform distortion
+    const getPinCenter = (pinEl: HTMLElement) => {
+      let x = pinEl.offsetLeft + pinEl.offsetWidth / 2;
+      let y = pinEl.offsetTop + pinEl.offsetHeight / 2;
+      let curr = pinEl.offsetParent as HTMLElement | null;
+
+      while (curr && curr !== container && container.contains(curr)) {
+        x += curr.offsetLeft;
+        y += curr.offsetTop;
+        curr = curr.offsetParent as HTMLElement | null;
+      }
+
+      // Safe containment clamp so coords never leave container
+      x = Math.max(30, Math.min(w - 30, Math.round(x)));
+      y = Math.round(y);
+      return { x, y };
+    };
+
+    const containerDocTop = window.scrollY + containerRect.top;
     const pinCoords: { x: number; y: number }[] = [];
-    const pinTargets: HTMLElement[] = [];
     const docTops: number[] = [];
-    const scrollY = window.scrollY || window.pageYOffset;
 
     nodes.forEach((ref) => {
       if (ref.current) {
-        const pin = ref.current.querySelector('.mg-node-pin');
-        const target = (pin || ref.current) as HTMLElement;
-        pinTargets.push(target);
-        const rect = target.getBoundingClientRect();
-        pinCoords.push({
-          x: Math.round(rect.left - containerRect.left + rect.width / 2),
-          y: Math.round(rect.top - containerRect.top + rect.height / 2),
-        });
-        docTops.push(Math.round(rect.top + scrollY));
+        const pin = (ref.current.querySelector('.mg-node-pin') || ref.current) as HTMLElement;
+        const center = getPinCenter(pin);
+        pinCoords.push(center);
+        docTops.push(Math.round(containerDocTop + center.y));
       }
     });
 
-    pinsRef.current = pinTargets;
     pinDocTopsRef.current = docTops;
 
     if (pinCoords.length < 6) return;
 
     const points: { x: number; y: number }[] = [];
 
-    // 1. Initial point directly under section header
-    const header = container.querySelector('.mg-features-header');
-    if (header) {
-      const hRect = header.getBoundingClientRect();
-      points.push({
-        x: pinCoords[0].x,
-        y: Math.max(10, Math.round(hRect.bottom - containerRect.top + 18)),
-      });
-    } else {
-      points.push({ x: pinCoords[0].x, y: 30 });
-    }
+    // 1. Initial feeder point vertically aligned with Node 1
+    const startY = Math.max(16, pinCoords[0].y - 90);
+    points.push({ x: pinCoords[0].x, y: startY });
 
     // 2. Add each node's exact center pin coordinate
     pinCoords.forEach((pt) => points.push(pt));
 
     nodePointsRef.current = points;
 
-    // 3. Build smooth continuous cubic bezier curve threading directly through every pin
-    let d = `M ${points[0].x} ${points[0].y}`;
-    for (let i = 1; i < points.length; i++) {
+    // 3. Build pristine S-curve cubic bezier path
+    // Segment 0: Clean vertical in-feed from top down to Node 1
+    let d = `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+
+    // Segments 1 to 5: S-curves connecting between pins
+    for (let i = 2; i < points.length; i++) {
       const prev = points[i - 1];
       const curr = points[i];
-      const midY = Math.round((prev.y + curr.y) / 2);
-      d += ` C ${prev.x} ${midY}, ${curr.x} ${midY}, ${curr.x} ${curr.y}`;
+      const dy = curr.y - prev.y;
+      const cp1y = Math.round(prev.y + dy * 0.52);
+      const cp2y = Math.round(curr.y - dy * 0.52);
+      d += ` C ${prev.x} ${cp1y}, ${curr.x} ${cp2y}, ${curr.x} ${curr.y}`;
     }
 
-    // 4. Smooth terminal curve below the last feature node
+    // Terminal vertical drop below Node 6
     const last = points[points.length - 1];
-    d += ` C ${last.x} ${last.y + 35}, ${last.x} ${last.y + 65}, ${last.x} ${last.y + 90}`;
+    d += ` L ${last.x} ${last.y + 110}`;
 
     setPathD(d);
   }, []);
@@ -192,7 +201,7 @@ export function FeatureStorytelling() {
 
       const lengths: number[] = [0];
 
-      // Fast monotonic vertical binary search on Y: 9 iterations per pin = 54 total calls instead of 700+ calls!
+      // Fast monotonic vertical binary search on Y: 9 iterations per pin = 54 total calls
       for (let i = 1; i < pts.length; i++) {
         const targetY = pts[i].y;
         let low = lengths[i - 1];
@@ -211,8 +220,8 @@ export function FeatureStorytelling() {
 
       nodeLengthsRef.current = lengths;
 
-      // Initialize strokeDasharray and initial strokeDashoffset once
-      const pathsToInit = [pathRef.current, glowPathRef.current, coreLaserRef.current];
+      // Initialize strokeDasharray and initial strokeDashoffset
+      const pathsToInit = [pathRef.current, glowPathRef.current, coreLaserRef.current, streamRef.current];
       pathsToInit.forEach((p) => {
         if (p) {
           p.style.strokeDasharray = `${total}`;
@@ -225,7 +234,7 @@ export function FeatureStorytelling() {
     }
   }, [pathD]);
 
-  // Synchronized scroll progress tracking (120FPS GPU composited)
+  // Synchronized scroll progress tracking (120FPS GPU composited with live spark head)
   useEffect(() => {
     let rafId: number;
 
@@ -234,7 +243,7 @@ export function FeatureStorytelling() {
       const path = pathRef.current;
       if (!path) return;
 
-      const triggerY = window.innerHeight * 0.52;
+      const triggerY = window.innerHeight * 0.76;
       const docTops = pinDocTopsRef.current;
       if (docTops.length < 6) return;
 
@@ -244,28 +253,29 @@ export function FeatureStorytelling() {
       // Determine active step
       let currentStep = 0;
       nodeTops.forEach((top, idx) => {
-        if (top <= triggerY + 30) {
+        if (top <= triggerY + 25) {
           currentStep = idx + 1;
         }
       });
 
       if (activeStepRef.current !== currentStep) {
         activeStepRef.current = currentStep;
-        // Direct DOM class manipulation (Zero React re-render during scroll!)
+        // Direct DOM class manipulation for maximum 120FPS scroll performance
         const rows = [row1Ref.current, row2Ref.current, row3Ref.current, row4Ref.current, row5Ref.current, row6Ref.current];
         const nodes = [node1Ref.current, node2Ref.current, node3Ref.current, node4Ref.current, node5Ref.current, node6Ref.current];
         for (let i = 0; i < 6; i++) {
           const row = rows[i];
           const node = nodes[i];
+          const isRowActive = i + 1 <= currentStep;
           if (row) {
-            if (i + 1 <= currentStep) {
+            if (isRowActive) {
               row.classList.add('is-active');
             } else {
               row.classList.remove('is-active');
             }
           }
           if (node) {
-            if (i + 1 <= currentStep) {
+            if (isRowActive) {
               node.classList.add('node-active');
             } else {
               node.classList.remove('node-active');
@@ -282,7 +292,7 @@ export function FeatureStorytelling() {
       let currentLength = 0;
 
       if (nodeTops[0] > triggerY) {
-        const enterY = window.innerHeight * 0.85;
+        const enterY = window.innerHeight * 0.94;
         const progress = Math.min(Math.max((enterY - nodeTops[0]) / (enterY - triggerY), 0), 1);
         const L1 = lengths[1] || (totalLength / 6);
         currentLength = progress * L1;
@@ -312,12 +322,27 @@ export function FeatureStorytelling() {
       const offset = Math.max(0, totalLength - currentLength);
       if (Math.abs(offset - lastOffsetRef.current) > 0.5) {
         lastOffsetRef.current = offset;
-        const pathsToUpdate = [pathRef.current, glowPathRef.current, coreLaserRef.current];
+        const pathsToUpdate = [pathRef.current, glowPathRef.current, coreLaserRef.current, streamRef.current];
         pathsToUpdate.forEach((p) => {
           if (p) {
             p.style.strokeDashoffset = `${offset}`;
           }
         });
+
+        // Update the leading laser spark head position
+        if (sparkGroupRef.current) {
+          if (currentLength > 4) {
+            try {
+              const pt = path.getPointAtLength(currentLength);
+              sparkGroupRef.current.setAttribute('transform', `translate(${pt.x.toFixed(1)}, ${pt.y.toFixed(1)})`);
+              sparkGroupRef.current.style.opacity = '1';
+            } catch {
+              // point calculation fallback
+            }
+          } else {
+            sparkGroupRef.current.style.opacity = '0';
+          }
+        }
       }
     };
 
@@ -330,12 +355,14 @@ export function FeatureStorytelling() {
     const visibilityObserver = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        isSectionActiveRef.current = Boolean(entry && entry.isIntersecting);
-        if (isSectionActiveRef.current) {
+        const isIntersecting = Boolean(entry && entry.isIntersecting);
+        isSectionActiveRef.current = isIntersecting;
+        setIsSectionRevealed(isIntersecting);
+        if (isIntersecting) {
           handleScroll();
         }
       },
-      { rootMargin: '350px 0px' }
+      { rootMargin: '250px 0px' }
     );
 
     if (containerRef.current) {
@@ -386,12 +413,36 @@ export function FeatureStorytelling() {
   const vramUsagePercent = Math.min(100, Math.round((currentVramUsed / currentGpu.total) * 100));
 
   return (
-    <section className="mg-features" id="features-narrative">
+    <section
+      className={`mg-features ${isSectionRevealed ? 'is-revealed' : ''}`}
+      id="features-narrative"
+    >
       <div className="mg-features-atmosphere" aria-hidden="true" />
 
       <div className="mg-container" ref={containerRef}>
         {/* ===================================================================
-            PRESERVED 3-LAYER NATIVE VECTOR STROKE LASER SPINE (NO DROP-SHADOW)
+            SECTION TRANSITION BRIDGE DATUM (Cascades with delay-0)
+            =================================================================== */}
+        <div
+          className="mg-statement-bridge-datum mg-reveal-step delay-0"
+          style={{ margin: '0 auto 24px auto', opacity: 0.9, width: '100%', cursor: 'pointer' }}
+          onClick={() => scrollToSectionCleanly('features-narrative')}
+          role="button"
+          tabIndex={0}
+          title="Klik untuk autofokus ke Section 3 (Integrated Toolset)"
+        >
+          <div className="mg-statement-bridge-line" />
+          <div className="mg-statement-bridge-badge mg-chamfer-sm">
+            <span className="mg-bridge-dot" />
+            <span className="mg-bridge-text">
+              <CyberCorruptWalkingText text="INTEGRATED TOOLSET 03 // ARCHITECTURE PIPELINE" accent="cyan" cycleMs={6200} delayMs={900} />
+            </span>
+          </div>
+          <div className="mg-statement-bridge-line" />
+        </div>
+
+        {/* ===================================================================
+            DYNAMIC 3-LAYER NATIVE VECTOR STROKE LASER SPINE WITH TRAVELING SPARK
             =================================================================== */}
         <div className="mg-narrative-spine-wrap" aria-hidden="true">
           {pathD && svgSize.width > 0 && (
@@ -409,6 +460,13 @@ export function FeatureStorytelling() {
                   <stop offset="85%" stopColor="#60a5fa" stopOpacity="1" />
                   <stop offset="100%" stopColor="#93c5fd" stopOpacity="0.95" />
                 </linearGradient>
+                <filter id="mg-spark-glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3.5" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
               </defs>
 
               {/* Inactive Dashed Guide Path */}
@@ -420,7 +478,7 @@ export function FeatureStorytelling() {
                 strokeDasharray="4 6"
               />
 
-              {/* Layer 1: Active Ambient Wide Glow Aura (10px cyan 35%) */}
+              {/* Layer 1: Active Ambient Wide Glow Aura */}
               <path
                 ref={glowPathRef}
                 d={pathD}
@@ -431,7 +489,7 @@ export function FeatureStorytelling() {
                 className="mg-spine-laser-glow"
               />
 
-              {/* Layer 2: Active Traveling Main Gradient Path (3.5px) */}
+              {/* Layer 2: Active Traveling Main Gradient Path */}
               <path
                 ref={pathRef}
                 d={pathD}
@@ -442,13 +500,13 @@ export function FeatureStorytelling() {
                 className="mg-spine-laser-main"
               />
 
-              {/* Layer 3: Active Fiber-Optic White Core Laser (1.2px) */}
+              {/* Layer 3: Active Fiber-Optic White Core Laser */}
               <path
                 ref={coreLaserRef}
                 d={pathD}
                 fill="none"
-                stroke="rgba(255, 255, 255, 0.88)"
-                strokeWidth="1.2"
+                stroke="rgba(255, 255, 255, 0.92)"
+                strokeWidth="1.4"
                 strokeLinecap="round"
                 className="mg-spine-laser-active"
               />
@@ -464,21 +522,62 @@ export function FeatureStorytelling() {
                 strokeLinecap="round"
                 className="mg-spine-energy-stream"
               />
+
+              {/* Professional SVG Bus Injector Header Terminal */}
+              {nodePointsRef.current[0] && (
+                <g className="mg-svg-bus-injector" transform={`translate(${nodePointsRef.current[0].x}, ${nodePointsRef.current[0].y})`}>
+                  <circle r="15" fill="none" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1" strokeDasharray="3 3" className="mg-svg-injector-pulse" />
+                  <circle r="6" fill="#080e18" stroke="#38bdf8" strokeWidth="2" filter="url(#mg-spark-glow)" />
+                  <circle r="2.5" fill="#ffffff" />
+                  <text x="14" y="4" fill="#38bdf8" fontSize="8.5" fontFamily="var(--mg-font-mono)" letterSpacing="0.08em" opacity="0.85">BUS INJECTOR // 120FPS CLK</text>
+                </g>
+              )}
+
+              {/* Orbiting Reticle Telemetry Rings for each of the 6 Pin Nodes */}
+              {nodePointsRef.current.slice(1).map((pt, idx) => (
+                <g key={`pin-hud-${idx}`} transform={`translate(${pt.x}, ${pt.y})`}>
+                  <circle r="24" fill="none" stroke="rgba(56, 189, 248, 0.28)" strokeWidth="1" strokeDasharray="4 6" className="mg-svg-pin-orbit" />
+                  <line x1="-29" y1="0" x2="-22" y2="0" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1" />
+                  <line x1="22" y1="0" x2="29" y2="0" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1" />
+                  <line x1="0" y1="-29" x2="0" y2="-22" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1" />
+                  <line x1="0" y1="22" x2="0" y2="29" stroke="rgba(56, 189, 248, 0.45)" strokeWidth="1" />
+                  <text x="26" y="-12" fill="#7dd3fc" fontSize="8" fontFamily="var(--mg-font-mono)" letterSpacing="0.06em" opacity="0.8">CH-0{idx + 1}</text>
+                </g>
+              ))}
+
+              {/* Terminal Bus Ground Cathode below Node 6 */}
+              {nodePointsRef.current.length >= 7 && (
+                <g transform={`translate(${nodePointsRef.current[6].x}, ${nodePointsRef.current[6].y + 110})`}>
+                  <line x1="-16" y1="0" x2="16" y2="0" stroke="#38bdf8" strokeWidth="2" filter="url(#mg-spark-glow)" />
+                  <line x1="-10" y1="5" x2="10" y2="5" stroke="#38bdf8" strokeWidth="1.5" opacity="0.75" />
+                  <line x1="-5" y1="10" x2="5" y2="10" stroke="#38bdf8" strokeWidth="1" opacity="0.5" />
+                  <text x="0" y="24" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="var(--mg-font-mono)" letterSpacing="0.08em">BUS GROUND 0x00</text>
+                </g>
+              )}
+
+              {/* Dynamic Traveling Laser Plasma Spark Head */}
+              <g ref={sparkGroupRef} className="mg-spine-laser-spark" style={{ opacity: 0 }}>
+                <circle r="16" fill="none" stroke="rgba(56, 189, 248, 0.75)" strokeWidth="1.5" className="mg-spine-laser-spark-halo" />
+                <circle r="9" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" strokeWidth="1" />
+                <circle r="4.5" fill="#ffffff" stroke="#38bdf8" strokeWidth="2.5" filter="url(#mg-spark-glow)" />
+              </g>
             </svg>
           )}
         </div>
 
-        {/* Section Header */}
-        <div className="mg-features-header">
+        {/* ===================================================================
+            SECTION HEADER (Cascades with delay-1 & delay-2)
+            =================================================================== */}
+        <div className="mg-features-header mg-reveal-step delay-1">
           <div className="mg-editorial-tag">
             <span className="mg-tag-num">03</span>
             <span className="mg-tag-line" />
             <span className="mg-tag-text">INTEGRATED TOOLSET &amp; WORKSTATIONS</span>
           </div>
           <h2 className="mg-features-title">
-            Suite Workstation Generatif Interaktif
+            <CyberCorruptWalkingText text="Suite Workstation Generatif Interaktif" accent="cyan" cycleMs={6500} delayMs={1000} />
           </h2>
-          <p className="mg-features-subtitle">
+          <p className="mg-features-subtitle mg-reveal-step delay-2">
             Ke-6 workstation mekanis berpotongan chamfer hardware: optical comparator berpemotong GPU clip-path, penumpuk LoRA dengan osiloskop harmonik real-time, profiler alokasi VRAM multi-GPU, dan kalkulator lattice snap-64.
           </p>
         </div>
@@ -574,22 +673,28 @@ export function FeatureStorytelling() {
             <div className="mg-comparator-container mg-chamfer-lg mg-gpu">
               {/* Slot A: Base Background Image (Illustrious XL) */}
               <img
-                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=450/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg"
+                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/ce58b29f-26ca-461b-a184-cf54fb869e26/width=600/ce58b29f-26ca-461b-a184-cf54fb869e26.jpeg"
                 alt="Illustrious XL Output"
                 className="mg-comparator-base-img"
               />
-              <span className="mg-comparator-badge-left mg-chamfer-sm">SLOT A // ILLUSTRIOUS XL</span>
+              <span className="mg-comparator-badge-left mg-chamfer-sm">
+                <span className="mg-badge-led" />
+                SLOT A // ILLUSTRIOUS XL
+              </span>
 
               {/* Slot B: Clipped Foreground Image (NoobAI V-Pred) */}
               <img
-                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=450/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg"
+                src="https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/6942c4b2-fcd4-4135-ab44-a617e26235d3/width=600/6942c4b2-fcd4-4135-ab44-a617e26235d3.jpeg"
                 alt="NoobAI V-Pred Output"
                 className="mg-comparator-clip-img mg-gpu"
                 style={{
                   clipPath: `inset(0 ${(100 - loupeSplit).toFixed(1)}% 0 0)`,
                 }}
               />
-              <span className="mg-comparator-badge-right mg-chamfer-sm">SLOT B // NOOBAI V-PRED</span>
+              <span className="mg-comparator-badge-right mg-chamfer-sm">
+                <span className="mg-badge-led" />
+                SLOT B // NOOBAI V-PRED
+              </span>
 
               {/* Cyan Laser Divider Line */}
               <div
@@ -597,7 +702,9 @@ export function FeatureStorytelling() {
                 style={{ left: `${loupeSplit}%` }}
               >
                 <div className="mg-comparator-laser-handle mg-chamfer-sm">
-                  <span>◀▶</span>
+                  <span className="mg-handle-arrows">◀</span>
+                  <span className="mg-handle-optic-dot" />
+                  <span className="mg-handle-arrows">▶</span>
                 </div>
               </div>
 
@@ -1121,7 +1228,7 @@ export function FeatureStorytelling() {
         targetId="tools-arsenal"
         direction="down"
         label="TOOLS ARSENAL"
-        className="mg-dock-edge bottom"
+        className="mg-dock-edge bottom mg-reveal-step delay-3"
       />
     </section>
   );

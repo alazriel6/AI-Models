@@ -7,14 +7,12 @@ import { ToolsArsenalSection } from './ToolsArsenalSection';
 import { TechnicalDetailsSection } from './TechnicalDetailsSection';
 import { FinalCtaSection } from './FinalCtaSection';
 import { LandingFooter } from './LandingFooter';
+import { scrollToSectionCleanly } from './CyberSectionNavigator';
 import '../../style/landing.css';
 
 export function LandingPage() {
   const handleScrollToOverview = useCallback(() => {
-    const target = document.getElementById('editorial-statement');
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' });
-    }
+    scrollToSectionCleanly('editorial-statement');
   }, []);
 
   return (

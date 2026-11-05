@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="none" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <!-- Deep Terminal Obsidian -->
+    <linearGradient id="sec2-base" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#050609" />
+      <stop offset="70%" stop-color="#040507" />
+      <stop offset="100%" stop-color="#020304" />
+    </linearGradient>
+
+    <!-- Bottom Center Grounding Glow -->
+    <radialGradient id="terminal-glow" cx="50%" cy="100%" r="55%">
+      <stop offset="0%" stop-color="#00f0ff" stop-opacity="0.06" />
+      <stop offset="40%" stop-color="#ff003c" stop-opacity="0.02" />
+      <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Crosshair Grid Pattern (Wide 160px) -->
+    <pattern id="wide-cross-grid" width="160" height="160" patternUnits="userSpaceOnUse">
+      <path d="M 160 0 L 0 0 0 160" fill="none" stroke="#ffffff" stroke-width="0.4" stroke-opacity="0.03" />
+      <path d="M -3 0 L 3 0 M 0 -3 L 0 3" stroke="#00f0ff" stroke-width="0.7" stroke-opacity="0.2" />
+    </pattern>
+  </defs>
+
+  <!-- 1. Base & Grid -->
+  <rect width="1920" height="1080" fill="url(#sec2-base)" />
+  <rect width="1920" height="1080" fill="url(#terminal-glow)" />
+  <rect width="1920" height="1080" fill="url(#wide-cross-grid)" />
+
+  <!-- 2. Outer Chamfered Container Frame (Arasaka Terminal Style) -->
+  <path d="M 48 84 L 84 48 L 1836 48 L 1872 84 L 1872 996 L 1836 1032 L 84 1032 L 48 996 Z" fill="none" stroke="#00f0ff" stroke-width="0.8" stroke-opacity="0.16" />
+
+  <!-- Accent Yellow Corner Cuts on the Frame -->
+  <path d="M 48 110 L 48 84 L 84 48 L 110 48" fill="none" stroke="#fcee0a" stroke-width="1.5" stroke-opacity="0.6" />
+  <path d="M 1872 970 L 1872 996 L 1836 1032 L 1810 1032" fill="none" stroke="#ff003c" stroke-width="1.5" stroke-opacity="0.6" />
+
+  <!-- 3. Subtle Three-Column Vertical Guides (For Spec Cards / Tables) -->
+  <g stroke="#ffffff" stroke-width="0.5" stroke-opacity="0.04" stroke-dasharray="8 8">
+    <line x1="640" y1="48" x2="640" y2="1032" />
+    <line x1="1280" y1="48" x2="1280" y2="1032" />
+  </g>
+
+  <!-- 4. Giant Background Section Index Number -->
+  <text x="1820" y="960" font-family="monospace" font-weight="bold" font-size="240" fill="none" stroke="#ffffff" stroke-width="1" stroke-opacity="0.025" text-anchor="end">02 // MODELS</text>
+
+  <!-- 5. Bottom-Left Cyberpunk Barcode & Serial Block (Dari Referensi 1) -->
+  <g transform="translate(84, 965)">
+    <g fill="#ff003c" fill-opacity="0.45">
+      <rect x="0" y="0" width="2" height="28" />
+      <rect x="5" y="0" width="4" height="28" />
+      <rect x="12" y="0" width="1" height="28" />
+      <rect x="16" y="0" width="6" height="28" />
+      <rect x="25" y="0" width="2" height="28" />
+      <rect x="30" y="0" width="1" height="28" />
+      <rect x="34" y="0" width="4" height="28" />
+      <rect x="41" y="0" width="2" height="28" />
+      <rect x="46" y="0" width="5" height="28" />
+      <rect x="54" y="0" width="1" height="28" />
+      <rect x="58" y="0" width="3" height="28" />
+    </g>
+    <text x="0" y="40" fill="#ff003c" fill-opacity="0.5" font-family="monospace" font-size="8" letter-spacing="2.5">SN-2077-NC99</text>
+  </g>
+
+  <!-- 6. Top-Right Status Pill -->
+  <g transform="translate(1680, 68)">
+    <rect x="0" y="0" width="150" height="18" fill="#00f0ff" fill-opacity="0.08" stroke="#00f0ff" stroke-width="0.6" stroke-opacity="0.4" />
+    <circle cx="12" cy="9" r="2.5" fill="#00f0ff" fill-opacity="0.8" />
+    <text x="24" y="12" fill="#00f0ff" fill-opacity="0.7" font-family="monospace" font-size="8.5" letter-spacing="1.5">ARCHIVE // VERIFIED</text>
+  </g>
+</svg>
+

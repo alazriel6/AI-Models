@@ -517,8 +517,46 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
 
   const activeChassis = chassisUnits[activeChassisIdx] || chassisUnits[0] || CHASSIS_FALLBACK_UNITS[0];
 
+  const [isHeroRevealed, setIsHeroRevealed] = useState(false);
+  const isHeroRevealedRef = useRef(false);
+
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) {
+      setIsHeroRevealed(true);
+      return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsHeroRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          if (!isHeroRevealedRef.current) {
+            isHeroRevealedRef.current = true;
+            setIsHeroRevealed(true);
+          }
+        } else {
+          // Reset when scrolled away so it re-animates every time the user scrolls back to top
+          if (isHeroRevealedRef.current) {
+            isHeroRevealedRef.current = false;
+            setIsHeroRevealed(false);
+          }
+        }
+      },
+      { threshold: 0.15 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <section className="mg-hero mg-hero-cyberpunk" id="hero" ref={heroRef}>
+    <section className={`mg-hero mg-hero-cyberpunk ${isHeroRevealed ? 'is-revealed' : ''}`} id="hero" ref={heroRef}>
       {/* 1. Cyberpunk Workstation Backdrop Vector Artwork (Hero.svg) */}
       <div className="mg-hero-cyber-bg" aria-hidden="true" />
 
@@ -605,7 +643,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
               ================================================================= */}
           <div className="mg-hero-editorial-col">
             {/* Category HUD Telemetry Line (No box/card container) */}
-            <div className="mg-hero-cyber-pill">
+            <div className="mg-hero-cyber-pill mg-reveal-step delay-1">
               <span className="mg-cyber-pill-glitch">
                 [ ARCHITECTURE // DIRECTORY ]
               </span>
@@ -614,7 +652,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             </div>
 
             {/* Top Telemetry Bar SYS.01 (Clean HUD telemetry line, no card box) */}
-            <div className="mg-hero-telemetry-bar">
+            <div className="mg-hero-telemetry-bar mg-reveal-step delay-2">
               <div className="mg-hero-telemetry-sys">
                 <div className="mg-hero-signal-bars" aria-hidden="true">
                   <span className="sig-bar b1" />
@@ -637,7 +675,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             </div>
 
             {/* Giant Punchy Headline with Typewriter: LOCAL MODEL + Typewriter */}
-            <div className="mg-hero-headline-wrap">
+            <div className="mg-hero-headline-wrap mg-reveal-step delay-3">
               <h1 className="mg-hero-title-mech">
                 <span className="mg-hero-title-white">
                   LOCAL MODEL
@@ -649,12 +687,12 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             </div>
 
             {/* Subtitle / Description Paragraph */}
-            <p className="mg-hero-lead-mech">
+            <p className="mg-hero-lead-mech mg-reveal-step delay-4">
               Direktori kurasi arsitektur <strong className="mg-lead-hl">Illustrious XL, NoobAI V-Pred, SDXL, dan Flux.1</strong> yang terintegrasi dengan <strong className="mg-lead-cyan">14 perkakas workstation lokal</strong>—mulai dari pembacaan biner SafeTensors, kalkulasi interferensi LoRA, hingga jembatan node ComfyUI.
             </p>
 
             {/* Fast Inline Search Bar with ACCESS Button */}
-            <form className="mg-mech-search-bar" onSubmit={handleSearchSubmit}>
+            <form className="mg-mech-search-bar mg-reveal-step delay-5" onSubmit={handleSearchSubmit}>
               <div className="mg-mech-search-wrap mg-chamfer-sm">
                 <div className="mg-search-prefix-group" aria-hidden="true">
                   <svg className="mg-mech-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -682,7 +720,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
             </form>
 
             {/* 3-Column Specifications (Open telemetry grid without card box) */}
-            <div className="mg-mech-specs-panel">
+            <div className="mg-mech-specs-panel mg-reveal-step delay-6">
               <div className="mg-mech-spec-item">
                 <div className="mg-mech-spec-header">
                   <div className="mg-spec-label-group">
@@ -734,7 +772,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
           {/* =================================================================
               RIGHT COLUMN: Active Chassis Topbar & 3D Mechanical Card Deck
               ================================================================= */}
-          <div className="mg-mech-deck-column">
+          <div className="mg-mech-deck-column mg-reveal-step delay-7">
             {/* Topbar: Active Chassis Indicator + Numbered Selector Buttons */}
             <div className="mg-mech-chassis-topbar">
               <div className="mg-mech-chassis-label">
@@ -966,7 +1004,7 @@ export function HeroSection({ onDiscoverClick }: HeroSectionProps) {
         targetId="editorial-statement"
         direction="down"
         label="SYSTEM OVERVIEW"
-        className="mg-hero-dock"
+        className="mg-hero-dock mg-reveal-step delay-8"
         onClick={onDiscoverClick}
       />
     </section>
